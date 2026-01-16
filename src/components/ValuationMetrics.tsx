@@ -288,10 +288,10 @@ export default function ValuationMetrics({
         splitLine: { lineStyle: { color: '#1e293b', type: 'dashed' } },
       },
       series: [
-        { name: '营收增长', type: 'line', data: revenueGrowth, smooth: true, lineStyle: { width: 3 }, itemStyle: { color: '#14b8a6' } },
-        { name: '净利润增长', type: 'line', data: netIncomeGrowth, smooth: true, lineStyle: { width: 3 }, itemStyle: { color: '#8b5cf6' } },
-        { name: 'EPS增长', type: 'line', data: epsGrowth, smooth: true, lineStyle: { width: 3 }, itemStyle: { color: '#fbbf24' } },
-        { name: '自由现金流增长', type: 'line', data: fcfGrowth, smooth: true, lineStyle: { width: 3, type: 'dashed' }, itemStyle: { color: '#3b82f6' } },
+        { name: '营收增长', type: 'line', data: revenueGrowth, smooth: true, lineStyle: { width: 3 }, itemStyle: { color: '#14b8a6' }, symbol: 'circle', symbolSize: 6, label: { show: true, position: 'top', color: '#14b8a6', fontSize: 9, fontFamily: 'JetBrains Mono', formatter: (p: any) => `${p.value >= 0 ? '+' : ''}${p.value.toFixed(1)}%` } },
+        { name: '净利润增长', type: 'line', data: netIncomeGrowth, smooth: true, lineStyle: { width: 3 }, itemStyle: { color: '#8b5cf6' }, symbol: 'circle', symbolSize: 6, label: { show: true, position: 'top', color: '#8b5cf6', fontSize: 9, fontFamily: 'JetBrains Mono', formatter: (p: any) => `${p.value >= 0 ? '+' : ''}${p.value.toFixed(1)}%` } },
+        { name: 'EPS增长', type: 'line', data: epsGrowth, smooth: true, lineStyle: { width: 3 }, itemStyle: { color: '#fbbf24' }, symbol: 'circle', symbolSize: 6, label: { show: true, position: 'bottom', color: '#fbbf24', fontSize: 9, fontFamily: 'JetBrains Mono', formatter: (p: any) => `${p.value >= 0 ? '+' : ''}${p.value.toFixed(1)}%` } },
+        { name: '自由现金流增长', type: 'line', data: fcfGrowth, smooth: true, lineStyle: { width: 3, type: 'dashed' }, itemStyle: { color: '#3b82f6' }, symbol: 'circle', symbolSize: 6, label: { show: true, position: 'bottom', color: '#3b82f6', fontSize: 9, fontFamily: 'JetBrains Mono', formatter: (p: any) => `${p.value >= 0 ? '+' : ''}${p.value.toFixed(1)}%` } },
       ],
     };
 

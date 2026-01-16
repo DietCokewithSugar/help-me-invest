@@ -255,197 +255,26 @@ export default function RevenueCharts({ incomeStatements }: Props) {
     ],
   };
 
-  // 折线图 - 利润率趋势
-  const grossMargins = incomeStatements.map(i => ((i.grossProfitRatio || 0) * 100)).reverse();
-  const netMargins = incomeStatements.map(i => ((i.netIncomeRatio || 0) * 100)).reverse();
-  const operatingMargins = incomeStatements.map(i => ((i.operatingIncomeRatio || 0) * 100)).reverse();
-
-  const lineOption = {
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'axis',
-      backgroundColor: 'rgba(15, 15, 35, 0.95)',
-      borderColor: 'rgba(20, 184, 166, 0.3)',
-      borderWidth: 1,
-      textStyle: { color: '#f8fafc' },
-      formatter: (params: any) => {
-        let result = `<div style="font-weight: 600; margin-bottom: 8px;">${params[0].axisValue}</div>`;
-        params.forEach((p: any) => {
-          result += `<div style="display: flex; align-items: center; gap: 8px; margin: 4px 0;">
-            <span style="width: 10px; height: 10px; background: ${p.color}; border-radius: 50%;"></span>
-            <span>${p.seriesName}: </span>
-            <span style="font-weight: 600;">${p.value.toFixed(1)}%</span>
-          </div>`;
-        });
-        return result;
-      },
-    },
-    legend: {
-      data: ['毛利率', '营业利润率', '净利率'],
-      textStyle: { color: '#94a3b8', fontSize: 12 },
-      top: 0,
-      itemGap: 24,
-    },
-    grid: { 
-      left: '3%', 
-      right: '4%', 
-      bottom: '3%', 
-      top: '70px', 
-      containLabel: true 
-    },
-    xAxis: {
-      type: 'category',
-      data: years,
-      axisLine: { lineStyle: { color: '#334155' } },
-      axisLabel: { 
-        color: '#94a3b8',
-        fontSize: 12,
-        fontFamily: 'JetBrains Mono, monospace',
-      },
-      axisTick: { show: false },
-    },
-    yAxis: {
-      type: 'value',
-      name: '利润率 (%)',
-      nameTextStyle: { 
-        color: '#64748b',
-        fontSize: 11,
-        padding: [0, 0, 8, 0],
-      },
-      axisLine: { show: false },
-      axisLabel: { 
-        color: '#64748b',
-        fontSize: 11,
-        formatter: (value: number) => `${value}%`,
-      },
-      splitLine: { 
-        lineStyle: { 
-          color: '#1e293b',
-          type: 'dashed',
-        } 
-      },
-    },
-    series: [
-      {
-        name: '毛利率',
-        type: 'line',
-        data: grossMargins,
-        smooth: true,
-        lineStyle: { color: '#22c55e', width: 3 },
-        itemStyle: { color: '#22c55e' },
-        areaStyle: {
-          color: {
-            type: 'linear',
-            x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: 'rgba(34, 197, 94, 0.3)' },
-              { offset: 1, color: 'rgba(34, 197, 94, 0)' }
-            ]
-          }
-        },
-        symbol: 'circle',
-        symbolSize: 8,
-        label: {
-          show: true,
-          position: 'top',
-          color: '#22c55e',
-          fontSize: 10,
-          fontFamily: 'JetBrains Mono, monospace',
-          formatter: (params: any) => `${params.value.toFixed(1)}%`,
-        },
-      },
-      {
-        name: '营业利润率',
-        type: 'line',
-        data: operatingMargins,
-        smooth: true,
-        lineStyle: { color: '#3b82f6', width: 3 },
-        itemStyle: { color: '#3b82f6' },
-        areaStyle: {
-          color: {
-            type: 'linear',
-            x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: 'rgba(59, 130, 246, 0.3)' },
-              { offset: 1, color: 'rgba(59, 130, 246, 0)' }
-            ]
-          }
-        },
-        symbol: 'circle',
-        symbolSize: 8,
-        label: {
-          show: true,
-          position: 'top',
-          color: '#3b82f6',
-          fontSize: 10,
-          fontFamily: 'JetBrains Mono, monospace',
-          formatter: (params: any) => `${params.value.toFixed(1)}%`,
-        },
-      },
-      {
-        name: '净利率',
-        type: 'line',
-        data: netMargins,
-        smooth: true,
-        lineStyle: { color: '#fbbf24', width: 3 },
-        itemStyle: { color: '#fbbf24' },
-        areaStyle: {
-          color: {
-            type: 'linear',
-            x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: 'rgba(251, 191, 36, 0.3)' },
-              { offset: 1, color: 'rgba(251, 191, 36, 0)' }
-            ]
-          }
-        },
-        symbol: 'circle',
-        symbolSize: 8,
-        label: {
-          show: true,
-          position: 'top',
-          color: '#fbbf24',
-          fontSize: 10,
-          fontFamily: 'JetBrains Mono, monospace',
-          formatter: (params: any) => `${params.value.toFixed(1)}%`,
-        },
-      },
-    ],
-  };
-
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-midnight/50 rounded-xl p-5 border border-white/5">
-          <h4 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
-            <span className="w-2 h-2 bg-aurora-500 rounded-full"></span>
-            年度营收趋势
-          </h4>
-          <ReactECharts
-            option={barOption}
-            style={{ height: '320px', width: '100%' }}
-            opts={{ renderer: 'canvas' }}
-          />
-        </div>
-        <div className="bg-midnight/50 rounded-xl p-5 border border-white/5">
-          <h4 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
-            <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
-            {latestIncome?.date?.split('-')[0] || ''} 成本结构分布
-          </h4>
-          <ReactECharts
-            option={pieOption}
-            style={{ height: '320px', width: '100%' }}
-            opts={{ renderer: 'canvas' }}
-          />
-        </div>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="bg-midnight/50 rounded-xl p-5 border border-white/5">
+        <h4 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
+          <span className="w-2 h-2 bg-aurora-500 rounded-full"></span>
+          年度营收趋势
+        </h4>
+        <ReactECharts
+          option={barOption}
+          style={{ height: '320px', width: '100%' }}
+          opts={{ renderer: 'canvas' }}
+        />
       </div>
       <div className="bg-midnight/50 rounded-xl p-5 border border-white/5">
         <h4 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
-          <span className="w-2 h-2 bg-gold-400 rounded-full"></span>
-          利润率变化趋势
+          <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
+          {latestIncome?.date?.split('-')[0] || ''} 成本结构分布
         </h4>
         <ReactECharts
-          option={lineOption}
+          option={pieOption}
           style={{ height: '320px', width: '100%' }}
           opts={{ renderer: 'canvas' }}
         />
