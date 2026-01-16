@@ -25,12 +25,54 @@ export async function POST(request: NextRequest) {
 
     const upperSymbol = symbol.toUpperCase();
 
-    // 并行获取所有数据
-    const [profileData, incomeData, peersData, newsData] = await Promise.all([
+    // ==================== 并行获取所有数据 ====================
+    
+    const [
+      // 基础信息
+      profileData,
+      peersData,
+      newsData,
+      // 三大财务报表
+      incomeData,
+      balanceSheetData,
+      cashFlowData,
+      // 关键指标
+      keyMetricsData,
+      financialRatiosData,
+      financialGrowthData,
+      // 估值数据
+      dcfData,
+      enterpriseValueData,
+      // 事件日历
+      earningsCalendarData,
+      dividendHistoryData,
+      stockSplitsData,
+      // 机构与内幕
+      institutionalHoldersData,
+      insiderTradingData,
+    ] = await Promise.all([
+      // 基础信息
       fmp.getProfile(upperSymbol),
-      fmp.getIncomeStatement(upperSymbol, 'annual', 5),
       fmp.getPeers(upperSymbol),
       fmp.getNews(upperSymbol, 15),
+      // 三大财务报表
+      fmp.getIncomeStatement(upperSymbol, 'annual', 5),
+      fmp.getBalanceSheet(upperSymbol, 'annual', 5),
+      fmp.getCashFlowStatement(upperSymbol, 'annual', 5),
+      // 关键指标
+      fmp.getKeyMetrics(upperSymbol, 'annual', 5),
+      fmp.getFinancialRatios(upperSymbol, 'annual', 5),
+      fmp.getFinancialGrowth(upperSymbol, 'annual', 5),
+      // 估值数据
+      fmp.getDCF(upperSymbol).catch(() => []),
+      fmp.getEnterpriseValue(upperSymbol, 'annual', 5).catch(() => []),
+      // 事件日历
+      fmp.getHistoricalEarnings(upperSymbol, 10).catch(() => []),
+      fmp.getHistoricalDividends(upperSymbol).catch(() => []),
+      fmp.getStockSplits(upperSymbol).catch(() => []),
+      // 机构与内幕
+      fmp.getInstitutionalHolders(upperSymbol).catch(() => []),
+      fmp.getInsiderTrading(upperSymbol, 30).catch(() => []),
     ]);
 
     if (!profileData || profileData.length === 0) {
@@ -57,7 +99,8 @@ export async function POST(request: NextRequest) {
       console.log('Transcript not available');
     }
 
-    // AI 分析
+    // ==================== AI 分析 ====================
+    
     const aiAnalysisRaw = await gemini.analyzeCompany(
       profile,
       incomeData,
@@ -68,7 +111,6 @@ export async function POST(request: NextRequest) {
     // 解析 AI 返回的 JSON
     let aiAnalysis;
     try {
-      // 清理可能的 markdown 代码块
       const cleanedResponse = aiAnalysisRaw
         .replace(/```json\n?/g, '')
         .replace(/```\n?/g, '')
@@ -76,7 +118,6 @@ export async function POST(request: NextRequest) {
       aiAnalysis = JSON.parse(cleanedResponse);
     } catch (e) {
       console.error('Failed to parse AI response:', e);
-      // 如果解析失败，创建一个默认结构
       aiAnalysis = {
         companyOverview: profile.description || '暂无企业概况',
         industryAnalysis: `${profile.companyName} 属于 ${profile.sector} 行业，主要从事 ${profile.industry} 领域的业务。`,
@@ -108,9 +149,29 @@ export async function POST(request: NextRequest) {
     // 构建桑基图数据
     const sankeyData = buildSankeyData(incomeData[0]);
 
+    // ==================== 返回完整数据 ====================
+    
     return NextResponse.json({
       profile,
-      incomeStatements: incomeData,
+      // 三大财务报表
+      incomeStatements: incomeData || [],
+      balanceSheets: balanceSheetData || [],
+      cashFlowStatements: cashFlowData || [],
+      // 关键指标
+      keyMetrics: keyMetricsData || [],
+      financialRatios: financialRatiosData || [],
+      financialGrowth: financialGrowthData || [],
+      // 估值
+      dcfValuation: dcfData && dcfData.length > 0 ? dcfData[0] : null,
+      enterpriseValues: enterpriseValueData || [],
+      // 事件日历
+      earningsCalendar: earningsCalendarData || [],
+      dividendHistory: dividendHistoryData || [],
+      stockSplits: stockSplitsData || [],
+      // 机构与内幕
+      institutionalHolders: institutionalHoldersData || [],
+      insiderTrading: insiderTradingData || [],
+      // 其他
       peers,
       news: newsData || [],
       aiAnalysis,
