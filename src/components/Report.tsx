@@ -1,10 +1,11 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 import { 
   Building2, TrendingUp, Target, Shield, Newspaper, 
-  ArrowLeft, Download, Users, AlertTriangle, Sparkles,
-  Globe, Calendar, DollarSign, Users2, Loader2, CheckCircle,
+  ArrowLeft, Users, AlertTriangle, Sparkles,
+  Globe, Calendar, DollarSign, Users2, Image as ImageIcon,
   FileSpreadsheet, Calculator, Briefcase, ChevronDown, ChevronUp,
   ExternalLink
 } from 'lucide-react';
@@ -15,9 +16,8 @@ import FinancialStatements from './FinancialStatements';
 import ValuationMetrics from './ValuationMetrics';
 import EventCalendar from './EventCalendar';
 import HoldingsAnalysis from './HoldingsAnalysis';
+import ExportModal from './ExportModal';
 import type { ReportData } from '@/types';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 
 interface ReportProps {
   data: ReportData;
@@ -142,8 +142,7 @@ function StatCard({
 
 export default function Report({ data, onReset }: ReportProps) {
   const reportRef = useRef<HTMLDivElement>(null);
-  const [exporting, setExporting] = useState(false);
-  const [exportSuccess, setExportSuccess] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     aiAnalysis: true,
     financialStatements: true,
@@ -178,36 +177,6 @@ export default function Report({ data, onReset }: ReportProps) {
       ...prev,
       [section]: !prev[section]
     }));
-  };
-
-  const exportToPDF = async () => {
-    if (!reportRef.current) return;
-    
-    setExporting(true);
-    try {
-      const canvas = await html2canvas(reportRef.current, {
-        scale: 2,
-        backgroundColor: '#0a0a0f',
-        logging: false,
-        useCORS: true,
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'px',
-        format: [canvas.width, canvas.height],
-      });
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-      pdf.save(`${profile.symbol}_投资研究报告.pdf`);
-      setExportSuccess(true);
-      setTimeout(() => setExportSuccess(false), 3000);
-    } catch (error) {
-      console.error('Export error:', error);
-    } finally {
-      setExporting(false);
-    }
   };
 
   const formatNumber = (num: number) => {
@@ -277,32 +246,15 @@ export default function Report({ data, onReset }: ReportProps) {
             ))}
           </div>
           
-          <button
-            onClick={exportToPDF}
-            disabled={exporting}
-            className={`gemini-btn flex items-center gap-2 ${
-              exportSuccess 
-                ? 'bg-gemini-green text-white' 
-                : 'gemini-btn-primary'
-            }`}
+          <motion.button
+            onClick={() => setIsExportModalOpen(true)}
+            className="gemini-btn gemini-btn-primary flex items-center gap-2"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
           >
-            {exporting ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                导出中...
-              </>
-            ) : exportSuccess ? (
-              <>
-                <CheckCircle className="w-4 h-4" />
-                导出成功
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4" />
-                导出 PDF
-              </>
-            )}
-          </button>
+            <ImageIcon className="w-4 h-4" />
+            导出图片
+          </motion.button>
         </div>
       </div>
 
@@ -637,6 +589,14 @@ export default function Report({ data, onReset }: ReportProps) {
           </p>
         </footer>
       </div>
+
+      {/* 导出模态框 */}
+      <ExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        targetRef={reportRef}
+        fileName={`${profile.symbol}_投资研究报告`}
+      />
     </div>
   );
 }
