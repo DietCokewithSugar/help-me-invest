@@ -258,7 +258,7 @@ export default function Report({ data, onReset }: ReportProps) {
         </div>
       </div>
 
-      <div ref={reportRef} className="space-y-10">
+      <div ref={reportRef} className="space-y-10 bg-[#0a0a0f] p-6 md:p-10 rounded-3xl border border-white/10 shadow-2xl">
         {/* 公司头部信息 */}
         <header className="gemini-card p-8 md:p-10 animate-fade-in-up relative overflow-hidden">
           {/* 背景装饰 */}
