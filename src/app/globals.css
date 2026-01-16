@@ -1,100 +1,589 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+/* Google Sans 字体 */
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Google+Sans+Mono:wght@400;500&display=swap');
+
+/* 备用字体 - Inter 和 JetBrains Mono */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================
+   Gemini 设计系统 - 核心变量
+   ============================================ */
 :root {
-  --bg-primary: #0f0f23;
-  --bg-secondary: #1a1a2e;
-  --bg-tertiary: #252542;
+  /* 深色背景 */
+  --void: #0a0a0f;
+  --abyss: #0d0d14;
+  --deep: #12121a;
+  --surface: #1a1a24;
+  --elevated: #24242f;
+  
+  /* Google 品牌色 */
+  --gemini-blue: #4285f4;
+  --gemini-red: #ea4335;
+  --gemini-yellow: #fbbc04;
+  --gemini-green: #34a853;
+  
+  /* 极光渐变色 */
+  --aurora-1: #4285f4;
+  --aurora-2: #a855f7;
+  --aurora-3: #ec4899;
+  --aurora-4: #22d3ee;
+  
+  /* 文字色 */
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
-  --accent-primary: #14b8a6;
-  --accent-gold: #fbbf24;
+  --text-muted: #64748b;
+}
+
+/* ============================================
+   基础样式
+   ============================================ */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: linear-gradient(135deg, var(--bg-primary) 0%, #16213e 100%);
+  background: var(--void);
   color: var(--text-primary);
   min-height: 100vh;
+  font-feature-settings: 'kern' 1, 'liga' 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* 自定义滚动条 */
+/* 自定义选择高亮 */
+::selection {
+  background: rgba(66, 133, 244, 0.3);
+  color: #fff;
+}
+
+/* ============================================
+   自定义滚动条 - 极简风格
+   ============================================ */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--accent-primary);
-  border-radius: 4px;
+  background: linear-gradient(180deg, var(--gemini-blue), var(--aurora-2));
+  border-radius: 100px;
 }
 
-/* 玻璃拟态卡片效果 */
-.glass-card {
-  background: rgba(26, 26, 46, 0.7);
-  backdrop-filter: blur(20px);
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--aurora-2), var(--aurora-3));
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--gemini-blue) transparent;
+}
+
+/* ============================================
+   极光背景动画
+   ============================================ */
+.aurora-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.aurora-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.4;
+  will-change: transform;
+}
+
+.aurora-orb-1 {
+  width: 600px;
+  height: 600px;
+  top: -10%;
+  right: -10%;
+  background: linear-gradient(135deg, var(--gemini-blue), var(--aurora-2));
+  animation: aurora 20s ease-in-out infinite;
+}
+
+.aurora-orb-2 {
+  width: 500px;
+  height: 500px;
+  bottom: -15%;
+  left: -10%;
+  background: linear-gradient(135deg, var(--aurora-3), var(--aurora-4));
+  animation: aurora 25s ease-in-out infinite reverse;
+}
+
+.aurora-orb-3 {
+  width: 400px;
+  height: 400px;
+  top: 40%;
+  left: 30%;
+  background: linear-gradient(135deg, var(--gemini-green), var(--gemini-blue));
+  animation: aurora 18s ease-in-out infinite 2s;
+}
+
+@keyframes aurora {
+  0%, 100% { 
+    transform: translateY(0) translateX(0) rotate(0deg) scale(1);
+    opacity: 0.3;
+  }
+  25% { 
+    transform: translateY(-30px) translateX(20px) rotate(5deg) scale(1.1);
+    opacity: 0.5;
+  }
+  50% { 
+    transform: translateY(20px) translateX(-30px) rotate(-5deg) scale(0.95);
+    opacity: 0.4;
+  }
+  75% { 
+    transform: translateY(-15px) translateX(-10px) rotate(3deg) scale(1.05);
+    opacity: 0.45;
+  }
+}
+
+/* ============================================
+   玻璃拟态卡片 - Gemini 风格
+   ============================================ */
+.gemini-card {
+  background: rgba(26, 26, 36, 0.6);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 24px;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.gemini-card:hover {
+  background: rgba(36, 36, 47, 0.7);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.gemini-card-glow {
+  position: relative;
+  overflow: hidden;
+}
+
+.gemini-card-glow::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(66, 133, 244, 0.5), 
+    rgba(168, 85, 247, 0.5), 
+    transparent
+  );
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.gemini-card-glow:hover::before {
+  opacity: 1;
+}
+
+/* ============================================
+   按钮系统
+   ============================================ */
+.gemini-btn {
+  position: relative;
+  padding: 14px 28px;
+  border-radius: 100px;
+  font-weight: 500;
+  font-size: 15px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.gemini-btn-primary {
+  background: linear-gradient(135deg, var(--gemini-blue), var(--aurora-2));
+  color: white;
+  box-shadow: 0 0 30px -10px var(--gemini-blue);
+}
+
+.gemini-btn-primary:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 0 50px -10px var(--gemini-blue);
+}
+
+.gemini-btn-primary:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* 按钮光晕效果 */
+.gemini-btn-primary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.2), 
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.gemini-btn-primary:hover::before {
+  opacity: 1;
+}
+
+/* 次要按钮 */
+.gemini-btn-secondary {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+}
+
+.gemini-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+/* ============================================
+   输入框样式
+   ============================================ */
+.gemini-input {
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
+  padding: 16px 20px;
+  color: var(--text-primary);
+  font-size: 16px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* 渐变边框效果 */
-.gradient-border {
-  position: relative;
-  background: linear-gradient(var(--bg-secondary), var(--bg-secondary)) padding-box,
-              linear-gradient(135deg, #14b8a6, #fbbf24) border-box;
-  border: 2px solid transparent;
+.gemini-input::placeholder {
+  color: var(--text-muted);
 }
 
-/* 发光效果 */
-.glow {
-  box-shadow: 0 0 40px rgba(20, 184, 166, 0.15);
+.gemini-input:focus {
+  outline: none;
+  border-color: var(--gemini-blue);
+  background: rgba(66, 133, 244, 0.05);
+  box-shadow: 0 0 0 4px rgba(66, 133, 244, 0.1), 0 0 30px -10px var(--gemini-blue);
 }
 
-/* 动画效果 */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fade-in-up {
-  animation: fadeInUp 0.6s ease-out forwards;
-}
-
-.animation-delay-100 { animation-delay: 0.1s; }
-.animation-delay-200 { animation-delay: 0.2s; }
-.animation-delay-300 { animation-delay: 0.3s; }
-.animation-delay-400 { animation-delay: 0.4s; }
-
-/* 脉冲加载动画 */
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 20px rgba(20, 184, 166, 0.3); }
-  50% { box-shadow: 0 0 40px rgba(20, 184, 166, 0.6); }
-}
-
-.loading-pulse {
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-
-/* 渐变文字 */
+/* ============================================
+   渐变文字
+   ============================================ */
 .gradient-text {
-  background: linear-gradient(135deg, #14b8a6, #fbbf24);
+  background: linear-gradient(135deg, 
+    var(--gemini-blue) 0%, 
+    var(--aurora-2) 50%, 
+    var(--aurora-3) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 5s ease infinite;
+}
+
+.gradient-text-static {
+  background: linear-gradient(135deg, var(--gemini-blue), var(--aurora-2));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* 行截断 */
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% center; }
+  50% { background-position: 200% center; }
+}
+
+/* ============================================
+   光晕发光效果
+   ============================================ */
+.glow-effect {
+  position: relative;
+}
+
+.glow-effect::after {
+  content: '';
+  position: absolute;
+  inset: -20px;
+  background: inherit;
+  filter: blur(40px);
+  opacity: 0.4;
+  z-index: -1;
+  border-radius: inherit;
+}
+
+/* 脉冲发光 */
+.pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 30px -10px var(--gemini-blue);
+  }
+  50% {
+    box-shadow: 0 0 60px -10px var(--gemini-blue), 0 0 100px -20px var(--aurora-2);
+  }
+}
+
+/* ============================================
+   加载动画 - Gemini 风格
+   ============================================ */
+.gemini-loader {
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+
+.gemini-loader-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: var(--gemini-blue);
+  animation: spin 1.5s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+}
+
+.gemini-loader-ring:nth-child(2) {
+  inset: 8px;
+  border-top-color: var(--aurora-2);
+  animation-delay: 0.2s;
+  animation-direction: reverse;
+}
+
+.gemini-loader-ring:nth-child(3) {
+  inset: 16px;
+  border-top-color: var(--aurora-3);
+  animation-delay: 0.4s;
+}
+
+.gemini-loader-core {
+  position: absolute;
+  inset: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--gemini-blue), var(--aurora-2));
+  animation: breathe 2s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(0.9); opacity: 0.7; }
+  50% { transform: scale(1.1); opacity: 1; }
+}
+
+/* 四点加载动画 - Google 风格 */
+.google-dots {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.google-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  animation: bounce-dot 1.4s ease-in-out infinite;
+}
+
+.google-dot:nth-child(1) { background: var(--gemini-blue); animation-delay: 0s; }
+.google-dot:nth-child(2) { background: var(--gemini-red); animation-delay: 0.1s; }
+.google-dot:nth-child(3) { background: var(--gemini-yellow); animation-delay: 0.2s; }
+.google-dot:nth-child(4) { background: var(--gemini-green); animation-delay: 0.3s; }
+
+@keyframes bounce-dot {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* ============================================
+   波纹效果
+   ============================================ */
+.ripple-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(66, 133, 244, 0.4) 0%, transparent 70%);
+  transform: scale(0);
+  animation: ripple-expand 0.6s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes ripple-expand {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* ============================================
+   标签 / 徽章
+   ============================================ */
+.gemini-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 500;
+  background: rgba(66, 133, 244, 0.1);
+  border: 1px solid rgba(66, 133, 244, 0.2);
+  color: var(--gemini-blue);
+}
+
+.gemini-badge-glow {
+  box-shadow: 0 0 20px -5px var(--gemini-blue);
+}
+
+/* ============================================
+   分隔线
+   ============================================ */
+.gemini-divider {
+  height: 1px;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255, 255, 255, 0.1) 20%, 
+    rgba(255, 255, 255, 0.1) 80%, 
+    transparent
+  );
+}
+
+/* ============================================
+   动画延迟工具类
+   ============================================ */
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+.delay-600 { animation-delay: 600ms; }
+.delay-700 { animation-delay: 700ms; }
+.delay-800 { animation-delay: 800ms; }
+
+/* ============================================
+   磨砂玻璃叠加层
+   ============================================ */
+.frosted-overlay {
+  background: linear-gradient(
+    to bottom,
+    rgba(10, 10, 15, 0.8) 0%,
+    rgba(10, 10, 15, 0.4) 50%,
+    rgba(10, 10, 15, 0.8) 100%
+  );
+  backdrop-filter: blur(2px);
+}
+
+/* ============================================
+   图标容器
+   ============================================ */
+.icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: linear-gradient(135deg, 
+    rgba(66, 133, 244, 0.15), 
+    rgba(168, 85, 247, 0.1)
+  );
+  transition: all 0.3s ease;
+}
+
+.icon-container:hover {
+  background: linear-gradient(135deg, 
+    rgba(66, 133, 244, 0.25), 
+    rgba(168, 85, 247, 0.2)
+  );
+  transform: scale(1.05);
+}
+
+/* ============================================
+   股票标签
+   ============================================ */
+.stock-chip {
+  padding: 8px 16px;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  font-family: 'Google Sans Mono', 'JetBrains Mono', monospace;
+  font-size: 14px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+
+.stock-chip:hover {
+  background: rgba(66, 133, 244, 0.15);
+  border-color: rgba(66, 133, 244, 0.4);
+  color: var(--gemini-blue);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px -5px rgba(66, 133, 244, 0.3);
+}
+
+/* ============================================
+   特性卡片
+   ============================================ */
+.feature-card {
+  position: relative;
+  padding: 32px;
+  border-radius: 28px;
+  background: rgba(26, 26, 36, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    ellipse at top left,
+    rgba(66, 133, 244, 0.1) 0%,
+    transparent 50%
+  );
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.feature-card:hover {
+  border-color: rgba(66, 133, 244, 0.2);
+  transform: translateY(-4px);
+}
+
+.feature-card:hover::before {
+  opacity: 1;
+}
+
+/* ============================================
+   行文本截断
+   ============================================ */
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -107,4 +596,68 @@ body {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* ============================================
+   闪烁效果
+   ============================================ */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.08),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  100% { left: 100%; }
+}
+
+/* ============================================
+   Prose 样式覆盖
+   ============================================ */
+.prose-gemini {
+  --tw-prose-body: #cbd5e1;
+  --tw-prose-headings: #f8fafc;
+  --tw-prose-lead: #94a3b8;
+  --tw-prose-links: var(--gemini-blue);
+  --tw-prose-bold: #f1f5f9;
+  --tw-prose-counters: #64748b;
+  --tw-prose-bullets: #475569;
+  --tw-prose-hr: rgba(255, 255, 255, 0.1);
+  --tw-prose-quotes: #e2e8f0;
+  --tw-prose-quote-borders: var(--gemini-blue);
+  --tw-prose-captions: #64748b;
+  --tw-prose-code: #f1f5f9;
+  --tw-prose-pre-code: #e2e8f0;
+  --tw-prose-pre-bg: rgba(18, 18, 26, 0.8);
+  --tw-prose-th-borders: rgba(255, 255, 255, 0.1);
+  --tw-prose-td-borders: rgba(255, 255, 255, 0.05);
+}
+
+/* ============================================
+   响应式辅助类
+   ============================================ */
+@media (max-width: 768px) {
+  .gemini-card {
+    border-radius: 20px;
+  }
+  
+  .feature-card {
+    padding: 24px;
+    border-radius: 24px;
+  }
 }
