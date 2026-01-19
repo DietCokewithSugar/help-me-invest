@@ -80,9 +80,28 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
 4. 即使某些数据缺失，也请基于你对该公司和行业的专业知识进行合理分析
 `;
 
-    const result = await this.model.generateContent(prompt);
-    const response = await result.response;
-    return response.text();
+    try {
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
+      // 检查是否返回了有效的 JSON 格式响应
+      if (!text || text.trim().length === 0) {
+        console.error('Gemini returned empty response');
+        throw new Error('AI 返回空响应');
+      }
+      
+      return text;
+    } catch (error: any) {
+      console.error('Gemini analyzeCompany error:', error?.message || error);
+      // 如果是网络错误，抛出更友好的错误信息
+      if (error?.message?.includes('fetch failed') || 
+          error?.message?.includes('ECONNRESET') ||
+          error?.message?.includes('network')) {
+        throw new Error('网络连接失败，请检查网络后重试');
+      }
+      throw error;
+    }
   }
 
   async searchAndAnalyze(
@@ -119,8 +138,14 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
       const result = await modelWithSearch.generateContent(prompt);
       const response = await result.response;
       return response.text();
-    } catch (error) {
-      console.error('Google Search grounding error:', error);
+    } catch (error: any) {
+      console.error('Google Search grounding error:', error?.message || error);
+      // 网络错误时返回空字符串，让主流程继续
+      if (error?.message?.includes('fetch failed') || 
+          error?.message?.includes('ECONNRESET') ||
+          error?.message?.includes('network')) {
+        console.log('Network error in searchAndAnalyze, returning empty result');
+      }
       return '';
     }
   }
@@ -155,13 +180,29 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
     try {
       const result = await modelWithSearch.generateContent(prompt);
       const response = await result.response;
-      const text = response.text()
+      const rawText = response.text();
+      
+      // 检查是否返回了错误消息
+      if (rawText.toLowerCase().startsWith('an error') || 
+          rawText.toLowerCase().startsWith('error')) {
+        console.error('Search returned error message:', rawText.substring(0, 100));
+        throw new Error('Search returned error');
+      }
+      
+      const text = rawText
         .replace(/```json\n?/g, '')
         .replace(/```\n?/g, '')
         .trim();
+      
+      // 确保看起来像 JSON
+      if (!text.startsWith('{')) {
+        console.error('Search response does not look like JSON:', text.substring(0, 100));
+        throw new Error('Invalid JSON format');
+      }
+      
       return JSON.parse(text);
-    } catch (error) {
-      console.error('Search company details error:', error);
+    } catch (error: any) {
+      console.error('Search company details error:', error?.message || error);
       return {
         competitors: '',
         recentNews: '',
@@ -208,8 +249,18 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
 ${transcriptText}
 `;
 
-    const result = await this.model.generateContent(prompt);
-    const response = await result.response;
-    return response.text();
+    try {
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      return response.text();
+    } catch (error: any) {
+      console.error('Summarize earnings call error:', error?.message || error);
+      if (error?.message?.includes('fetch failed') || 
+          error?.message?.includes('ECONNRESET') ||
+          error?.message?.includes('network')) {
+        throw new Error('网络连接失败，请检查网络后重试');
+      }
+      throw error;
+    }
   }
 }

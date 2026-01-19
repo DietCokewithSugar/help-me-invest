@@ -225,8 +225,17 @@ async function fetchTrendingStocksRaw(limit: number = 10): Promise<TrendingStock
     return Array.from(aggregated.values())
       .sort((a, b) => b.total_searches - a.total_searches)
       .slice(0, limit);
-  } catch (error) {
-    console.error('获取热门搜索失败:', error);
+  } catch (error: any) {
+    // 更详细的错误日志，帮助诊断网络问题
+    const errorDetails = {
+      message: error?.message || 'Unknown error',
+      details: error?.cause?.message || error?.stack?.substring(0, 500) || String(error),
+      hint: error?.hint || '',
+      code: error?.code || '',
+    };
+    console.error('获取热门搜索失败:', errorDetails);
+    
+    // 网络错误不应影响主流程，静默返回空数组
     return [];
   }
 }
