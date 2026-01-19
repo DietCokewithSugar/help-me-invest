@@ -111,7 +111,7 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
   ): Promise<string> {
     // 使用 Gemini 2.5 with Google Search grounding
     const modelWithSearch = this.genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       tools: [{ 
         googleSearch: {} 
       }] as any,
@@ -126,13 +126,27 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
 6. 地区经济环境对公司的影响
 7. 主要股东和机构投资者动态` : '';
 
-    const prompt = `请搜索并总结 ${companyName} (${symbol}，${marketName}市场) 的最新新闻和发展动态，包括：
+    // 强约束本地站点与关键词（仅非美股）
+    const localSearchConstraints = isNonUS ? `
+请强制优先检索对应市场的本地权威站点，并把时间范围限定为“近90天”：
+- A股（中国大陆）：优先站点包含但不限于 site:eastmoney.com, site:cninfo.com.cn, site:sse.com.cn, site:szse.cn, site:stcn.com, site:cnstock.com, site:10jqka.com.cn, site:sina.com.cn, site:caixin.com, site:cls.cn, site:yicai.com
+- 港股（香港）：优先站点包含但不限于 site:hkexnews.hk, site:hkex.com.hk, site:aastocks.com, site:hket.com, site:etnet.com.hk, site:astocks.com.hk, site:mpfinance.com, site:stheadline.com
+- 日股（日本）：优先站点包含但不限于 site:tdnet.info, site:jp.reuters.com, site:nikkei.com, site:toyokeizai.net, site:diamond.jp, site:news.yahoo.co.jp
+关键词要求：同时使用“公司中文名/英文名 + 股票代码 + 交易所/市场名”，并加入“公告/业绩/财报/指引/监管/重组/并购/订单/合作/回购/股东/减持/增持/处罚/诉讼/立案”等关键词组合检索。
+` : '';
+
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+    const prompt = `请搜索并总结 ${companyName} (${symbol}，${marketName}市场) 的最新新闻和发展动态，时间范围限定为近90天。今天日期为 ${todayStr}。${localSearchConstraints}
+请严格以“今天日期”为基准计算近90天范围；如果检索结果超出范围或无法确定日期，请明确说明“未找到近90天内的有效信息”，不要编造日期或时间范围。
+
+包括：
 1. 最近的重大公告和事件
 2. 产品发布或战略变化
 3. 行业动态和竞争格局变化
 4. 分析师观点和市场情绪${additionalSearchItems}
 
-请用中文回答，提供最近2-3个月的关键信息摘要。如果是中国公司，请特别关注国内媒体和财经网站的报道。`;
+请用中文回答，提供近90天的关键信息摘要。如果是中国公司，请特别关注国内媒体和财经网站的报道。`;
 
     try {
       const result = await modelWithSearch.generateContent(prompt);
@@ -161,21 +175,28 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
     analystViews: string;
   }> {
     const modelWithSearch = this.genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       tools: [{ googleSearch: {} }] as any,
     });
 
     const marketName = MARKET_NAMES[market] || '美股';
 
-    const prompt = `请搜索 ${companyName} (${symbol}，${marketName}市场) 的详细信息，并以 JSON 格式返回：
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+    const prompt = `请搜索 ${companyName} (${symbol}，${marketName}市场) 的详细信息，时间范围限定为近90天，并以 JSON 格式返回。今天日期为 ${todayStr}。
 
 {
   "competitors": "该公司的主要竞争对手及其特点分析（200-300字）",
-  "recentNews": "最近2-3个月的重要新闻和事件总结（200-300字）",
+  "recentNews": "近90天的重要新闻和事件总结（200-300字）",
   "analystViews": "券商和分析师的观点汇总，包括评级和目标价（如有）（100-200字）"
 }
 
-请确保返回有效的 JSON 格式，不要包含 markdown 代码块标记。使用中文回答。`;
+请强制优先检索对应市场的本地权威站点，并把时间范围限定为“近90天”：
+- A股（中国大陆）：优先站点包含但不限于 site:eastmoney.com, site:cninfo.com.cn, site:sse.com.cn, site:szse.cn, site:stcn.com, site:cnstock.com, site:10jqka.com.cn, site:sina.com.cn, site:caixin.com, site:cls.cn, site:yicai.com
+- 港股（香港）：优先站点包含但不限于 site:hkexnews.hk, site:hkex.com.hk, site:aastocks.com, site:hket.com, site:etnet.com.hk, site:astocks.com.hk, site:mpfinance.com, site:stheadline.com
+- 日股（日本）：优先站点包含但不限于 site:tdnet.info, site:jp.reuters.com, site:nikkei.com, site:toyokeizai.net, site:diamond.jp, site:news.yahoo.co.jp
+关键词要求：同时使用“公司中文名/英文名 + 股票代码 + 交易所/市场名”，并加入“公告/业绩/财报/指引/监管/重组/并购/订单/合作/回购/股东/减持/增持/处罚/诉讼/立案”等关键词组合检索。
+请严格以“今天日期”为基准计算近90天范围；如无近90天内信息，recentNews 需明确说明“未找到近90天内的有效信息”。请确保返回有效的 JSON 格式，不要包含 markdown 代码块标记。使用中文回答。`;
 
     try {
       const result = await modelWithSearch.generateContent(prompt);
