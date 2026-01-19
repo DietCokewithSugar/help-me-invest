@@ -285,8 +285,9 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
         ''
       : '';
 
+  const showAiLoading = aiLoading;
   const showAiSection =
-    aiLoading || !!aiError || !!aiAnalysis || !!earningsCallSummary;
+    !aiLoading && (!!aiError || !!aiAnalysis || !!earningsCallSummary);
 
   // 兼容新旧 API 格式
   const marketCap = profile.marketCap || profile.mktCap || 0;
@@ -424,6 +425,17 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
           </div>
         </header>
 
+        {/* ==================== AI 生成中提示 ==================== */}
+        {showAiLoading && (
+          <div className="gemini-card p-6 md:p-8 animate-fade-in">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-2.5 h-2.5 bg-gemini-blue rounded-full animate-pulse" />
+              <p className="text-mist-200 font-medium">AI 正在生成深度解读与电话会议精要...</p>
+            </div>
+            <p className="text-sm text-mist-500">财务信息已加载完成，AI 内容会自动补充到此处。</p>
+          </div>
+        )}
+
         {/* ==================== AI 分析内容 ==================== */}
         {showAiSection && (
           <CollapsibleSection
@@ -435,16 +447,6 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
             onToggle={() => toggleSection('aiAnalysis')}
           >
             <div className="space-y-6 animate-fade-in">
-              {aiLoading && (
-                <div className="gemini-card p-6 md:p-8">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-2.5 h-2.5 bg-gemini-blue rounded-full animate-pulse" />
-                    <p className="text-mist-200 font-medium">AI 正在生成深度解读与电话会议精要...</p>
-                  </div>
-                  <p className="text-sm text-mist-500">财务信息已加载完成，AI 内容会自动补充到此处。</p>
-                </div>
-              )}
-
               {aiError && (
                 <div className="gemini-card p-6 md:p-8 border border-red-500/20 bg-red-500/10">
                   <p className="text-red-400 text-sm">{aiError}</p>
