@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Building2, TrendingUp, Target, Shield, Newspaper, 
@@ -8,7 +8,8 @@ import {
   Globe, Calendar, DollarSign, Users2, Image as ImageIcon,
   FileSpreadsheet, Calculator, Briefcase, ChevronDown, ChevronUp,
   FileText,
-  ExternalLink
+  ExternalLink,
+  Info
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import SankeyChart from './SankeyChart';
@@ -18,7 +19,67 @@ import ValuationMetrics from './ValuationMetrics';
 import EventCalendar from './EventCalendar';
 import HoldingsAnalysis from './HoldingsAnalysis';
 import ExportModal from './ExportModal';
-import type { ReportData } from '@/types';
+import type { ReportData, MarketType } from '@/types';
+import { getMarketConfig } from '@/lib/markets';
+
+// 市场标识图标
+const MarketBadge = ({ market }: { market: MarketType }) => {
+  const flags: Record<MarketType, { emoji: string; name: string; color: string }> = {
+    US: { emoji: '🇺🇸', name: '美股', color: 'from-blue-500 to-blue-600' },
+    CN: { emoji: '🇨🇳', name: 'A股', color: 'from-red-500 to-red-600' },
+    HK: { emoji: '🇭🇰', name: '港股', color: 'from-pink-500 to-red-500' },
+    JP: { emoji: '🇯🇵', name: '日股', color: 'from-red-400 to-pink-500' },
+  };
+  const info = flags[market] || flags.US;
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r ${info.color} text-white text-xs font-medium`}>
+      <span>{info.emoji}</span>
+      <span>{info.name}</span>
+    </span>
+  );
+};
+
+// 公司 Logo 组件 - 处理图片加载失败时显示备用图标
+function CompanyLogo({ src, alt }: { src?: string; alt: string }) {
+  const [hasError, setHasError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const handleError = useCallback(() => {
+    setHasError(true);
+    setIsLoading(false);
+  }, []);
+
+  const handleLoad = useCallback(() => {
+    setIsLoading(false);
+  }, []);
+
+  // 如果没有图片 URL 或加载失败，显示备用图标
+  if (!src || hasError) {
+    return (
+      <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-gemini-blue/20 to-gemini-purple/20 backdrop-blur-xl flex items-center justify-center shrink-0 border border-white/10">
+        <Building2 className="w-10 h-10 text-gemini-blue/70" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-24 h-24 rounded-3xl bg-white/5 backdrop-blur-xl flex items-center justify-center p-4 shrink-0 border border-white/10 relative">
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-gemini-blue/30 border-t-gemini-blue rounded-full animate-spin" />
+        </div>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        className={`w-full h-full object-contain transition-opacity ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+        onError={handleError}
+        onLoad={handleLoad}
+        crossOrigin="anonymous"
+      />
+    </div>
+  );
+}
 
 interface ReportProps {
   data: ReportData;
@@ -175,8 +236,19 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
     aiAnalysis,
     earningsTranscripts = [],
     earningsCallSummary = '',
-    sankeyData 
+    sankeyData,
+    market = 'US' as MarketType,
   } = data;
+
+  // 获取市场配置
+  const marketConfig = getMarketConfig(market);
+  const isUSMarket = market === 'US';
+  const features = marketConfig.supportedFeatures;
+
+  // 检查数据可用性
+  const hasHoldingsData = (institutionalHolders.length > 0 || insiderTrading.length > 0) && features.institutionalHolders;
+  const hasEventsData = (earningsCalendar.length > 0 || dividendHistory.length > 0 || stockSplits.length > 0);
+  const hasNewsData = news && news.length > 0;
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({
@@ -224,14 +296,17 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
     : profile.changesPercentage || '0%';
   const exchangeName = profile.exchange || profile.exchangeShortName || '';
 
-  // 快捷导航
+  // 快捷导航 - 根据市场类型和数据可用性显示
   const sections = [
     ...(showAiSection ? [{ id: 'aiAnalysis', label: 'AI 分析', icon: Sparkles }] : []),
     { id: 'financialStatements', label: '财务报表', icon: FileSpreadsheet },
     { id: 'valuation', label: '估值指标', icon: Calculator },
-    { id: 'events', label: '事件日历', icon: Calendar },
-    { id: 'holdings', label: '持仓分析', icon: Briefcase },
+    ...(hasEventsData ? [{ id: 'events', label: '事件日历', icon: Calendar }] : []),
+    ...(hasHoldingsData ? [{ id: 'holdings', label: '持仓分析', icon: Briefcase }] : []),
   ];
+
+  // 货币符号
+  const currencySymbol = marketConfig.currencySymbol;
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
@@ -282,29 +357,22 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
           <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-gemini-blue/10 to-gemini-purple/5 rounded-full blur-3xl" />
           
           <div className="relative flex flex-col md:flex-row items-start gap-8">
-            {profile.image && (
-              <div className="w-24 h-24 rounded-3xl bg-white/5 backdrop-blur-xl flex items-center justify-center p-4 shrink-0 border border-white/10">
-                <img
-                  src={profile.image}
-                  alt={profile.companyName}
-                  className="w-full h-full object-contain"
-                />
-              </div>
-            )}
+            <CompanyLogo src={profile.image} alt={profile.companyName} />
             
             <div className="flex-1 min-w-0">
               {/* 公司名称和代码 */}
-              <div className="flex flex-wrap items-center gap-3 mb-4">
-                <h1 className="text-3xl md:text-4xl font-bold text-white">
-                  {profile.companyName}
-                </h1>
-                <span className="px-4 py-1.5 rounded-full bg-gradient-to-r from-gemini-blue/20 to-gemini-purple/20 border border-gemini-blue/30 text-gemini-blue text-sm font-mono font-semibold">
-                  {profile.symbol}
-                </span>
-                <span className="px-3 py-1 bg-white/5 text-mist-400 rounded-full text-xs border border-white/10">
-                  {exchangeName}
-                </span>
-              </div>
+                <div className="flex flex-wrap items-center gap-3 mb-4">
+                  <h1 className="text-3xl md:text-4xl font-bold text-white">
+                    {profile.companyName}
+                  </h1>
+                  <span className="px-4 py-1.5 rounded-full bg-gradient-to-r from-gemini-blue/20 to-gemini-purple/20 border border-gemini-blue/30 text-gemini-blue text-sm font-mono font-semibold">
+                    {profile.symbol}
+                  </span>
+                  <MarketBadge market={market} />
+                  <span className="px-3 py-1 bg-white/5 text-mist-400 rounded-full text-xs border border-white/10">
+                    {exchangeName}
+                  </span>
+                </div>
               
               {/* 公司信息 */}
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-mist-400 text-sm mb-8">
@@ -326,13 +394,13 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
                 <StatCard
                   icon={DollarSign}
                   label="市值"
-                  value={`$${formatNumber(marketCap)}`}
+                  value={`${currencySymbol}${formatNumber(marketCap)}`}
                   gradient="from-gemini-blue to-gemini-purple"
                 />
                 <StatCard
                   icon={TrendingUp}
                   label="股价"
-                  value={`$${profile.price?.toFixed(2) || 'N/A'}`}
+                  value={`${currencySymbol}${profile.price?.toFixed(2) || 'N/A'}`}
                   subValue={{ 
                     text: `${priceChange >= 0 ? '+' : ''}${priceChangePercent}`, 
                     positive: priceChange >= 0 
@@ -566,44 +634,66 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
         </CollapsibleSection>
 
         {/* ==================== 事件日历 ==================== */}
-        <CollapsibleSection
-          id="events"
-          icon={Calendar}
-          title="事件日历"
-          subtitle="财报 · 分红 · 拆股"
-          gradient="from-amber-500 to-orange-500"
-          expanded={expandedSections.events}
-          onToggle={() => toggleSection('events')}
-        >
-          <div className="animate-fade-in">
-            <EventCalendar
-              earningsCalendar={earningsCalendar}
-              dividendHistory={dividendHistory}
-              stockSplits={stockSplits}
-            />
-          </div>
-        </CollapsibleSection>
+        {hasEventsData && (
+          <CollapsibleSection
+            id="events"
+            icon={Calendar}
+            title="事件日历"
+            subtitle="财报 · 分红 · 拆股"
+            gradient="from-amber-500 to-orange-500"
+            expanded={expandedSections.events}
+            onToggle={() => toggleSection('events')}
+          >
+            <div className="animate-fade-in">
+              <EventCalendar
+                earningsCalendar={earningsCalendar}
+                dividendHistory={dividendHistory}
+                stockSplits={stockSplits}
+              />
+            </div>
+          </CollapsibleSection>
+        )}
 
-        {/* ==================== 持仓与交易分析 ==================== */}
-        <CollapsibleSection
-          id="holdings"
-          icon={Briefcase}
-          title="持仓分析"
-          subtitle="机构持仓 · 内幕交易"
-          gradient="from-cyan-500 to-blue-500"
-          expanded={expandedSections.holdings}
-          onToggle={() => toggleSection('holdings')}
-        >
-          <div className="animate-fade-in">
-            <HoldingsAnalysis
-              institutionalHolders={institutionalHolders}
-              insiderTrading={insiderTrading}
-            />
+        {/* ==================== 持仓与交易分析（仅美股） ==================== */}
+        {hasHoldingsData && (
+          <CollapsibleSection
+            id="holdings"
+            icon={Briefcase}
+            title="持仓分析"
+            subtitle="机构持仓 · 内幕交易"
+            gradient="from-cyan-500 to-blue-500"
+            expanded={expandedSections.holdings}
+            onToggle={() => toggleSection('holdings')}
+          >
+            <div className="animate-fade-in">
+              <HoldingsAnalysis
+                institutionalHolders={institutionalHolders}
+                insiderTrading={insiderTrading}
+              />
+            </div>
+          </CollapsibleSection>
+        )}
+
+        {/* 非美股市场的数据限制提示 */}
+        {!isUSMarket && (
+          <div className="gemini-card p-6 border border-amber-500/20 bg-amber-500/5">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+                <Info className="w-5 h-5 text-amber-400" />
+              </div>
+              <div>
+                <h4 className="text-amber-300 font-medium mb-2">数据说明</h4>
+                <p className="text-sm text-mist-400 leading-relaxed">
+                  {marketConfig.nameCn}市场的部分数据（如机构持仓、内幕交易、财报电话会议等）暂不可用。
+                  AI 分析已通过 Google Search 搜索补充了最新的市场动态和分析师观点，以提供更全面的投资参考。
+                </p>
+              </div>
+            </div>
           </div>
-        </CollapsibleSection>
+        )}
 
         {/* ==================== 最新新闻 ==================== */}
-        {news && news.length > 0 && (
+        {hasNewsData && (
           <section className="gemini-card p-6 md:p-8 animate-fade-in-up">
             <div className="flex items-center gap-4 mb-8">
               <div className="relative">

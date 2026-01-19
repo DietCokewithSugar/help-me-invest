@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { FMPClient } from '@/lib/fmp';
 import { fetchFmpReportData } from '@/lib/fmp-data';
+import type { MarketType } from '@/lib/markets';
 
 export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
-    const { symbol } = await request.json();
+    const { symbol, market } = await request.json();
 
     if (!symbol) {
       return NextResponse.json({ error: '请提供股票代码' }, { status: 400 });
@@ -18,7 +19,10 @@ export async function POST(request: NextRequest) {
     }
 
     const fmp = new FMPClient(fmpApiKey);
-    const fmpData = await fetchFmpReportData(fmp, symbol);
+    const fmpData = await fetchFmpReportData(fmp, { 
+      symbol, 
+      market: market as MarketType | undefined 
+    });
 
     return NextResponse.json(fmpData);
   } catch (error: any) {
