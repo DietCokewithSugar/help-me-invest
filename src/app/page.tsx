@@ -429,9 +429,6 @@ export default function Home() {
                 {/* 搜索框 */}
                 <div className="flex flex-col md:flex-row gap-4 mb-6">
                   <div ref={suggestContainerRef} className="flex-1 relative group">
-                    <div className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none">
-                      <Search className="w-5 h-5 text-mist-500 group-focus-within:text-gemini-blue transition-colors" />
-                    </div>
                     <input
                       ref={inputRef}
                       type="text"
@@ -450,14 +447,14 @@ export default function Home() {
                       onKeyDown={handleKeyDown}
                       placeholder="输入股票代码或公司名称，例如 AAPL / 茅台 / 腾讯 / Toyota"
                       disabled={loading}
-                      className="gemini-input w-full pl-14 pr-5 py-5 text-lg font-mono disabled:opacity-50"
+                      className="gemini-input w-full px-5 py-5 text-lg font-mono disabled:opacity-50"
                     />
 
                     {/* 联想搜索下拉 */}
                     {showSuggestions && (suggestLoading || suggestions.length > 0) && (
                       <div
                         ref={suggestionsRef}
-                        className="absolute left-0 right-0 top-full mt-3 z-20 rounded-2xl border border-white/10 bg-night-900/95 backdrop-blur-xl shadow-2xl"
+                        className="absolute left-0 right-0 top-full mt-3 z-20 rounded-2xl border border-white/10 bg-night-900/98 backdrop-blur-xl shadow-2xl"
                       >
                         <div className="px-4 py-3 text-xs text-mist-500 border-b border-white/10 flex items-center justify-between">
                           <span>AI 联想结果</span>
