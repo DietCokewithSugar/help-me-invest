@@ -337,6 +337,87 @@ export default function Home() {
               }
             : prev
         );
+
+        const companyName = data.profile?.companyName;
+        const transcript = data.earningsTranscripts?.[0];
+        const transcriptText =
+          transcript?.content || transcript?.transcript || transcript?.text || '';
+
+        if (companyName) {
+          (async () => {
+            try {
+              const searchResponse = await fetch('/api/ai/search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  symbol: formattedSymbol,
+                  companyName,
+                  market: marketForAnalyze,
+                }),
+              });
+              const searchData = await parseJsonResponse(searchResponse);
+              if (searchResponse.ok && searchData) {
+                const searchResultsText = searchData.searchResults || '';
+                const supplementary = searchData.supplementary || {};
+                setReportData((prev) => {
+                  if (!prev || !prev.aiAnalysis) return prev;
+                  const nextAnalysis = { ...prev.aiAnalysis };
+                  if (searchResultsText) {
+                    nextAnalysis.recentDevelopments = searchResultsText;
+                  } else if (supplementary.recentNews) {
+                    nextAnalysis.recentDevelopments = supplementary.recentNews;
+                  }
+                  if (supplementary.competitors && nextAnalysis.competitors === '暂无竞争对手数据') {
+                    nextAnalysis.competitors = supplementary.competitors;
+                  }
+
+                  let nextEarningsSummary = prev.earningsCallSummary;
+                  if (!transcriptText && supplementary.analystViews && !nextEarningsSummary) {
+                    nextEarningsSummary = `## 分析师观点\n\n${supplementary.analystViews}`;
+                  }
+
+                  return {
+                    ...prev,
+                    aiAnalysis: nextAnalysis,
+                    searchResults: searchResultsText || prev.searchResults,
+                    earningsCallSummary: nextEarningsSummary,
+                  };
+                });
+              }
+            } catch (e) {
+              console.log('AI search update failed:', e);
+            }
+          })();
+        }
+
+        if (transcriptText && companyName) {
+          (async () => {
+            try {
+              const summaryResponse = await fetch('/api/ai/earnings-summary', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  transcriptText,
+                  companyName,
+                  symbol: formattedSymbol,
+                }),
+              });
+              const summaryData = await parseJsonResponse(summaryResponse);
+              if (summaryResponse.ok && summaryData?.earningsCallSummary) {
+                setReportData((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        earningsCallSummary: summaryData.earningsCallSummary,
+                      }
+                    : prev
+                );
+              }
+            } catch (e) {
+              console.log('Earnings summary update failed:', e);
+            }
+          })();
+        }
       } catch (err: any) {
         setAiError(err.message || 'AI 分析失败，请稍后重试');
       } finally {

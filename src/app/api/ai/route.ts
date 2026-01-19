@@ -2,7 +2,33 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GeminiClient } from '@/lib/gemini';
 import type { MarketType } from '@/lib/markets';
 
-export const maxDuration = 60;
+export const maxDuration = 30;
+
+const withTimeout = async <T>(
+  promise: Promise<T>,
+  ms: number,
+  fallback: T,
+  label: string
+): Promise<T> => {
+  let timeoutId: NodeJS.Timeout | null = null;
+  return new Promise<T>((resolve) => {
+    timeoutId = setTimeout(() => {
+      console.warn(`AI timeout: ${label}`);
+      resolve(fallback);
+    }, ms);
+
+    promise
+      .then((result) => {
+        if (timeoutId) clearTimeout(timeoutId);
+        resolve(result);
+      })
+      .catch((error) => {
+        if (timeoutId) clearTimeout(timeoutId);
+        console.error(`AI error: ${label}`, error?.message || error);
+        resolve(fallback);
+      });
+  });
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,43 +45,38 @@ export async function POST(request: NextRequest) {
 
     const gemini = new GeminiClient(googleApiKey);
     const marketType = (market as MarketType) || 'US';
-    const isNonUS = marketType !== 'US';
-
-    // 对于非美股市场，先获取补充信息
-    let supplementaryData: { competitors: string; recentNews: string; analystViews: string } | null = null;
-    if (isNonUS && (!peers || peers.length === 0)) {
-      try {
-        supplementaryData = await gemini.searchCompanyDetails(
-          profile.companyName,
-          symbol.toUpperCase(),
-          marketType
-        );
-      } catch (e) {
-        console.log('Supplementary data search failed:', e);
-      }
-    }
-
-    const aiAnalysisRaw = await gemini.analyzeCompany(
-      profile,
-      incomeStatements || [],
-      peers || [],
-      earningsTranscripts && earningsTranscripts.length > 0 ? earningsTranscripts[0] : null,
-      marketType
-    );
 
     const defaultAnalysis = {
       companyOverview: profile.description || '暂无企业概况',
       industryAnalysis: `${profile.companyName} 属于 ${profile.sector} 行业，主要从事 ${profile.industry} 领域的业务。`,
       industryPainPoints: `${profile.industry} 行业面临的主要挑战包括：市场竞争加剧、技术迭代加速、监管政策变化等。企业需要持续创新以保持竞争力。`,
-      competitors: supplementaryData?.competitors || (peers && peers.length > 0 ? `主要竞争对手包括: ${peers.slice(0, 5).join(', ')}` : '暂无竞争对手数据'),
+      competitors: peers && peers.length > 0 ? `主要竞争对手包括: ${peers.slice(0, 5).join(', ')}` : '暂无竞争对手数据',
       competitiveAdvantage: '正在分析竞争优势...',
       moat: '正在分析企业护城河...',
-      recentDevelopments: supplementaryData?.recentNews || '正在获取最新动态...',
+      recentDevelopments: '正在获取最新动态...',
       investmentConclusion: '请结合其他信息进行综合判断。',
     };
 
+    const aiAnalysisPromise = withTimeout(
+      gemini.analyzeCompany(
+        profile,
+        incomeStatements || [],
+        peers || [],
+        earningsTranscripts && earningsTranscripts.length > 0 ? earningsTranscripts[0] : null,
+        marketType
+      ),
+      20000,
+      '',
+      'analyzeCompany'
+    );
+
+    const aiAnalysisRaw = await aiAnalysisPromise;
+
     let aiAnalysis;
     try {
+      if (!aiAnalysisRaw || aiAnalysisRaw.trim().length === 0) {
+        throw new Error('AI 返回空响应');
+      }
       // 检查是否返回了错误消息而不是 JSON
       if (aiAnalysisRaw.toLowerCase().startsWith('an error') || 
           aiAnalysisRaw.toLowerCase().startsWith('error') ||
@@ -94,43 +115,7 @@ export async function POST(request: NextRequest) {
       aiAnalysis = defaultAnalysis;
     }
 
-    // 使用 Google Search 获取最新动态
-    let searchResults = '';
-    try {
-      searchResults = await gemini.searchAndAnalyze(
-        profile.companyName,
-        symbol.toUpperCase(),
-        marketType
-      );
-    } catch (e) {
-      console.log('Google Search not available:', e);
-    }
-
-    if (searchResults) {
-      aiAnalysis.recentDevelopments = searchResults;
-    }
-
-    // 对于非美股，如果没有财报电话会议数据，使用搜索获取的分析师观点
-    let earningsCallSummary = '';
-    const latestTranscript = earningsTranscripts && earningsTranscripts.length > 0 ? earningsTranscripts[0] : null;
-    const transcriptText = latestTranscript?.content || latestTranscript?.transcript || latestTranscript?.text || '';
-    
-    if (transcriptText) {
-      try {
-        earningsCallSummary = await gemini.summarizeEarningsCall(
-          transcriptText,
-          profile.companyName,
-          symbol.toUpperCase()
-        );
-      } catch (e) {
-        console.log('Earnings call summary not available:', e);
-      }
-    } else if (isNonUS && supplementaryData?.analystViews) {
-      // 对于非美股，如果没有财报会议记录，使用分析师观点作为替代
-      earningsCallSummary = `## 分析师观点\n\n${supplementaryData.analystViews}`;
-    }
-
-    return NextResponse.json({ aiAnalysis, searchResults, earningsCallSummary });
+    return NextResponse.json({ aiAnalysis, searchResults: '', earningsCallSummary: '' });
   } catch (error: any) {
     console.error('AI analysis error:', error);
     return NextResponse.json(
