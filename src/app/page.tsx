@@ -6,17 +6,6 @@ import Report from '@/components/Report';
 import type { ReportData, MarketType } from '@/types';
 import { MARKET_CONFIGS, formatSymbolForMarket, getMarketConfig, type MarketConfig } from '@/lib/markets';
 
-// 市场图标组件
-const MarketIcon = ({ market }: { market: MarketType }) => {
-  const flags: Record<MarketType, string> = {
-    US: '🇺🇸',
-    CN: '🇨🇳',
-    HK: '🇭🇰',
-    JP: '🇯🇵',
-  };
-  return <span className="text-lg">{flags[market]}</span>;
-};
-
 // 热门股票类型
 interface TrendingStock {
   symbol: string;
@@ -363,7 +352,6 @@ export default function Home() {
                               : 'bg-white/5 border-white/10 text-mist-400 hover:border-white/20 hover:text-white'
                           } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
-                          <MarketIcon market={marketId} />
                           <span className="text-sm font-medium">{config.nameCn}</span>
                         </button>
                       );
