@@ -267,6 +267,17 @@ export default function Home() {
     setReportData(null);
     setLoadingStep(0);
 
+    const parseJsonResponse = async (response: Response) => {
+      const text = await response.text();
+      if (!text) return null;
+      try {
+        return JSON.parse(text);
+      } catch (error) {
+        const snippet = text.trim().slice(0, 200);
+        throw new Error(snippet || '服务返回了非 JSON 响应');
+      }
+    };
+
     try {
       const response = await fetch('/api/fmp', {
         method: 'POST',
@@ -277,11 +288,11 @@ export default function Home() {
         }),
       });
 
-      const data = await response.json();
+      const data = await parseJsonResponse(response);
 
       if (!response.ok) {
         // FMP 返回错误，可能是无效股票代码
-        const errorMsg = data.error || '分析失败，请稍后重试';
+        const errorMsg = data?.error || '分析失败，请稍后重试';
         // 如果是找不到股票的错误，标记为无效
         if (errorMsg.includes('找不到') || errorMsg.includes('not found') || errorMsg.includes('无效')) {
           recordSearchToDb(formattedSymbol, undefined, true);
@@ -290,7 +301,7 @@ export default function Home() {
       }
 
       // 搜索成功，记录到数据库（包含公司名称）
-      recordSearchToDb(formattedSymbol, data.profile?.companyName);
+      recordSearchToDb(formattedSymbol, data?.profile?.companyName);
 
       setReportData(data);
       setLoading(false);
@@ -310,10 +321,10 @@ export default function Home() {
           }),
         });
 
-        const aiData = await aiResponse.json();
+        const aiData = await parseJsonResponse(aiResponse);
 
         if (!aiResponse.ok) {
-          throw new Error(aiData.error || 'AI 分析失败，请稍后重试');
+          throw new Error(aiData?.error || 'AI 分析失败，请稍后重试');
         }
 
         setReportData((prev) =>
