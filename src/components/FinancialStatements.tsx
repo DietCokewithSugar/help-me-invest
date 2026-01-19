@@ -246,9 +246,9 @@ export default function FinancialStatements({ incomeStatements, balanceSheets, c
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-white/10">
-            <th className="text-left py-3 px-4 text-slate-400 font-medium">指标</th>
+            <th className="text-left py-3 px-4 text-slate-400 font-medium whitespace-nowrap">指标</th>
             {incomeStatements.map((s, i) => (
-              <th key={i} className="text-right py-3 px-4 text-slate-400 font-mono">{s.date?.split('-')[0]}</th>
+              <th key={i} className="text-right py-3 px-4 text-slate-400 font-mono whitespace-nowrap">{s.date?.split('-')[0]}</th>
             ))}
           </tr>
         </thead>
@@ -267,9 +267,9 @@ export default function FinancialStatements({ incomeStatements, balanceSheets, c
             { label: 'EPS (稀释)', key: 'epsdiluted' },
           ].map((row) => (
             <tr key={row.key} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-              <td className="py-3 px-4 text-slate-300">{row.label}</td>
+              <td className="py-3 px-4 text-slate-300 whitespace-nowrap">{row.label}</td>
               {incomeStatements.map((s: any, i) => (
-                <td key={i} className="text-right py-3 px-4 font-mono text-white">
+                <td key={i} className="text-right py-3 px-4 font-mono text-white whitespace-nowrap">
                   {row.key === 'epsdiluted' ? `$${s[row.key]?.toFixed(2) || 'N/A'}` : `$${formatNumber(s[row.key])}`}
                 </td>
               ))}
@@ -285,9 +285,9 @@ export default function FinancialStatements({ incomeStatements, balanceSheets, c
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-white/10">
-            <th className="text-left py-3 px-4 text-slate-400 font-medium">指标</th>
+            <th className="text-left py-3 px-4 text-slate-400 font-medium whitespace-nowrap">指标</th>
             {balanceSheets.map((s, i) => (
-              <th key={i} className="text-right py-3 px-4 text-slate-400 font-mono">{s.date?.split('-')[0]}</th>
+              <th key={i} className="text-right py-3 px-4 text-slate-400 font-mono whitespace-nowrap">{s.date?.split('-')[0]}</th>
             ))}
           </tr>
         </thead>
@@ -316,11 +316,11 @@ export default function FinancialStatements({ incomeStatements, balanceSheets, c
               row.key === 'totalCurrentLiabilities' || row.key === 'totalLiabilities' ||
               row.key === 'totalStockholdersEquity' ? 'bg-white/5 font-semibold' : ''
             }`}>
-              <td className="py-3 px-4 text-slate-300">{row.label}</td>
+              <td className="py-3 px-4 text-slate-300 whitespace-nowrap">{row.label}</td>
               {balanceSheets.map((s: any, i) => (
                 <td key={i} className={`text-right py-3 px-4 font-mono ${
                   s[row.key] < 0 ? 'text-red-400' : 'text-white'
-                }`}>
+                } whitespace-nowrap`}>
                   ${formatNumber(s[row.key])}
                 </td>
               ))}
@@ -336,9 +336,9 @@ export default function FinancialStatements({ incomeStatements, balanceSheets, c
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-white/10">
-            <th className="text-left py-3 px-4 text-slate-400 font-medium">指标</th>
+            <th className="text-left py-3 px-4 text-slate-400 font-medium whitespace-nowrap">指标</th>
             {cashFlowStatements.map((s, i) => (
-              <th key={i} className="text-right py-3 px-4 text-slate-400 font-mono">{s.date?.split('-')[0]}</th>
+              <th key={i} className="text-right py-3 px-4 text-slate-400 font-mono whitespace-nowrap">{s.date?.split('-')[0]}</th>
             ))}
           </tr>
         </thead>
@@ -363,11 +363,11 @@ export default function FinancialStatements({ incomeStatements, balanceSheets, c
             <tr key={row.key} className={`border-b border-white/5 hover:bg-white/5 transition-colors ${
               row.key.includes('netCash') || row.key === 'freeCashFlow' ? 'bg-white/5 font-semibold' : ''
             }`}>
-              <td className="py-3 px-4 text-slate-300">{row.label}</td>
+              <td className="py-3 px-4 text-slate-300 whitespace-nowrap">{row.label}</td>
               {cashFlowStatements.map((s: any, i) => (
                 <td key={i} className={`text-right py-3 px-4 font-mono ${
                   s[row.key] < 0 ? 'text-red-400' : 'text-white'
-                }`}>
+                } whitespace-nowrap`}>
                   ${formatNumber(s[row.key])}
                 </td>
               ))}
@@ -435,7 +435,7 @@ export default function FinancialStatements({ incomeStatements, balanceSheets, c
       </div>
 
       {/* 内容区域 */}
-      <div className="bg-midnight/30 rounded-xl p-4 border border-white/5">
+      <div className="bg-midnight/30 rounded-xl p-4 border border-white/5 max-md:border-0">
         {activeTab === 'income' && (
           viewMode === 'chart' ? renderIncomeChart() : renderIncomeTable()
         )}

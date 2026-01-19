@@ -71,7 +71,7 @@ export default function EventCalendar({ earningsCalendar, dividendHistory, stock
 
         {/* EPS 历史图表 */}
         {earningsCalendar.filter(e => e.epsActual !== null).length > 0 && (
-          <div className="bg-midnight/30 rounded-xl p-4 border border-white/5 mb-4">
+          <div className="bg-midnight/30 rounded-xl p-3 md:p-4 border border-white/5 max-md:border-0 mb-4">
             <h4 className="text-sm font-semibold text-slate-300 mb-4">EPS 历史表现</h4>
             <ReactECharts
               option={{
@@ -231,7 +231,7 @@ export default function EventCalendar({ earningsCalendar, dividendHistory, stock
 
         {/* 年度分红趋势图 */}
         {years.length > 1 && (
-          <div className="bg-midnight/30 rounded-xl p-4 border border-white/5 mb-4">
+          <div className="bg-midnight/30 rounded-xl p-3 md:p-4 border border-white/5 max-md:border-0 mb-4">
             <h4 className="text-sm font-semibold text-slate-300 mb-4">年度分红趋势</h4>
             <ReactECharts
               option={{
@@ -417,7 +417,7 @@ export default function EventCalendar({ earningsCalendar, dividendHistory, stock
       </div>
 
       {/* 内容区域 */}
-      <div className="bg-midnight/30 rounded-xl p-4 border border-white/5">
+      <div className="bg-midnight/30 rounded-xl p-3 md:p-4 border border-white/5 max-md:border-0">
         {activeTab === 'earnings' && renderEarningsCalendar()}
         {activeTab === 'dividends' && renderDividendHistory()}
         {activeTab === 'splits' && renderStockSplits()}

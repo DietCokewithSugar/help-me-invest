@@ -104,7 +104,7 @@ export default function SankeyChart({ data }: SankeyProps) {
   }
 
   return (
-    <div className="bg-midnight/50 rounded-xl p-4 border border-white/5">
+    <div className="bg-midnight/50 rounded-xl p-3 md:p-4 border border-white/5 max-md:border-0">
       <ReactECharts
         option={option}
         style={{ height: '420px', width: '100%' }}
