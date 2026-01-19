@@ -469,6 +469,7 @@ export interface ReportData {
   // 关键指标
   keyMetrics: KeyMetrics[];
   financialRatios: FinancialRatios[];
+  financialRatiosTTM: any[];
   financialGrowth: FinancialGrowth[];
   // 估值
   dcfValuation: DCFValuation | null;
@@ -480,6 +481,10 @@ export interface ReportData {
   // 机构持仓与内幕交易
   institutionalHolders: InstitutionalHolder[];
   insiderTrading: InsiderTrading[];
+  mutualFundHolders: any[];
+  etfHolders: any[];
+  // 行情与技术指标
+  historicalPrices: any[];
   // 其他
   peers: string[];
   news: StockNews[];
