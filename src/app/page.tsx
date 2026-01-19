@@ -87,7 +87,7 @@ function CircularLoader({ step, totalSteps }: { step: number; totalSteps: number
       
       {/* 中心图标 */}
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${LOADING_STEPS[step].color} flex items-center justify-center animate-breathe`}>
+        <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${LOADING_STEPS[step].color} flex items-center justify-center`}>
           <Icon className="w-7 h-7 text-white" />
         </div>
       </div>

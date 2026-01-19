@@ -29,14 +29,6 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased font-sans">
-        {/* 极光背景 */}
-        <div className="aurora-bg" aria-hidden="true">
-          <div className="aurora-orb aurora-orb-1" />
-          <div className="aurora-orb aurora-orb-2" />
-          <div className="aurora-orb aurora-orb-3" />
-        </div>
-        
-        {/* 主内容 */}
         <div className="relative z-10">
           {children}
         </div>
