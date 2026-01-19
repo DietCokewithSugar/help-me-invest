@@ -73,9 +73,10 @@ export async function fetchFmpReportData(fmp: FMPClient, symbol: string): Promis
     earningsTranscripts = [];
   }
 
-  const historicalPrices = Array.isArray(historicalPriceData)
-    ? historicalPriceData
-    : historicalPriceData?.historical || [];
+  const historicalResponse = historicalPriceData as any;
+  const historicalPrices = Array.isArray(historicalResponse)
+    ? historicalResponse
+    : historicalResponse?.historical || [];
 
   return {
     profile,
