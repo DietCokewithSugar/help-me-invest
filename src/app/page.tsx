@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Search, TrendingUp, FileText, Zap, BarChart3, Brain, Globe2, Sparkles, ArrowRight } from 'lucide-react';
+import { Search, TrendingUp, FileText, Zap, BarChart3, Brain, Globe2, Sparkles, ArrowRight, Flame, Clock } from 'lucide-react';
 import Report from '@/components/Report';
 import type { ReportData } from '@/types';
 
-const FEATURED_STOCKS = [
+// 默认热门股票（当数据库没有数据时使用）
+const DEFAULT_FEATURED_STOCKS = [
   { symbol: 'AAPL', name: 'Apple' },
   { symbol: 'TSLA', name: 'Tesla' },
   { symbol: 'NVDA', name: 'NVIDIA' },
@@ -15,6 +16,14 @@ const FEATURED_STOCKS = [
   { symbol: 'AMZN', name: 'Amazon' },
   { symbol: 'AMD', name: 'AMD' },
 ];
+
+// 热门股票类型
+interface TrendingStock {
+  symbol: string;
+  company_name: string | null;
+  total_searches: number;
+  last_searched: string;
+}
 
 const LOADING_STEPS = [
   { text: '正在获取企业基本信息', icon: FileText, color: 'from-blue-500 to-blue-600' },
@@ -97,7 +106,28 @@ export default function Home() {
   const [error, setError] = useState('');
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [loadingStep, setLoadingStep] = useState(0);
+  const [trendingStocks, setTrendingStocks] = useState<TrendingStock[]>([]);
+  const [trendingLoading, setTrendingLoading] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // 获取热门搜索榜单
+  useEffect(() => {
+    const fetchTrending = async () => {
+      try {
+        const response = await fetch('/api/trending?period=week&limit=8');
+        const data = await response.json();
+        if (data.success && data.data.length > 0) {
+          setTrendingStocks(data.data);
+        }
+      } catch (error) {
+        console.log('获取热门榜单失败，使用默认列表');
+      } finally {
+        setTrendingLoading(false);
+      }
+    };
+
+    fetchTrending();
+  }, []);
 
   useEffect(() => {
     if (loading) {
@@ -107,6 +137,24 @@ export default function Home() {
       return () => clearInterval(interval);
     }
   }, [loading]);
+
+  // 记录搜索到数据库（异步，不阻塞主流程）
+  const recordSearchToDb = async (sym: string, companyName?: string, isInvalid?: boolean) => {
+    try {
+      await fetch('/api/search-record', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          symbol: sym,
+          companyName,
+          action: isInvalid ? 'invalidate' : 'record',
+        }),
+      });
+    } catch (e) {
+      // 静默失败，不影响用户体验
+      console.log('记录搜索失败:', e);
+    }
+  };
 
   const handleAnalyze = async () => {
     const trimmedSymbol = symbol.trim().toUpperCase();
@@ -133,8 +181,17 @@ export default function Home() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || '分析失败，请稍后重试');
+        // FMP 返回错误，可能是无效股票代码
+        const errorMsg = data.error || '分析失败，请稍后重试';
+        // 如果是找不到股票的错误，标记为无效
+        if (errorMsg.includes('找不到') || errorMsg.includes('not found') || errorMsg.includes('无效')) {
+          recordSearchToDb(trimmedSymbol, undefined, true);
+        }
+        throw new Error(errorMsg);
       }
+
+      // 搜索成功，记录到数据库（包含公司名称）
+      recordSearchToDb(trimmedSymbol, data.profile?.companyName);
 
       setReportData(data);
       setLoading(false);
@@ -312,20 +369,72 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* 热门股票 */}
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span className="text-sm text-mist-600">热门标的：</span>
-                  {FEATURED_STOCKS.map((stock, index) => (
-                    <button
-                      key={stock.symbol}
-                      onClick={() => setSymbol(stock.symbol)}
-                      disabled={loading}
-                      className="stock-chip disabled:opacity-50 disabled:cursor-not-allowed"
-                      style={{ animationDelay: `${index * 50}ms` }}
-                    >
-                      {stock.symbol}
-                    </button>
-                  ))}
+                {/* 热门股票榜单 */}
+                <div className="space-y-4">
+                  {/* 本周热门榜单 */}
+                  {trendingStocks.length > 0 && (
+                    <div className="p-4 rounded-2xl bg-gradient-to-r from-orange-500/5 to-red-500/5 border border-orange-500/10">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Flame className="w-4 h-4 text-orange-500" />
+                        <span className="text-sm font-medium text-orange-400">本周热搜</span>
+                        <div className="flex items-center gap-1 ml-auto text-xs text-mist-600">
+                          <Clock className="w-3 h-3" />
+                          <span>实时更新</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {trendingStocks.map((stock, index) => (
+                          <button
+                            key={stock.symbol}
+                            onClick={() => setSymbol(stock.symbol)}
+                            disabled={loading}
+                            className="group relative px-3 py-1.5 rounded-full bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20 hover:border-orange-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            style={{ animationDelay: `${index * 50}ms` }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-orange-400/60">#{index + 1}</span>
+                              <span className="font-mono text-sm text-white group-hover:text-orange-300 transition-colors">
+                                {stock.symbol}
+                              </span>
+                              {stock.total_searches > 1 && (
+                                <span className="text-xs text-mist-500">
+                                  {stock.total_searches}次
+                                </span>
+                              )}
+                            </div>
+                            {stock.company_name && (
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded bg-night-800 border border-night-700 text-xs text-mist-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                {stock.company_name}
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 默认推荐（当没有热门数据或作为补充） */}
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="text-sm text-mist-600">
+                      {trendingStocks.length > 0 ? '更多推荐：' : '热门标的：'}
+                    </span>
+                    {(trendingStocks.length > 0 
+                      ? DEFAULT_FEATURED_STOCKS.filter(
+                          s => !trendingStocks.some(t => t.symbol === s.symbol)
+                        ).slice(0, 5)
+                      : DEFAULT_FEATURED_STOCKS
+                    ).map((stock, index) => (
+                      <button
+                        key={stock.symbol}
+                        onClick={() => setSymbol(stock.symbol)}
+                        disabled={loading}
+                        className="stock-chip disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ animationDelay: `${index * 50}ms` }}
+                      >
+                        {stock.symbol}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
