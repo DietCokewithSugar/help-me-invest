@@ -26,6 +26,85 @@ export class GeminiClient {
     });
   }
 
+  async suggestSymbol(
+    query: string,
+    marketHint?: MarketType
+  ): Promise<{
+    query: string;
+    suggestions: Array<{
+      symbol: string;
+      market: MarketType;
+      name?: string;
+      nameCn?: string;
+      confidence?: number;
+    }>;
+  }> {
+    const trimmedQuery = query.trim();
+    const marketName = marketHint ? (MARKET_NAMES[marketHint] || '美股') : '未指定';
+    const prompt = `你是股票搜索联想引擎。用户输入可能是股票代码、公司中文/英文名、拼音缩写或简称。请根据输入联想到正确格式的股票代码，并输出 JSON。
+
+要求：
+1. 只返回 JSON，不要包含任何 Markdown 或解释性文字。
+2. 市场只能是 US / CN / HK / JP。
+3. 返回的 symbol 必须是可用于 FMP 的格式：
+   - US: 例如 AAPL, TSLA, BRK.B
+   - CN: 6 位数字 + .SS 或 .SZ
+   - HK: 4-5 位数字 + .HK（不足位补零）
+   - JP: 4 位数字 + .T
+4. 优先返回最相关的 1-5 个候选，confidence 为 0-1 之间的小数。
+5. 如果无法确定，suggestions 为空数组。
+6. 如果知道中文名，请填充 nameCn；否则可以留空。
+
+用户输入：${trimmedQuery}
+市场提示：${marketName}
+
+请严格输出以下 JSON 结构：
+{
+  "query": "${trimmedQuery}",
+  "suggestions": [
+    {
+      "symbol": "XXXX",
+      "market": "US",
+      "name": "公司名称（可选）",
+      "nameCn": "公司中文名（可选）",
+      "confidence": 0.75
+    }
+  ]
+}`;
+
+    try {
+      const model = this.genAI.getGenerativeModel({
+        model: 'gemini-3-flash-preview',
+        generationConfig: {
+          temperature: 0.2,
+          topP: 0.9,
+          maxOutputTokens: 1024,
+        },
+      });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
+      if (!text || text.trim().length === 0) {
+        throw new Error('AI 返回空响应');
+      }
+      
+      const cleaned = text
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
+      
+      if (!cleaned.startsWith('{')) {
+        throw new Error('AI 响应格式不正确');
+      }
+      
+      return JSON.parse(cleaned);
+    } catch (error: any) {
+      console.error('Gemini suggestSymbol error:', error?.message || error);
+      return { query: trimmedQuery, suggestions: [] };
+    }
+  }
+
   async analyzeCompany(
     companyData: any,
     incomeData: any[],

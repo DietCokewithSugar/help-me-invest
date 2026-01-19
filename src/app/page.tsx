@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Search, TrendingUp, FileText, Zap, BarChart3, Brain, Globe2, Sparkles, ArrowRight, Flame, Clock, ChevronDown } from 'lucide-react';
 import Report from '@/components/Report';
 import type { ReportData, MarketType } from '@/types';
-import { MARKET_CONFIGS, formatSymbolForMarket, getMarketConfig, type MarketConfig } from '@/lib/markets';
+import { MARKET_CONFIGS, detectMarketFromSymbol, formatSymbolForMarket, getMarketConfig, type MarketConfig } from '@/lib/markets';
 
 // 热门股票类型
 interface TrendingStock {
@@ -12,6 +12,14 @@ interface TrendingStock {
   company_name: string | null;
   total_searches: number;
   last_searched: string;
+}
+
+interface SymbolSuggestion {
+  symbol: string;
+  market: MarketType;
+  name?: string;
+  nameCn?: string;
+  confidence?: number;
 }
 
 const LOADING_STEPS = [
@@ -99,8 +107,14 @@ export default function Home() {
   const [loadingStep, setLoadingStep] = useState(0);
   const [trendingStocks, setTrendingStocks] = useState<TrendingStock[]>([]);
   const [trendingLoading, setTrendingLoading] = useState(true);
+  const [suggestions, setSuggestions] = useState<SymbolSuggestion[]>([]);
+  const [suggestLoading, setSuggestLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isComposing, setIsComposing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const marketDropdownRef = useRef<HTMLDivElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+  const suggestContainerRef = useRef<HTMLDivElement>(null);
   
   const currentMarketConfig = getMarketConfig(selectedMarket);
 
@@ -109,6 +123,9 @@ export default function Home() {
     const handleClickOutside = (event: MouseEvent) => {
       if (marketDropdownRef.current && !marketDropdownRef.current.contains(event.target as Node)) {
         setShowMarketDropdown(false);
+      }
+      if (suggestContainerRef.current && !suggestContainerRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -143,6 +160,61 @@ export default function Home() {
     }
   }, [loading]);
 
+  // 联想搜索（AI）
+  useEffect(() => {
+    const query = symbol.trim();
+    if (query.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      setSuggestLoading(false);
+      return;
+    }
+
+    const marketHint = query.includes('.') ? detectMarketFromSymbol(query) : undefined;
+    const controller = new AbortController();
+    const timeout = setTimeout(async () => {
+      setSuggestLoading(true);
+      try {
+        const response = await fetch('/api/symbol-suggest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query,
+            market: marketHint,
+          }),
+          signal: controller.signal,
+        });
+        const data = await response.json();
+        if (!controller.signal.aborted) {
+          setSuggestions(Array.isArray(data.suggestions) ? data.suggestions : []);
+          setShowSuggestions(true);
+        }
+      } catch (e) {
+        if (!controller.signal.aborted) {
+          setSuggestions([]);
+          setShowSuggestions(false);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setSuggestLoading(false);
+        }
+      }
+    }, 350);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timeout);
+    };
+  }, [symbol]);
+
+  const handleSelectSuggestion = (item: SymbolSuggestion) => {
+    setSelectedMarket(item.market);
+    setSymbol(item.symbol);
+    setError('');
+    setShowSuggestions(false);
+    inputRef.current?.focus();
+  };
+
   // 记录搜索到数据库（异步，不阻塞主流程）
   const recordSearchToDb = async (sym: string, companyName?: string, isInvalid?: boolean) => {
     try {
@@ -169,8 +241,24 @@ export default function Home() {
       return;
     }
 
-    // 格式化股票代码（添加市场后缀）
-    const formattedSymbol = formatSymbolForMarket(trimmedSymbol, selectedMarket);
+    // 优先使用联想结果（若输入未包含市场后缀）
+    let marketForAnalyze = selectedMarket;
+    let formattedSymbol = trimmedSymbol;
+    if (!trimmedSymbol.includes('.') && suggestions.length > 0) {
+      const bestSuggestion = suggestions[0];
+      marketForAnalyze = bestSuggestion.market;
+      formattedSymbol = bestSuggestion.symbol;
+    } else if (!trimmedSymbol.includes('.') && /^\d{6}$/.test(trimmedSymbol)) {
+      marketForAnalyze = 'CN';
+      formattedSymbol = formatSymbolForMarket(trimmedSymbol, 'CN');
+    } else if (!trimmedSymbol.includes('.') && /^\d{4,5}$/.test(trimmedSymbol)) {
+      marketForAnalyze = selectedMarket;
+      formattedSymbol = formatSymbolForMarket(trimmedSymbol, marketForAnalyze);
+    } else {
+      marketForAnalyze = detectMarketFromSymbol(trimmedSymbol);
+      formattedSymbol = formatSymbolForMarket(trimmedSymbol, marketForAnalyze);
+    }
+    setSelectedMarket(marketForAnalyze);
 
     setLoading(true);
     setAiLoading(false);
@@ -185,7 +273,7 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           symbol: formattedSymbol,
-          market: selectedMarket 
+          market: marketForAnalyze 
         }),
       });
 
@@ -218,7 +306,7 @@ export default function Home() {
             incomeStatements: data.incomeStatements,
             peers: data.peers,
             earningsTranscripts: data.earningsTranscripts || [],
-            market: selectedMarket,
+            market: marketForAnalyze,
           }),
         });
 
@@ -330,38 +418,17 @@ export default function Home() {
             {/* 搜索区域 */}
             <div className="animate-fade-in-up delay-200">
               <div className="gemini-card gemini-card-glow p-8 md:p-10">
-                {/* 市场选择器 */}
+                {/* 市场自动识别 */}
                 <div className="flex items-center gap-3 mb-6">
-                  <span className="text-sm text-mist-500">选择市场：</span>
-                  <div className="flex gap-2">
-                    {(Object.keys(MARKET_CONFIGS) as MarketType[]).map((marketId) => {
-                      const config = MARKET_CONFIGS[marketId];
-                      const isSelected = selectedMarket === marketId;
-                      return (
-                        <button
-                          key={marketId}
-                          onClick={() => {
-                            setSelectedMarket(marketId);
-                            setSymbol('');
-                            setError('');
-                          }}
-                          disabled={loading}
-                          className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${
-                            isSelected
-                              ? 'bg-gemini-blue/20 border-gemini-blue text-white'
-                              : 'bg-white/5 border-white/10 text-mist-400 hover:border-white/20 hover:text-white'
-                          } disabled:opacity-50 disabled:cursor-not-allowed`}
-                        >
-                          <span className="text-sm font-medium">{config.nameCn}</span>
-                        </button>
-                      );
-                    })}
+                  <span className="text-sm text-mist-500">市场识别：</span>
+                  <div className="text-sm text-mist-300">
+                    AI 自动识别股票市场（当前：{currentMarketConfig.nameCn}）
                   </div>
                 </div>
 
                 {/* 搜索框 */}
                 <div className="flex flex-col md:flex-row gap-4 mb-6">
-                  <div className="flex-1 relative group">
+                  <div ref={suggestContainerRef} className="flex-1 relative group">
                     <div className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none">
                       <Search className="w-5 h-5 text-mist-500 group-focus-within:text-gemini-blue transition-colors" />
                     </div>
@@ -370,14 +437,56 @@ export default function Home() {
                       type="text"
                       value={symbol}
                       onChange={(e) => {
-                        setSymbol(e.target.value.toUpperCase());
+                        const nextValue = e.target.value;
+                        setSymbol(isComposing ? nextValue : nextValue.toUpperCase());
                         setError('');
+                        setShowSuggestions(true);
+                      }}
+                      onCompositionStart={() => setIsComposing(true)}
+                      onCompositionEnd={(e) => {
+                        setIsComposing(false);
+                        setSymbol(e.currentTarget.value.toUpperCase());
                       }}
                       onKeyDown={handleKeyDown}
-                      placeholder={`输入股票代码，例如 ${currentMarketConfig.symbolExample}`}
+                      placeholder="输入股票代码或公司名称，例如 AAPL / 茅台 / 腾讯 / Toyota"
                       disabled={loading}
                       className="gemini-input w-full pl-14 pr-5 py-5 text-lg font-mono disabled:opacity-50"
                     />
+
+                    {/* 联想搜索下拉 */}
+                    {showSuggestions && (suggestLoading || suggestions.length > 0) && (
+                      <div
+                        ref={suggestionsRef}
+                        className="absolute left-0 right-0 top-full mt-3 z-20 rounded-2xl border border-white/10 bg-night-900/95 backdrop-blur-xl shadow-2xl"
+                      >
+                        <div className="px-4 py-3 text-xs text-mist-500 border-b border-white/10 flex items-center justify-between">
+                          <span>AI 联想结果</span>
+                          {suggestLoading && <span className="text-mist-600">查询中...</span>}
+                        </div>
+                        <div className="max-h-64 overflow-auto">
+                          {suggestions.map((item) => (
+                            <button
+                              key={`${item.market}-${item.symbol}`}
+                              onClick={() => handleSelectSuggestion(item)}
+                              className="w-full px-4 py-3 text-left hover:bg-white/5 transition-colors flex items-center gap-3"
+                            >
+                              <span className="font-mono text-sm text-white">{item.symbol}</span>
+                              <span className="text-xs text-mist-500">
+                                {MARKET_CONFIGS[item.market]?.nameCn || item.market}
+                              </span>
+                              {(item.nameCn || item.name) && (
+                                <span className="text-sm text-mist-300 truncate">
+                                  {item.nameCn || item.name}
+                                </span>
+                              )}
+                            </button>
+                          ))}
+                          {suggestions.length === 0 && !suggestLoading && (
+                            <div className="px-4 py-3 text-sm text-mist-500">暂未找到匹配结果</div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                     
                     {/* 输入框发光边框 */}
                     <div className="absolute inset-0 rounded-2xl pointer-events-none opacity-0 group-focus-within:opacity-100 transition-opacity">
@@ -401,16 +510,6 @@ export default function Home() {
                     )}
                   </button>
                 </div>
-
-                {/* 代码格式提示 */}
-                {selectedMarket !== 'US' && (
-                  <div className="mb-4 p-3 rounded-xl bg-gemini-blue/10 border border-gemini-blue/20">
-                    <p className="text-sm text-gemini-blue">
-                      <span className="font-medium">{currentMarketConfig.nameCn}格式提示：</span>
-                      {' '}{currentMarketConfig.symbolFormat}
-                    </p>
-                  </div>
-                )}
 
                 {/* 错误提示 */}
                 {error && (
