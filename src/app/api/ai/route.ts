@@ -56,10 +56,26 @@ export async function POST(request: NextRequest) {
 
     let aiAnalysis;
     try {
+      // 检查是否返回了错误消息而不是 JSON
+      if (aiAnalysisRaw.toLowerCase().startsWith('an error') || 
+          aiAnalysisRaw.toLowerCase().startsWith('error') ||
+          aiAnalysisRaw.toLowerCase().includes('i apologize') ||
+          aiAnalysisRaw.toLowerCase().includes('i cannot')) {
+        console.error('AI returned error message instead of JSON:', aiAnalysisRaw.substring(0, 200));
+        throw new Error('AI 返回了错误消息');
+      }
+
       const cleanedResponse = aiAnalysisRaw
         .replace(/```json\n?/g, '')
         .replace(/```\n?/g, '')
         .trim();
+      
+      // 确保响应看起来像 JSON
+      if (!cleanedResponse.startsWith('{')) {
+        console.error('AI response does not look like JSON:', cleanedResponse.substring(0, 200));
+        throw new Error('AI 响应格式不正确');
+      }
+
       const parsedAnalysis = JSON.parse(cleanedResponse);
 
       aiAnalysis = {
@@ -72,8 +88,9 @@ export async function POST(request: NextRequest) {
         recentDevelopments: parsedAnalysis.recentDevelopments?.trim() || defaultAnalysis.recentDevelopments,
         investmentConclusion: parsedAnalysis.investmentConclusion?.trim() || defaultAnalysis.investmentConclusion,
       };
-    } catch (e) {
-      console.error('Failed to parse AI response:', e);
+    } catch (e: any) {
+      console.error('Failed to parse AI response:', e?.message || e);
+      console.error('Raw response (first 500 chars):', aiAnalysisRaw?.substring(0, 500));
       aiAnalysis = defaultAnalysis;
     }
 
