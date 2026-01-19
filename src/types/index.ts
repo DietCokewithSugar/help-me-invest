@@ -459,6 +459,9 @@ export interface SankeyData {
 
 // ==================== 完整报告数据结构 ====================
 
+// 市场类型
+export type MarketType = 'US' | 'CN' | 'HK' | 'JP';
+
 export interface ReportData {
   profile: CompanyProfile;
   quote?: any;
@@ -493,4 +496,6 @@ export interface ReportData {
   earningsCallSummary?: string;
   searchResults?: string;
   sankeyData: SankeyData;
+  // 市场信息
+  market?: MarketType;
 }

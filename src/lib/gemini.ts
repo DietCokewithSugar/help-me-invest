@@ -1,4 +1,13 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import type { MarketType } from '@/lib/markets';
+
+// 市场名称映射
+const MARKET_NAMES: Record<MarketType, string> = {
+  US: '美股',
+  CN: 'A股（中国大陆）',
+  HK: '港股（香港）',
+  JP: '日股（日本）',
+};
 
 export class GeminiClient {
   private genAI: GoogleGenerativeAI;
@@ -21,10 +30,24 @@ export class GeminiClient {
     companyData: any,
     incomeData: any[],
     peers: string[],
-    transcriptData?: any
+    transcriptData?: any,
+    market: MarketType = 'US'
   ): Promise<string> {
+    const marketName = MARKET_NAMES[market] || '美股';
+    const isNonUS = market !== 'US';
+    
+    // 对于非美股，添加额外的分析指引
+    const marketContext = isNonUS ? `
+## 市场背景
+该公司在 ${marketName} 市场上市。请结合你对该市场的专业知识进行分析：
+- 考虑该市场特有的监管环境和政策因素
+- 分析该地区的宏观经济环境对公司的影响
+- 考虑当地市场的投资者结构和交易特点
+- 如果数据有限，请基于你的专业知识和对该公司/行业的了解进行补充分析
+` : '';
+
     const prompt = `
-你是一位资深的金融分析师和投资研究专家。请根据以下数据，生成一份专业的投资调研报告。
+你是一位资深的金融分析师和投资研究专家，精通全球各主要资本市场。请根据以下数据，生成一份专业的投资调研报告。
 
 ## 公司基本信息
 ${JSON.stringify(companyData, null, 2)}
@@ -33,8 +56,8 @@ ${JSON.stringify(companyData, null, 2)}
 ${JSON.stringify(incomeData, null, 2)}
 
 ## 同业竞争者
-${peers.join(', ')}
-
+${peers.length > 0 ? peers.join(', ') : '（数据暂无，请基于行业知识分析主要竞争对手）'}
+${marketContext}
 ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcriptData, null, 2)}` : ''}
 
 请按照以下JSON格式返回分析结果（请使用中文）：
@@ -54,6 +77,7 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
 1. 请确保返回有效的JSON格式，不要包含任何markdown代码块标记
 2. 所有字段都必须提供有意义的内容，不能留空
 3. 特别注意industryPainPoints字段必须详细分析行业痛点，这对投资决策非常重要
+4. 即使某些数据缺失，也请基于你对该公司和行业的专业知识进行合理分析
 `;
 
     const result = await this.model.generateContent(prompt);
@@ -61,7 +85,11 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
     return response.text();
   }
 
-  async searchAndAnalyze(companyName: string, symbol: string): Promise<string> {
+  async searchAndAnalyze(
+    companyName: string, 
+    symbol: string, 
+    market: MarketType = 'US'
+  ): Promise<string> {
     // 使用 Gemini 2.5 with Google Search grounding
     const modelWithSearch = this.genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
@@ -70,13 +98,22 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
       }] as any,
     });
 
-    const prompt = `请搜索并总结 ${companyName} (${symbol}) 的最新新闻和发展动态，包括：
+    const marketName = MARKET_NAMES[market] || '美股';
+    const isNonUS = market !== 'US';
+    
+    // 对于非美股，搜索更全面的信息
+    const additionalSearchItems = isNonUS ? `
+5. 当地市场的监管政策变化
+6. 地区经济环境对公司的影响
+7. 主要股东和机构投资者动态` : '';
+
+    const prompt = `请搜索并总结 ${companyName} (${symbol}，${marketName}市场) 的最新新闻和发展动态，包括：
 1. 最近的重大公告和事件
 2. 产品发布或战略变化
 3. 行业动态和竞争格局变化
-4. 分析师观点和市场情绪
+4. 分析师观点和市场情绪${additionalSearchItems}
 
-请用中文回答，提供最近2-3个月的关键信息摘要。`;
+请用中文回答，提供最近2-3个月的关键信息摘要。如果是中国公司，请特别关注国内媒体和财经网站的报道。`;
 
     try {
       const result = await modelWithSearch.generateContent(prompt);
@@ -85,6 +122,51 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
     } catch (error) {
       console.error('Google Search grounding error:', error);
       return '';
+    }
+  }
+
+  // 专门用于非美股市场的深度分析（使用 Google Search 补充数据）
+  async searchCompanyDetails(
+    companyName: string,
+    symbol: string,
+    market: MarketType
+  ): Promise<{
+    competitors: string;
+    recentNews: string;
+    analystViews: string;
+  }> {
+    const modelWithSearch = this.genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash',
+      tools: [{ googleSearch: {} }] as any,
+    });
+
+    const marketName = MARKET_NAMES[market] || '美股';
+
+    const prompt = `请搜索 ${companyName} (${symbol}，${marketName}市场) 的详细信息，并以 JSON 格式返回：
+
+{
+  "competitors": "该公司的主要竞争对手及其特点分析（200-300字）",
+  "recentNews": "最近2-3个月的重要新闻和事件总结（200-300字）",
+  "analystViews": "券商和分析师的观点汇总，包括评级和目标价（如有）（100-200字）"
+}
+
+请确保返回有效的 JSON 格式，不要包含 markdown 代码块标记。使用中文回答。`;
+
+    try {
+      const result = await modelWithSearch.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text()
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
+      return JSON.parse(text);
+    } catch (error) {
+      console.error('Search company details error:', error);
+      return {
+        competitors: '',
+        recentNews: '',
+        analystViews: '',
+      };
     }
   }
 

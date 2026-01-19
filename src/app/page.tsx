@@ -1,21 +1,21 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Search, TrendingUp, FileText, Zap, BarChart3, Brain, Globe2, Sparkles, ArrowRight, Flame, Clock } from 'lucide-react';
+import { Search, TrendingUp, FileText, Zap, BarChart3, Brain, Globe2, Sparkles, ArrowRight, Flame, Clock, ChevronDown } from 'lucide-react';
 import Report from '@/components/Report';
-import type { ReportData } from '@/types';
+import type { ReportData, MarketType } from '@/types';
+import { MARKET_CONFIGS, formatSymbolForMarket, getMarketConfig, type MarketConfig } from '@/lib/markets';
 
-// 默认热门股票（当数据库没有数据时使用）
-const DEFAULT_FEATURED_STOCKS = [
-  { symbol: 'AAPL', name: 'Apple' },
-  { symbol: 'TSLA', name: 'Tesla' },
-  { symbol: 'NVDA', name: 'NVIDIA' },
-  { symbol: 'MSFT', name: 'Microsoft' },
-  { symbol: 'GOOGL', name: 'Alphabet' },
-  { symbol: 'META', name: 'Meta' },
-  { symbol: 'AMZN', name: 'Amazon' },
-  { symbol: 'AMD', name: 'AMD' },
-];
+// 市场图标组件
+const MarketIcon = ({ market }: { market: MarketType }) => {
+  const flags: Record<MarketType, string> = {
+    US: '🇺🇸',
+    CN: '🇨🇳',
+    HK: '🇭🇰',
+    JP: '🇯🇵',
+  };
+  return <span className="text-lg">{flags[market]}</span>;
+};
 
 // 热门股票类型
 interface TrendingStock {
@@ -100,6 +100,8 @@ function CircularLoader({ step, totalSteps }: { step: number; totalSteps: number
 
 export default function Home() {
   const [symbol, setSymbol] = useState('');
+  const [selectedMarket, setSelectedMarket] = useState<MarketType>('US');
+  const [showMarketDropdown, setShowMarketDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState('');
@@ -109,6 +111,20 @@ export default function Home() {
   const [trendingStocks, setTrendingStocks] = useState<TrendingStock[]>([]);
   const [trendingLoading, setTrendingLoading] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
+  const marketDropdownRef = useRef<HTMLDivElement>(null);
+  
+  const currentMarketConfig = getMarketConfig(selectedMarket);
+
+  // 点击外部关闭下拉菜单
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (marketDropdownRef.current && !marketDropdownRef.current.contains(event.target as Node)) {
+        setShowMarketDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // 获取热门搜索榜单
   useEffect(() => {
@@ -164,6 +180,9 @@ export default function Home() {
       return;
     }
 
+    // 格式化股票代码（添加市场后缀）
+    const formattedSymbol = formatSymbolForMarket(trimmedSymbol, selectedMarket);
+
     setLoading(true);
     setAiLoading(false);
     setAiError('');
@@ -175,7 +194,10 @@ export default function Home() {
       const response = await fetch('/api/fmp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ symbol: trimmedSymbol }),
+        body: JSON.stringify({ 
+          symbol: formattedSymbol,
+          market: selectedMarket 
+        }),
       });
 
       const data = await response.json();
@@ -185,13 +207,13 @@ export default function Home() {
         const errorMsg = data.error || '分析失败，请稍后重试';
         // 如果是找不到股票的错误，标记为无效
         if (errorMsg.includes('找不到') || errorMsg.includes('not found') || errorMsg.includes('无效')) {
-          recordSearchToDb(trimmedSymbol, undefined, true);
+          recordSearchToDb(formattedSymbol, undefined, true);
         }
         throw new Error(errorMsg);
       }
 
       // 搜索成功，记录到数据库（包含公司名称）
-      recordSearchToDb(trimmedSymbol, data.profile?.companyName);
+      recordSearchToDb(formattedSymbol, data.profile?.companyName);
 
       setReportData(data);
       setLoading(false);
@@ -202,11 +224,12 @@ export default function Home() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            symbol: trimmedSymbol,
+            symbol: formattedSymbol,
             profile: data.profile,
             incomeStatements: data.incomeStatements,
             peers: data.peers,
             earningsTranscripts: data.earningsTranscripts || [],
+            market: selectedMarket,
           }),
         });
 
@@ -309,7 +332,7 @@ export default function Home() {
               
               {/* 副标题 */}
               <p className="text-lg md:text-xl text-mist-400 max-w-2xl mx-auto leading-relaxed">
-                输入任意美股代码，AI 自动分析企业基本面、行业格局、竞争优势，
+                支持美股、A股、港股、日股，AI 自动分析企业基本面、行业格局、竞争优势，
                 <br className="hidden md:block" />
                 生成专业级投资调研报告
               </p>
@@ -318,6 +341,36 @@ export default function Home() {
             {/* 搜索区域 */}
             <div className="animate-fade-in-up delay-200">
               <div className="gemini-card gemini-card-glow p-8 md:p-10">
+                {/* 市场选择器 */}
+                <div className="flex items-center gap-3 mb-6">
+                  <span className="text-sm text-mist-500">选择市场：</span>
+                  <div className="flex gap-2">
+                    {(Object.keys(MARKET_CONFIGS) as MarketType[]).map((marketId) => {
+                      const config = MARKET_CONFIGS[marketId];
+                      const isSelected = selectedMarket === marketId;
+                      return (
+                        <button
+                          key={marketId}
+                          onClick={() => {
+                            setSelectedMarket(marketId);
+                            setSymbol('');
+                            setError('');
+                          }}
+                          disabled={loading}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${
+                            isSelected
+                              ? 'bg-gemini-blue/20 border-gemini-blue text-white'
+                              : 'bg-white/5 border-white/10 text-mist-400 hover:border-white/20 hover:text-white'
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          <MarketIcon market={marketId} />
+                          <span className="text-sm font-medium">{config.nameCn}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {/* 搜索框 */}
                 <div className="flex flex-col md:flex-row gap-4 mb-6">
                   <div className="flex-1 relative group">
@@ -333,7 +386,7 @@ export default function Home() {
                         setError('');
                       }}
                       onKeyDown={handleKeyDown}
-                      placeholder="输入股票代码，例如 AAPL、TSLA、NVDA"
+                      placeholder={`输入股票代码，例如 ${currentMarketConfig.symbolExample}`}
                       disabled={loading}
                       className="gemini-input w-full pl-14 pr-5 py-5 text-lg font-mono disabled:opacity-50"
                     />
@@ -361,6 +414,16 @@ export default function Home() {
                   </button>
                 </div>
 
+                {/* 代码格式提示 */}
+                {selectedMarket !== 'US' && (
+                  <div className="mb-4 p-3 rounded-xl bg-gemini-blue/10 border border-gemini-blue/20">
+                    <p className="text-sm text-gemini-blue">
+                      <span className="font-medium">{currentMarketConfig.nameCn}格式提示：</span>
+                      {' '}{currentMarketConfig.symbolFormat}
+                    </p>
+                  </div>
+                )}
+
                 {/* 错误提示 */}
                 {error && (
                   <div className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center gap-3 animate-fade-in">
@@ -371,8 +434,8 @@ export default function Home() {
 
                 {/* 热门股票榜单 */}
                 <div className="space-y-4">
-                  {/* 本周热门榜单 */}
-                  {trendingStocks.length > 0 && (
+                  {/* 本周热门榜单（仅美股） */}
+                  {selectedMarket === 'US' && trendingStocks.length > 0 && (
                     <div className="p-4 rounded-2xl bg-gradient-to-r from-orange-500/5 to-red-500/5 border border-orange-500/10">
                       <div className="flex items-center gap-2 mb-3">
                         <Flame className="w-4 h-4 text-orange-500" />
@@ -413,25 +476,23 @@ export default function Home() {
                     </div>
                   )}
 
-                  {/* 默认推荐（当没有热门数据或作为补充） */}
+                  {/* 该市场的推荐股票 */}
                   <div className="flex items-center gap-3 flex-wrap">
                     <span className="text-sm text-mist-600">
-                      {trendingStocks.length > 0 ? '更多推荐：' : '热门标的：'}
+                      {currentMarketConfig.nameCn}热门标的：
                     </span>
-                    {(trendingStocks.length > 0 
-                      ? DEFAULT_FEATURED_STOCKS.filter(
-                          s => !trendingStocks.some(t => t.symbol === s.symbol)
-                        ).slice(0, 5)
-                      : DEFAULT_FEATURED_STOCKS
-                    ).map((stock, index) => (
+                    {currentMarketConfig.featuredStocks.map((stock, index) => (
                       <button
                         key={stock.symbol}
                         onClick={() => setSymbol(stock.symbol)}
                         disabled={loading}
-                        className="stock-chip disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="group relative stock-chip disabled:opacity-50 disabled:cursor-not-allowed"
                         style={{ animationDelay: `${index * 50}ms` }}
                       >
-                        {stock.symbol}
+                        <span className="font-mono">{stock.symbol}</span>
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded bg-night-800 border border-night-700 text-xs text-mist-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                          {stock.name}
+                        </div>
                       </button>
                     ))}
                   </div>
