@@ -179,7 +179,7 @@ export default function Home() {
               <div className="flex items-center gap-4">
                 <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
                   <div className="w-2 h-2 bg-gemini-green rounded-full animate-pulse" />
-                  <span className="text-sm text-mist-400">Gemini 2.5 Flash</span>
+                  <span className="text-sm text-mist-400">Gemini 3 Flash</span>
                 </div>
                 <div className="flex items-center gap-2 text-mist-500 text-sm">
                   <FileText className="w-4 h-4" />
@@ -331,7 +331,7 @@ export default function Home() {
                   {
                     icon: Brain,
                     title: 'AI 深度分析',
-                    description: '基于 Gemini 2.5 Flash 模型，深入分析企业基本面、行业格局与竞争优势',
+                    description: '基于 Gemini 3 Flash 模型，深入分析企业基本面、行业格局与竞争优势',
                     gradient: 'from-gemini-blue to-gemini-purple',
                     delay: '300',
                   },

@@ -585,7 +585,7 @@ export default function Report({ data, onReset }: ReportProps) {
             报告中的分析基于公开数据和 AI 推理，可能存在偏差或不准确之处，请结合专业投资顾问意见进行决策。
           </p>
           <p className="text-xs text-mist-600">
-            数据来源：Financial Modeling Prep (Premium) | AI 分析：Google Gemini 2.5 Flash
+            数据来源：Financial Modeling Prep (Premium) | AI 分析：Google Gemini 3 Flash
           </p>
         </footer>
       </div>
