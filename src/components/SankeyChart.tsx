@@ -14,6 +14,34 @@ export default function SankeyChart({ data }: SankeyProps) {
     return `$${value.toLocaleString()}`;
   };
 
+  const REVENUE_COLOR = '#94a3b8';
+  const EXPENSE_COLOR = '#ef4444';
+  const PROFIT_COLOR = '#22c55e';
+
+  const revenueNodes = new Set(['主营业务收入', '其他收入', '总营收']);
+  const expenseNodes = new Set(['营业成本', '研发费用', '销售及管理费用', '税费及其他']);
+  const profitNodes = new Set(['毛利润', '营业利润', '净利润']);
+
+  const getNodeCategory = (name: string) => {
+    if (profitNodes.has(name)) return 'profit';
+    if (expenseNodes.has(name)) return 'expense';
+    return 'revenue';
+  };
+
+  const hasOtherRevenue = data.nodes.some((node) => node.name === '其他收入');
+  const positionMap: Record<string, { x: number; y: number }> = {
+    主营业务收入: { x: 0.02, y: hasOtherRevenue ? 0.35 : 0.5 },
+    其他收入: { x: 0.02, y: 0.65 },
+    总营收: { x: 0.18, y: 0.5 },
+    营业成本: { x: 0.38, y: 0.72 },
+    毛利润: { x: 0.38, y: 0.25 },
+    研发费用: { x: 0.58, y: 0.78 },
+    销售及管理费用: { x: 0.58, y: 0.9 },
+    营业利润: { x: 0.58, y: 0.18 },
+    税费及其他: { x: 0.78, y: 0.72 },
+    净利润: { x: 0.78, y: 0.1 },
+  };
+
   const option = {
     backgroundColor: 'transparent',
     tooltip: {
@@ -50,9 +78,9 @@ export default function SankeyChart({ data }: SankeyProps) {
         nodeGap: 20,
         draggable: false,
         lineStyle: {
-          color: 'gradient',
-          curveness: 0.5,
-          opacity: 0.5,
+          color: REVENUE_COLOR,
+          curveness: 0.45,
+          opacity: 0.45,
         },
         itemStyle: {
           borderWidth: 0,
@@ -75,22 +103,30 @@ export default function SankeyChart({ data }: SankeyProps) {
             return `${params.name}\n${formatValue(nodeValue)}`;
           },
         },
-        data: data.nodes.map((node, index) => ({
-          ...node,
-          itemStyle: {
-            color: [
-              '#14b8a6', // 总营收 - 青绿色
-              '#ef4444', // 营业成本 - 红色
-              '#22c55e', // 毛利润 - 绿色
-              '#8b5cf6', // 研发费用 - 紫色
-              '#f59e0b', // 销售管理费用 - 橙色
-              '#3b82f6', // 营业利润 - 蓝色
-              '#ec4899', // 税费及其他 - 粉色
-              '#fbbf24', // 净利润 - 金色
-            ][index % 8],
-          },
-        })),
-        links: data.links,
+        data: data.nodes.map((node) => {
+          const category = getNodeCategory(node.name);
+          const position = positionMap[node.name];
+          const color =
+            category === 'profit' ? PROFIT_COLOR : category === 'expense' ? EXPENSE_COLOR : REVENUE_COLOR;
+          return {
+            ...node,
+            ...(position ? position : {}),
+            itemStyle: {
+              color,
+            },
+          };
+        }),
+        links: data.links.map((link) => {
+          const category = getNodeCategory(link.target);
+          const color =
+            category === 'profit' ? PROFIT_COLOR : category === 'expense' ? EXPENSE_COLOR : REVENUE_COLOR;
+          return {
+            ...link,
+            lineStyle: {
+              color,
+            },
+          };
+        }),
       },
     ],
   };
