@@ -42,7 +42,7 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
 {
   "companyOverview": "企业整体说明，包括主营业务、商业模式、发展历程等（300-500字）",
   "industryAnalysis": "企业所处行业的详细分析，包括行业规模、增长趋势、技术演进等（300-400字）",
-  "industryPainPoints": "行业当前面临的最大痛点与发展障碍（200-300字）",
+  "industryPainPoints": "【必填】行业当前面临的最大痛点与发展障碍，包括但不限于：技术挑战、监管压力、供应链问题、人才短缺、成本压力、竞争加剧等（200-300字，必须提供具体分析）",
   "competitors": "行业其他主要竞争对手分析，包括各自的市场地位和特点（200-300字）",
   "competitiveAdvantage": "相较于其他竞争对手，该企业的独特优势（200-300字）",
   "moat": "企业核心竞争力及护城河分析，包括技术壁垒、品牌效应、网络效应等（300-400字）",
@@ -50,7 +50,10 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
   "investmentConclusion": "投资建议总结，包括机遇和风险提示（200-300字）"
 }
 
-请确保返回有效的JSON格式，不要包含任何markdown代码块标记。
+重要提示：
+1. 请确保返回有效的JSON格式，不要包含任何markdown代码块标记
+2. 所有字段都必须提供有意义的内容，不能留空
+3. 特别注意industryPainPoints字段必须详细分析行业痛点，这对投资决策非常重要
 `;
 
     const result = await this.model.generateContent(prompt);

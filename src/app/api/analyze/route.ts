@@ -110,24 +110,40 @@ export async function POST(request: NextRequest) {
 
     // 解析 AI 返回的 JSON
     let aiAnalysis;
+    
+    // 定义默认值
+    const defaultAnalysis = {
+      companyOverview: profile.description || '暂无企业概况',
+      industryAnalysis: `${profile.companyName} 属于 ${profile.sector} 行业，主要从事 ${profile.industry} 领域的业务。`,
+      industryPainPoints: `${profile.industry} 行业面临的主要挑战包括：市场竞争加剧、技术迭代加速、监管政策变化等。企业需要持续创新以保持竞争力。`,
+      competitors: peers.length > 0 ? `主要竞争对手包括: ${peers.slice(0, 5).join(', ')}` : '暂无竞争对手数据',
+      competitiveAdvantage: '正在分析竞争优势...',
+      moat: '正在分析企业护城河...',
+      recentDevelopments: '正在获取最新动态...',
+      investmentConclusion: '请结合其他信息进行综合判断。',
+    };
+    
     try {
       const cleanedResponse = aiAnalysisRaw
         .replace(/```json\n?/g, '')
         .replace(/```\n?/g, '')
         .trim();
-      aiAnalysis = JSON.parse(cleanedResponse);
+      const parsedAnalysis = JSON.parse(cleanedResponse);
+      
+      // 合并解析结果与默认值，确保每个字段都有值
+      aiAnalysis = {
+        companyOverview: parsedAnalysis.companyOverview?.trim() || defaultAnalysis.companyOverview,
+        industryAnalysis: parsedAnalysis.industryAnalysis?.trim() || defaultAnalysis.industryAnalysis,
+        industryPainPoints: parsedAnalysis.industryPainPoints?.trim() || defaultAnalysis.industryPainPoints,
+        competitors: parsedAnalysis.competitors?.trim() || defaultAnalysis.competitors,
+        competitiveAdvantage: parsedAnalysis.competitiveAdvantage?.trim() || defaultAnalysis.competitiveAdvantage,
+        moat: parsedAnalysis.moat?.trim() || defaultAnalysis.moat,
+        recentDevelopments: parsedAnalysis.recentDevelopments?.trim() || defaultAnalysis.recentDevelopments,
+        investmentConclusion: parsedAnalysis.investmentConclusion?.trim() || defaultAnalysis.investmentConclusion,
+      };
     } catch (e) {
       console.error('Failed to parse AI response:', e);
-      aiAnalysis = {
-        companyOverview: profile.description || '暂无企业概况',
-        industryAnalysis: `${profile.companyName} 属于 ${profile.sector} 行业，主要从事 ${profile.industry} 领域的业务。`,
-        industryPainPoints: '正在分析行业痛点...',
-        competitors: peers.length > 0 ? `主要竞争对手包括: ${peers.slice(0, 5).join(', ')}` : '暂无竞争对手数据',
-        competitiveAdvantage: '正在分析竞争优势...',
-        moat: '正在分析企业护城河...',
-        recentDevelopments: '正在获取最新动态...',
-        investmentConclusion: '请结合其他信息进行综合判断。',
-      };
+      aiAnalysis = defaultAnalysis;
     }
 
     // 使用 Google Search 获取最新新闻和动态

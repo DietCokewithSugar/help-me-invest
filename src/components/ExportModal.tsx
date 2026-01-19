@@ -1,7 +1,7 @@
 'use client';
 
 import { forwardRef, useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { toPng } from 'html-to-image';
 import {
   X,
@@ -22,13 +22,13 @@ interface ExportModalProps {
 }
 
 // 动画变体
-const overlayVariants = {
+const overlayVariants: Variants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1 },
   exit: { opacity: 0 },
 };
 
-const modalVariants = {
+const modalVariants: Variants = {
   hidden: { 
     opacity: 0, 
     scale: 0.95,
@@ -39,7 +39,7 @@ const modalVariants = {
     scale: 1,
     y: 0,
     transition: {
-      type: 'spring',
+      type: 'spring' as const,
       damping: 25,
       stiffness: 300,
     },
@@ -54,7 +54,7 @@ const modalVariants = {
   },
 };
 
-const buttonVariants = {
+const buttonVariants: Variants = {
   idle: { scale: 1 },
   hover: { scale: 1.02 },
   tap: { scale: 0.98 },
