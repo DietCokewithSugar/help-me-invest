@@ -207,6 +207,11 @@ export class FMPClient {
     return this.fetch<any[]>(`/mutual-fund-holder`, { symbol });
   }
 
+  // ETF 持仓
+  async getEtfHolders(symbol: string) {
+    return this.fetch<any[]>(`/etf-holder`, { symbol });
+  }
+
   // 内幕交易
   async getInsiderTrading(symbol: string, limit = 50) {
     return this.fetch<any[]>(`/insider-trading`, { 
@@ -286,6 +291,16 @@ export class FMPClient {
     if (from) params.from = from;
     if (to) params.to = to;
     return this.fetch<any[]>(`/historical-price-eod/full`, params);
+  }
+
+  // 分钟级别行情
+  async getIntradayChart(symbol: string, interval: '1min' | '5min' | '15min' | '30min' | '1hour' = '1min') {
+    return this.fetch<any[]>(`/historical-chart/${interval}`, { symbol });
+  }
+
+  // 技术指标
+  async getTechnicalIndicators(symbol: string, period: '1day' | '1hour' = '1day') {
+    return this.fetch<any>(`/technical-indicators`, { symbol, period });
   }
 
   // ==================== 评级与目标价 ====================

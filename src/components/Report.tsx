@@ -7,6 +7,7 @@ import {
   ArrowLeft, Users, AlertTriangle, Sparkles,
   Globe, Calendar, DollarSign, Users2, Image as ImageIcon,
   FileSpreadsheet, Calculator, Briefcase, ChevronDown, ChevronUp,
+  FileText,
   ExternalLink
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -22,6 +23,8 @@ import type { ReportData } from '@/types';
 interface ReportProps {
   data: ReportData;
   onReset: () => void;
+  aiLoading?: boolean;
+  aiError?: string;
 }
 
 // 分析卡片组件
@@ -140,9 +143,10 @@ function StatCard({
   );
 }
 
-export default function Report({ data, onReset }: ReportProps) {
+export default function Report({ data, onReset, aiLoading = false, aiError = '' }: ReportProps) {
   const reportRef = useRef<HTMLDivElement>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [showTranscript, setShowTranscript] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     aiAnalysis: true,
     financialStatements: true,
@@ -168,7 +172,9 @@ export default function Report({ data, onReset }: ReportProps) {
     insiderTrading = [],
     peers, 
     news, 
-    aiAnalysis, 
+    aiAnalysis,
+    earningsTranscripts = [],
+    earningsCallSummary = '',
     sankeyData 
   } = data;
 
@@ -199,6 +205,17 @@ export default function Report({ data, onReset }: ReportProps) {
     }
   };
 
+  const transcriptText =
+    Array.isArray(earningsTranscripts) && earningsTranscripts.length > 0
+      ? earningsTranscripts[0]?.content ||
+        earningsTranscripts[0]?.transcript ||
+        earningsTranscripts[0]?.text ||
+        ''
+      : '';
+
+  const showAiSection =
+    aiLoading || !!aiError || !!aiAnalysis || !!earningsCallSummary;
+
   // 兼容新旧 API 格式
   const marketCap = profile.marketCap || profile.mktCap || 0;
   const priceChange = profile.change ?? profile.changes ?? 0;
@@ -209,7 +226,7 @@ export default function Report({ data, onReset }: ReportProps) {
 
   // 快捷导航
   const sections = [
-    { id: 'aiAnalysis', label: 'AI 分析', icon: Sparkles },
+    ...(showAiSection ? [{ id: 'aiAnalysis', label: 'AI 分析', icon: Sparkles }] : []),
     { id: 'financialStatements', label: '财务报表', icon: FileSpreadsheet },
     { id: 'valuation', label: '估值指标', icon: Calculator },
     { id: 'events', label: '事件日历', icon: Calendar },
@@ -340,93 +357,139 @@ export default function Report({ data, onReset }: ReportProps) {
         </header>
 
         {/* ==================== AI 分析内容 ==================== */}
-        <CollapsibleSection
-          id="aiAnalysis"
-          icon={Sparkles}
-          title="AI 智能分析"
-          gradient="from-gemini-blue to-gemini-purple"
-          expanded={expandedSections.aiAnalysis}
-          onToggle={() => toggleSection('aiAnalysis')}
-        >
-          <div className="space-y-6 animate-fade-in">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <AnalysisCard icon={Building2} title="企业概况" gradient="from-gemini-blue to-blue-600">
-                <ReactMarkdown>{aiAnalysis.companyOverview}</ReactMarkdown>
-              </AnalysisCard>
-
-              <AnalysisCard icon={TrendingUp} title="行业分析" gradient="from-blue-500 to-indigo-600">
-                <ReactMarkdown>{aiAnalysis.industryAnalysis}</ReactMarkdown>
-              </AnalysisCard>
-
-              <AnalysisCard icon={AlertTriangle} title="行业痛点与障碍" gradient="from-orange-500 to-red-500">
-                <ReactMarkdown>{aiAnalysis.industryPainPoints}</ReactMarkdown>
-              </AnalysisCard>
-
-              <AnalysisCard icon={Users} title="竞争格局" gradient="from-purple-500 to-pink-500">
-                <ReactMarkdown>{aiAnalysis.competitors}</ReactMarkdown>
-                {peers && peers.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-4 mt-4 border-t border-white/5">
-                    <span className="text-xs text-mist-500 mr-2">主要竞争对手:</span>
-                    {peers.slice(0, 8).map((peer) => (
-                      <span key={peer} className="px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-full text-purple-300 text-sm font-mono hover:bg-purple-500/20 transition-colors cursor-default">
-                        {peer}
-                      </span>
-                    ))}
+        {showAiSection && (
+          <CollapsibleSection
+            id="aiAnalysis"
+            icon={Sparkles}
+            title="AI 智能分析"
+            gradient="from-gemini-blue to-gemini-purple"
+            expanded={expandedSections.aiAnalysis}
+            onToggle={() => toggleSection('aiAnalysis')}
+          >
+            <div className="space-y-6 animate-fade-in">
+              {aiLoading && (
+                <div className="gemini-card p-6 md:p-8">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-2.5 h-2.5 bg-gemini-blue rounded-full animate-pulse" />
+                    <p className="text-mist-200 font-medium">AI 正在生成深度解读与电话会议精要...</p>
                   </div>
-                )}
-              </AnalysisCard>
+                  <p className="text-sm text-mist-500">财务信息已加载完成，AI 内容会自动补充到此处。</p>
+                </div>
+              )}
 
-              <AnalysisCard icon={Target} title="竞争优势" gradient="from-green-500 to-emerald-600">
-                <ReactMarkdown>{aiAnalysis.competitiveAdvantage}</ReactMarkdown>
-              </AnalysisCard>
+              {aiError && (
+                <div className="gemini-card p-6 md:p-8 border border-red-500/20 bg-red-500/10">
+                  <p className="text-red-400 text-sm">{aiError}</p>
+                </div>
+              )}
 
-              <AnalysisCard icon={Shield} title="核心护城河" gradient="from-amber-500 to-orange-500">
-                <ReactMarkdown>{aiAnalysis.moat}</ReactMarkdown>
-              </AnalysisCard>
-            </div>
+              {aiAnalysis && (
+                <>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <AnalysisCard icon={Building2} title="企业概况" gradient="from-gemini-blue to-blue-600">
+                      <ReactMarkdown>{aiAnalysis.companyOverview}</ReactMarkdown>
+                    </AnalysisCard>
 
-            {/* 最新动态 */}
-            <div className="gemini-card gemini-card-glow p-6 md:p-8">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="relative">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
-                    <Sparkles className="w-5 h-5 text-white" />
+                    <AnalysisCard icon={TrendingUp} title="行业分析" gradient="from-blue-500 to-indigo-600">
+                      <ReactMarkdown>{aiAnalysis.industryAnalysis}</ReactMarkdown>
+                    </AnalysisCard>
+
+                    <AnalysisCard icon={AlertTriangle} title="行业痛点与障碍" gradient="from-orange-500 to-red-500">
+                      <ReactMarkdown>{aiAnalysis.industryPainPoints}</ReactMarkdown>
+                    </AnalysisCard>
+
+                    <AnalysisCard icon={Users} title="竞争格局" gradient="from-purple-500 to-pink-500">
+                      <ReactMarkdown>{aiAnalysis.competitors}</ReactMarkdown>
+                      {peers && peers.length > 0 && (
+                        <div className="flex flex-wrap gap-2 pt-4 mt-4 border-t border-white/5">
+                          <span className="text-xs text-mist-500 mr-2">主要竞争对手:</span>
+                          {peers.slice(0, 8).map((peer) => (
+                            <span key={peer} className="px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-full text-purple-300 text-sm font-mono hover:bg-purple-500/20 transition-colors cursor-default">
+                              {peer}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </AnalysisCard>
+
+                    <AnalysisCard icon={Target} title="竞争优势" gradient="from-green-500 to-emerald-600">
+                      <ReactMarkdown>{aiAnalysis.competitiveAdvantage}</ReactMarkdown>
+                    </AnalysisCard>
+
+                    <AnalysisCard icon={Shield} title="核心护城河" gradient="from-amber-500 to-orange-500">
+                      <ReactMarkdown>{aiAnalysis.moat}</ReactMarkdown>
+                    </AnalysisCard>
                   </div>
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 opacity-30 blur-xl" />
-                </div>
-                <div className="flex items-center gap-3">
-                  <h3 className="text-xl font-semibold text-white">最新发展动态</h3>
-                  <span className="gemini-badge text-xs">AI + Google Search</span>
-                </div>
-              </div>
-              <div className="prose prose-gemini max-w-none prose-p:text-mist-300 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-300 prose-a:text-gemini-blue prose-a:no-underline hover:prose-a:underline">
-                <ReactMarkdown>{aiAnalysis.recentDevelopments}</ReactMarkdown>
-              </div>
-            </div>
 
-            {/* 投资结论 */}
-            <div className="relative gemini-card p-8 md:p-10 overflow-hidden">
-              {/* 渐变背景 */}
-              <div className="absolute inset-0 bg-gradient-to-br from-gemini-blue/10 via-gemini-purple/5 to-gemini-pink/10" />
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gemini-blue via-gemini-purple to-gemini-pink" />
-              
-              <div className="relative">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="relative">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-gemini-blue via-gemini-purple to-gemini-pink flex items-center justify-center">
-                      <Sparkles className="w-6 h-6 text-white" />
+                  {/* 最新动态 */}
+                  <div className="gemini-card gemini-card-glow p-6 md:p-8">
+                    <div className="flex items-center gap-4 mb-6">
+                      <div className="relative">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+                          <Sparkles className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 opacity-30 blur-xl" />
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-xl font-semibold text-white">最新发展动态</h3>
+                        <span className="gemini-badge text-xs">AI + Google Search</span>
+                      </div>
                     </div>
-                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-gemini-blue to-gemini-pink opacity-40 blur-2xl" />
+                    <div className="prose prose-gemini max-w-none prose-p:text-mist-300 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-300 prose-a:text-gemini-blue prose-a:no-underline hover:prose-a:underline">
+                      <ReactMarkdown>{aiAnalysis.recentDevelopments}</ReactMarkdown>
+                    </div>
                   </div>
-                  <h3 className="text-2xl font-bold text-white">投资建议总结</h3>
+                </>
+              )}
+
+              {earningsCallSummary && (
+                <AnalysisCard icon={FileText} title="财报电话会议精要" gradient="from-cyan-500 to-blue-600">
+                  <ReactMarkdown>{earningsCallSummary}</ReactMarkdown>
+                  {transcriptText && (
+                    <div className="not-prose mt-4 space-y-3">
+                      <button
+                        onClick={() => setShowTranscript((prev) => !prev)}
+                        className="gemini-btn gemini-btn-secondary text-sm"
+                      >
+                        {showTranscript ? '收起原文' : '查看原文'}
+                      </button>
+                      {showTranscript && (
+                        <div className="rounded-2xl border border-white/10 bg-black/30 p-4 max-h-[420px] overflow-auto">
+                          <pre className="whitespace-pre-wrap text-xs text-mist-300 leading-relaxed">
+                            {transcriptText}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </AnalysisCard>
+              )}
+
+              {aiAnalysis && (
+                <div className="relative gemini-card p-8 md:p-10 overflow-hidden">
+                  {/* 渐变背景 */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-gemini-blue/10 via-gemini-purple/5 to-gemini-pink/10" />
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gemini-blue via-gemini-purple to-gemini-pink" />
+                  
+                  <div className="relative">
+                    <div className="flex items-center gap-4 mb-6">
+                      <div className="relative">
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-gemini-blue via-gemini-purple to-gemini-pink flex items-center justify-center">
+                          <Sparkles className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-gemini-blue to-gemini-pink opacity-40 blur-2xl" />
+                      </div>
+                      <h3 className="text-2xl font-bold text-white">投资建议总结</h3>
+                    </div>
+                    <div className="prose prose-gemini prose-lg max-w-none prose-p:text-mist-200 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-200">
+                      <ReactMarkdown>{aiAnalysis.investmentConclusion}</ReactMarkdown>
+                    </div>
+                  </div>
                 </div>
-                <div className="prose prose-gemini prose-lg max-w-none prose-p:text-mist-200 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-200">
-                  <ReactMarkdown>{aiAnalysis.investmentConclusion}</ReactMarkdown>
-                </div>
-              </div>
+              )}
             </div>
-          </div>
-        </CollapsibleSection>
+          </CollapsibleSection>
+        )}
 
         {/* ==================== 财务报表 ==================== */}
         <CollapsibleSection

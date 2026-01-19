@@ -92,6 +92,8 @@ function CircularLoader({ step, totalSteps }: { step: number; totalSteps: number
 export default function Home() {
   const [symbol, setSymbol] = useState('');
   const [loading, setLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState('');
   const [error, setError] = useState('');
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [loadingStep, setLoadingStep] = useState(0);
@@ -115,12 +117,14 @@ export default function Home() {
     }
 
     setLoading(true);
+    setAiLoading(false);
+    setAiError('');
     setError('');
     setReportData(null);
     setLoadingStep(0);
 
     try {
-      const response = await fetch('/api/analyze', {
+      const response = await fetch('/api/fmp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ symbol: trimmedSymbol }),
@@ -133,9 +137,45 @@ export default function Home() {
       }
 
       setReportData(data);
+      setLoading(false);
+
+      setAiLoading(true);
+      try {
+        const aiResponse = await fetch('/api/ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            symbol: trimmedSymbol,
+            profile: data.profile,
+            incomeStatements: data.incomeStatements,
+            peers: data.peers,
+            earningsTranscripts: data.earningsTranscripts || [],
+          }),
+        });
+
+        const aiData = await aiResponse.json();
+
+        if (!aiResponse.ok) {
+          throw new Error(aiData.error || 'AI 分析失败，请稍后重试');
+        }
+
+        setReportData((prev) =>
+          prev
+            ? {
+                ...prev,
+                aiAnalysis: aiData.aiAnalysis,
+                searchResults: aiData.searchResults,
+                earningsCallSummary: aiData.earningsCallSummary,
+              }
+            : prev
+        );
+      } catch (err: any) {
+        setAiError(err.message || 'AI 分析失败，请稍后重试');
+      } finally {
+        setAiLoading(false);
+      }
     } catch (err: any) {
       setError(err.message || '网络错误，请检查连接后重试');
-    } finally {
       setLoading(false);
     }
   };
@@ -378,9 +418,14 @@ export default function Home() {
         <div className="pt-24">
           <Report 
             data={reportData} 
+            aiLoading={aiLoading}
+            aiError={aiError}
             onReset={() => {
               setReportData(null);
               setSymbol('');
+              setAiLoading(false);
+              setAiError('');
+              setError('');
             }} 
           />
         </div>

@@ -87,4 +87,47 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
       return '';
     }
   }
+
+  async summarizeEarningsCall(
+    transcriptText: string,
+    companyName: string,
+    symbol: string
+  ): Promise<string> {
+    const prompt = `
+你是一位资深卖方分析师。请根据以下英文电话会议全文，生成中文“财报电话会议精要”。
+必须严格围绕用户关心的四个区域输出，并给出清晰的要点与判断：
+
+1. 必读区域：问答环节 (Q&A Session)
+- 抓出分析师的关键提问与管理层的回答。
+- 标出“重复出现的尖锐问题”（如果2-3位分析师问同一问题，要明确指出这是市场核心担忧）。
+- 识别“非正面回答”（问题被回避、答非所问）。
+- 观察“语气变化/防御性措辞”（例如“正如我刚才所说...”）。
+
+2. 核心数据区：业绩指引 (Guidance/Outlook)
+- 是否上调、下调或重申全年目标。
+- 注意措辞确定性（如“保守估计”“强劲可见度”“宏观不确定性”等）。
+
+3. 关键指标解释区：CFO 的财务陈述
+- 重点解释利润率变化（Gross/Operating Margin）。
+- 指出一次性项目 (One-time items) 的影响，区分 Non-GAAP 真实经营状况。
+- 资本配置 (Capital Allocation)：回购/分红/CapEx 的取向与信号。
+
+4. 业务亮点区：CEO 的开场白 (Prepared Remarks)
+- 提炼战略优先级变化与业务亮点（避免套话）。
+
+输出要求：
+- 中文输出，结构化呈现，每个部分用清晰标题。
+- 每部分 3-6 条要点，简洁、可读。
+- 如果原文未披露某项，明确写“未披露/未提及”。
+- 只输出内容，不要包含任何代码块标记。
+
+公司：${companyName} (${symbol})
+电话会议原文：
+${transcriptText}
+`;
+
+    const result = await this.model.generateContent(prompt);
+    const response = await result.response;
+    return response.text();
+  }
 }

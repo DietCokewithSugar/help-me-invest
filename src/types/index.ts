@@ -461,6 +461,7 @@ export interface SankeyData {
 
 export interface ReportData {
   profile: CompanyProfile;
+  quote?: any;
   // 三大财务报表
   incomeStatements: IncomeStatement[];
   balanceSheets: BalanceSheet[];
@@ -482,7 +483,9 @@ export interface ReportData {
   // 其他
   peers: string[];
   news: StockNews[];
-  aiAnalysis: AIAnalysis;
+  earningsTranscripts?: any[];
+  aiAnalysis?: AIAnalysis;
+  earningsCallSummary?: string;
   searchResults?: string;
   sankeyData: SankeyData;
 }
