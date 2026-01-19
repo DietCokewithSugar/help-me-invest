@@ -65,13 +65,13 @@ export default function SankeyChart({ data }: SankeyProps) {
           fontWeight: 500,
           position: 'right',
           formatter: (params: any) => {
-            // 计算节点的值（流入或流出的总和）
-            const nodeValue = data.links
-              .filter(link => link.source === params.name || link.target === params.name)
-              .reduce((sum, link) => {
-                if (link.source === params.name) return Math.max(sum, link.value);
-                return sum + link.value;
-              }, 0);
+            const incoming = data.links
+              .filter((link) => link.target === params.name)
+              .reduce((sum, link) => sum + link.value, 0);
+            const outgoing = data.links
+              .filter((link) => link.source === params.name)
+              .reduce((sum, link) => sum + link.value, 0);
+            const nodeValue = Math.max(incoming, outgoing);
             return `${params.name}\n${formatValue(nodeValue)}`;
           },
         },
