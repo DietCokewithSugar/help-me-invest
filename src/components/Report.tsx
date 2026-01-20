@@ -56,14 +56,14 @@ function CompanyLogo({ src, alt }: { src?: string; alt: string }) {
   // 如果没有图片 URL 或加载失败，显示备用图标
   if (!src || hasError) {
     return (
-      <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-gemini-blue/20 to-gemini-purple/20 backdrop-blur-xl flex items-center justify-center shrink-0 border border-white/10">
+    <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-gemini-blue/20 to-gemini-purple/20 backdrop-blur-xl flex items-center justify-center shrink-0 border border-white/10 max-md:border-0">
         <Building2 className="w-10 h-10 text-gemini-blue/70" />
       </div>
     );
   }
 
   return (
-    <div className="w-24 h-24 rounded-3xl bg-white/5 backdrop-blur-xl flex items-center justify-center p-4 shrink-0 border border-white/10 relative">
+    <div className="w-24 h-24 rounded-3xl bg-white/5 backdrop-blur-xl flex items-center justify-center p-4 shrink-0 border border-white/10 max-md:border-0 relative">
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-8 h-8 border-2 border-gemini-blue/30 border-t-gemini-blue rounded-full animate-spin" />
@@ -192,7 +192,7 @@ function StatCard({
         <Icon className="w-4 h-4" />
         {label}
       </div>
-      <p className="text-2xl font-bold text-white font-mono mb-1">{value}</p>
+      <p className="text-xl md:text-2xl font-bold text-white font-mono mb-1 whitespace-nowrap">{value}</p>
       {subValue && (
         <span className={`text-sm ${subValue.positive ? 'text-gemini-green' : 'text-gemini-red'}`}>
           {subValue.text}
@@ -285,8 +285,9 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
         ''
       : '';
 
+  const showAiLoading = aiLoading;
   const showAiSection =
-    aiLoading || !!aiError || !!aiAnalysis || !!earningsCallSummary;
+    !aiLoading && (!!aiError || !!aiAnalysis || !!earningsCallSummary);
 
   // 兼容新旧 API 格式
   const marketCap = profile.marketCap || profile.mktCap || 0;
@@ -350,7 +351,7 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
         </div>
       </div>
 
-      <div ref={reportRef} className="space-y-10 bg-[#0a0a0f] p-6 md:p-10 rounded-3xl border border-white/10 shadow-2xl">
+      <div ref={reportRef} className="report-mobile-borderless space-y-10 bg-[#0a0a0f] p-4 md:p-10 rounded-3xl border border-white/10 max-md:border-0 shadow-2xl max-md:shadow-none">
         {/* 公司头部信息 */}
         <header className="gemini-card p-8 md:p-10 animate-fade-in-up relative overflow-hidden">
           {/* 背景装饰 */}
@@ -424,6 +425,17 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
           </div>
         </header>
 
+        {/* ==================== AI 生成中提示 ==================== */}
+        {showAiLoading && (
+          <div className="gemini-card p-6 md:p-8 animate-fade-in">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-2.5 h-2.5 bg-gemini-blue rounded-full animate-pulse" />
+              <p className="text-mist-200 font-medium">AI 正在生成深度解读与电话会议精要...</p>
+            </div>
+            <p className="text-sm text-mist-500">财务信息已加载完成，AI 内容会自动补充到此处。</p>
+          </div>
+        )}
+
         {/* ==================== AI 分析内容 ==================== */}
         {showAiSection && (
           <CollapsibleSection
@@ -435,16 +447,6 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
             onToggle={() => toggleSection('aiAnalysis')}
           >
             <div className="space-y-6 animate-fade-in">
-              {aiLoading && (
-                <div className="gemini-card p-6 md:p-8">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-2.5 h-2.5 bg-gemini-blue rounded-full animate-pulse" />
-                    <p className="text-mist-200 font-medium">AI 正在生成深度解读与电话会议精要...</p>
-                  </div>
-                  <p className="text-sm text-mist-500">财务信息已加载完成，AI 内容会自动补充到此处。</p>
-                </div>
-              )}
-
               {aiError && (
                 <div className="gemini-card p-6 md:p-8 border border-red-500/20 bg-red-500/10">
                   <p className="text-red-400 text-sm">{aiError}</p>
@@ -522,7 +524,7 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
                         {showTranscript ? '收起原文' : '查看原文'}
                       </button>
                       {showTranscript && (
-                        <div className="rounded-2xl border border-white/10 bg-black/30 p-4 max-h-[420px] overflow-auto">
+                        <div className="rounded-2xl border border-white/10 max-md:border-0 bg-black/30 p-4 max-h-[420px] overflow-auto">
                           <pre className="whitespace-pre-wrap text-xs text-mist-300 leading-relaxed">
                             {transcriptText}
                           </pre>
@@ -712,7 +714,7 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
                   href={item.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group block p-5 rounded-2xl bg-surface/50 border border-white/5 hover:border-gemini-blue/30 hover:bg-surface transition-all"
+                  className="group block p-5 rounded-2xl bg-surface/50 border border-white/5 max-md:border-0 hover:border-gemini-blue/30 hover:bg-surface transition-all"
                 >
                   <p className="text-mist-200 font-medium mb-4 line-clamp-2 group-hover:text-white transition-colors leading-relaxed">
                     {item.title}

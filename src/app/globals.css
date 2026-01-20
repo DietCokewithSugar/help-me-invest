@@ -49,12 +49,30 @@ html {
 }
 
 body {
-  background: var(--void);
+  background-color: #08090d;
+  background-image:
+    radial-gradient(circle, rgba(185, 195, 210, 0.16) 0.6px, transparent 1.4px),
+    radial-gradient(900px 650px at 78% 42%, rgba(200, 210, 225, 0.12), transparent 60%),
+    radial-gradient(1200px 900px at 85% 38%, rgba(160, 175, 195, 0.08), transparent 65%);
+  background-size: 18px 18px, auto, auto;
+  background-position: 0 0, center, center;
+  background-repeat: repeat, no-repeat, no-repeat;
   color: var(--text-primary);
   min-height: 100vh;
   font-feature-settings: 'kern' 1, 'liga' 1;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* 数字排版 - 统一等宽数字，避免错位 */
+.numeric-tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+}
+
+.font-mono {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
 }
 
 /* 自定义选择高亮 */
@@ -659,5 +677,24 @@ body {
   .feature-card {
     padding: 24px;
     border-radius: 24px;
+  }
+
+  .gemini-card {
+    padding: 16px;
+    border: none;
+  }
+
+  .glass-card {
+    padding: 16px;
+    border: none;
+  }
+
+  .report-mobile-borderless .border {
+    border-width: 0;
+  }
+
+  .report-mobile-borderless .gemini-card,
+  .report-mobile-borderless .glass-card {
+    border: none;
   }
 }

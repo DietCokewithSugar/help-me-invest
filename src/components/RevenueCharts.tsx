@@ -257,7 +257,7 @@ export default function RevenueCharts({ incomeStatements }: Props) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="bg-midnight/50 rounded-xl p-5 border border-white/5">
+      <div className="bg-midnight/50 rounded-xl p-4 md:p-5 border border-white/5 max-md:border-0">
         <h4 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
           <span className="w-2 h-2 bg-aurora-500 rounded-full"></span>
           年度营收趋势
@@ -268,7 +268,7 @@ export default function RevenueCharts({ incomeStatements }: Props) {
           opts={{ renderer: 'canvas' }}
         />
       </div>
-      <div className="bg-midnight/50 rounded-xl p-5 border border-white/5">
+      <div className="bg-midnight/50 rounded-xl p-4 md:p-5 border border-white/5 max-md:border-0">
         <h4 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
           <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
           {latestIncome?.date?.split('-')[0] || ''} 成本结构分布

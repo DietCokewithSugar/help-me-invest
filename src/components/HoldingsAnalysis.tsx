@@ -69,24 +69,24 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white/5 rounded-lg p-4 text-center">
             <p className="text-sm text-slate-400 mb-1">机构数量</p>
-            <p className="text-2xl font-bold font-mono text-white">{institutionalHolders.length}</p>
+            <p className="text-xl md:text-2xl font-bold font-mono text-white whitespace-nowrap">{institutionalHolders.length}</p>
           </div>
           <div className="bg-aurora-500/10 rounded-lg p-4 text-center">
             <p className="text-sm text-slate-400 mb-1">总持仓股数</p>
-            <p className="text-2xl font-bold font-mono text-aurora-400">{formatNumber(totalShares)}</p>
+            <p className="text-xl md:text-2xl font-bold font-mono text-aurora-400 whitespace-nowrap">{formatNumber(totalShares)}</p>
           </div>
           <div className="bg-green-500/10 rounded-lg p-4 text-center">
             <p className="text-sm text-slate-400 mb-1">增持机构</p>
-            <p className="text-2xl font-bold font-mono text-green-400">{increases}</p>
+            <p className="text-xl md:text-2xl font-bold font-mono text-green-400 whitespace-nowrap">{increases}</p>
           </div>
           <div className="bg-red-500/10 rounded-lg p-4 text-center">
             <p className="text-sm text-slate-400 mb-1">减持机构</p>
-            <p className="text-2xl font-bold font-mono text-red-400">{decreases}</p>
+            <p className="text-xl md:text-2xl font-bold font-mono text-red-400 whitespace-nowrap">{decreases}</p>
           </div>
         </div>
 
         {/* Top 10 持仓饼图 */}
-        <div className="bg-midnight/30 rounded-xl p-4 border border-white/5 mb-4">
+        <div className="bg-midnight/30 rounded-xl p-4 border border-white/5 max-md:border-0 mb-4">
           <h4 className="text-sm font-semibold text-slate-300 mb-4">Top 10 机构持仓分布</h4>
           <ReactECharts
             option={{
@@ -154,11 +154,11 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/10">
-                <th className="text-left py-3 px-4 text-slate-400 font-medium">机构名称</th>
-                <th className="text-right py-3 px-4 text-slate-400 font-medium">持仓股数</th>
-                <th className="text-right py-3 px-4 text-slate-400 font-medium">持仓市值</th>
-                <th className="text-right py-3 px-4 text-slate-400 font-medium">变动</th>
-                <th className="text-left py-3 px-4 text-slate-400 font-medium">报告日期</th>
+                <th className="text-left py-3 px-4 text-slate-400 font-medium whitespace-nowrap">机构名称</th>
+                <th className="text-right py-3 px-4 text-slate-400 font-medium whitespace-nowrap">持仓股数</th>
+                <th className="text-right py-3 px-4 text-slate-400 font-medium whitespace-nowrap">持仓市值</th>
+                <th className="text-right py-3 px-4 text-slate-400 font-medium whitespace-nowrap">变动</th>
+                <th className="text-left py-3 px-4 text-slate-400 font-medium whitespace-nowrap">报告日期</th>
               </tr>
             </thead>
             <tbody>
@@ -170,9 +170,9 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
                       <span className="truncate">{h.holder}</span>
                     </div>
                   </td>
-                  <td className="text-right py-3 px-4 font-mono text-white">{formatNumber(h.shares)}</td>
-                  <td className="text-right py-3 px-4 font-mono text-aurora-400">${formatNumber(h.value)}</td>
-                  <td className={`text-right py-3 px-4 font-mono ${
+                  <td className="text-right py-3 px-4 font-mono text-white whitespace-nowrap">{formatNumber(h.shares)}</td>
+                  <td className="text-right py-3 px-4 font-mono text-aurora-400 whitespace-nowrap">${formatNumber(h.value)}</td>
+                  <td className={`text-right py-3 px-4 font-mono whitespace-nowrap ${
                     h.change > 0 ? 'text-green-400' : h.change < 0 ? 'text-red-400' : 'text-slate-400'
                   }`}>
                     <div className="flex items-center justify-end gap-1">
@@ -185,7 +185,7 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
                       {h.changePercentage ? ` (${h.changePercentage > 0 ? '+' : ''}${h.changePercentage.toFixed(1)}%)` : ''}
                     </div>
                   </td>
-                  <td className="py-3 px-4 font-mono text-slate-400">{formatDate(h.dateReported)}</td>
+                  <td className="py-3 px-4 font-mono text-slate-400 whitespace-nowrap">{formatDate(h.dateReported)}</td>
                 </tr>
               ))}
             </tbody>
@@ -243,15 +243,15 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white/5 rounded-lg p-4 text-center">
             <p className="text-sm text-slate-400 mb-1">交易记录数</p>
-            <p className="text-2xl font-bold font-mono text-white">{insiderTrading.length}</p>
+            <p className="text-xl md:text-2xl font-bold font-mono text-white whitespace-nowrap">{insiderTrading.length}</p>
           </div>
           <div className="bg-green-500/10 rounded-lg p-4 text-center">
             <p className="text-sm text-slate-400 mb-1">买入次数</p>
-            <p className="text-2xl font-bold font-mono text-green-400">{buys.length}</p>
+            <p className="text-xl md:text-2xl font-bold font-mono text-green-400 whitespace-nowrap">{buys.length}</p>
           </div>
           <div className="bg-red-500/10 rounded-lg p-4 text-center">
             <p className="text-sm text-slate-400 mb-1">卖出次数</p>
-            <p className="text-2xl font-bold font-mono text-red-400">{sells.length}</p>
+            <p className="text-xl md:text-2xl font-bold font-mono text-red-400 whitespace-nowrap">{sells.length}</p>
           </div>
           <div className={`rounded-lg p-4 text-center ${
             totalBuyValue > totalSellValue ? 'bg-green-500/10' : 'bg-red-500/10'
@@ -259,7 +259,7 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
             <p className="text-sm text-slate-400 mb-1">净买入金额</p>
             <p className={`text-2xl font-bold font-mono ${
               totalBuyValue > totalSellValue ? 'text-green-400' : 'text-red-400'
-            }`}>
+            } whitespace-nowrap text-xl md:text-2xl`}>
               ${formatNumber(totalBuyValue - totalSellValue)}
             </p>
           </div>
@@ -267,7 +267,7 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
 
         {/* 月度交易趋势 */}
         {months.length > 1 && (
-          <div className="bg-midnight/30 rounded-xl p-4 border border-white/5 mb-4">
+          <div className="bg-midnight/30 rounded-xl p-4 border border-white/5 max-md:border-0 mb-4">
             <h4 className="text-sm font-semibold text-slate-300 mb-4">内幕交易月度趋势</h4>
             <ReactECharts
               option={{
@@ -325,13 +325,13 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/10">
-                <th className="text-left py-3 px-4 text-slate-400 font-medium">日期</th>
-                <th className="text-left py-3 px-4 text-slate-400 font-medium">内部人</th>
-                <th className="text-left py-3 px-4 text-slate-400 font-medium">职位</th>
-                <th className="text-center py-3 px-4 text-slate-400 font-medium">类型</th>
-                <th className="text-right py-3 px-4 text-slate-400 font-medium">股数</th>
-                <th className="text-right py-3 px-4 text-slate-400 font-medium">价格</th>
-                <th className="text-right py-3 px-4 text-slate-400 font-medium">总价值</th>
+                <th className="text-left py-3 px-4 text-slate-400 font-medium whitespace-nowrap">日期</th>
+                <th className="text-left py-3 px-4 text-slate-400 font-medium whitespace-nowrap">内部人</th>
+                <th className="text-left py-3 px-4 text-slate-400 font-medium whitespace-nowrap">职位</th>
+                <th className="text-center py-3 px-4 text-slate-400 font-medium whitespace-nowrap">类型</th>
+                <th className="text-right py-3 px-4 text-slate-400 font-medium whitespace-nowrap">股数</th>
+                <th className="text-right py-3 px-4 text-slate-400 font-medium whitespace-nowrap">价格</th>
+                <th className="text-right py-3 px-4 text-slate-400 font-medium whitespace-nowrap">总价值</th>
               </tr>
             </thead>
             <tbody>
@@ -340,7 +340,7 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
                 const value = (t.securitiesTransacted || 0) * (t.price || 0);
                 return (
                   <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                    <td className="py-3 px-4 text-white font-mono">{formatDate(t.transactionDate)}</td>
+                    <td className="py-3 px-4 text-white font-mono whitespace-nowrap">{formatDate(t.transactionDate)}</td>
                     <td className="py-3 px-4 text-white max-w-[150px] truncate" title={t.reportingName}>
                       <div className="flex items-center gap-2">
                         <UserCheck className="w-4 h-4 text-slate-500 shrink-0" />
@@ -365,13 +365,13 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
                         )}
                       </span>
                     </td>
-                    <td className="text-right py-3 px-4 font-mono text-white">
+                    <td className="text-right py-3 px-4 font-mono text-white whitespace-nowrap">
                       {formatNumber(t.securitiesTransacted)}
                     </td>
-                    <td className="text-right py-3 px-4 font-mono text-slate-400">
+                    <td className="text-right py-3 px-4 font-mono text-slate-400 whitespace-nowrap">
                       ${t.price?.toFixed(2) || 'N/A'}
                     </td>
-                    <td className={`text-right py-3 px-4 font-mono font-semibold ${
+                    <td className={`text-right py-3 px-4 font-mono font-semibold whitespace-nowrap ${
                       isBuy ? 'text-green-400' : 'text-red-400'
                     }`}>
                       ${formatNumber(value)}
@@ -429,7 +429,7 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
       </div>
 
       {/* 内容区域 */}
-      <div className="bg-midnight/30 rounded-xl p-4 border border-white/5">
+      <div className="bg-midnight/30 rounded-xl p-4 border border-white/5 max-md:border-0">
         {activeTab === 'institutional' && renderInstitutionalHolders()}
         {activeTab === 'insider' && renderInsiderTrading()}
       </div>

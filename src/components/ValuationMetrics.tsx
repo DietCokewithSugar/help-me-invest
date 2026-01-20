@@ -53,24 +53,24 @@ export default function ValuationMetrics({
     const isUndervalued = upside > 0;
 
     return (
-      <div className="bg-midnight/30 rounded-xl p-5 border border-white/5">
+      <div className="bg-midnight/30 rounded-xl p-5 border border-white/5 max-md:border-0">
         <div className="flex items-center gap-2 mb-4">
           <Calculator className="w-5 h-5 text-aurora-400" />
           <h3 className="text-base font-semibold text-white">DCF 估值分析</h3>
         </div>
         
-        <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
           <div className="text-center p-4 bg-white/5 rounded-lg">
             <p className="text-sm text-slate-400 mb-1">当前股价</p>
-            <p className="text-2xl font-bold font-mono text-white">${currentPrice?.toFixed(2)}</p>
+            <p className="text-xl md:text-2xl font-bold font-mono text-white whitespace-nowrap">${currentPrice?.toFixed(2)}</p>
           </div>
           <div className="text-center p-4 bg-white/5 rounded-lg">
             <p className="text-sm text-slate-400 mb-1">DCF 内在价值</p>
-            <p className="text-2xl font-bold font-mono text-aurora-400">${dcfValue?.toFixed(2)}</p>
+            <p className="text-xl md:text-2xl font-bold font-mono text-aurora-400 whitespace-nowrap">${dcfValue?.toFixed(2)}</p>
           </div>
           <div className={`text-center p-4 rounded-lg ${isUndervalued ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
             <p className="text-sm text-slate-400 mb-1">潜在空间</p>
-            <p className={`text-2xl font-bold font-mono ${isUndervalued ? 'text-green-400' : 'text-red-400'}`}>
+            <p className={`text-xl md:text-2xl font-bold font-mono whitespace-nowrap ${isUndervalued ? 'text-green-400' : 'text-red-400'}`}>
               {isUndervalued ? '+' : ''}{upside.toFixed(1)}%
             </p>
           </div>
@@ -153,12 +153,12 @@ export default function ValuationMetrics({
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {metrics.map((m, i) => (
-          <div key={i} className={`p-4 rounded-xl ${m.bgColor} border border-white/5`}>
+          <div key={i} className={`p-4 rounded-xl ${m.bgColor} border border-white/5 max-md:border-0`}>
             <div className={`flex items-center gap-2 mb-2 ${m.color}`}>
               {m.icon}
               <span className="text-xs font-medium">{m.label}</span>
             </div>
-            <p className="text-xl font-bold font-mono text-white">{m.format(m.value)}</p>
+            <p className="text-lg md:text-xl font-bold font-mono text-white whitespace-nowrap">{m.format(m.value)}</p>
           </div>
         ))}
       </div>
@@ -179,7 +179,7 @@ export default function ValuationMetrics({
     ];
 
     return (
-      <div className="bg-midnight/30 rounded-xl p-5 border border-white/5">
+      <div className="bg-midnight/30 rounded-xl p-5 border border-white/5 max-md:border-0">
         <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
           <span className="w-2 h-2 bg-green-500 rounded-full"></span>
           盈利能力指标
@@ -214,7 +214,7 @@ export default function ValuationMetrics({
     ];
 
     return (
-      <div className="bg-midnight/30 rounded-xl p-5 border border-white/5">
+      <div className="bg-midnight/30 rounded-xl p-5 border border-white/5 max-md:border-0">
         <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
           <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
           财务健康指标
@@ -296,7 +296,7 @@ export default function ValuationMetrics({
     };
 
     return (
-      <div className="bg-midnight/30 rounded-xl p-5 border border-white/5">
+      <div className="bg-midnight/30 rounded-xl p-5 border border-white/5 max-md:border-0">
         <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
           <span className="w-2 h-2 bg-aurora-500 rounded-full"></span>
           财务增长趋势
@@ -320,7 +320,7 @@ export default function ValuationMetrics({
     ];
 
     return (
-      <div className="bg-midnight/30 rounded-xl p-5 border border-white/5">
+      <div className="bg-midnight/30 rounded-xl p-5 border border-white/5 max-md:border-0">
         <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
           <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
           长期增长指标

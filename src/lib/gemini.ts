@@ -26,6 +26,85 @@ export class GeminiClient {
     });
   }
 
+  async suggestSymbol(
+    query: string,
+    marketHint?: MarketType
+  ): Promise<{
+    query: string;
+    suggestions: Array<{
+      symbol: string;
+      market: MarketType;
+      name?: string;
+      nameCn?: string;
+      confidence?: number;
+    }>;
+  }> {
+    const trimmedQuery = query.trim();
+    const marketName = marketHint ? (MARKET_NAMES[marketHint] || '美股') : '未指定';
+    const prompt = `你是股票搜索联想引擎。用户输入可能是股票代码、公司中文/英文名、拼音缩写或简称。请根据输入联想到正确格式的股票代码，并输出 JSON。
+
+要求：
+1. 只返回 JSON，不要包含任何 Markdown 或解释性文字。
+2. 市场只能是 US / CN / HK / JP。
+3. 返回的 symbol 必须是可用于 FMP 的格式：
+   - US: 例如 AAPL, TSLA, BRK.B
+   - CN: 6 位数字 + .SS 或 .SZ
+   - HK: 4-5 位数字 + .HK（不足位补零）
+   - JP: 4 位数字 + .T
+4. 优先返回最相关的 1-5 个候选，confidence 为 0-1 之间的小数。
+5. 如果无法确定，suggestions 为空数组。
+6. 如果知道中文名，请填充 nameCn；否则可以留空。
+
+用户输入：${trimmedQuery}
+市场提示：${marketName}
+
+请严格输出以下 JSON 结构：
+{
+  "query": "${trimmedQuery}",
+  "suggestions": [
+    {
+      "symbol": "XXXX",
+      "market": "US",
+      "name": "公司名称（可选）",
+      "nameCn": "公司中文名（可选）",
+      "confidence": 0.75
+    }
+  ]
+}`;
+
+    try {
+      const model = this.genAI.getGenerativeModel({
+        model: 'gemini-3-flash-preview',
+        generationConfig: {
+          temperature: 0.2,
+          topP: 0.9,
+          maxOutputTokens: 1024,
+        },
+      });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
+      if (!text || text.trim().length === 0) {
+        throw new Error('AI 返回空响应');
+      }
+      
+      const cleaned = text
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
+      
+      if (!cleaned.startsWith('{')) {
+        throw new Error('AI 响应格式不正确');
+      }
+      
+      return JSON.parse(cleaned);
+    } catch (error: any) {
+      console.error('Gemini suggestSymbol error:', error?.message || error);
+      return { query: trimmedQuery, suggestions: [] };
+    }
+  }
+
   async analyzeCompany(
     companyData: any,
     incomeData: any[],
@@ -111,7 +190,7 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
   ): Promise<string> {
     // 使用 Gemini 2.5 with Google Search grounding
     const modelWithSearch = this.genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       tools: [{ 
         googleSearch: {} 
       }] as any,
@@ -126,13 +205,27 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
 6. 地区经济环境对公司的影响
 7. 主要股东和机构投资者动态` : '';
 
-    const prompt = `请搜索并总结 ${companyName} (${symbol}，${marketName}市场) 的最新新闻和发展动态，包括：
+    // 强约束本地站点与关键词（仅非美股）
+    const localSearchConstraints = isNonUS ? `
+请强制优先检索对应市场的本地权威站点，并把时间范围限定为“近90天”：
+- A股（中国大陆）：优先站点包含但不限于 site:eastmoney.com, site:cninfo.com.cn, site:sse.com.cn, site:szse.cn, site:stcn.com, site:cnstock.com, site:10jqka.com.cn, site:sina.com.cn, site:caixin.com, site:cls.cn, site:yicai.com
+- 港股（香港）：优先站点包含但不限于 site:hkexnews.hk, site:hkex.com.hk, site:aastocks.com, site:hket.com, site:etnet.com.hk, site:astocks.com.hk, site:mpfinance.com, site:stheadline.com
+- 日股（日本）：优先站点包含但不限于 site:tdnet.info, site:jp.reuters.com, site:nikkei.com, site:toyokeizai.net, site:diamond.jp, site:news.yahoo.co.jp
+关键词要求：同时使用“公司中文名/英文名 + 股票代码 + 交易所/市场名”，并加入“公告/业绩/财报/指引/监管/重组/并购/订单/合作/回购/股东/减持/增持/处罚/诉讼/立案”等关键词组合检索。
+` : '';
+
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+    const prompt = `请搜索并总结 ${companyName} (${symbol}，${marketName}市场) 的最新新闻和发展动态，时间范围限定为近90天。今天日期为 ${todayStr}。${localSearchConstraints}
+请严格以“今天日期”为基准计算近90天范围；如果检索结果超出范围或无法确定日期，请明确说明“未找到近90天内的有效信息”，不要编造日期或时间范围。
+
+包括：
 1. 最近的重大公告和事件
 2. 产品发布或战略变化
 3. 行业动态和竞争格局变化
 4. 分析师观点和市场情绪${additionalSearchItems}
 
-请用中文回答，提供最近2-3个月的关键信息摘要。如果是中国公司，请特别关注国内媒体和财经网站的报道。`;
+请用中文回答，提供近90天的关键信息摘要。如果是中国公司，请特别关注国内媒体和财经网站的报道。`;
 
     try {
       const result = await modelWithSearch.generateContent(prompt);
@@ -161,21 +254,28 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
     analystViews: string;
   }> {
     const modelWithSearch = this.genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       tools: [{ googleSearch: {} }] as any,
     });
 
     const marketName = MARKET_NAMES[market] || '美股';
 
-    const prompt = `请搜索 ${companyName} (${symbol}，${marketName}市场) 的详细信息，并以 JSON 格式返回：
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+    const prompt = `请搜索 ${companyName} (${symbol}，${marketName}市场) 的详细信息，时间范围限定为近90天，并以 JSON 格式返回。今天日期为 ${todayStr}。
 
 {
   "competitors": "该公司的主要竞争对手及其特点分析（200-300字）",
-  "recentNews": "最近2-3个月的重要新闻和事件总结（200-300字）",
+  "recentNews": "近90天的重要新闻和事件总结（200-300字）",
   "analystViews": "券商和分析师的观点汇总，包括评级和目标价（如有）（100-200字）"
 }
 
-请确保返回有效的 JSON 格式，不要包含 markdown 代码块标记。使用中文回答。`;
+请强制优先检索对应市场的本地权威站点，并把时间范围限定为“近90天”：
+- A股（中国大陆）：优先站点包含但不限于 site:eastmoney.com, site:cninfo.com.cn, site:sse.com.cn, site:szse.cn, site:stcn.com, site:cnstock.com, site:10jqka.com.cn, site:sina.com.cn, site:caixin.com, site:cls.cn, site:yicai.com
+- 港股（香港）：优先站点包含但不限于 site:hkexnews.hk, site:hkex.com.hk, site:aastocks.com, site:hket.com, site:etnet.com.hk, site:astocks.com.hk, site:mpfinance.com, site:stheadline.com
+- 日股（日本）：优先站点包含但不限于 site:tdnet.info, site:jp.reuters.com, site:nikkei.com, site:toyokeizai.net, site:diamond.jp, site:news.yahoo.co.jp
+关键词要求：同时使用“公司中文名/英文名 + 股票代码 + 交易所/市场名”，并加入“公告/业绩/财报/指引/监管/重组/并购/订单/合作/回购/股东/减持/增持/处罚/诉讼/立案”等关键词组合检索。
+请严格以“今天日期”为基准计算近90天范围；如无近90天内信息，recentNews 需明确说明“未找到近90天内的有效信息”。请确保返回有效的 JSON 格式，不要包含 markdown 代码块标记。使用中文回答。`;
 
     try {
       const result = await modelWithSearch.generateContent(prompt);
@@ -218,24 +318,29 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
   ): Promise<string> {
     const prompt = `
 你是一位资深卖方分析师。请根据以下英文电话会议全文，生成中文“财报电话会议精要”。
+使用 FMP API 获取财报电话会议（Earnings Call）原文，参考文档：https://site.financialmodelingprep.com/playground
 必须严格围绕用户关心的四个区域输出，并给出清晰的要点与判断：
 
 1. 必读区域：问答环节 (Q&A Session)
+这是整份文件中含金量最高的地方。分析师代表了市场的疑虑，而管理层的回答代表了应对能力。
 - 抓出分析师的关键提问与管理层的回答。
-- 标出“重复出现的尖锐问题”（如果2-3位分析师问同一问题，要明确指出这是市场核心担忧）。
-- 识别“非正面回答”（问题被回避、答非所问）。
-- 观察“语气变化/防御性措辞”（例如“正如我刚才所说...”）。
+- 重复出现的尖锐问题：如果两三个分析师都在问同一个问题（例如：“你们的利润率为什么下滑？”或“AI什么时候能变现？”），即使管理层试图回避，这本身就说明这是市场目前最担心的核心矛盾。
+- 非正面回答 (Non-answers)：注意观察管理层是否在绕圈子。例如分析师问“明年的增长目标是多少？”，管理层回答“我们对长期充满信心”，这就是典型的信号——短期可能不仅不如意，甚至可能很糟糕。
+- 语气变化：文字版虽然听不到声音，但如果回答变得简短、生硬，或者频繁出现“正如我刚才所说...”的防御性措辞，通常意味着压力较大。
 
 2. 核心数据区：业绩指引 (Guidance/Outlook)
-- 是否上调、下调或重申全年目标。
-- 注意措辞确定性（如“保守估计”“强劲可见度”“宏观不确定性”等）。
+这部分通常位于CFO发言的末尾，或者CEO总结陈词时。
+- 预期的修正：这是股价波动的直接催化剂。重点看他们是上调 (Raise)、下调 (Lower) 还是重申 (Reiterate) 了全年目标？
+- 措辞的确定性：注意修饰词。是“保守估计 (Conservative)”还是“强劲可见度 (Strong visibility)”？如果管理层说“宏观环境不确定性增加”，通常是在为未来业绩不达标打预防针。
 
 3. 关键指标解释区：CFO 的财务陈述
-- 重点解释利润率变化（Gross/Operating Margin）。
-- 指出一次性项目 (One-time items) 的影响，区分 Non-GAAP 真实经营状况。
-- 资本配置 (Capital Allocation)：回购/分红/CapEx 的取向与信号。
+CFO的发言虽然枯燥，但往往包含了解释数据的“钥匙”。重点搜索以下关键词：
+- Margins (利润率)：搜索 "Gross Margin" (毛利率) 和 "Operating Margin" (营业利润率)。如果利润率下降，必须找到解释：是因为产品降价了（坏事），还是因为投入了研发（可能是好事）？
+- One-time items (一次性项目)：有时候利润大增是因为卖了一栋楼，有时候大跌是因为付了一笔罚款。CFO会在这里把这些“噪音”剔除，告诉你真实的经营状况 (Non-GAAP数据)。
+- Capital Allocation (资本配置)：关注他们赚的钱打算怎么花？是回购股票 (Buyback)（利好股价）、分红 (Dividend)，还是资本开支 (CapEx)（比如买显卡、建厂）？如果是巨额资本开支，市场通常会审视这笔钱花得值不值。
 
 4. 业务亮点区：CEO 的开场白 (Prepared Remarks)
+这部分大多是公关稿，全是好话，但有一点值得看：战略优先级的变化。
 - 提炼战略优先级变化与业务亮点（避免套话）。
 
 输出要求：
