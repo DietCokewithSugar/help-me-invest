@@ -141,12 +141,23 @@ export default function SankeyChart({ data }: SankeyProps) {
   }
 
   return (
-    <div className="bg-midnight/50 rounded-xl p-3 md:p-4 border border-white/5 max-md:border-0">
-      <ReactECharts
-        option={option}
-        style={{ height: '420px', width: '100%' }}
-        opts={{ renderer: 'canvas' }}
-      />
+    <div className="bg-midnight/50 rounded-xl p-3 md:p-4 border border-white/5 max-md:border-0 overflow-x-auto">
+      {/* 移动端：高度窄、可横向滚动查看完整图表 */}
+      <div className="md:hidden" style={{ minWidth: '580px' }}>
+        <ReactECharts
+          option={option}
+          style={{ height: '260px', width: '100%' }}
+          opts={{ renderer: 'canvas' }}
+        />
+      </div>
+      {/* 桌面端：正常尺寸 */}
+      <div className="hidden md:block">
+        <ReactECharts
+          option={option}
+          style={{ height: '380px', width: '100%' }}
+          opts={{ renderer: 'canvas' }}
+        />
+      </div>
     </div>
   );
 }

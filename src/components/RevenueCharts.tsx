@@ -200,19 +200,52 @@ export default function RevenueCharts({ incomeStatements }: Props) {
     },
     legend: {
       orient: 'vertical',
-      right: '5%',
+      right: '3%',
       top: 'center',
       textStyle: { 
-        color: '#94a3b8',
-        fontSize: 12,
+        color: '#e2e8f0',
+        fontSize: 13,
+        fontWeight: 500,
       },
-      itemGap: 12,
+      itemWidth: 16,
+      itemHeight: 16,
+      itemGap: 16,
+      formatter: (name: string) => {
+        const item = pieData.find(d => d.name === name);
+        if (item) {
+          const value = item.value / 1e9;
+          const total = pieData.reduce((sum, d) => sum + d.value, 0);
+          const percent = ((item.value / total) * 100).toFixed(1);
+          return `{name|${name}}\n{value|$${value.toFixed(1)}B} {percent|(${percent}%)}`;
+        }
+        return name;
+      },
+      textStyle: {
+        rich: {
+          name: {
+            color: '#e2e8f0',
+            fontSize: 13,
+            fontWeight: 500,
+            lineHeight: 20,
+          },
+          value: {
+            color: '#14b8a6',
+            fontSize: 12,
+            fontFamily: 'JetBrains Mono, monospace',
+            fontWeight: 600,
+          },
+          percent: {
+            color: '#64748b',
+            fontSize: 11,
+          },
+        },
+      },
     },
     series: [
       {
         type: 'pie',
-        radius: ['45%', '75%'],
-        center: ['35%', '50%'],
+        radius: ['50%', '80%'],
+        center: ['30%', '50%'],
         avoidLabelOverlap: true,
         itemStyle: {
           borderRadius: 8,
@@ -220,30 +253,16 @@ export default function RevenueCharts({ incomeStatements }: Props) {
           borderWidth: 3,
         },
         label: { 
-          show: true,
-          position: 'outside',
-          color: '#94a3b8',
-          fontSize: 11,
-          fontFamily: 'JetBrains Mono, monospace',
-          formatter: (params: any) => {
-            const value = params.value / 1e9;
-            return `${params.name}\n$${value.toFixed(1)}B (${params.percent}%)`;
-          },
+          show: false,
         },
         labelLine: {
-          show: true,
-          lineStyle: {
-            color: '#475569',
-          },
+          show: false,
         },
         emphasis: {
           label: { 
-            show: true, 
-            color: '#f8fafc', 
-            fontSize: 13,
-            fontWeight: 600,
+            show: false,
           },
-          scaleSize: 10,
+          scaleSize: 8,
         },
         data: pieData.map((d, i) => ({
           ...d,

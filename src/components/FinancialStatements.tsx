@@ -383,32 +383,35 @@ export default function FinancialStatements({ incomeStatements, balanceSheets, c
   }
 
   return (
-    <div className="glass-card p-6 animate-fade-in-up">
+    <div className="gemini-card p-6 md:p-8 animate-fade-in-up">
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 flex items-center justify-center">
-            <FileSpreadsheet className="w-5 h-5 text-emerald-400" />
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center">
+              <FileSpreadsheet className="w-5 h-5 text-white" />
+            </div>
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-slate-500 to-slate-600 opacity-20 blur-xl" />
           </div>
           <div>
-            <h2 className="text-xl font-display font-bold text-white">三大财务报表</h2>
-            <p className="text-sm text-slate-500">近5年年度财务数据</p>
+            <h2 className="text-xl font-semibold text-white">三大财务报表</h2>
+            <p className="text-sm text-mist-500 mt-0.5">近5年年度财务数据</p>
           </div>
         </div>
         
         {/* 视图切换 */}
-        <div className="flex items-center gap-2 bg-midnight/50 rounded-lg p-1">
+        <div className="flex items-center gap-2 bg-white/5 rounded-xl p-1 border border-white/5">
           <button
             onClick={() => setViewMode('chart')}
-            className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-              viewMode === 'chart' ? 'bg-aurora-500/20 text-aurora-400' : 'text-slate-400 hover:text-white'
+            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+              viewMode === 'chart' ? 'bg-glacier-500/20 text-glacier-400' : 'text-mist-400 hover:text-white'
             }`}
           >
             图表
           </button>
           <button
             onClick={() => setViewMode('table')}
-            className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-              viewMode === 'table' ? 'bg-aurora-500/20 text-aurora-400' : 'text-slate-400 hover:text-white'
+            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+              viewMode === 'table' ? 'bg-glacier-500/20 text-glacier-400' : 'text-mist-400 hover:text-white'
             }`}
           >
             表格
@@ -422,10 +425,10 @@ export default function FinancialStatements({ incomeStatements, balanceSheets, c
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
               activeTab === tab.key
-                ? 'bg-aurora-500/20 text-aurora-400 border border-aurora-500/30'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                ? 'bg-glacier-500/20 text-glacier-400 border border-glacier-500/30'
+                : 'text-mist-400 hover:text-white hover:bg-white/5'
             }`}
           >
             {tab.icon}
@@ -435,7 +438,7 @@ export default function FinancialStatements({ incomeStatements, balanceSheets, c
       </div>
 
       {/* 内容区域 */}
-      <div className="bg-midnight/30 rounded-xl p-4 border border-white/5 max-md:border-0">
+      <div className="bg-midnight/30 rounded-2xl p-4 border border-white/5 max-md:border-0">
         {activeTab === 'income' && (
           viewMode === 'chart' ? renderIncomeChart() : renderIncomeTable()
         )}
