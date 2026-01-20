@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Search, TrendingUp, FileText, Zap, BarChart3, Brain, Globe2, Sparkles, ArrowRight, Flame, Clock, ChevronDown } from 'lucide-react';
+import { Search, TrendingUp, FileText, Zap, BarChart3, Brain, Globe2, Sparkles, ArrowRight, Flame, Clock, ChevronDown, HelpCircle, DollarSign, MessageCircle } from 'lucide-react';
 import Report from '@/components/Report';
 import type { ReportData, MarketType } from '@/types';
 import { MARKET_CONFIGS, detectMarketFromSymbol, formatSymbolForMarket, getMarketConfig, type MarketConfig } from '@/lib/markets';
@@ -28,6 +28,20 @@ const LOADING_STEPS = [
   { text: 'AI 正在深度分析', icon: Brain, color: 'from-pink-500 to-pink-600' },
   { text: '正在搜索最新动态', icon: Globe2, color: 'from-cyan-500 to-cyan-600' },
   { text: '正在生成研究报告', icon: Zap, color: 'from-amber-500 to-amber-600' },
+];
+
+// 热门股票展示列表
+const FEATURED_STOCKS = [
+  { symbol: 'AAPL', name: '苹果' },
+  { symbol: 'NVDA', name: '英伟达' },
+  { symbol: 'TSLA', name: '特斯拉' },
+  { symbol: 'MSFT', name: '微软' },
+  { symbol: 'GOOGL', name: '谷歌' },
+  { symbol: '600519.SS', name: '贵州茅台' },
+  { symbol: '000858.SZ', name: '五粮液' },
+  { symbol: '0700.HK', name: '腾讯控股' },
+  { symbol: '9988.HK', name: '阿里巴巴' },
+  { symbol: '7203.T', name: '丰田汽车' },
 ];
 
 // Gemini 风格的四点加载动画
@@ -111,12 +125,23 @@ export default function Home() {
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isComposing, setIsComposing] = useState(false);
+  const [currentStockIndex, setCurrentStockIndex] = useState(0);
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const marketDropdownRef = useRef<HTMLDivElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const suggestContainerRef = useRef<HTMLDivElement>(null);
   
   const currentMarketConfig = getMarketConfig(selectedMarket);
+
+  // 股票翻牌动画
+  useEffect(() => {
+    if (symbol || reportData) return; // 只在搜索框空的时候显示
+    const interval = setInterval(() => {
+      setCurrentStockIndex((prev) => (prev + 1) % FEATURED_STOCKS.length);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [symbol, reportData]);
 
   // 点击外部关闭下拉菜单
   useEffect(() => {
@@ -521,26 +546,48 @@ export default function Home() {
                 {/* 搜索框 */}
                 <div className="flex flex-col md:flex-row gap-4 mb-6">
                   <div ref={suggestContainerRef} className="flex-1 relative group">
-                    <input
-                      ref={inputRef}
-                      type="text"
-                      value={symbol}
-                      onChange={(e) => {
-                        const nextValue = e.target.value;
-                        setSymbol(isComposing ? nextValue : nextValue.toUpperCase());
-                        setError('');
-                        setShowSuggestions(true);
-                      }}
-                      onCompositionStart={() => setIsComposing(true)}
-                      onCompositionEnd={(e) => {
-                        setIsComposing(false);
-                        setSymbol(e.currentTarget.value.toUpperCase());
-                      }}
-                      onKeyDown={handleKeyDown}
-                      placeholder="输入股票代码或公司名称，例如 AAPL / 茅台 / 腾讯 / Toyota"
-                      disabled={loading}
-                      className="gemini-input w-full px-5 py-5 text-lg font-mono disabled:opacity-50"
-                    />
+                    <div className="relative">
+                      <input
+                        ref={inputRef}
+                        type="text"
+                        value={symbol}
+                        onChange={(e) => {
+                          const nextValue = e.target.value;
+                          setSymbol(isComposing ? nextValue : nextValue.toUpperCase());
+                          setError('');
+                          setShowSuggestions(true);
+                        }}
+                        onCompositionStart={() => setIsComposing(true)}
+                        onCompositionEnd={(e) => {
+                          setIsComposing(false);
+                          setSymbol(e.currentTarget.value.toUpperCase());
+                        }}
+                        onKeyDown={handleKeyDown}
+                        placeholder=""
+                        disabled={loading}
+                        className="gemini-input w-full px-5 py-5 text-lg font-mono disabled:opacity-50"
+                      />
+                      {/* 动态 placeholder */}
+                      {!symbol && (
+                        <div className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none overflow-hidden h-6">
+                          <div 
+                            className="transition-transform duration-500 ease-in-out"
+                            style={{ transform: `translateY(-${currentStockIndex * 24}px)` }}
+                          >
+                            {FEATURED_STOCKS.map((stock, index) => (
+                              <div 
+                                key={index}
+                                className="h-6 flex items-center text-mist-600 text-lg"
+                              >
+                                <span className="font-mono">{stock.symbol}</span>
+                                <span className="mx-2">·</span>
+                                <span>{stock.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
 
                     {/* 联想搜索下拉 */}
                     {showSuggestions && (suggestLoading || suggestions.length > 0) && (
@@ -710,49 +757,150 @@ export default function Home() {
               </div>
             )}
 
-            {/* 特性卡片 */}
+            {/* Q&A 部分 */}
             {!loading && (
-              <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-6">
-                {[
-                  {
-                    icon: Brain,
-                    title: 'AI 深度分析',
-                    description: '多模型分级处理：Lite 模型快速响应，Flash 模型深度推理，智能调度优化',
-                    gradient: 'from-gemini-blue to-gemini-purple',
-                    delay: '300',
-                  },
-                  {
-                    icon: BarChart3,
-                    title: '可视化图表',
-                    description: '桑基图展示营收流向，柱状图、饼图、折线图多维度呈现财务数据',
-                    gradient: 'from-gemini-purple to-gemini-pink',
-                    delay: '400',
-                  },
-                  {
-                    icon: Globe2,
-                    title: '实时信息',
-                    description: '整合 Google Search 与 FMP API，获取最新新闻动态与财务数据',
-                    gradient: 'from-gemini-pink to-gemini-yellow',
-                    delay: '500',
-                  },
-                ].map((feature, index) => (
-                  <div 
-                    key={index} 
-                    className={`feature-card text-center animate-fade-in-up delay-${feature.delay}`}
-                  >
-                    {/* 图标 */}
-                    <div className="relative inline-flex mb-6">
-                      <div className={`w-16 h-16 rounded-3xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center`}>
-                        <feature.icon className="w-7 h-7 text-white" />
+              <div className="mt-20 space-y-6">
+                <h3 className="text-3xl font-semibold text-white text-center mb-10">常见问题</h3>
+                
+                <div className="max-w-3xl mx-auto space-y-4">
+                  {/* 如何使用 */}
+                  <div className="gemini-card overflow-hidden">
+                    <button
+                      onClick={() => setExpandedFaq(expandedFaq === 0 ? null : 0)}
+                      className="w-full px-6 py-5 flex items-center justify-between hover:bg-white/5 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gemini-blue to-gemini-purple flex items-center justify-center flex-shrink-0">
+                          <HelpCircle className="w-5 h-5 text-white" />
+                        </div>
+                        <span className="text-lg font-medium text-white">如何使用？</span>
                       </div>
-                      {/* 光晕 */}
-                      <div className={`absolute inset-0 rounded-3xl bg-gradient-to-br ${feature.gradient} opacity-30 blur-2xl`} />
+                      <ChevronDown 
+                        className={`w-5 h-5 text-mist-500 transition-transform duration-300 ${
+                          expandedFaq === 0 ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </button>
+                    <div 
+                      className={`overflow-hidden transition-all duration-300 ${
+                        expandedFaq === 0 ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                      }`}
+                    >
+                      <div className="px-6 pb-6 pt-2 space-y-3 border-t border-white/5">
+                        <p className="text-mist-400 leading-relaxed">
+                          在搜索框输入股票代码（如 <span className="text-gemini-blue font-mono">AAPL</span>、<span className="text-gemini-blue font-mono">600519</span>、<span className="text-gemini-blue font-mono">0700.HK</span>）或公司名称（如"茅台"、"腾讯"），点击"开始分析"按钮即可。
+                        </p>
+                        <p className="text-mist-400 leading-relaxed">
+                          生成报告通常需要 <span className="text-gemini-blue font-semibold">15-30 秒</span>，系统会自动识别市场并调用 AI 进行深度分析，包括财务数据、行业格局、最新动态等多个维度。
+                        </p>
+                      </div>
                     </div>
-                    
-                    <h3 className="text-xl font-semibold text-white mb-3">{feature.title}</h3>
-                    <p className="text-mist-400 leading-relaxed">{feature.description}</p>
                   </div>
-                ))}
+
+                  {/* 是否收费 */}
+                  <div className="gemini-card overflow-hidden">
+                    <button
+                      onClick={() => setExpandedFaq(expandedFaq === 1 ? null : 1)}
+                      className="w-full px-6 py-5 flex items-center justify-between hover:bg-white/5 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gemini-purple to-gemini-pink flex items-center justify-center flex-shrink-0">
+                          <DollarSign className="w-5 h-5 text-white" />
+                        </div>
+                        <span className="text-lg font-medium text-white">是否收费？</span>
+                      </div>
+                      <ChevronDown 
+                        className={`w-5 h-5 text-mist-500 transition-transform duration-300 ${
+                          expandedFaq === 1 ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </button>
+                    <div 
+                      className={`overflow-hidden transition-all duration-300 ${
+                        expandedFaq === 1 ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                      }`}
+                    >
+                      <div className="px-6 pb-6 pt-2 space-y-3 border-t border-white/5">
+                        <p className="text-mist-400 leading-relaxed">
+                          目前 <span className="text-gemini-green font-semibold">完全免费</span>，所有 API 调用、AI 分析等费用均由创作者个人承担。
+                        </p>
+                        <p className="text-mist-400 leading-relaxed">
+                          我们的目标是帮助更多人了解股票投资，做出更明智的投资决策。未来如果使用量较大，可能会考虑限制每日查询次数，但会保持基本功能免费。
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 联系作者与用户反馈 */}
+                  <div className="gemini-card overflow-hidden">
+                    <button
+                      onClick={() => setExpandedFaq(expandedFaq === 2 ? null : 2)}
+                      className="w-full px-6 py-5 flex items-center justify-between hover:bg-white/5 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gemini-pink to-gemini-yellow flex items-center justify-center flex-shrink-0">
+                          <MessageCircle className="w-5 h-5 text-white" />
+                        </div>
+                        <span className="text-lg font-medium text-white">联系作者与用户反馈</span>
+                      </div>
+                      <ChevronDown 
+                        className={`w-5 h-5 text-mist-500 transition-transform duration-300 ${
+                          expandedFaq === 2 ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </button>
+                    <div 
+                      className={`overflow-hidden transition-all duration-300 ${
+                        expandedFaq === 2 ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
+                      }`}
+                    >
+                      <div className="px-6 pb-6 pt-2 space-y-4 border-t border-white/5">
+                        <div className="space-y-2">
+                          <p className="text-mist-400 leading-relaxed">
+                            欢迎通过以下方式联系我们，提供反馈建议或报告问题：
+                          </p>
+                          <div className="space-y-2 pl-4">
+                            <p className="text-mist-400">
+                              <span className="text-mist-500">• 微信：</span>
+                              <span className="text-gemini-blue font-mono ml-2">kaizhou_wang</span>
+                            </p>
+                            <p className="text-mist-400">
+                              <span className="text-mist-500">• 邮箱：</span>
+                              <a 
+                                href="mailto:wangkaizhou2024@gmail.com" 
+                                className="text-gemini-blue hover:text-gemini-purple transition-colors ml-2"
+                              >
+                                wangkaizhou2024@gmail.com
+                              </a>
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* 微信群二维码 */}
+                        <div className="pt-4">
+                          <div className="bg-white/5 rounded-2xl p-4 text-center">
+                            <p className="text-mist-400 text-sm mb-3">扫码加入微信群，与其他投资者交流</p>
+                            <div className="w-48 h-48 bg-white rounded-xl p-2 mx-auto">
+                              <img 
+                                src="/wechat-qr.jpg" 
+                                alt="微信群二维码" 
+                                className="w-full h-full object-contain"
+                              />
+                            </div>
+                            <p className="text-mist-600 text-xs mt-3">该二维码 7 天内（1月27日前）有效，重新进入将更新</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 底部提示 */}
+                <div className="text-center mt-8">
+                  <p className="text-mist-600 text-sm">
+                    还有其他问题？<a href="mailto:wangkaizhou2024@gmail.com" className="text-gemini-blue hover:text-gemini-purple transition-colors ml-1">联系我们</a>
+                  </p>
+                </div>
               </div>
             )}
           </div>
