@@ -253,12 +253,12 @@ body {
 .gemini-btn-primary {
   background: linear-gradient(135deg, var(--glacier), var(--gemini-blue));
   color: white;
-  box-shadow: 0 0 30px -10px var(--glacier);
+  box-shadow: 0 4px 16px -4px rgba(20, 184, 166, 0.25);
 }
 
 .gemini-btn-primary:hover {
   transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 0 50px -10px var(--glacier);
+  box-shadow: 0 8px 24px -4px rgba(20, 184, 166, 0.35);
 }
 
 .gemini-btn-primary:active {
@@ -297,11 +297,11 @@ body {
 }
 
 /* ============================================
-   输入框样式
+   输入框样式 - 极简克制风格
    ============================================ */
 .gemini-input {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 16px;
   padding: 16px 20px;
   color: var(--text-primary);
@@ -315,9 +315,9 @@ body {
 
 .gemini-input:focus {
   outline: none;
-  border-color: var(--glacier);
-  background: rgba(20, 184, 166, 0.05);
-  box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.1), 0 0 30px -10px var(--glacier);
+  border-color: rgba(20, 184, 166, 0.4);
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.08);
 }
 
 /* ============================================
@@ -573,11 +573,10 @@ body {
 }
 
 .stock-chip:hover {
-  background: rgba(20, 184, 166, 0.15);
-  border-color: rgba(20, 184, 166, 0.4);
+  background: rgba(20, 184, 166, 0.08);
+  border-color: rgba(20, 184, 166, 0.25);
   color: var(--glacier);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 20px -5px rgba(20, 184, 166, 0.3);
+  transform: translateY(-1px);
 }
 
 /* ============================================

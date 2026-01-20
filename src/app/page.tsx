@@ -568,94 +568,60 @@ export default function Home() {
                 </p>
               </motion.div>
 
-              {/* 搜索区域 - 视觉权重降低 */}
+              {/* 搜索区域 - 极简克制风格 */}
               <motion.div 
                 className="max-w-3xl mx-auto"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
               >
-                <div className="glass-card p-6 md:p-8">
-                  {/* 市场识别提示 */}
-                  <div className="flex items-center gap-2 mb-4 text-sm text-mist-500">
-                    <Globe2Icon size={16} className="text-glacier-500" />
-                    <span>AI 自动识别市场 · 当前：{currentMarketConfig.nameCn}</span>
-                  </div>
+                {/* 市场识别提示 - 独立于卡片外 */}
+                <div className="flex items-center gap-2 mb-4 text-sm text-mist-500 px-1">
+                  <Globe2Icon size={14} className="text-glacier-500/70" />
+                  <span>AI 自动识别市场 · 当前：{currentMarketConfig.nameCn}</span>
+                </div>
 
-                  {/* 搜索框 */}
-                  <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mb-4">
-                    <div ref={suggestContainerRef} className="flex-1 relative group">
-                      <div className="relative">
-                        <input
-                          ref={inputRef}
-                          type="text"
-                          value={symbol}
-                          onChange={(e) => {
-                            const nextValue = e.target.value;
-                            setSymbol(isComposing ? nextValue : nextValue.toUpperCase());
-                            setError('');
-                            setShowSuggestions(true);
-                          }}
-                          onCompositionStart={() => setIsComposing(true)}
-                          onCompositionEnd={(e) => {
-                            setIsComposing(false);
-                            setSymbol(e.currentTarget.value.toUpperCase());
-                          }}
-                          onKeyDown={handleKeyDown}
-                          placeholder=""
-                          disabled={loading}
-                          className="gemini-input w-full px-5 py-4 text-base md:text-lg font-mono disabled:opacity-50"
-                        />
-                        {/* 动态 placeholder */}
-                        {!symbol && (
-                          <div className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none overflow-hidden h-6">
-                            <div 
-                              className="transition-transform duration-500 ease-in-out"
-                              style={{ transform: `translateY(-${currentStockIndex * 24}px)` }}
-                            >
-                              {FEATURED_STOCKS.map((stock, index) => (
-                                <div 
-                                  key={index}
-                                  className="h-6 flex items-center text-mist-600 text-base md:text-lg"
-                                >
-                                  <span className="font-mono">{stock.symbol}</span>
-                                  <span className="mx-2 text-mist-700">·</span>
-                                  <span className="text-mist-600">{stock.name}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* 联想搜索下拉 */}
-                      {showSuggestions && (suggestLoading || suggestions.length > 0) && (
-                        <div className="absolute left-0 right-0 top-full mt-2 z-20 rounded-2xl border border-white/10 bg-obsidian/98 backdrop-blur-xl shadow-2xl">
-                          <div className="px-4 py-3 text-xs text-mist-500 border-b border-white/10 flex items-center justify-between">
-                            <span>AI 联想结果</span>
-                            {suggestLoading && <span className="text-mist-600">查询中...</span>}
-                          </div>
-                          <div className="max-h-64 overflow-auto">
-                            {suggestions.map((item) => (
-                              <button
-                                key={`${item.market}-${item.symbol}`}
-                                onClick={() => handleSelectSuggestion(item)}
-                                className="w-full px-4 py-3 text-left hover:bg-white/5 transition-colors flex items-center gap-3"
+                {/* 搜索框容器 */}
+                <div ref={suggestContainerRef} className="relative mb-6">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex-1 relative">
+                      <input
+                        ref={inputRef}
+                        type="text"
+                        value={symbol}
+                        onChange={(e) => {
+                          const nextValue = e.target.value;
+                          setSymbol(isComposing ? nextValue : nextValue.toUpperCase());
+                          setError('');
+                          setShowSuggestions(true);
+                        }}
+                        onCompositionStart={() => setIsComposing(true)}
+                        onCompositionEnd={(e) => {
+                          setIsComposing(false);
+                          setSymbol(e.currentTarget.value.toUpperCase());
+                        }}
+                        onKeyDown={handleKeyDown}
+                        placeholder=""
+                        disabled={loading}
+                        className="gemini-input w-full px-5 py-4 text-base md:text-lg font-mono disabled:opacity-50"
+                      />
+                      {/* 动态 placeholder */}
+                      {!symbol && (
+                        <div className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none overflow-hidden h-6">
+                          <div 
+                            className="transition-transform duration-500 ease-in-out"
+                            style={{ transform: `translateY(-${currentStockIndex * 24}px)` }}
+                          >
+                            {FEATURED_STOCKS.map((stock, index) => (
+                              <div 
+                                key={index}
+                                className="h-6 flex items-center text-mist-600 text-base md:text-lg"
                               >
-                                <span className="font-mono text-sm text-white">{item.symbol}</span>
-                                <span className="text-xs text-mist-500">
-                                  {MARKET_CONFIGS[item.market]?.nameCn || item.market}
-                                </span>
-                                {(item.nameCn || item.name) && (
-                                  <span className="text-sm text-mist-300 truncate">
-                                    {item.nameCn || item.name}
-                                  </span>
-                                )}
-                              </button>
+                                <span className="font-mono">{stock.symbol}</span>
+                                <span className="mx-2 text-mist-700">·</span>
+                                <span className="text-mist-600">{stock.name}</span>
+                              </div>
                             ))}
-                            {suggestions.length === 0 && !suggestLoading && (
-                              <div className="px-4 py-3 text-sm text-mist-500">暂未找到匹配结果</div>
-                            )}
                           </div>
                         </div>
                       )}
@@ -678,70 +644,110 @@ export default function Home() {
                     </button>
                   </div>
 
-                  {/* 错误提示 */}
-                  {error && (
-                    <motion.div 
-                      className="mb-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3"
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                    >
-                      <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                      <span className="text-red-400 text-sm">{error}</span>
-                    </motion.div>
-                  )}
-
-                  {/* 热门股票 */}
-                  <div className="space-y-3">
-                    {/* 本周热搜 */}
-                    {trendingStocks.length > 0 && (
-                      <div className="p-4 rounded-xl bg-gradient-to-r from-orange-500/5 to-red-500/5 border border-orange-500/10">
-                        <div className="flex items-center gap-2 mb-3">
-                          <FlameIcon size={16} className="text-orange-500" />
-                          <span className="text-sm font-medium text-orange-400">本周热搜</span>
-                          <div className="flex items-center gap-1 ml-auto text-xs text-mist-600">
-                            <ClockIcon size={12} />
-                            <span className="hidden sm:inline">实时更新</span>
-                          </div>
+                  {/* 联想搜索下拉 - 与输入框整合为一体 */}
+                  <AnimatePresence>
+                    {showSuggestions && (suggestLoading || suggestions.length > 0) && (
+                      <motion.div 
+                        className="absolute left-0 right-0 sm:right-auto sm:w-[calc(100%-172px)] top-full mt-1 z-30 rounded-xl bg-[#12121a] border border-white/[0.06] shadow-xl shadow-black/40"
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.15 }}
+                      >
+                        <div className="px-5 py-2.5 text-xs text-mist-500 flex items-center justify-between">
+                          <span>AI 联想</span>
+                          {suggestLoading && <span className="text-mist-600">查询中...</span>}
                         </div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {trendingStocks.slice(0, 6).map((stock, index) => (
+                        <div className="max-h-56 overflow-auto">
+                          {suggestions.map((item) => (
                             <button
-                              key={stock.symbol}
-                              onClick={() => setSymbol(stock.symbol)}
-                              disabled={loading}
-                              className="group relative px-3 py-1.5 rounded-full bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20 hover:border-orange-500/40 transition-all disabled:opacity-50"
+                              key={`${item.market}-${item.symbol}`}
+                              onClick={() => handleSelectSuggestion(item)}
+                              className="w-full px-5 py-2.5 text-left hover:bg-white/[0.03] transition-colors flex items-center gap-3"
                             >
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-orange-400/60">#{index + 1}</span>
-                                <span className="font-mono text-sm text-white group-hover:text-orange-300 transition-colors">
-                                  {stock.symbol}
+                              <span className="font-mono text-sm text-white">{item.symbol}</span>
+                              <span className="text-xs text-mist-600 px-1.5 py-0.5 rounded bg-white/[0.04]">
+                                {MARKET_CONFIGS[item.market]?.nameCn || item.market}
+                              </span>
+                              {(item.nameCn || item.name) && (
+                                <span className="text-sm text-mist-400 truncate">
+                                  {item.nameCn || item.name}
                                 </span>
-                              </div>
-                              {stock.company_name && (
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded bg-obsidian border border-white/10 text-xs text-mist-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                                  {stock.company_name}
-                                </div>
                               )}
                             </button>
                           ))}
+                          {suggestions.length === 0 && !suggestLoading && (
+                            <div className="px-5 py-2.5 text-sm text-mist-600">暂未找到匹配结果</div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* 错误提示 */}
+                {error && (
+                  <motion.div 
+                    className="mb-6 p-4 rounded-xl bg-red-500/5 border border-red-500/10 flex items-center gap-3"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                  >
+                    <div className="w-1.5 h-1.5 bg-red-400 rounded-full" />
+                    <span className="text-red-400/80 text-sm">{error}</span>
+                  </motion.div>
+                )}
+
+                {/* 热门股票区域 - 统一冷色调 */}
+                <div className="space-y-4">
+                  {/* 本周热搜 */}
+                  {trendingStocks.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3 px-1">
+                        <FlameIcon size={14} className="text-mist-500" />
+                        <span className="text-sm text-mist-500">本周热搜</span>
+                        <div className="flex items-center gap-1 ml-auto text-xs text-mist-600">
+                          <ClockIcon size={11} />
+                          <span className="hidden sm:inline">实时更新</span>
                         </div>
                       </div>
-                    )}
-
-                    {/* 市场推荐股票 */}
-                    <div className="flex items-center gap-2 flex-wrap text-sm">
-                      <span className="text-mist-600">{currentMarketConfig.nameCn}热门：</span>
-                      {currentMarketConfig.featuredStocks.slice(0, 5).map((stock) => (
-                        <button
-                          key={stock.symbol}
-                          onClick={() => setSymbol(stock.symbol)}
-                          disabled={loading}
-                          className="stock-chip disabled:opacity-50"
-                        >
-                          <span className="font-mono">{stock.symbol}</span>
-                        </button>
-                      ))}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {trendingStocks.slice(0, 6).map((stock, index) => (
+                          <button
+                            key={stock.symbol}
+                            onClick={() => setSymbol(stock.symbol)}
+                            disabled={loading}
+                            className="group relative px-3 py-1.5 rounded-lg bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.1] transition-all disabled:opacity-50"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-medium text-mist-600">#{index + 1}</span>
+                              <span className="font-mono text-sm text-mist-300 group-hover:text-white transition-colors">
+                                {stock.symbol}
+                              </span>
+                            </div>
+                            {stock.company_name && (
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded-lg bg-[#1a1a24] border border-white/[0.06] text-xs text-mist-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">
+                                {stock.company_name}
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
                     </div>
+                  )}
+
+                  {/* 市场推荐股票 */}
+                  <div className="flex items-center gap-2 flex-wrap text-sm px-1">
+                    <span className="text-mist-600">{currentMarketConfig.nameCn}热门：</span>
+                    {currentMarketConfig.featuredStocks.slice(0, 5).map((stock) => (
+                      <button
+                        key={stock.symbol}
+                        onClick={() => setSymbol(stock.symbol)}
+                        disabled={loading}
+                        className="stock-chip disabled:opacity-50"
+                      >
+                        <span className="font-mono">{stock.symbol}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
               </motion.div>
