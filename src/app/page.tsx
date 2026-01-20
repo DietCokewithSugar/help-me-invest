@@ -521,7 +521,7 @@ export default function Home() {
             <div className="max-w-5xl mx-auto">
               {/* 核心视觉区 */}
               <motion.div 
-                className="text-center mb-12 md:mb-20"
+                className="text-center mt-12 md:mt-14 mb-12 md:mb-20"
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
