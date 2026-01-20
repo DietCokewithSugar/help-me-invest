@@ -670,7 +670,7 @@ body {
   --tw-prose-headings: #f8fafc;
   --tw-prose-lead: #94a3b8;
   --tw-prose-links: var(--glacier);
-  --tw-prose-bold: #f1f5f9;
+  --tw-prose-bold: var(--gemini-blue);
   --tw-prose-counters: #64748b;
   --tw-prose-bullets: #475569;
   --tw-prose-hr: rgba(255, 255, 255, 0.1);
@@ -682,6 +682,13 @@ body {
   --tw-prose-pre-bg: rgba(18, 18, 26, 0.8);
   --tw-prose-th-borders: rgba(255, 255, 255, 0.1);
   --tw-prose-td-borders: rgba(255, 255, 255, 0.05);
+}
+
+/* 加粗文字蓝色高亮样式 */
+.prose-gemini strong,
+.prose-gemini b {
+  color: var(--gemini-blue) !important;
+  font-weight: 600;
 }
 
 /* ============================================
@@ -814,4 +821,17 @@ body {
   font-family: Georgia, serif;
   color: rgba(20, 184, 166, 0.15);
   line-height: 1;
+}
+
+/* ============================================
+   AI 加载动画 - 渐变流动效果
+   ============================================ */
+.animate-gradient-x {
+  background-size: 200% 100%;
+  animation: gradient-x 2s ease infinite;
+}
+
+@keyframes gradient-x {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }

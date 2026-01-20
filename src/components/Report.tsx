@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Building2, TrendingUp, Target, Shield, Newspaper, 
@@ -39,10 +39,25 @@ const MarketBadge = ({ market }: { market: MarketType }) => {
   );
 };
 
-// 公司 Logo 组件 - 处理图片加载失败时显示备用图标
+// 公司 Logo 组件 - 处理图片加载失败或超时时显示备用图标
 function CompanyLogo({ src, alt }: { src?: string; alt: string }) {
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasTimeout, setHasTimeout] = useState(false);
+
+  // 5秒超时处理
+  React.useEffect(() => {
+    if (!src || hasError || !isLoading) return;
+    
+    const timeoutId = setTimeout(() => {
+      if (isLoading) {
+        setHasTimeout(true);
+        setIsLoading(false);
+      }
+    }, 5000);
+
+    return () => clearTimeout(timeoutId);
+  }, [src, hasError, isLoading]);
 
   const handleError = useCallback(() => {
     setHasError(true);
@@ -51,10 +66,11 @@ function CompanyLogo({ src, alt }: { src?: string; alt: string }) {
 
   const handleLoad = useCallback(() => {
     setIsLoading(false);
+    setHasTimeout(false);
   }, []);
 
-  // 如果没有图片 URL 或加载失败，显示备用图标
-  if (!src || hasError) {
+  // 如果没有图片 URL、加载失败或超时，显示备用图标
+  if (!src || hasError || hasTimeout) {
     return (
     <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-gemini-blue/20 to-gemini-purple/20 backdrop-blur-xl flex items-center justify-center shrink-0 border border-white/10 max-md:border-0">
         <Building2 className="w-10 h-10 text-gemini-blue/70" />
@@ -428,11 +444,37 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
         {/* ==================== AI 生成中提示 ==================== */}
         {showAiLoading && (
           <div className="gemini-card p-6 md:p-8 animate-fade-in">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-2.5 h-2.5 bg-gemini-blue rounded-full animate-pulse" />
-              <p className="text-mist-200 font-medium">AI 正在生成深度解读与电话会议精要...</p>
+            {/* 标题区域 */}
+            <div className="flex items-center gap-3 mb-6">
+              <div className="relative w-8 h-8 shrink-0">
+                <div className="absolute inset-0 rounded-lg border border-glacier-500/40 border-t-glacier-500 animate-spin" style={{ animationDuration: '1.2s' }} />
+                <div className="absolute inset-1.5 rounded bg-glacier-500/10 flex items-center justify-center">
+                  <Sparkles className="w-3 h-3 text-glacier-500" />
+                </div>
+              </div>
+              <h3 className="text-base font-medium text-white">AI 正在分析</h3>
             </div>
-            <p className="text-sm text-mist-500">财务信息已加载完成，AI 内容会自动补充到此处。</p>
+            
+            {/* 分析步骤指示器 - 增加行间距，统一色彩 */}
+            <div className="space-y-4 mb-6">
+              <div className="flex items-center gap-3 text-sm">
+                <div className="w-1.5 h-1.5 rounded-full bg-glacier-500" />
+                <span className="text-mist-300">财务数据已加载</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm">
+                <div className="w-1.5 h-1.5 rounded-full bg-glacier-500/60 animate-pulse" />
+                <span className="text-mist-400">分析竞争优势与护城河</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm">
+                <div className="w-1.5 h-1.5 rounded-full bg-mist-700" />
+                <span className="text-mist-600">生成投资建议</span>
+              </div>
+            </div>
+            
+            {/* 线性进度条 */}
+            <div className="h-0.5 bg-white/5 rounded-full overflow-hidden">
+              <div className="h-full w-2/3 bg-glacier-500/80 rounded-full animate-pulse" />
+            </div>
           </div>
         )}
 

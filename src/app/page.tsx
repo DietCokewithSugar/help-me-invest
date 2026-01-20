@@ -107,51 +107,33 @@ function GeminiLoader() {
   );
 }
 
-// 圆形进度加载器
-function CircularLoader({ step, totalSteps }: { step: number; totalSteps: number }) {
+// 极简线性进度加载器
+function LinearLoader({ step, totalSteps }: { step: number; totalSteps: number }) {
   const progress = ((step + 1) / totalSteps) * 100;
-  const radius = 50;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (progress / 100) * circumference;
-  
   const Icon = LOADING_STEPS[step].icon;
   
   return (
-    <div className="relative w-32 h-32">
-      <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
-        <circle
-          cx="60"
-          cy="60"
-          r={radius}
-          fill="none"
-          stroke="rgba(255,255,255,0.05)"
-          strokeWidth="4"
-        />
-        <circle
-          cx="60"
-          cy="60"
-          r={radius}
-          fill="none"
-          stroke="url(#gradient)"
-          strokeWidth="4"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-          className="transition-all duration-500 ease-out"
-        />
-        <defs>
-          <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#14b8a6" />
-            <stop offset="50%" stopColor="#4285f4" />
-            <stop offset="100%" stopColor="#a855f7" />
-          </linearGradient>
-        </defs>
-      </svg>
-      
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${LOADING_STEPS[step].color} flex items-center justify-center`}>
-          <Icon className="w-7 h-7 text-white" />
+    <div className="w-full max-w-sm">
+      {/* 图标与文字 */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-8 h-8 rounded-xl bg-glacier-500/15 flex items-center justify-center">
+          <Icon className="w-4 h-4 text-glacier-500" />
         </div>
+        <span className="text-sm text-mist-300">{LOADING_STEPS[step].text}</span>
+      </div>
+      
+      {/* 线性进度条 */}
+      <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+        <div 
+          className="h-full bg-glacier-500 rounded-full transition-all duration-500 ease-out"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+      
+      {/* 进度文字 */}
+      <div className="flex items-center justify-between mt-3 text-xs text-mist-600">
+        <span>{step + 1} / {totalSteps}</span>
+        <span>预计 15-30 秒</span>
       </div>
     </div>
   );
@@ -752,39 +734,15 @@ export default function Home() {
                 </div>
               </motion.div>
 
-              {/* 加载状态 */}
+              {/* 加载状态 - 极简线性进度 */}
               {loading && (
                 <motion.div 
                   className="mt-12 md:mt-16 flex justify-center"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                 >
-                  <div className="glass-card p-8 md:p-10 flex flex-col items-center gap-6 md:gap-8 pulse-glow">
-                    <CircularLoader step={loadingStep} totalSteps={LOADING_STEPS.length} />
-                    
-                    <div className="text-center">
-                      <p className="text-lg md:text-xl font-medium text-white mb-2">
-                        {LOADING_STEPS[loadingStep].text}
-                      </p>
-                      <p className="text-sm text-mist-500">
-                        预计需要 15-30 秒，请稍候...
-                      </p>
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      {LOADING_STEPS.map((_, index) => (
-                        <div
-                          key={index}
-                          className={`w-2 h-2 md:w-2.5 md:h-2.5 rounded-full transition-all duration-300 ${
-                            index === loadingStep 
-                              ? 'bg-glacier-500 scale-125 shadow-lg shadow-glacier-500/50' 
-                              : index < loadingStep 
-                                ? 'bg-glacier-500/50' 
-                                : 'bg-white/10'
-                          }`}
-                        />
-                      ))}
-                    </div>
+                  <div className="glass-card p-6 md:p-8 w-full max-w-md">
+                    <LinearLoader step={loadingStep} totalSteps={LOADING_STEPS.length} />
                   </div>
                 </motion.div>
               )}
