@@ -9,20 +9,53 @@ const MARKET_NAMES: Record<MarketType, string> = {
   JP: '日股（日本）',
 };
 
+// 模型分级策略
+// - lite: 简单任务，速度优先（股票联想、财报摘要）
+// - standard: 复杂推理任务（公司深度分析）
+// - search: 需要 Google Search Grounding 的任务（联网新闻）
+type ModelTier = 'lite' | 'standard' | 'search';
+
+const MODEL_CONFIG: Record<ModelTier, { model: string; description: string }> = {
+  lite: {
+    model: 'gemini-2.5-flash-lite',
+    description: '轻量快速模型，适合简单任务',
+  },
+  standard: {
+    model: 'gemini-2.5-flash-lite',
+    description: '标准模型，适合复杂推理',
+  },
+  search: {
+    model: 'gemini-2.5-flash',
+    description: '搜索模型，支持 Google Search Grounding',
+  },
+};
+
 export class GeminiClient {
   private genAI: GoogleGenerativeAI;
-  private model: any;
 
   constructor(apiKey: string) {
     this.genAI = new GoogleGenerativeAI(apiKey);
-    // 使用 gemini-3-flash-preview 模型
-    this.model = this.genAI.getGenerativeModel({ 
-      model: 'gemini-3-flash-preview',
+  }
+
+  // 根据任务类型获取对应的模型实例
+  private getModel(
+    tier: ModelTier,
+    config?: {
+      temperature?: number;
+      topP?: number;
+      maxOutputTokens?: number;
+      tools?: any[];
+    }
+  ) {
+    const modelName = MODEL_CONFIG[tier].model;
+    return this.genAI.getGenerativeModel({
+      model: modelName,
+      ...(config?.tools ? { tools: config.tools } : {}),
       generationConfig: {
-        temperature: 0.7,
-        topP: 0.95,
-        maxOutputTokens: 8192,
-      }
+        temperature: config?.temperature ?? 0.7,
+        topP: config?.topP ?? 0.95,
+        maxOutputTokens: config?.maxOutputTokens ?? 8192,
+      },
     });
   }
 
@@ -73,13 +106,11 @@ export class GeminiClient {
 }`;
 
     try {
-      const model = this.genAI.getGenerativeModel({
-        model: 'gemini-3-flash-preview',
-        generationConfig: {
-          temperature: 0.2,
-          topP: 0.9,
-          maxOutputTokens: 1024,
-        },
+      // 使用 lite 模型：股票联想是简单任务，速度优先
+      const model = this.getModel('lite', {
+        temperature: 0.2,
+        topP: 0.9,
+        maxOutputTokens: 1024,
       });
       const result = await model.generateContent(prompt);
       const response = await result.response;
@@ -160,7 +191,13 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
 `;
 
     try {
-      const result = await this.model.generateContent(prompt);
+      // 使用 standard 模型：公司深度分析需要复杂推理能力
+      const model = this.getModel('standard', {
+        temperature: 0.7,
+        topP: 0.95,
+        maxOutputTokens: 12000,
+      });
+      const result = await model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
       
@@ -188,44 +225,24 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
     symbol: string, 
     market: MarketType = 'US'
   ): Promise<string> {
-    // 使用 Gemini 2.5 with Google Search grounding
-    const modelWithSearch = this.genAI.getGenerativeModel({
-      model: 'gemini-3-flash-preview',
-      tools: [{ 
-        googleSearch: {} 
-      }] as any,
+    void market;
+    // 使用 search 模型：需要 Google Search Grounding 能力
+    const modelWithSearch = this.getModel('search', {
+      temperature: 0.7,
+      topP: 0.95,
+      maxOutputTokens: 8192,
+      tools: [{ googleSearch: {} }] as any,
     });
 
-    const marketName = MARKET_NAMES[market] || '美股';
-    const isNonUS = market !== 'US';
-    
-    // 对于非美股，搜索更全面的信息
-    const additionalSearchItems = isNonUS ? `
-5. 当地市场的监管政策变化
-6. 地区经济环境对公司的影响
-7. 主要股东和机构投资者动态` : '';
-
-    // 强约束本地站点与关键词（仅非美股）
-    const localSearchConstraints = isNonUS ? `
-请强制优先检索对应市场的本地权威站点，并把时间范围限定为“近90天”：
-- A股（中国大陆）：优先站点包含但不限于 site:eastmoney.com, site:cninfo.com.cn, site:sse.com.cn, site:szse.cn, site:stcn.com, site:cnstock.com, site:10jqka.com.cn, site:sina.com.cn, site:caixin.com, site:cls.cn, site:yicai.com
-- 港股（香港）：优先站点包含但不限于 site:hkexnews.hk, site:hkex.com.hk, site:aastocks.com, site:hket.com, site:etnet.com.hk, site:astocks.com.hk, site:mpfinance.com, site:stheadline.com
-- 日股（日本）：优先站点包含但不限于 site:tdnet.info, site:jp.reuters.com, site:nikkei.com, site:toyokeizai.net, site:diamond.jp, site:news.yahoo.co.jp
-关键词要求：同时使用“公司中文名/英文名 + 股票代码 + 交易所/市场名”，并加入“公告/业绩/财报/指引/监管/重组/并购/订单/合作/回购/股东/减持/增持/处罚/诉讼/立案”等关键词组合检索。
-` : '';
-
-    const today = new Date();
-    const todayStr = today.toISOString().slice(0, 10);
-    const prompt = `请搜索并总结 ${companyName} (${symbol}，${marketName}市场) 的最新新闻和发展动态，时间范围限定为近90天。今天日期为 ${todayStr}。${localSearchConstraints}
-请严格以“今天日期”为基准计算近90天范围；如果检索结果超出范围或无法确定日期，请明确说明“未找到近90天内的有效信息”，不要编造日期或时间范围。
-
-包括：
+    const prompt = `请使用英文信息源搜索并总结 ${companyName} (${symbol}) 的最新新闻和发展动态，按照以下结构来进行回复：
 1. 最近的重大公告和事件
 2. 产品发布或战略变化
 3. 行业动态和竞争格局变化
-4. 分析师观点和市场情绪${additionalSearchItems}
+4. 分析师观点和市场情绪
 
-请用中文回答，提供近90天的关键信息摘要。如果是中国公司，请特别关注国内媒体和财经网站的报道。`;
+请优先检索对应市场的本地权威站点，并把时间范围限定为“近90天”：
+关键词要求：同时使用“公司中文名/英文名 + 股票代码 + 交易所/市场名”，并加入“公告/业绩/财报/指引/监管/重组/并购/订单/合作/回购/股东/减持/增持/处罚/诉讼/立案”等关键词组合检索。
+请严格以“今天日期”为基准计算近90天范围；如无近90天内信息，recentNews 需明确说明“未找到近90天内的有效信息”。请确保返回有效的 JSON 格式，可以包含 markdown 代码块标记。使用中文回答。`;
 
     try {
       const result = await modelWithSearch.generateContent(prompt);
@@ -253,8 +270,11 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
     recentNews: string;
     analystViews: string;
   }> {
-    const modelWithSearch = this.genAI.getGenerativeModel({
-      model: 'gemini-3-flash-preview',
+    // 使用 search 模型：需要 Google Search Grounding 能力
+    const modelWithSearch = this.getModel('search', {
+      temperature: 0.7,
+      topP: 0.95,
+      maxOutputTokens: 4096,
       tools: [{ googleSearch: {} }] as any,
     });
 
@@ -270,12 +290,9 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
   "analystViews": "券商和分析师的观点汇总，包括评级和目标价（如有）（100-200字）"
 }
 
-请强制优先检索对应市场的本地权威站点，并把时间范围限定为“近90天”：
-- A股（中国大陆）：优先站点包含但不限于 site:eastmoney.com, site:cninfo.com.cn, site:sse.com.cn, site:szse.cn, site:stcn.com, site:cnstock.com, site:10jqka.com.cn, site:sina.com.cn, site:caixin.com, site:cls.cn, site:yicai.com
-- 港股（香港）：优先站点包含但不限于 site:hkexnews.hk, site:hkex.com.hk, site:aastocks.com, site:hket.com, site:etnet.com.hk, site:astocks.com.hk, site:mpfinance.com, site:stheadline.com
-- 日股（日本）：优先站点包含但不限于 site:tdnet.info, site:jp.reuters.com, site:nikkei.com, site:toyokeizai.net, site:diamond.jp, site:news.yahoo.co.jp
+请优先检索对应市场的本地权威站点，并把时间范围限定为“近90天”：
 关键词要求：同时使用“公司中文名/英文名 + 股票代码 + 交易所/市场名”，并加入“公告/业绩/财报/指引/监管/重组/并购/订单/合作/回购/股东/减持/增持/处罚/诉讼/立案”等关键词组合检索。
-请严格以“今天日期”为基准计算近90天范围；如无近90天内信息，recentNews 需明确说明“未找到近90天内的有效信息”。请确保返回有效的 JSON 格式，不要包含 markdown 代码块标记。使用中文回答。`;
+请严格以“今天日期”为基准计算近90天范围；如无近90天内信息，recentNews 需明确说明“未找到近90天内的有效信息”。请确保返回有效的 JSON 格式，可以包含 markdown 代码块标记。使用中文回答。`;
 
     try {
       const result = await modelWithSearch.generateContent(prompt);
@@ -318,7 +335,6 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
   ): Promise<string> {
     const prompt = `
 你是一位资深卖方分析师。请根据以下英文电话会议全文，生成中文“财报电话会议精要”。
-使用 FMP API 获取财报电话会议（Earnings Call）原文，参考文档：https://site.financialmodelingprep.com/playground
 必须严格围绕用户关心的四个区域输出，并给出清晰的要点与判断：
 
 1. 必读区域：问答环节 (Q&A Session)
@@ -355,7 +371,14 @@ ${transcriptText}
 `;
 
     try {
-      const result = await this.model.generateContent(prompt);
+      // 使用 lite 模型：财报摘要是结构化提取任务，lite 模型足够
+      // 注意：如果原文过长超出 lite 上下文限制，会自动降级处理
+      const model = this.getModel('lite', {
+        temperature: 0.5,
+        topP: 0.9,
+        maxOutputTokens: 4096,
+      });
+      const result = await model.generateContent(prompt);
       const response = await result.response;
       return response.text();
     } catch (error: any) {
