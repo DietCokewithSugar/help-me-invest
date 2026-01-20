@@ -1,10 +1,33 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Search, TrendingUp, FileText, Zap, BarChart3, Brain, Globe2, Sparkles, ArrowRight, Flame, Clock, ChevronDown, HelpCircle, DollarSign, MessageCircle } from 'lucide-react';
+import { useState, useEffect, useRef, Suspense, lazy } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Report from '@/components/Report';
 import type { ReportData, MarketType } from '@/types';
-import { MARKET_CONFIGS, detectMarketFromSymbol, formatSymbolForMarket, getMarketConfig, type MarketConfig } from '@/lib/markets';
+import { MARKET_CONFIGS, detectMarketFromSymbol, formatSymbolForMarket, getMarketConfig } from '@/lib/markets';
+import {
+  TrendingUpIcon,
+  FileTextIcon,
+  BarChart3Icon,
+  BrainIcon,
+  Globe2Icon,
+  ArrowRightIcon,
+  FlameIcon,
+  ClockIcon,
+  ChevronDownIcon,
+  HelpCircleIcon,
+  DollarSignIcon,
+  MessageCircleIcon,
+  InsightIcon,
+  CrossValidateIcon,
+  MinimalistIcon,
+  LogoIcon,
+} from '@/components/Icons';
+
+// 懒加载 3D 地球组件
+const ParticleGlobe = lazy(() => import('@/components/ParticleGlobe'));
+const AIShowcase = lazy(() => import('@/components/AIShowcase'));
+const Testimonials = lazy(() => import('@/components/Testimonials'));
 
 // 热门股票类型
 interface TrendingStock {
@@ -23,11 +46,11 @@ interface SymbolSuggestion {
 }
 
 const LOADING_STEPS = [
-  { text: '正在获取企业基本信息', icon: FileText, color: 'from-blue-500 to-blue-600' },
-  { text: '正在分析财务数据', icon: BarChart3, color: 'from-purple-500 to-purple-600' },
-  { text: 'AI 正在深度分析', icon: Brain, color: 'from-pink-500 to-pink-600' },
-  { text: '正在搜索最新动态', icon: Globe2, color: 'from-cyan-500 to-cyan-600' },
-  { text: '正在生成研究报告', icon: Zap, color: 'from-amber-500 to-amber-600' },
+  { text: '正在获取企业基本信息', icon: FileTextIcon, color: 'from-glacier-500 to-glacier-600' },
+  { text: '正在分析财务数据', icon: BarChart3Icon, color: 'from-gemini-purple to-gemini-pink' },
+  { text: 'AI 正在深度分析', icon: BrainIcon, color: 'from-gemini-blue to-gemini-purple' },
+  { text: '正在搜索最新动态', icon: Globe2Icon, color: 'from-glacier-400 to-gemini-blue' },
+  { text: '正在生成研究报告', icon: TrendingUpIcon, color: 'from-gemini-green to-glacier-500' },
 ];
 
 // 热门股票展示列表
@@ -44,14 +67,42 @@ const FEATURED_STOCKS = [
   { symbol: '7203.T', name: '丰田汽车' },
 ];
 
-// Gemini 风格的四点加载动画
+// 核心优势数据
+const CORE_ADVANTAGES = [
+  {
+    id: 'ai-logic',
+    number: '壹',
+    title: '穿透表象的 AI 逻辑',
+    description: 'AI 不止总结数据，而是理解财报背后的商业动机，洞察企业真正的经营本质。',
+    icon: InsightIcon,
+    gradient: 'from-glacier-500 to-gemini-blue',
+  },
+  {
+    id: 'multi-source',
+    number: '贰',
+    title: '多维数据印证',
+    description: '整合 FMP 财务数据与 Google Search 实时新闻，实现基本面与消息面的交叉验证。',
+    icon: CrossValidateIcon,
+    gradient: 'from-gemini-purple to-aurora-3',
+  },
+  {
+    id: 'minimalist',
+    number: '叁',
+    title: '极致克制的研报',
+    description: '告别繁琐的传统报告，用可视化（如桑基图）还原经营本质，只留下真正重要的信息。',
+    icon: MinimalistIcon,
+    gradient: 'from-gemini-blue to-glacier-500',
+  },
+];
+
+// 加载动画组件
 function GeminiLoader() {
   return (
     <div className="flex items-center gap-2">
-      <div className="w-3 h-3 rounded-full bg-gemini-blue animate-bounce" style={{ animationDelay: '0ms' }} />
-      <div className="w-3 h-3 rounded-full bg-gemini-red animate-bounce" style={{ animationDelay: '100ms' }} />
-      <div className="w-3 h-3 rounded-full bg-gemini-yellow animate-bounce" style={{ animationDelay: '200ms' }} />
-      <div className="w-3 h-3 rounded-full bg-gemini-green animate-bounce" style={{ animationDelay: '300ms' }} />
+      <div className="w-3 h-3 rounded-full bg-glacier-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+      <div className="w-3 h-3 rounded-full bg-gemini-blue animate-bounce" style={{ animationDelay: '100ms' }} />
+      <div className="w-3 h-3 rounded-full bg-gemini-purple animate-bounce" style={{ animationDelay: '200ms' }} />
+      <div className="w-3 h-3 rounded-full bg-aurora-3 animate-bounce" style={{ animationDelay: '300ms' }} />
     </div>
   );
 }
@@ -67,7 +118,6 @@ function CircularLoader({ step, totalSteps }: { step: number; totalSteps: number
   
   return (
     <div className="relative w-32 h-32">
-      {/* 背景圆环 */}
       <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
         <circle
           cx="60"
@@ -77,7 +127,6 @@ function CircularLoader({ step, totalSteps }: { step: number; totalSteps: number
           stroke="rgba(255,255,255,0.05)"
           strokeWidth="4"
         />
-        {/* 进度圆环 */}
         <circle
           cx="60"
           cy="60"
@@ -92,14 +141,13 @@ function CircularLoader({ step, totalSteps }: { step: number; totalSteps: number
         />
         <defs>
           <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#4285f4" />
-            <stop offset="50%" stopColor="#a855f7" />
-            <stop offset="100%" stopColor="#ec4899" />
+            <stop offset="0%" stopColor="#14b8a6" />
+            <stop offset="50%" stopColor="#4285f4" />
+            <stop offset="100%" stopColor="#a855f7" />
           </linearGradient>
         </defs>
       </svg>
       
-      {/* 中心图标 */}
       <div className="absolute inset-0 flex items-center justify-center">
         <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${LOADING_STEPS[step].color} flex items-center justify-center`}>
           <Icon className="w-7 h-7 text-white" />
@@ -112,7 +160,6 @@ function CircularLoader({ step, totalSteps }: { step: number; totalSteps: number
 export default function Home() {
   const [symbol, setSymbol] = useState('');
   const [selectedMarket, setSelectedMarket] = useState<MarketType>('US');
-  const [showMarketDropdown, setShowMarketDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState('');
@@ -128,27 +175,22 @@ export default function Home() {
   const [currentStockIndex, setCurrentStockIndex] = useState(0);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const marketDropdownRef = useRef<HTMLDivElement>(null);
-  const suggestionsRef = useRef<HTMLDivElement>(null);
   const suggestContainerRef = useRef<HTMLDivElement>(null);
   
   const currentMarketConfig = getMarketConfig(selectedMarket);
 
   // 股票翻牌动画
   useEffect(() => {
-    if (symbol || reportData) return; // 只在搜索框空的时候显示
+    if (symbol || reportData) return;
     const interval = setInterval(() => {
       setCurrentStockIndex((prev) => (prev + 1) % FEATURED_STOCKS.length);
     }, 2500);
     return () => clearInterval(interval);
   }, [symbol, reportData]);
 
-  // 点击外部关闭下拉菜单
+  // 点击外部关闭建议下拉
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (marketDropdownRef.current && !marketDropdownRef.current.contains(event.target as Node)) {
-        setShowMarketDropdown(false);
-      }
       if (suggestContainerRef.current && !suggestContainerRef.current.contains(event.target as Node)) {
         setShowSuggestions(false);
       }
@@ -172,7 +214,6 @@ export default function Home() {
         setTrendingLoading(false);
       }
     };
-
     fetchTrending();
   }, []);
 
@@ -185,7 +226,7 @@ export default function Home() {
     }
   }, [loading]);
 
-  // 联想搜索（AI）
+  // 联想搜索
   useEffect(() => {
     const query = symbol.trim();
     if (query.length < 2) {
@@ -203,10 +244,7 @@ export default function Home() {
         const response = await fetch('/api/symbol-suggest', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            query,
-            market: marketHint,
-          }),
+          body: JSON.stringify({ query, market: marketHint }),
           signal: controller.signal,
         });
         const data = await response.json();
@@ -240,7 +278,7 @@ export default function Home() {
     inputRef.current?.focus();
   };
 
-  // 记录搜索到数据库（异步，不阻塞主流程）
+  // 记录搜索到数据库
   const recordSearchToDb = async (sym: string, companyName?: string, isInvalid?: boolean) => {
     try {
       await fetch('/api/search-record', {
@@ -253,7 +291,6 @@ export default function Home() {
         }),
       });
     } catch (e) {
-      // 静默失败，不影响用户体验
       console.log('记录搜索失败:', e);
     }
   };
@@ -266,7 +303,6 @@ export default function Home() {
       return;
     }
 
-    // 优先使用联想结果（若输入未包含市场后缀）
     let marketForAnalyze = selectedMarket;
     let formattedSymbol = trimmedSymbol;
     if (!trimmedSymbol.includes('.') && suggestions.length > 0) {
@@ -316,18 +352,14 @@ export default function Home() {
       const data = await parseJsonResponse(response);
 
       if (!response.ok) {
-        // FMP 返回错误，可能是无效股票代码
         const errorMsg = data?.error || '分析失败，请稍后重试';
-        // 如果是找不到股票的错误，标记为无效
         if (errorMsg.includes('找不到') || errorMsg.includes('not found') || errorMsg.includes('无效')) {
           recordSearchToDb(formattedSymbol, undefined, true);
         }
         throw new Error(errorMsg);
       }
 
-      // 搜索成功，记录到数据库（包含公司名称）
       recordSearchToDb(formattedSymbol, data?.profile?.companyName);
-
       setReportData(data);
       setLoading(false);
 
@@ -460,43 +492,46 @@ export default function Home() {
     }
   };
 
+  const resetToHome = () => {
+    setReportData(null);
+    setSymbol('');
+    setAiLoading(false);
+    setAiError('');
+    setError('');
+  };
+
   return (
     <main className="min-h-screen">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50">
         <div className="mx-4 mt-4">
-          <div className="max-w-7xl mx-auto px-6 py-4 gemini-card backdrop-blur-2xl">
+          <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 glass-card backdrop-blur-2xl">
             <div className="flex items-center justify-between">
               {/* Logo */}
               <div 
                 className="flex items-center gap-3 cursor-pointer group" 
-                onClick={() => {
-                  setReportData(null);
-                  setSymbol('');
-                  setError('');
-                }}
+                onClick={resetToHome}
               >
                 <div className="relative">
-                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-gemini-blue via-gemini-purple to-gemini-pink flex items-center justify-center shadow-lg shadow-gemini-blue/20 group-hover:shadow-gemini-blue/40 transition-shadow">
-                    <Sparkles className="w-5 h-5 text-white" />
+                  <div className="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-gradient-to-br from-glacier-500 to-gemini-blue flex items-center justify-center shadow-lg shadow-glacier-500/20 group-hover:shadow-glacier-500/40 transition-shadow">
+                    <LogoIcon size={24} className="text-white" />
                   </div>
-                  {/* 光晕 */}
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-gemini-blue to-gemini-purple opacity-40 blur-xl group-hover:opacity-60 transition-opacity" />
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-glacier-500 to-gemini-blue opacity-40 blur-xl group-hover:opacity-60 transition-opacity" />
                 </div>
                 <div>
-                  <h1 className="text-lg font-semibold text-white group-hover:text-gemini-blue transition-colors">智投研究</h1>
-                  <p className="text-xs text-mist-500">AI Investment Research</p>
+                  <h1 className="text-base md:text-lg font-semibold text-white group-hover:text-glacier-400 transition-colors">智投研究</h1>
+                  <p className="text-xs text-mist-500 hidden sm:block">AI Investment Research</p>
                 </div>
               </div>
               
               {/* 状态指示 */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 md:gap-4">
                 <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
-                  <div className="w-2 h-2 bg-gemini-green rounded-full animate-pulse" />
-                  <span className="text-sm text-mist-400">Gemini Multi-Model</span>
+                  <div className="w-2 h-2 bg-glacier-500 rounded-full animate-pulse" />
+                  <span className="text-sm text-mist-400">Gemini AI</span>
                 </div>
                 <div className="flex items-center gap-2 text-mist-500 text-sm">
-                  <FileText className="w-4 h-4" />
+                  <FileTextIcon size={16} />
                   <span className="hidden sm:inline">Powered by FMP</span>
                 </div>
               </div>
@@ -505,406 +540,623 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Hero Section */}
+      {/* 首页内容 */}
       {!reportData && (
-        <section className="pt-32 pb-20 px-6">
-          <div className="max-w-4xl mx-auto">
-            {/* 标语区域 */}
-            <div className="text-center mb-16 animate-fade-in-up">
-              {/* 徽章 */}
-              <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-gemini-blue/10 to-gemini-purple/10 border border-gemini-blue/20 mb-8">
-                <Zap className="w-4 h-4 text-gemini-blue" />
-                <span className="text-sm text-gemini-blue font-medium">AI 驱动 · 实时数据 · 专业分析</span>
-              </div>
-              
-              {/* 主标题 */}
-              <h2 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight tracking-tight">
-                智能投资研究
-                <br />
-                <span className="gradient-text">一键生成报告</span>
-              </h2>
-              
-              {/* 副标题 */}
-              <p className="text-lg md:text-xl text-mist-400 max-w-2xl mx-auto leading-relaxed">
-                支持美股、A股、港股、日股，AI 自动分析企业基本面、行业格局、竞争优势，
-                <br className="hidden md:block" />
-                生成专业级投资调研报告
-              </p>
-            </div>
+        <>
+          {/* Hero Section */}
+          <section className="pt-28 md:pt-32 pb-16 md:pb-24 px-4 md:px-6">
+            <div className="max-w-5xl mx-auto">
+              {/* 核心视觉区 */}
+              <motion.div 
+                className="text-center mb-12 md:mb-20"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              >
+                {/* 主标题 - 愿景式文案 */}
+                <h2 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-light text-white mb-6 md:mb-8 leading-tight tracking-tight">
+                  看透财务，
+                  <br className="md:hidden" />
+                  <span className="gradient-text font-normal">见证商业逻辑</span>
+                </h2>
+                
+                {/* 副标题 */}
+                <p className="text-base md:text-xl text-mist-400 max-w-2xl mx-auto leading-relaxed px-4">
+                  将海量数据转化为你的投资决断
+                  <br className="hidden md:block" />
+                  <span className="text-mist-500">跨越市场疆界，AI 为你实时解码</span>
+                </p>
+              </motion.div>
 
-            {/* 搜索区域 */}
-            <div className="animate-fade-in-up delay-200">
-              <div className="gemini-card gemini-card-glow p-8 md:p-10">
-                {/* 市场自动识别 */}
-                <div className="flex items-center gap-3 mb-6">
-                  <span className="text-sm text-mist-500">市场识别：</span>
-                  <div className="text-sm text-mist-300">
-                    AI 自动识别股票市场（当前：{currentMarketConfig.nameCn}）
+              {/* 搜索区域 - 视觉权重降低 */}
+              <motion.div 
+                className="max-w-3xl mx-auto"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+              >
+                <div className="glass-card p-6 md:p-8">
+                  {/* 市场识别提示 */}
+                  <div className="flex items-center gap-2 mb-4 text-sm text-mist-500">
+                    <Globe2Icon size={16} className="text-glacier-500" />
+                    <span>AI 自动识别市场 · 当前：{currentMarketConfig.nameCn}</span>
                   </div>
-                </div>
 
-                {/* 搜索框 */}
-                <div className="flex flex-col md:flex-row gap-4 mb-6">
-                  <div ref={suggestContainerRef} className="flex-1 relative group">
-                    <div className="relative">
-                      <input
-                        ref={inputRef}
-                        type="text"
-                        value={symbol}
-                        onChange={(e) => {
-                          const nextValue = e.target.value;
-                          setSymbol(isComposing ? nextValue : nextValue.toUpperCase());
-                          setError('');
-                          setShowSuggestions(true);
-                        }}
-                        onCompositionStart={() => setIsComposing(true)}
-                        onCompositionEnd={(e) => {
-                          setIsComposing(false);
-                          setSymbol(e.currentTarget.value.toUpperCase());
-                        }}
-                        onKeyDown={handleKeyDown}
-                        placeholder=""
-                        disabled={loading}
-                        className="gemini-input w-full px-5 py-5 text-lg font-mono disabled:opacity-50"
-                      />
-                      {/* 动态 placeholder */}
-                      {!symbol && (
-                        <div className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none overflow-hidden h-6">
-                          <div 
-                            className="transition-transform duration-500 ease-in-out"
-                            style={{ transform: `translateY(-${currentStockIndex * 24}px)` }}
-                          >
-                            {FEATURED_STOCKS.map((stock, index) => (
-                              <div 
-                                key={index}
-                                className="h-6 flex items-center text-mist-600 text-lg"
+                  {/* 搜索框 */}
+                  <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mb-4">
+                    <div ref={suggestContainerRef} className="flex-1 relative group">
+                      <div className="relative">
+                        <input
+                          ref={inputRef}
+                          type="text"
+                          value={symbol}
+                          onChange={(e) => {
+                            const nextValue = e.target.value;
+                            setSymbol(isComposing ? nextValue : nextValue.toUpperCase());
+                            setError('');
+                            setShowSuggestions(true);
+                          }}
+                          onCompositionStart={() => setIsComposing(true)}
+                          onCompositionEnd={(e) => {
+                            setIsComposing(false);
+                            setSymbol(e.currentTarget.value.toUpperCase());
+                          }}
+                          onKeyDown={handleKeyDown}
+                          placeholder=""
+                          disabled={loading}
+                          className="gemini-input w-full px-5 py-4 text-base md:text-lg font-mono disabled:opacity-50"
+                        />
+                        {/* 动态 placeholder */}
+                        {!symbol && (
+                          <div className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none overflow-hidden h-6">
+                            <div 
+                              className="transition-transform duration-500 ease-in-out"
+                              style={{ transform: `translateY(-${currentStockIndex * 24}px)` }}
+                            >
+                              {FEATURED_STOCKS.map((stock, index) => (
+                                <div 
+                                  key={index}
+                                  className="h-6 flex items-center text-mist-600 text-base md:text-lg"
+                                >
+                                  <span className="font-mono">{stock.symbol}</span>
+                                  <span className="mx-2 text-mist-700">·</span>
+                                  <span className="text-mist-600">{stock.name}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 联想搜索下拉 */}
+                      {showSuggestions && (suggestLoading || suggestions.length > 0) && (
+                        <div className="absolute left-0 right-0 top-full mt-2 z-20 rounded-2xl border border-white/10 bg-obsidian/98 backdrop-blur-xl shadow-2xl">
+                          <div className="px-4 py-3 text-xs text-mist-500 border-b border-white/10 flex items-center justify-between">
+                            <span>AI 联想结果</span>
+                            {suggestLoading && <span className="text-mist-600">查询中...</span>}
+                          </div>
+                          <div className="max-h-64 overflow-auto">
+                            {suggestions.map((item) => (
+                              <button
+                                key={`${item.market}-${item.symbol}`}
+                                onClick={() => handleSelectSuggestion(item)}
+                                className="w-full px-4 py-3 text-left hover:bg-white/5 transition-colors flex items-center gap-3"
                               >
-                                <span className="font-mono">{stock.symbol}</span>
-                                <span className="mx-2">·</span>
-                                <span>{stock.name}</span>
-                              </div>
+                                <span className="font-mono text-sm text-white">{item.symbol}</span>
+                                <span className="text-xs text-mist-500">
+                                  {MARKET_CONFIGS[item.market]?.nameCn || item.market}
+                                </span>
+                                {(item.nameCn || item.name) && (
+                                  <span className="text-sm text-mist-300 truncate">
+                                    {item.nameCn || item.name}
+                                  </span>
+                                )}
+                              </button>
                             ))}
+                            {suggestions.length === 0 && !suggestLoading && (
+                              <div className="px-4 py-3 text-sm text-mist-500">暂未找到匹配结果</div>
+                            )}
                           </div>
                         </div>
                       )}
                     </div>
+                    
+                    <button
+                      onClick={handleAnalyze}
+                      disabled={loading}
+                      className="gemini-btn gemini-btn-primary flex items-center justify-center gap-2 md:gap-3 min-w-[140px] md:min-w-[160px] py-4 text-base md:text-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                    >
+                      {loading ? (
+                        <GeminiLoader />
+                      ) : (
+                        <>
+                          <TrendingUpIcon size={20} />
+                          <span>开始分析</span>
+                          <ArrowRightIcon size={16} className="opacity-70 hidden sm:block" />
+                        </>
+                      )}
+                    </button>
+                  </div>
 
-                    {/* 联想搜索下拉 */}
-                    {showSuggestions && (suggestLoading || suggestions.length > 0) && (
-                      <div
-                        ref={suggestionsRef}
-                        className="absolute left-0 right-0 top-full mt-3 z-20 rounded-2xl border border-white/10 bg-night-900/98 backdrop-blur-xl shadow-2xl"
-                      >
-                        <div className="px-4 py-3 text-xs text-mist-500 border-b border-white/10 flex items-center justify-between">
-                          <span>AI 联想结果</span>
-                          {suggestLoading && <span className="text-mist-600">查询中...</span>}
+                  {/* 错误提示 */}
+                  {error && (
+                    <motion.div 
+                      className="mb-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3"
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                    >
+                      <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                      <span className="text-red-400 text-sm">{error}</span>
+                    </motion.div>
+                  )}
+
+                  {/* 热门股票 */}
+                  <div className="space-y-3">
+                    {/* 本周热搜 */}
+                    {trendingStocks.length > 0 && (
+                      <div className="p-4 rounded-xl bg-gradient-to-r from-orange-500/5 to-red-500/5 border border-orange-500/10">
+                        <div className="flex items-center gap-2 mb-3">
+                          <FlameIcon size={16} className="text-orange-500" />
+                          <span className="text-sm font-medium text-orange-400">本周热搜</span>
+                          <div className="flex items-center gap-1 ml-auto text-xs text-mist-600">
+                            <ClockIcon size={12} />
+                            <span className="hidden sm:inline">实时更新</span>
+                          </div>
                         </div>
-                        <div className="max-h-64 overflow-auto">
-                          {suggestions.map((item) => (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {trendingStocks.slice(0, 6).map((stock, index) => (
                             <button
-                              key={`${item.market}-${item.symbol}`}
-                              onClick={() => handleSelectSuggestion(item)}
-                              className="w-full px-4 py-3 text-left hover:bg-white/5 transition-colors flex items-center gap-3"
+                              key={stock.symbol}
+                              onClick={() => setSymbol(stock.symbol)}
+                              disabled={loading}
+                              className="group relative px-3 py-1.5 rounded-full bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20 hover:border-orange-500/40 transition-all disabled:opacity-50"
                             >
-                              <span className="font-mono text-sm text-white">{item.symbol}</span>
-                              <span className="text-xs text-mist-500">
-                                {MARKET_CONFIGS[item.market]?.nameCn || item.market}
-                              </span>
-                              {(item.nameCn || item.name) && (
-                                <span className="text-sm text-mist-300 truncate">
-                                  {item.nameCn || item.name}
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-orange-400/60">#{index + 1}</span>
+                                <span className="font-mono text-sm text-white group-hover:text-orange-300 transition-colors">
+                                  {stock.symbol}
                                 </span>
+                              </div>
+                              {stock.company_name && (
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded bg-obsidian border border-white/10 text-xs text-mist-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                                  {stock.company_name}
+                                </div>
                               )}
                             </button>
                           ))}
-                          {suggestions.length === 0 && !suggestLoading && (
-                            <div className="px-4 py-3 text-sm text-mist-500">暂未找到匹配结果</div>
-                          )}
                         </div>
                       </div>
                     )}
+
+                    {/* 市场推荐股票 */}
+                    <div className="flex items-center gap-2 flex-wrap text-sm">
+                      <span className="text-mist-600">{currentMarketConfig.nameCn}热门：</span>
+                      {currentMarketConfig.featuredStocks.slice(0, 5).map((stock) => (
+                        <button
+                          key={stock.symbol}
+                          onClick={() => setSymbol(stock.symbol)}
+                          disabled={loading}
+                          className="stock-chip disabled:opacity-50"
+                        >
+                          <span className="font-mono">{stock.symbol}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* 加载状态 */}
+              {loading && (
+                <motion.div 
+                  className="mt-12 md:mt-16 flex justify-center"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <div className="glass-card p-8 md:p-10 flex flex-col items-center gap-6 md:gap-8 pulse-glow">
+                    <CircularLoader step={loadingStep} totalSteps={LOADING_STEPS.length} />
                     
-                    {/* 输入框发光边框 */}
-                    <div className="absolute inset-0 rounded-2xl pointer-events-none opacity-0 group-focus-within:opacity-100 transition-opacity">
-                      <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-gemini-blue via-gemini-purple to-gemini-pink opacity-20 blur-xl" />
+                    <div className="text-center">
+                      <p className="text-lg md:text-xl font-medium text-white mb-2">
+                        {LOADING_STEPS[loadingStep].text}
+                      </p>
+                      <p className="text-sm text-mist-500">
+                        预计需要 15-30 秒，请稍候...
+                      </p>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      {LOADING_STEPS.map((_, index) => (
+                        <div
+                          key={index}
+                          className={`w-2 h-2 md:w-2.5 md:h-2.5 rounded-full transition-all duration-300 ${
+                            index === loadingStep 
+                              ? 'bg-glacier-500 scale-125 shadow-lg shadow-glacier-500/50' 
+                              : index < loadingStep 
+                                ? 'bg-glacier-500/50' 
+                                : 'bg-white/10'
+                          }`}
+                        />
+                      ))}
                     </div>
                   </div>
-                  
-                  <button
-                    onClick={handleAnalyze}
-                    disabled={loading}
-                    className="gemini-btn gemini-btn-primary flex items-center justify-center gap-3 min-w-[180px] py-5 text-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                  >
-                    {loading ? (
-                      <GeminiLoader />
-                    ) : (
-                      <>
-                        <TrendingUp className="w-5 h-5" />
-                        开始分析
-                        <ArrowRight className="w-4 h-4 opacity-70" />
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {/* 错误提示 */}
-                {error && (
-                  <div className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center gap-3 animate-fade-in">
-                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                    <span className="text-red-400 text-sm">{error}</span>
-                  </div>
-                )}
-
-                {/* 热门股票榜单 */}
-                <div className="space-y-4">
-                  {/* 本周热门榜单（仅美股） */}
-                  {selectedMarket === 'US' && trendingStocks.length > 0 && (
-                    <div className="p-4 rounded-2xl bg-gradient-to-r from-orange-500/5 to-red-500/5 border border-orange-500/10">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Flame className="w-4 h-4 text-orange-500" />
-                        <span className="text-sm font-medium text-orange-400">本周热搜</span>
-                        <div className="flex items-center gap-1 ml-auto text-xs text-mist-600">
-                          <Clock className="w-3 h-3" />
-                          <span>实时更新</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {trendingStocks.map((stock, index) => (
-                          <button
-                            key={stock.symbol}
-                            onClick={() => setSymbol(stock.symbol)}
-                            disabled={loading}
-                            className="group relative px-3 py-1.5 rounded-full bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20 hover:border-orange-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                            style={{ animationDelay: `${index * 50}ms` }}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-orange-400/60">#{index + 1}</span>
-                              <span className="font-mono text-sm text-white group-hover:text-orange-300 transition-colors">
-                                {stock.symbol}
-                              </span>
-                              {stock.total_searches > 1 && (
-                                <span className="text-xs text-mist-500">
-                                  {stock.total_searches}次
-                                </span>
-                              )}
-                            </div>
-                            {stock.company_name && (
-                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded bg-night-800 border border-night-700 text-xs text-mist-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                {stock.company_name}
-                              </div>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 该市场的推荐股票 */}
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <span className="text-sm text-mist-600">
-                      {currentMarketConfig.nameCn}热门标的：
-                    </span>
-                    {currentMarketConfig.featuredStocks.map((stock, index) => (
-                      <button
-                        key={stock.symbol}
-                        onClick={() => setSymbol(stock.symbol)}
-                        disabled={loading}
-                        className="group relative stock-chip disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ animationDelay: `${index * 50}ms` }}
-                      >
-                        <span className="font-mono">{stock.symbol}</span>
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded bg-night-800 border border-night-700 text-xs text-mist-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                          {stock.name}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
+                </motion.div>
+              )}
             </div>
+          </section>
 
-            {/* 加载状态 */}
-            {loading && (
-              <div className="mt-16 flex justify-center animate-fade-in-up">
-                <div className="gemini-card p-10 flex flex-col items-center gap-8 pulse-glow">
-                  <CircularLoader step={loadingStep} totalSteps={LOADING_STEPS.length} />
-                  
-                  <div className="text-center">
-                    <p className="text-xl font-medium text-white mb-2">
-                      {LOADING_STEPS[loadingStep].text}
-                    </p>
-                    <p className="text-sm text-mist-500">
-                      预计需要 15-30 秒，请稍候...
-                    </p>
-                  </div>
-                  
-                  {/* 步骤指示器 */}
-                  <div className="flex gap-2">
-                    {LOADING_STEPS.map((_, index) => (
-                      <div
-                        key={index}
-                        className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
-                          index === loadingStep 
-                            ? 'bg-gemini-blue scale-125 shadow-lg shadow-gemini-blue/50' 
-                            : index < loadingStep 
-                              ? 'bg-gemini-blue/50' 
-                              : 'bg-white/10'
-                        }`}
-                      />
-                    ))}
-                  </div>
+          {/* 核心优势区 */}
+          {!loading && (
+            <section className="py-16 md:py-24 px-4 md:px-6">
+              <div className="max-w-6xl mx-auto">
+                <motion.div 
+                  className="text-center mb-12 md:mb-16"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-100px' }}
+                >
+                  <h3 className="text-2xl md:text-3xl lg:text-4xl font-light text-white mb-4">为什么选择智投研究</h3>
+                  <p className="text-mist-500 text-sm md:text-base">不只是工具，更是你的投研智囊</p>
+                </motion.div>
+                
+                <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
+                  {CORE_ADVANTAGES.map((advantage, index) => (
+                    <motion.div
+                      key={advantage.id}
+                      className="feature-card group"
+                      initial={{ opacity: 0, y: 30 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true, margin: '-50px' }}
+                      transition={{ duration: 0.5, delay: index * 0.1 }}
+                    >
+                      {/* 中文数字 */}
+                      <div className="cn-number mb-4">{advantage.number}</div>
+                      
+                      {/* 图标 */}
+                      <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${advantage.gradient} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
+                        <advantage.icon size={24} className="text-white" />
+                      </div>
+                      
+                      {/* 标题 */}
+                      <h4 className="text-xl font-medium text-white mb-3">{advantage.title}</h4>
+                      
+                      {/* 描述 */}
+                      <p className="text-mist-400 leading-relaxed text-[15px]">{advantage.description}</p>
+                    </motion.div>
+                  ))}
                 </div>
               </div>
-            )}
+            </section>
+          )}
 
-            {/* Q&A 部分 */}
-            {!loading && (
-              <div className="mt-20 space-y-6">
-                <h3 className="text-3xl font-semibold text-white text-center mb-10">常见问题</h3>
+          {/* AI 能力展示 */}
+          {!loading && (
+            <section className="py-16 md:py-24 px-4 md:px-6">
+              <div className="max-w-6xl mx-auto">
+                <motion.div 
+                  className="text-center mb-12 md:mb-16"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-100px' }}
+                >
+                  <h3 className="text-2xl md:text-3xl lg:text-4xl font-light text-white mb-4">AI 正在解读</h3>
+                  <p className="text-mist-500 text-sm md:text-base">实时展示研报生成过程</p>
+                </motion.div>
                 
-                <div className="max-w-3xl mx-auto space-y-4">
+                <Suspense fallback={
+                  <div className="glass-card p-12 flex items-center justify-center">
+                    <GeminiLoader />
+                  </div>
+                }>
+                  <AIShowcase />
+                </Suspense>
+              </div>
+            </section>
+          )}
+
+          {/* 市场覆盖 - 3D 地球 */}
+          {!loading && (
+            <section className="py-16 md:py-24 px-4 md:px-6 overflow-hidden">
+              <div className="max-w-6xl mx-auto">
+                <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
+                  {/* 左侧文案 */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -30 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true, margin: '-100px' }}
+                    transition={{ duration: 0.6 }}
+                  >
+                    <h3 className="text-2xl md:text-3xl lg:text-4xl font-light text-white mb-6">
+                      全球视野，
+                      <br />
+                      <span className="gradient-text">本土洞察</span>
+                    </h3>
+                    <p className="text-mist-400 leading-relaxed mb-8 text-[15px] md:text-base">
+                      无论是硅谷的创新脉搏，还是沪深的产业律动，
+                      <br className="hidden md:block" />
+                      AI 为你跨越市场疆界，实时解码全球投资机会。
+                    </p>
+                    
+                    {/* 市场列表 */}
+                    <div className="grid grid-cols-2 gap-4">
+                      {[
+                        { name: '美股', code: 'NYSE / NASDAQ', color: '#4285f4' },
+                        { name: 'A股', code: 'SSE / SZSE', color: '#ea4335' },
+                        { name: '港股', code: 'HKEX', color: '#fbbc04' },
+                        { name: '日股', code: 'TSE', color: '#34a853' },
+                      ].map((market) => (
+                        <div key={market.name} className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: market.color }} />
+                          <div>
+                            <div className="text-white font-medium text-sm">{market.name}</div>
+                            <div className="text-mist-600 text-xs">{market.code}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                  
+                  {/* 右侧 3D 地球 */}
+                  <motion.div
+                    initial={{ opacity: 0, x: 30 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true, margin: '-100px' }}
+                    transition={{ duration: 0.6, delay: 0.2 }}
+                  >
+                    <Suspense fallback={
+                      <div className="globe-container flex items-center justify-center">
+                        <GeminiLoader />
+                      </div>
+                    }>
+                      <ParticleGlobe />
+                    </Suspense>
+                  </motion.div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* 用户评价 */}
+          {!loading && (
+            <section className="py-16 md:py-24 px-4 md:px-6">
+              <div className="max-w-6xl mx-auto">
+                <motion.div 
+                  className="text-center mb-12 md:mb-16"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-100px' }}
+                >
+                  <h3 className="text-2xl md:text-3xl lg:text-4xl font-light text-white mb-4">用户如是说</h3>
+                  <p className="text-mist-500 text-sm md:text-base">来自不同背景投资者的真实反馈</p>
+                </motion.div>
+                
+                <Suspense fallback={
+                  <div className="flex items-center justify-center py-12">
+                    <GeminiLoader />
+                  </div>
+                }>
+                  <Testimonials />
+                </Suspense>
+              </div>
+            </section>
+          )}
+
+          {/* FAQ 部分 */}
+          {!loading && (
+            <section className="py-16 md:py-24 px-4 md:px-6">
+              <div className="max-w-3xl mx-auto">
+                <motion.div 
+                  className="text-center mb-12"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-100px' }}
+                >
+                  <h3 className="text-2xl md:text-3xl lg:text-4xl font-light text-white mb-4">常见问题</h3>
+                </motion.div>
+                
+                <div className="space-y-4">
                   {/* 如何使用 */}
-                  <div className="gemini-card overflow-hidden">
+                  <motion.div 
+                    className="glass-card overflow-hidden"
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                  >
                     <button
                       onClick={() => setExpandedFaq(expandedFaq === 0 ? null : 0)}
                       className="w-full px-6 py-5 flex items-center justify-between hover:bg-white/5 transition-colors"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gemini-blue to-gemini-purple flex items-center justify-center flex-shrink-0">
-                          <HelpCircle className="w-5 h-5 text-white" />
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-glacier-500 to-gemini-blue flex items-center justify-center flex-shrink-0">
+                          <HelpCircleIcon size={20} className="text-white" />
                         </div>
-                        <span className="text-lg font-medium text-white">如何使用？</span>
+                        <span className="text-base md:text-lg font-medium text-white text-left">如何使用？</span>
                       </div>
-                      <ChevronDown 
-                        className={`w-5 h-5 text-mist-500 transition-transform duration-300 ${
+                      <ChevronDownIcon 
+                        size={20}
+                        className={`text-mist-500 transition-transform duration-300 flex-shrink-0 ${
                           expandedFaq === 0 ? 'rotate-180' : ''
                         }`}
                       />
                     </button>
-                    <div 
-                      className={`overflow-hidden transition-all duration-300 ${
-                        expandedFaq === 0 ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-                      }`}
-                    >
-                      <div className="px-6 pb-6 pt-2 space-y-3 border-t border-white/5">
-                        <p className="text-mist-400 leading-relaxed">
-                          在搜索框输入股票代码（如 <span className="text-gemini-blue font-mono">AAPL</span>、<span className="text-gemini-blue font-mono">600519</span>、<span className="text-gemini-blue font-mono">0700.HK</span>）或公司名称（如"茅台"、"腾讯"），点击"开始分析"按钮即可。
-                        </p>
-                        <p className="text-mist-400 leading-relaxed">
-                          生成报告通常需要 <span className="text-gemini-blue font-semibold">15-30 秒</span>，系统会自动识别市场并调用 AI 进行深度分析，包括财务数据、行业格局、最新动态等多个维度。
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                    <AnimatePresence>
+                      {expandedFaq === 0 && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.3 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="px-6 pb-6 pt-2 space-y-3 border-t border-white/5">
+                            <p className="text-mist-400 leading-relaxed text-sm md:text-base">
+                              在搜索框输入股票代码（如 <span className="text-glacier-400 font-mono">AAPL</span>、<span className="text-glacier-400 font-mono">600519</span>、<span className="text-glacier-400 font-mono">0700.HK</span>）或公司名称，点击"开始分析"即可。
+                            </p>
+                            <p className="text-mist-400 leading-relaxed text-sm md:text-base">
+                              生成报告通常需要 <span className="text-glacier-400 font-semibold">15-30 秒</span>，系统会自动识别市场并调用 AI 进行深度分析。
+                            </p>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
 
                   {/* 是否收费 */}
-                  <div className="gemini-card overflow-hidden">
+                  <motion.div 
+                    className="glass-card overflow-hidden"
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.1 }}
+                  >
                     <button
                       onClick={() => setExpandedFaq(expandedFaq === 1 ? null : 1)}
                       className="w-full px-6 py-5 flex items-center justify-between hover:bg-white/5 transition-colors"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gemini-purple to-gemini-pink flex items-center justify-center flex-shrink-0">
-                          <DollarSign className="w-5 h-5 text-white" />
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gemini-purple to-aurora-3 flex items-center justify-center flex-shrink-0">
+                          <DollarSignIcon size={20} className="text-white" />
                         </div>
-                        <span className="text-lg font-medium text-white">是否收费？</span>
+                        <span className="text-base md:text-lg font-medium text-white text-left">是否收费？</span>
                       </div>
-                      <ChevronDown 
-                        className={`w-5 h-5 text-mist-500 transition-transform duration-300 ${
+                      <ChevronDownIcon 
+                        size={20}
+                        className={`text-mist-500 transition-transform duration-300 flex-shrink-0 ${
                           expandedFaq === 1 ? 'rotate-180' : ''
                         }`}
                       />
                     </button>
-                    <div 
-                      className={`overflow-hidden transition-all duration-300 ${
-                        expandedFaq === 1 ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-                      }`}
-                    >
-                      <div className="px-6 pb-6 pt-2 space-y-3 border-t border-white/5">
-                        <p className="text-mist-400 leading-relaxed">
-                          目前 <span className="text-gemini-green font-semibold">完全免费</span>，所有 API 调用、AI 分析等费用均由创作者个人承担。
-                        </p>
-                        <p className="text-mist-400 leading-relaxed">
-                          我们的目标是帮助更多人了解股票投资，做出更明智的投资决策。未来如果使用量较大，可能会考虑限制每日查询次数，但会保持基本功能免费。
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                    <AnimatePresence>
+                      {expandedFaq === 1 && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.3 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="px-6 pb-6 pt-2 space-y-3 border-t border-white/5">
+                            <p className="text-mist-400 leading-relaxed text-sm md:text-base">
+                              目前 <span className="text-glacier-400 font-semibold">完全免费</span>，所有 API 调用、AI 分析等费用均由创作者个人承担。
+                            </p>
+                            <p className="text-mist-400 leading-relaxed text-sm md:text-base">
+                              我们的目标是帮助更多人了解股票投资，做出更明智的决策。
+                            </p>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
 
-                  {/* 联系作者与用户反馈 */}
-                  <div className="gemini-card overflow-hidden">
+                  {/* 联系作者 */}
+                  <motion.div 
+                    className="glass-card overflow-hidden"
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.2 }}
+                  >
                     <button
                       onClick={() => setExpandedFaq(expandedFaq === 2 ? null : 2)}
                       className="w-full px-6 py-5 flex items-center justify-between hover:bg-white/5 transition-colors"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gemini-pink to-gemini-yellow flex items-center justify-center flex-shrink-0">
-                          <MessageCircle className="w-5 h-5 text-white" />
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gemini-yellow to-gemini-red flex items-center justify-center flex-shrink-0">
+                          <MessageCircleIcon size={20} className="text-white" />
                         </div>
-                        <span className="text-lg font-medium text-white">联系作者与用户反馈</span>
+                        <span className="text-base md:text-lg font-medium text-white text-left">联系作者与反馈</span>
                       </div>
-                      <ChevronDown 
-                        className={`w-5 h-5 text-mist-500 transition-transform duration-300 ${
+                      <ChevronDownIcon 
+                        size={20}
+                        className={`text-mist-500 transition-transform duration-300 flex-shrink-0 ${
                           expandedFaq === 2 ? 'rotate-180' : ''
                         }`}
                       />
                     </button>
-                    <div 
-                      className={`overflow-hidden transition-all duration-300 ${
-                        expandedFaq === 2 ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
-                      }`}
-                    >
-                      <div className="px-6 pb-6 pt-2 space-y-4 border-t border-white/5">
-                        <div className="space-y-2">
-                          <p className="text-mist-400 leading-relaxed">
-                            欢迎通过以下方式联系我们，提供反馈建议或报告问题：
-                          </p>
-                          <div className="space-y-2 pl-4">
-                            <p className="text-mist-400">
-                              <span className="text-mist-500">• 微信：</span>
-                              <span className="text-gemini-blue font-mono ml-2">kaizhou_wang</span>
-                            </p>
-                            <p className="text-mist-400">
-                              <span className="text-mist-500">• 邮箱：</span>
-                              <a 
-                                href="mailto:wangkaizhou2024@gmail.com" 
-                                className="text-gemini-blue hover:text-gemini-purple transition-colors ml-2"
-                              >
-                                wangkaizhou2024@gmail.com
-                              </a>
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* 微信群二维码 */}
-                        <div className="pt-4">
-                          <div className="bg-white/5 rounded-2xl p-4 text-center">
-                            <p className="text-mist-400 text-sm mb-3">扫码加入微信群，与其他投资者交流</p>
-                            <div className="w-48 h-48 bg-white rounded-xl p-2 mx-auto">
-                              <img 
-                                src="/wechat-qr.jpg" 
-                                alt="微信群二维码" 
-                                className="w-full h-full object-contain"
-                              />
+                    <AnimatePresence>
+                      {expandedFaq === 2 && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.3 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="px-6 pb-6 pt-2 space-y-4 border-t border-white/5">
+                            <div className="space-y-2">
+                              <p className="text-mist-400 leading-relaxed text-sm md:text-base">
+                                欢迎通过以下方式联系我们：
+                              </p>
+                              <div className="space-y-2 pl-4">
+                                <p className="text-mist-400 text-sm md:text-base">
+                                  <span className="text-mist-500">微信：</span>
+                                  <span className="text-glacier-400 font-mono ml-2">kaizhou_wang</span>
+                                </p>
+                                <p className="text-mist-400 text-sm md:text-base">
+                                  <span className="text-mist-500">邮箱：</span>
+                                  <a 
+                                    href="mailto:wangkaizhou2024@gmail.com" 
+                                    className="text-glacier-400 hover:text-glacier-300 transition-colors ml-2"
+                                  >
+                                    wangkaizhou2024@gmail.com
+                                  </a>
+                                </p>
+                              </div>
                             </div>
-                            <p className="text-mist-600 text-xs mt-3">该二维码 7 天内（1月27日前）有效，重新进入将更新</p>
+
+                            {/* 微信群二维码 */}
+                            <div className="pt-4">
+                              <div className="bg-white/5 rounded-2xl p-4 text-center">
+                                <p className="text-mist-400 text-sm mb-3">扫码加入微信群</p>
+                                <div className="w-40 h-40 md:w-48 md:h-48 bg-white rounded-xl p-2 mx-auto">
+                                  <img 
+                                    src="/wechat-qr.jpg" 
+                                    alt="微信群二维码" 
+                                    className="w-full h-full object-contain"
+                                  />
+                                </div>
+                                <p className="text-mist-600 text-xs mt-3">二维码 7 天内有效</p>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
                 </div>
 
                 {/* 底部提示 */}
-                <div className="text-center mt-8">
+                <motion.div 
+                  className="text-center mt-8"
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  viewport={{ once: true }}
+                >
                   <p className="text-mist-600 text-sm">
-                    还有其他问题？<a href="mailto:wangkaizhou2024@gmail.com" className="text-gemini-blue hover:text-gemini-purple transition-colors ml-1">联系我们</a>
+                    还有其他问题？
+                    <a href="mailto:wangkaizhou2024@gmail.com" className="text-glacier-400 hover:text-glacier-300 transition-colors ml-1">
+                      联系我们
+                    </a>
                   </p>
-                </div>
+                </motion.div>
               </div>
-            )}
-          </div>
-        </section>
+            </section>
+          )}
+
+          {/* Footer */}
+          {!loading && (
+            <footer className="py-8 md:py-12 px-4 md:px-6 border-t border-white/5">
+              <div className="max-w-6xl mx-auto text-center">
+                <p className="text-mist-600 text-sm">
+                  © {new Date().getFullYear()} 智投研究 · AI Investment Research
+                </p>
+                <p className="text-mist-700 text-xs mt-2">
+                  数据来源：Financial Modeling Prep (FMP) · AI 由 Google Gemini 提供支持
+                </p>
+              </div>
+            </footer>
+          )}
+        </>
       )}
 
       {/* Report Section */}
@@ -914,13 +1166,7 @@ export default function Home() {
             data={reportData} 
             aiLoading={aiLoading}
             aiError={aiError}
-            onReset={() => {
-              setReportData(null);
-              setSymbol('');
-              setAiLoading(false);
-              setAiError('');
-              setError('');
-            }} 
+            onReset={resetToHome} 
           />
         </div>
       )}

@@ -6,12 +6,29 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Gemini 深色背景系统
+        // 新主色系 - 深蓝黑
+        'obsidian': '#0A0A0B',
+        'carbon': '#0D0D0F',
+        'slate-deep': '#121214',
         'void': '#0a0a0f',
         'abyss': '#0d0d14',
         'deep': '#12121a',
         'surface': '#1a1a24',
         'elevated': '#24242f',
+        
+        // 点缀色 - 冰川蓝 / 翡翠绿
+        'glacier': {
+          50: '#f0fdfb',
+          100: '#ccfbf1',
+          200: '#99f6e4',
+          300: '#5eead4',
+          400: '#2dd4bf',
+          500: '#14b8a6',
+          600: '#0d9488',
+          700: '#0f766e',
+          800: '#115e59',
+          900: '#134e4a',
+        },
         
         // Gemini 渐变色系 - 极光色
         'gemini': {
@@ -38,13 +55,19 @@ module.exports = {
         },
       },
       fontFamily: {
-        'display': ['"Google Sans"', 'system-ui', 'sans-serif'],
-        'sans': ['"Google Sans"', 'system-ui', 'sans-serif'],
-        'mono': ['"Google Sans Mono"', '"JetBrains Mono"', 'monospace'],
+        'display': ['"PingFang SC"', '"Inter"', 'system-ui', 'sans-serif'],
+        'sans': ['"PingFang SC"', '"Inter"', 'system-ui', 'sans-serif'],
+        'mono': ['"JetBrains Mono"', 'monospace'],
       },
       borderRadius: {
         '4xl': '2rem',
         '5xl': '2.5rem',
+      },
+      spacing: {
+        '18': '4.5rem',
+        '22': '5.5rem',
+        '26': '6.5rem',
+        '30': '7.5rem',
       },
       animation: {
         'aurora': 'aurora 15s ease-in-out infinite',
@@ -54,13 +77,16 @@ module.exports = {
         'shimmer': 'shimmer 2.5s linear infinite',
         'breathe': 'breathe 4s ease-in-out infinite',
         'ripple': 'ripple 1.5s cubic-bezier(0, 0.5, 0.5, 1) infinite',
-        'spin-slow': 'spin 8s linear infinite',
+        'spin-slow': 'spin 20s linear infinite',
         'gradient-shift': 'gradient-shift 8s ease infinite',
         'fade-in': 'fadeIn 0.5s ease-out forwards',
         'fade-in-up': 'fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
         'fade-in-down': 'fadeInDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
         'scale-in': 'scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
         'slide-up': 'slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'typewriter': 'typewriter 2s steps(20) forwards',
+        'blink': 'blink 1s infinite',
+        'pulse-subtle': 'pulseSubtle 2s ease-in-out infinite',
       },
       keyframes: {
         aurora: {
@@ -112,6 +138,18 @@ module.exports = {
           '0%': { opacity: '0', transform: 'translateY(100%)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
+        typewriter: {
+          '0%': { width: '0' },
+          '100%': { width: '100%' },
+        },
+        blink: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0' },
+        },
+        pulseSubtle: {
+          '0%, 100%': { opacity: '0.6' },
+          '50%': { opacity: '1' },
+        },
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
@@ -124,6 +162,8 @@ module.exports = {
         'glow-lg': '0 0 60px -15px',
         'glow-xl': '0 0 80px -20px',
         'inner-glow': 'inset 0 0 30px -10px',
+        'glass': '0 8px 32px rgba(0, 0, 0, 0.37)',
+        'glass-lg': '0 16px 48px rgba(0, 0, 0, 0.4)',
       },
       backdropBlur: {
         'xs': '2px',
