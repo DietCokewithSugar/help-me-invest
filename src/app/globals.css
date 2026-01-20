@@ -663,14 +663,14 @@ body {
 }
 
 /* ============================================
-   Prose 样式覆盖
+   Prose 样式覆盖 - 优化阅读体验
    ============================================ */
 .prose-gemini {
   --tw-prose-body: #cbd5e1;
   --tw-prose-headings: #f8fafc;
   --tw-prose-lead: #94a3b8;
   --tw-prose-links: var(--glacier);
-  --tw-prose-bold: var(--gemini-blue);
+  --tw-prose-bold: var(--glacier);
   --tw-prose-counters: #64748b;
   --tw-prose-bullets: #475569;
   --tw-prose-hr: rgba(255, 255, 255, 0.1);
@@ -684,10 +684,36 @@ body {
   --tw-prose-td-borders: rgba(255, 255, 255, 0.05);
 }
 
-/* 加粗文字蓝色高亮样式 */
+/* 段落间距和行高优化 */
+.prose-gemini p {
+  line-height: 1.75 !important;
+  margin-bottom: 1.25em !important;
+}
+
+.prose-gemini li {
+  line-height: 1.7 !important;
+  margin-bottom: 0.5em !important;
+}
+
+.prose-gemini ul,
+.prose-gemini ol {
+  margin-top: 1em !important;
+  margin-bottom: 1em !important;
+}
+
+.prose-gemini h1,
+.prose-gemini h2,
+.prose-gemini h3,
+.prose-gemini h4 {
+  margin-top: 1.5em !important;
+  margin-bottom: 0.75em !important;
+  line-height: 1.4 !important;
+}
+
+/* 加粗文字统一为品牌色 */
 .prose-gemini strong,
 .prose-gemini b {
-  color: var(--gemini-blue) !important;
+  color: var(--glacier) !important;
   font-weight: 600;
 }
 

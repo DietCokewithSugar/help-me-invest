@@ -104,8 +104,8 @@ export default function RevenueCharts({ incomeStatements }: Props) {
             type: 'linear',
             x: 0, y: 0, x2: 0, y2: 1,
             colorStops: [
-              { offset: 0, color: '#14b8a6' },
-              { offset: 1, color: '#0f766e' }
+              { offset: 0, color: '#64948b' },  // 低饱和度青绿
+              { offset: 1, color: '#4a7a72' }
             ]
           },
           borderRadius: [4, 4, 0, 0]
@@ -129,8 +129,8 @@ export default function RevenueCharts({ incomeStatements }: Props) {
             type: 'linear',
             x: 0, y: 0, x2: 0, y2: 1,
             colorStops: [
-              { offset: 0, color: '#8b5cf6' },
-              { offset: 1, color: '#6d28d9' }
+              { offset: 0, color: '#7a8494' },  // 低饱和度蓝灰
+              { offset: 1, color: '#5a6474' }
             ]
           },
           borderRadius: [4, 4, 0, 0]
@@ -154,8 +154,8 @@ export default function RevenueCharts({ incomeStatements }: Props) {
             type: 'linear',
             x: 0, y: 0, x2: 0, y2: 1,
             colorStops: [
-              { offset: 0, color: '#fbbf24' },
-              { offset: 1, color: '#d97706' }
+              { offset: 0, color: '#5a9472' },  // 低饱和度绿
+              { offset: 1, color: '#3a7452' }
             ]
           },
           borderRadius: [4, 4, 0, 0]
@@ -248,7 +248,8 @@ export default function RevenueCharts({ incomeStatements }: Props) {
         data: pieData.map((d, i) => ({
           ...d,
           itemStyle: {
-            color: ['#ef4444', '#8b5cf6', '#f59e0b', '#22c55e'][i],
+            // 低饱和度配色：暗红、蓝灰、琥珀灰、暗绿
+            color: ['#94655a', '#7a8494', '#947a5a', '#5a9472'][i],
           },
         })),
       },
@@ -259,7 +260,7 @@ export default function RevenueCharts({ incomeStatements }: Props) {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div className="bg-midnight/50 rounded-xl p-4 md:p-5 border border-white/5 max-md:border-0">
         <h4 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
-          <span className="w-2 h-2 bg-aurora-500 rounded-full"></span>
+          <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
           年度营收趋势
         </h4>
         <ReactECharts
@@ -270,7 +271,7 @@ export default function RevenueCharts({ incomeStatements }: Props) {
       </div>
       <div className="bg-midnight/50 rounded-xl p-4 md:p-5 border border-white/5 max-md:border-0">
         <h4 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
-          <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
+          <span className="w-2 h-2 bg-slate-500 rounded-full"></span>
           {latestIncome?.date?.split('-')[0] || ''} 成本结构分布
         </h4>
         <ReactECharts

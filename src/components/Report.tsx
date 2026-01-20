@@ -22,18 +22,19 @@ import ExportModal from './ExportModal';
 import type { ReportData, MarketType } from '@/types';
 import { getMarketConfig } from '@/lib/markets';
 
-// 市场标识图标
+// 市场标识徽章 - 极简设计，无 emoji
 const MarketBadge = ({ market }: { market: MarketType }) => {
-  const flags: Record<MarketType, { emoji: string; name: string; color: string }> = {
-    US: { emoji: '🇺🇸', name: '美股', color: 'from-blue-500 to-blue-600' },
-    CN: { emoji: '🇨🇳', name: 'A股', color: 'from-red-500 to-red-600' },
-    HK: { emoji: '🇭🇰', name: '港股', color: 'from-pink-500 to-red-500' },
-    JP: { emoji: '🇯🇵', name: '日股', color: 'from-red-400 to-pink-500' },
+  const marketInfo: Record<MarketType, { name: string; abbr: string }> = {
+    US: { name: '美股', abbr: 'US' },
+    CN: { name: 'A股', abbr: 'CN' },
+    HK: { name: '港股', abbr: 'HK' },
+    JP: { name: '日股', abbr: 'JP' },
   };
-  const info = flags[market] || flags.US;
+  const info = marketInfo[market] || marketInfo.US;
   return (
-    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r ${info.color} text-white text-xs font-medium`}>
-      <span>{info.emoji}</span>
+    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-mist-300 text-xs font-medium">
+      <span className="text-glacier-500 font-mono">{info.abbr}</span>
+      <span className="text-mist-500">·</span>
       <span>{info.name}</span>
     </span>
   );
@@ -134,7 +135,7 @@ function AnalysisCard({
   );
 }
 
-// 可折叠区块
+// 可折叠区块 - 支持编号
 function CollapsibleSection({
   id,
   icon: Icon,
@@ -144,6 +145,7 @@ function CollapsibleSection({
   expanded,
   onToggle,
   children,
+  sectionNumber,
 }: {
   id: string;
   icon: any;
@@ -153,6 +155,7 @@ function CollapsibleSection({
   expanded: boolean;
   onToggle: () => void;
   children: React.ReactNode;
+  sectionNumber?: string;
 }) {
   return (
     <section id={id} className="scroll-mt-28">
@@ -161,11 +164,15 @@ function CollapsibleSection({
         onClick={onToggle}
       >
         <div className="flex items-center gap-4">
+          {/* 编号 */}
+          {sectionNumber && (
+            <span className="text-3xl font-light text-mist-700 font-mono hidden md:block w-10">{sectionNumber}</span>
+          )}
           <div className="relative">
             <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center transition-transform group-hover:scale-105`}>
               <Icon className="w-5 h-5 text-white" />
             </div>
-            <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-30 blur-xl transition-opacity`} />
+            <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-20 blur-xl transition-opacity`} />
           </div>
           <div className="text-left">
             <h2 className="text-2xl font-semibold text-white">{title}</h2>
@@ -185,6 +192,38 @@ function CollapsibleSection({
         {children}
       </div>
     </section>
+  );
+}
+
+// 侧边锚点导航组件
+function SideAnchorNav({ sections, activeSection }: { sections: Array<{ id: string; label: string; number: string }>; activeSection: string }) {
+  return (
+    <nav className="fixed left-6 top-1/2 -translate-y-1/2 z-40 hidden xl:block">
+      <div className="flex flex-col gap-3">
+        {sections.map((section) => (
+          <button
+            key={section.id}
+            onClick={() => {
+              const element = document.getElementById(section.id);
+              element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+            className={`group flex items-center gap-2 transition-all ${
+              activeSection === section.id ? 'opacity-100' : 'opacity-40 hover:opacity-70'
+            }`}
+          >
+            <span className={`text-xs font-mono transition-colors ${
+              activeSection === section.id ? 'text-glacier-500' : 'text-mist-600'
+            }`}>{section.number}</span>
+            <span className={`w-6 h-0.5 rounded-full transition-all ${
+              activeSection === section.id ? 'bg-glacier-500 w-8' : 'bg-mist-700 group-hover:w-8'
+            }`} />
+            <span className={`text-xs transition-all max-w-0 overflow-hidden group-hover:max-w-[100px] whitespace-nowrap ${
+              activeSection === section.id ? 'text-mist-300 max-w-[100px]' : 'text-mist-600'
+            }`}>{section.label}</span>
+          </button>
+        ))}
+      </div>
+    </nav>
   );
 }
 
@@ -224,6 +263,7 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
   const reportRef = useRef<HTMLDivElement>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
+  const [activeSection, setActiveSection] = useState('');
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     aiAnalysis: true,
     financialStatements: true,
@@ -231,6 +271,25 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
     events: false,
     holdings: false,
   });
+
+  // 监听滚动，更新当前活跃的 section
+  React.useEffect(() => {
+    const handleScroll = () => {
+      const sections = ['aiAnalysis', 'financialStatements', 'valuation', 'events', 'holdings', 'news'];
+      for (const id of sections) {
+        const element = document.getElementById(id);
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          if (rect.top <= 200 && rect.bottom >= 200) {
+            setActiveSection(id);
+            break;
+          }
+        }
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const { 
     profile, 
@@ -314,19 +373,32 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
   const exchangeName = profile.exchange || profile.exchangeShortName || '';
 
   // 快捷导航 - 根据市场类型和数据可用性显示
-  const sections = [
+  const baseSections = [
     ...(showAiSection ? [{ id: 'aiAnalysis', label: 'AI 分析', icon: Sparkles }] : []),
     { id: 'financialStatements', label: '财务报表', icon: FileSpreadsheet },
     { id: 'valuation', label: '估值指标', icon: Calculator },
     ...(hasEventsData ? [{ id: 'events', label: '事件日历', icon: Calendar }] : []),
     ...(hasHoldingsData ? [{ id: 'holdings', label: '持仓分析', icon: Briefcase }] : []),
+    ...(hasNewsData ? [{ id: 'news', label: '新闻资讯', icon: Newspaper }] : []),
   ];
+  
+  // 添加编号
+  const sections = baseSections.map((s, i) => ({ ...s, number: String(i + 1).padStart(2, '0') }));
+  
+  // 为侧边导航准备的 sections
+  const navSections = sections.map((s) => ({ id: s.id, label: s.label, number: s.number }));
 
   // 货币符号
   const currencySymbol = marketConfig.currencySymbol;
 
+  // 获取 section 编号
+  const getSectionNumber = (id: string) => sections.find(s => s.id === id)?.number || '';
+
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
+      {/* 侧边锚点导航 */}
+      <SideAnchorNav sections={navSections} activeSection={activeSection} />
+      
       {/* 操作栏 */}
       <div className="flex items-center justify-between mb-8 animate-fade-in-up">
         <button
@@ -412,7 +484,7 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
                   icon={DollarSign}
                   label="市值"
                   value={`${currencySymbol}${formatNumber(marketCap)}`}
-                  gradient="from-gemini-blue to-gemini-purple"
+                  gradient="from-glacier-500/20 to-glacier-600/20"
                 />
                 <StatCard
                   icon={TrendingUp}
@@ -422,19 +494,19 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
                     text: `${priceChange >= 0 ? '+' : ''}${priceChangePercent}`, 
                     positive: priceChange >= 0 
                   }}
-                  gradient="from-gemini-purple to-gemini-pink"
+                  gradient="from-glacier-600/20 to-slate-500/20"
                 />
                 <StatCard
                   icon={Users2}
                   label="员工数"
                   value={profile.fullTimeEmployees ? parseInt(profile.fullTimeEmployees).toLocaleString() : 'N/A'}
-                  gradient="from-gemini-pink to-gemini-yellow"
+                  gradient="from-slate-500/20 to-slate-600/20"
                 />
                 <StatCard
                   icon={Calendar}
                   label="IPO 日期"
                   value={profile.ipoDate || 'N/A'}
-                  gradient="from-gemini-yellow to-gemini-green"
+                  gradient="from-slate-600/20 to-glacier-700/20"
                 />
               </div>
             </div>
@@ -484,9 +556,10 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
             id="aiAnalysis"
             icon={Sparkles}
             title="AI 智能分析"
-            gradient="from-gemini-blue to-gemini-purple"
+            gradient="from-glacier-500 to-glacier-600"
             expanded={expandedSections.aiAnalysis}
             onToggle={() => toggleSection('aiAnalysis')}
+            sectionNumber={getSectionNumber('aiAnalysis')}
           >
             <div className="space-y-6 animate-fade-in">
               {aiError && (
@@ -498,25 +571,25 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
               {aiAnalysis && (
                 <>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <AnalysisCard icon={Building2} title="企业概况" gradient="from-gemini-blue to-blue-600">
+                    <AnalysisCard icon={Building2} title="企业概况" gradient="from-glacier-600 to-glacier-700">
                       <ReactMarkdown>{aiAnalysis.companyOverview}</ReactMarkdown>
                     </AnalysisCard>
 
-                    <AnalysisCard icon={TrendingUp} title="行业分析" gradient="from-blue-500 to-indigo-600">
+                    <AnalysisCard icon={TrendingUp} title="行业分析" gradient="from-glacier-500 to-gemini-blue">
                       <ReactMarkdown>{aiAnalysis.industryAnalysis}</ReactMarkdown>
                     </AnalysisCard>
 
-                    <AnalysisCard icon={AlertTriangle} title="行业痛点与障碍" gradient="from-orange-500 to-red-500">
+                    <AnalysisCard icon={AlertTriangle} title="行业痛点与障碍" gradient="from-slate-500 to-slate-600">
                       <ReactMarkdown>{aiAnalysis.industryPainPoints}</ReactMarkdown>
                     </AnalysisCard>
 
-                    <AnalysisCard icon={Users} title="竞争格局" gradient="from-purple-500 to-pink-500">
+                    <AnalysisCard icon={Users} title="竞争格局" gradient="from-slate-600 to-glacier-700">
                       <ReactMarkdown>{aiAnalysis.competitors}</ReactMarkdown>
                       {peers && peers.length > 0 && (
                         <div className="flex flex-wrap gap-2 pt-4 mt-4 border-t border-white/5">
                           <span className="text-xs text-mist-500 mr-2">主要竞争对手:</span>
                           {peers.slice(0, 8).map((peer) => (
-                            <span key={peer} className="px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-full text-purple-300 text-sm font-mono hover:bg-purple-500/20 transition-colors cursor-default">
+                            <span key={peer} className="px-3 py-1 bg-glacier-500/10 border border-glacier-500/20 rounded-full text-glacier-400 text-sm font-mono hover:bg-glacier-500/15 transition-colors cursor-default">
                               {peer}
                             </span>
                           ))}
@@ -524,11 +597,11 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
                       )}
                     </AnalysisCard>
 
-                    <AnalysisCard icon={Target} title="竞争优势" gradient="from-green-500 to-emerald-600">
+                    <AnalysisCard icon={Target} title="竞争优势" gradient="from-glacier-600 to-gemini-blue">
                       <ReactMarkdown>{aiAnalysis.competitiveAdvantage}</ReactMarkdown>
                     </AnalysisCard>
 
-                    <AnalysisCard icon={Shield} title="核心护城河" gradient="from-amber-500 to-orange-500">
+                    <AnalysisCard icon={Shield} title="核心护城河" gradient="from-gemini-blue to-glacier-600">
                       <ReactMarkdown>{aiAnalysis.moat}</ReactMarkdown>
                     </AnalysisCard>
                   </div>
@@ -537,17 +610,17 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
                   <div className="gemini-card gemini-card-glow p-6 md:p-8">
                     <div className="flex items-center gap-4 mb-6">
                       <div className="relative">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-glacier-500 to-glacier-600 flex items-center justify-center">
                           <Sparkles className="w-5 h-5 text-white" />
                         </div>
-                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 opacity-30 blur-xl" />
+                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-glacier-500 to-glacier-600 opacity-20 blur-xl" />
                       </div>
                       <div className="flex items-center gap-3">
                         <h3 className="text-xl font-semibold text-white">最新发展动态</h3>
                         <span className="gemini-badge text-xs">AI + Google Search</span>
                       </div>
                     </div>
-                    <div className="prose prose-gemini max-w-none prose-p:text-mist-300 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-300 prose-a:text-gemini-blue prose-a:no-underline hover:prose-a:underline">
+                    <div className="prose prose-gemini max-w-none prose-p:text-mist-300 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-300 prose-a:text-glacier-500 prose-a:no-underline hover:prose-a:underline">
                       <ReactMarkdown>{aiAnalysis.recentDevelopments}</ReactMarkdown>
                     </div>
                   </div>
@@ -555,7 +628,7 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
               )}
 
               {earningsCallSummary && (
-                <AnalysisCard icon={FileText} title="财报电话会议精要" gradient="from-cyan-500 to-blue-600">
+                <AnalysisCard icon={FileText} title="财报电话会议精要" gradient="from-glacier-600 to-glacier-700">
                   <ReactMarkdown>{earningsCallSummary}</ReactMarkdown>
                   {transcriptText && (
                     <div className="not-prose mt-4 space-y-3">
@@ -579,17 +652,17 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
 
               {aiAnalysis && (
                 <div className="relative gemini-card p-8 md:p-10 overflow-hidden">
-                  {/* 渐变背景 */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-gemini-blue/10 via-gemini-purple/5 to-gemini-pink/10" />
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gemini-blue via-gemini-purple to-gemini-pink" />
+                  {/* 渐变背景 - 统一冷色调 */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-glacier-500/5 via-transparent to-gemini-blue/5" />
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-glacier-600 via-glacier-500 to-gemini-blue" />
                   
                   <div className="relative">
                     <div className="flex items-center gap-4 mb-6">
                       <div className="relative">
-                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-gemini-blue via-gemini-purple to-gemini-pink flex items-center justify-center">
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-glacier-500 to-gemini-blue flex items-center justify-center">
                           <Sparkles className="w-6 h-6 text-white" />
                         </div>
-                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-gemini-blue to-gemini-pink opacity-40 blur-2xl" />
+                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-glacier-500 to-gemini-blue opacity-25 blur-2xl" />
                       </div>
                       <h3 className="text-2xl font-bold text-white">投资建议总结</h3>
                     </div>
@@ -609,19 +682,20 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
           icon={FileSpreadsheet}
           title="财务数据"
           subtitle="基于近5年财务报表数据"
-          gradient="from-emerald-500 to-green-600"
+          gradient="from-slate-500 to-slate-600"
           expanded={expandedSections.financialStatements}
           onToggle={() => toggleSection('financialStatements')}
+          sectionNumber={getSectionNumber('financialStatements')}
         >
           <div className="space-y-6 animate-fade-in">
             {/* 桑基图和营收图表 */}
             <div className="gemini-card p-6 md:p-8">
               <div className="flex items-center gap-4 mb-8">
                 <div className="relative">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center">
                     <TrendingUp className="w-5 h-5 text-white" />
                   </div>
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 opacity-30 blur-xl" />
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-slate-500 to-slate-600 opacity-20 blur-xl" />
                 </div>
                 <div>
                   <h3 className="text-xl font-semibold text-white">财务数据可视化</h3>
@@ -661,9 +735,10 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
           id="valuation"
           icon={Calculator}
           title="估值与指标"
-          gradient="from-violet-500 to-purple-600"
+          gradient="from-glacier-600 to-gemini-blue"
           expanded={expandedSections.valuation}
           onToggle={() => toggleSection('valuation')}
+          sectionNumber={getSectionNumber('valuation')}
         >
           <div className="animate-fade-in">
             <ValuationMetrics
@@ -684,9 +759,10 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
             icon={Calendar}
             title="事件日历"
             subtitle="财报 · 分红 · 拆股"
-            gradient="from-amber-500 to-orange-500"
+            gradient="from-slate-600 to-slate-700"
             expanded={expandedSections.events}
             onToggle={() => toggleSection('events')}
+            sectionNumber={getSectionNumber('events')}
           >
             <div className="animate-fade-in">
               <EventCalendar
@@ -705,9 +781,10 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
             icon={Briefcase}
             title="持仓分析"
             subtitle="机构持仓 · 内幕交易"
-            gradient="from-cyan-500 to-blue-500"
+            gradient="from-glacier-700 to-slate-600"
             expanded={expandedSections.holdings}
             onToggle={() => toggleSection('holdings')}
+            sectionNumber={getSectionNumber('holdings')}
           >
             <div className="animate-fade-in">
               <HoldingsAnalysis
@@ -738,36 +815,35 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
 
         {/* ==================== 最新新闻 ==================== */}
         {hasNewsData && (
-          <section className="gemini-card p-6 md:p-8 animate-fade-in-up">
-            <div className="flex items-center gap-4 mb-8">
-              <div className="relative">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center">
-                  <Newspaper className="w-5 h-5 text-white" />
-                </div>
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-600 opacity-30 blur-xl" />
-              </div>
-              <h2 className="text-xl font-semibold text-white">相关新闻资讯</h2>
+          <section id="news" className="gemini-card p-6 md:p-8 animate-fade-in-up scroll-mt-28">
+            <div className="flex items-center gap-4 mb-6">
+              {/* 编号 */}
+              <span className="text-3xl font-light text-mist-700 font-mono hidden md:block w-10">{getSectionNumber('news')}</span>
+              <h2 className="text-2xl font-semibold text-white">相关新闻资讯</h2>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {news.slice(0, 9).map((item, index) => (
+            {/* 清爽列表布局 */}
+            <div className="divide-y divide-white/5">
+              {news.slice(0, 8).map((item, index) => (
                 <a
                   key={index}
                   href={item.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group block p-5 rounded-2xl bg-surface/50 border border-white/5 max-md:border-0 hover:border-gemini-blue/30 hover:bg-surface transition-all"
+                  className="group flex items-start gap-4 py-4 first:pt-0 last:pb-0 hover:bg-white/[0.02] -mx-2 px-2 rounded-lg transition-colors"
                 >
-                  <p className="text-mist-200 font-medium mb-4 line-clamp-2 group-hover:text-white transition-colors leading-relaxed">
-                    {item.title}
-                  </p>
-                  <div className="flex items-center justify-between text-xs text-mist-500">
-                    <span className="truncate max-w-[120px] flex items-center gap-1">
-                      {item.site}
-                      <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </span>
-                    <span>{formatDate(item.publishedDate)}</span>
+                  <span className="text-sm text-mist-600 font-mono w-6 shrink-0 pt-0.5">{String(index + 1).padStart(2, '0')}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-mist-200 font-medium mb-2 line-clamp-2 group-hover:text-white transition-colors leading-relaxed">
+                      {item.title}
+                    </p>
+                    <div className="flex items-center gap-3 text-xs text-mist-500">
+                      <span className="truncate max-w-[120px]">{item.site}</span>
+                      <span className="text-mist-700">·</span>
+                      <span>{formatDate(item.publishedDate)}</span>
+                    </div>
                   </div>
+                  <ExternalLink className="w-4 h-4 text-mist-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
                 </a>
               ))}
             </div>

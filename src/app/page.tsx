@@ -18,9 +18,6 @@ import {
   HelpCircleIcon,
   DollarSignIcon,
   MessageCircleIcon,
-  InsightIcon,
-  CrossValidateIcon,
-  MinimalistIcon,
   LogoIcon,
 } from '@/components/Icons';
 
@@ -74,24 +71,18 @@ const CORE_ADVANTAGES = [
     number: '壹',
     title: '穿透表象的 AI 逻辑',
     description: 'AI 不止总结数据，而是理解财报背后的商业动机，洞察企业真正的经营本质。',
-    icon: InsightIcon,
-    gradient: 'from-glacier-500 to-gemini-blue',
   },
   {
     id: 'multi-source',
     number: '贰',
     title: '多维数据印证',
     description: '整合 FMP 财务数据与 Google Search 实时新闻，实现基本面与消息面的交叉验证。',
-    icon: CrossValidateIcon,
-    gradient: 'from-gemini-purple to-aurora-3',
   },
   {
     id: 'minimalist',
     number: '叁',
     title: '极致克制的研报',
     description: '告别繁琐的传统报告，用可视化（如桑基图）还原经营本质，只留下真正重要的信息。',
-    icon: MinimalistIcon,
-    gradient: 'from-gemini-blue to-glacier-500',
   },
 ];
 
@@ -774,12 +765,7 @@ export default function Home() {
                       transition={{ duration: 0.5, delay: index * 0.1 }}
                     >
                       {/* 中文数字 */}
-                      <div className="cn-number mb-4">{advantage.number}</div>
-                      
-                      {/* 图标 */}
-                      <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${advantage.gradient} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
-                        <advantage.icon size={24} className="text-white" />
-                      </div>
+                      <div className="cn-number mb-6">{advantage.number}</div>
                       
                       {/* 标题 */}
                       <h4 className="text-xl font-medium text-white mb-3">{advantage.title}</h4>

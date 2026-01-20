@@ -14,9 +14,10 @@ export default function SankeyChart({ data }: SankeyProps) {
     return `$${value.toLocaleString()}`;
   };
 
-  const REVENUE_COLOR = '#94a3b8';
-  const EXPENSE_COLOR = '#ef4444';
-  const PROFIT_COLOR = '#22c55e';
+  // 低饱和度配色 - 电子墨水风格
+  const REVENUE_COLOR = '#64748b';  // 中性灰
+  const EXPENSE_COLOR = '#94655a';  // 低饱和度暗红
+  const PROFIT_COLOR = '#5a9472';   // 低饱和度暗绿
 
   const revenueNodes = new Set(['主营业务收入', '其他收入', '总营收']);
   const expenseNodes = new Set(['营业成本', '研发费用', '销售及管理费用', '税费及其他']);

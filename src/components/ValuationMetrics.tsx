@@ -43,7 +43,7 @@ export default function ValuationMetrics({
   const latestRatios = financialRatios?.[0];
   const latestGrowth = financialGrowth?.[0];
 
-  // DCF 估值分析
+  // DCF 估值分析 - 低饱和度配色
   const renderDCFAnalysis = () => {
     if (!dcfValuation) return null;
 
@@ -52,10 +52,15 @@ export default function ValuationMetrics({
     const upside = ((dcfValue - currentPrice) / currentPrice) * 100;
     const isUndervalued = upside > 0;
 
+    // 低饱和度颜色
+    const positiveColor = '#5a9472';  // 低饱和度绿
+    const negativeColor = '#94655a';  // 低饱和度红
+    const accentColor = isUndervalued ? positiveColor : negativeColor;
+
     return (
       <div className="bg-midnight/30 rounded-xl p-5 border border-white/5 max-md:border-0">
         <div className="flex items-center gap-2 mb-4">
-          <Calculator className="w-5 h-5 text-aurora-400" />
+          <Calculator className="w-5 h-5 text-glacier-500" />
           <h3 className="text-base font-semibold text-white">DCF 估值分析</h3>
         </div>
         
@@ -66,24 +71,24 @@ export default function ValuationMetrics({
           </div>
           <div className="text-center p-4 bg-white/5 rounded-lg">
             <p className="text-sm text-slate-400 mb-1">DCF 内在价值</p>
-            <p className="text-xl md:text-2xl font-bold font-mono text-aurora-400 whitespace-nowrap">${dcfValue?.toFixed(2)}</p>
+            <p className="text-xl md:text-2xl font-bold font-mono text-glacier-400 whitespace-nowrap">${dcfValue?.toFixed(2)}</p>
           </div>
-          <div className={`text-center p-4 rounded-lg ${isUndervalued ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+          <div className="text-center p-4 rounded-lg bg-white/5">
             <p className="text-sm text-slate-400 mb-1">潜在空间</p>
-            <p className={`text-xl md:text-2xl font-bold font-mono whitespace-nowrap ${isUndervalued ? 'text-green-400' : 'text-red-400'}`}>
+            <p className="text-xl md:text-2xl font-bold font-mono whitespace-nowrap" style={{ color: accentColor }}>
               {isUndervalued ? '+' : ''}{upside.toFixed(1)}%
             </p>
           </div>
         </div>
 
-        <div className={`p-4 rounded-lg ${isUndervalued ? 'bg-green-500/10 border border-green-500/20' : 'bg-red-500/10 border border-red-500/20'}`}>
+        <div className="p-4 rounded-lg bg-white/5 border border-white/10">
           <div className="flex items-center gap-2">
             {isUndervalued ? (
-              <TrendingUp className="w-5 h-5 text-green-400" />
+              <TrendingUp className="w-5 h-5" style={{ color: positiveColor }} />
             ) : (
-              <TrendingDown className="w-5 h-5 text-red-400" />
+              <TrendingDown className="w-5 h-5" style={{ color: negativeColor }} />
             )}
-            <p className={`text-sm font-medium ${isUndervalued ? 'text-green-400' : 'text-red-400'}`}>
+            <p className="text-sm font-medium text-mist-300">
               {isUndervalued 
                 ? `基于 DCF 模型，该股票可能被低估约 ${upside.toFixed(1)}%`
                 : `基于 DCF 模型，该股票可能被高估约 ${Math.abs(upside).toFixed(1)}%`
@@ -95,7 +100,7 @@ export default function ValuationMetrics({
     );
   };
 
-  // 关键估值指标
+  // 关键估值指标 - 统一低饱和度冷色调
   const renderValuationMetrics = () => {
     if (!latestMetrics && !latestRatios) return null;
 
@@ -105,56 +110,44 @@ export default function ValuationMetrics({
         value: latestMetrics?.peRatio || latestRatios?.priceEarningsRatio, 
         format: formatRatio,
         icon: <BarChart3 className="w-4 h-4" />,
-        color: 'text-blue-400',
-        bgColor: 'bg-blue-500/10',
       },
       { 
         label: 'P/B 市净率', 
         value: latestMetrics?.pbRatio || latestRatios?.priceBookValueRatio, 
         format: formatRatio,
         icon: <PiggyBank className="w-4 h-4" />,
-        color: 'text-purple-400',
-        bgColor: 'bg-purple-500/10',
       },
       { 
         label: 'P/S 市销率', 
         value: latestMetrics?.priceToSalesRatio || latestRatios?.priceToSalesRatio, 
         format: formatRatio,
         icon: <Target className="w-4 h-4" />,
-        color: 'text-cyan-400',
-        bgColor: 'bg-cyan-500/10',
       },
       { 
         label: 'EV/EBITDA', 
         value: latestMetrics?.enterpriseValueOverEBITDA, 
         format: formatRatio,
         icon: <Calculator className="w-4 h-4" />,
-        color: 'text-amber-400',
-        bgColor: 'bg-amber-500/10',
       },
       { 
         label: '股息率', 
         value: latestMetrics?.dividendYield, 
         format: formatPercent,
         icon: <Percent className="w-4 h-4" />,
-        color: 'text-green-400',
-        bgColor: 'bg-green-500/10',
       },
       { 
         label: '收益率', 
         value: latestMetrics?.earningsYield, 
         format: formatPercent,
         icon: <Activity className="w-4 h-4" />,
-        color: 'text-rose-400',
-        bgColor: 'bg-rose-500/10',
       },
     ];
 
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {metrics.map((m, i) => (
-          <div key={i} className={`p-4 rounded-xl ${m.bgColor} border border-white/5 max-md:border-0`}>
-            <div className={`flex items-center gap-2 mb-2 ${m.color}`}>
+          <div key={i} className="p-4 rounded-xl bg-white/5 border border-white/5 max-md:border-0">
+            <div className="flex items-center gap-2 mb-2 text-mist-400">
               {m.icon}
               <span className="text-xs font-medium">{m.label}</span>
             </div>
@@ -165,7 +158,7 @@ export default function ValuationMetrics({
     );
   };
 
-  // 盈利能力指标
+  // 盈利能力指标 - 低饱和度配色
   const renderProfitabilityMetrics = () => {
     if (!latestMetrics && !latestRatios) return null;
 
@@ -181,16 +174,16 @@ export default function ValuationMetrics({
     return (
       <div className="bg-midnight/30 rounded-xl p-5 border border-white/5 max-md:border-0">
         <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
-          <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+          <span className="w-2 h-2 bg-glacier-500 rounded-full"></span>
           盈利能力指标
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {metrics.map((m, i) => (
             <div key={i} className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
               <span className="text-sm text-slate-400">{m.label}</span>
-              <span className={`font-mono font-semibold ${
-                m.value && m.value > 0 ? 'text-green-400' : 'text-red-400'
-              }`}>
+              <span className="font-mono font-semibold" style={{ 
+                color: m.value && m.value > 0 ? '#5a9472' : '#94655a' 
+              }}>
                 {m.isPercent ? formatPercent(m.value) : formatRatio(m.value)}
               </span>
             </div>
@@ -200,7 +193,7 @@ export default function ValuationMetrics({
     );
   };
 
-  // 财务健康指标
+  // 财务健康指标 - 低饱和度配色
   const renderFinancialHealthMetrics = () => {
     if (!latestMetrics && !latestRatios) return null;
 
@@ -216,7 +209,7 @@ export default function ValuationMetrics({
     return (
       <div className="bg-midnight/30 rounded-xl p-5 border border-white/5 max-md:border-0">
         <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
-          <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+          <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
           财务健康指标
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -226,7 +219,7 @@ export default function ValuationMetrics({
             return (
               <div key={i} className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
                 <span className="text-sm text-slate-400">{m.label}</span>
-                <span className={`font-mono font-semibold ${isGood ? 'text-green-400' : 'text-amber-400'}`}>
+                <span className="font-mono font-semibold" style={{ color: isGood ? '#5a9472' : '#947a5a' }}>
                   {formatRatio(m.value)}
                 </span>
               </div>
@@ -237,7 +230,7 @@ export default function ValuationMetrics({
     );
   };
 
-  // 增长指标图表
+  // 增长指标图表 - 低饱和度配色
   const renderGrowthChart = () => {
     if (!financialGrowth?.length) return null;
 
@@ -247,17 +240,27 @@ export default function ValuationMetrics({
     const epsGrowth = financialGrowth.map(g => (g.epsgrowth || 0) * 100).reverse();
     const fcfGrowth = financialGrowth.map(g => (g.freeCashFlowGrowth || 0) * 100).reverse();
 
+    // 低饱和度配色方案
+    const colors = {
+      revenue: '#64948b',     // 低饱和度青绿
+      netIncome: '#7a8494',   // 低饱和度蓝灰
+      eps: '#948a6a',         // 低饱和度琥珀
+      fcf: '#6a8494',         // 低饱和度蓝
+      positive: '#5a9472',    // 低饱和度绿
+      negative: '#94655a',    // 低饱和度红
+    };
+
     const option = {
       backgroundColor: 'transparent',
       tooltip: {
         trigger: 'axis',
         backgroundColor: 'rgba(15, 15, 35, 0.95)',
-        borderColor: 'rgba(20, 184, 166, 0.3)',
+        borderColor: 'rgba(100, 116, 139, 0.3)',
         textStyle: { color: '#f8fafc' },
         formatter: (params: any) => {
           let result = `<div style="font-weight: 600; margin-bottom: 8px;">${params[0].axisValue}</div>`;
           params.forEach((p: any) => {
-            const color = p.value >= 0 ? '#22c55e' : '#ef4444';
+            const color = p.value >= 0 ? colors.positive : colors.negative;
             result += `<div style="display: flex; align-items: center; gap: 8px; margin: 4px 0;">
               <span style="width: 10px; height: 10px; background: ${p.color}; border-radius: 50%;"></span>
               <span>${p.seriesName}: </span>
@@ -288,17 +291,17 @@ export default function ValuationMetrics({
         splitLine: { lineStyle: { color: '#1e293b', type: 'dashed' } },
       },
       series: [
-        { name: '营收增长', type: 'line', data: revenueGrowth, smooth: true, lineStyle: { width: 3 }, itemStyle: { color: '#14b8a6' }, symbol: 'circle', symbolSize: 6, label: { show: true, position: 'top', color: '#14b8a6', fontSize: 9, fontFamily: 'JetBrains Mono', formatter: (p: any) => `${p.value >= 0 ? '+' : ''}${p.value.toFixed(1)}%` } },
-        { name: '净利润增长', type: 'line', data: netIncomeGrowth, smooth: true, lineStyle: { width: 3 }, itemStyle: { color: '#8b5cf6' }, symbol: 'circle', symbolSize: 6, label: { show: true, position: 'top', color: '#8b5cf6', fontSize: 9, fontFamily: 'JetBrains Mono', formatter: (p: any) => `${p.value >= 0 ? '+' : ''}${p.value.toFixed(1)}%` } },
-        { name: 'EPS增长', type: 'line', data: epsGrowth, smooth: true, lineStyle: { width: 3 }, itemStyle: { color: '#fbbf24' }, symbol: 'circle', symbolSize: 6, label: { show: true, position: 'bottom', color: '#fbbf24', fontSize: 9, fontFamily: 'JetBrains Mono', formatter: (p: any) => `${p.value >= 0 ? '+' : ''}${p.value.toFixed(1)}%` } },
-        { name: '自由现金流增长', type: 'line', data: fcfGrowth, smooth: true, lineStyle: { width: 3, type: 'dashed' }, itemStyle: { color: '#3b82f6' }, symbol: 'circle', symbolSize: 6, label: { show: true, position: 'bottom', color: '#3b82f6', fontSize: 9, fontFamily: 'JetBrains Mono', formatter: (p: any) => `${p.value >= 0 ? '+' : ''}${p.value.toFixed(1)}%` } },
+        { name: '营收增长', type: 'line', data: revenueGrowth, smooth: true, lineStyle: { width: 2 }, itemStyle: { color: colors.revenue }, symbol: 'circle', symbolSize: 5, label: { show: true, position: 'top', color: colors.revenue, fontSize: 9, fontFamily: 'JetBrains Mono', formatter: (p: any) => `${p.value >= 0 ? '+' : ''}${p.value.toFixed(1)}%` } },
+        { name: '净利润增长', type: 'line', data: netIncomeGrowth, smooth: true, lineStyle: { width: 2 }, itemStyle: { color: colors.netIncome }, symbol: 'circle', symbolSize: 5, label: { show: true, position: 'top', color: colors.netIncome, fontSize: 9, fontFamily: 'JetBrains Mono', formatter: (p: any) => `${p.value >= 0 ? '+' : ''}${p.value.toFixed(1)}%` } },
+        { name: 'EPS增长', type: 'line', data: epsGrowth, smooth: true, lineStyle: { width: 2 }, itemStyle: { color: colors.eps }, symbol: 'circle', symbolSize: 5, label: { show: true, position: 'bottom', color: colors.eps, fontSize: 9, fontFamily: 'JetBrains Mono', formatter: (p: any) => `${p.value >= 0 ? '+' : ''}${p.value.toFixed(1)}%` } },
+        { name: '自由现金流增长', type: 'line', data: fcfGrowth, smooth: true, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: colors.fcf }, symbol: 'circle', symbolSize: 5, label: { show: true, position: 'bottom', color: colors.fcf, fontSize: 9, fontFamily: 'JetBrains Mono', formatter: (p: any) => `${p.value >= 0 ? '+' : ''}${p.value.toFixed(1)}%` } },
       ],
     };
 
     return (
       <div className="bg-midnight/30 rounded-xl p-5 border border-white/5 max-md:border-0">
         <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
-          <span className="w-2 h-2 bg-aurora-500 rounded-full"></span>
+          <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
           财务增长趋势
         </h3>
         <ReactECharts option={option} style={{ height: '300px' }} />
@@ -306,7 +309,7 @@ export default function ValuationMetrics({
     );
   };
 
-  // 长期增长指标
+  // 长期增长指标 - 低饱和度配色
   const renderLongTermGrowth = () => {
     if (!latestGrowth) return null;
 
@@ -322,16 +325,16 @@ export default function ValuationMetrics({
     return (
       <div className="bg-midnight/30 rounded-xl p-5 border border-white/5 max-md:border-0">
         <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
-          <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
+          <span className="w-2 h-2 bg-slate-500 rounded-full"></span>
           长期增长指标
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {metrics.map((m, i) => (
             <div key={i} className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
               <span className="text-sm text-slate-400">{m.label}</span>
-              <span className={`font-mono font-semibold ${
-                m.value && m.value > 0 ? 'text-green-400' : m.value && m.value < 0 ? 'text-red-400' : 'text-slate-400'
-              }`}>
+              <span className="font-mono font-semibold" style={{
+                color: m.value && m.value > 0 ? '#5a9472' : m.value && m.value < 0 ? '#94655a' : '#64748b'
+              }}>
                 {formatPercent(m.value)}
               </span>
             </div>
@@ -348,8 +351,8 @@ export default function ValuationMetrics({
   return (
     <div className="glass-card p-6 animate-fade-in-up">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500/20 to-violet-600/20 flex items-center justify-center">
-          <Calculator className="w-5 h-5 text-violet-400" />
+        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-slate-500/20 to-slate-600/20 flex items-center justify-center">
+          <Calculator className="w-5 h-5 text-slate-400" />
         </div>
         <div>
           <h2 className="text-xl font-display font-bold text-white">估值与财务指标</h2>
