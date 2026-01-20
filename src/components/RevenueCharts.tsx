@@ -202,11 +202,6 @@ export default function RevenueCharts({ incomeStatements }: Props) {
       orient: 'vertical',
       right: '3%',
       top: 'center',
-      textStyle: { 
-        color: '#e2e8f0',
-        fontSize: 13,
-        fontWeight: 500,
-      },
       itemWidth: 16,
       itemHeight: 16,
       itemGap: 16,
@@ -221,6 +216,9 @@ export default function RevenueCharts({ incomeStatements }: Props) {
         return name;
       },
       textStyle: {
+        color: '#e2e8f0',
+        fontSize: 13,
+        fontWeight: 500,
         rich: {
           name: {
             color: '#e2e8f0',
