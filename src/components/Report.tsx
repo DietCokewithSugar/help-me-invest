@@ -2,14 +2,15 @@
 
 import React, { useRef, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Building2, TrendingUp, Target, Shield, Newspaper, 
+import {
+  Building2, TrendingUp, Target, Shield, Newspaper,
   ArrowLeft, Users, AlertTriangle, Sparkles,
   Globe, Calendar, DollarSign, Users2, Image as ImageIcon,
   FileSpreadsheet, Calculator, Briefcase, ChevronDown, ChevronUp,
   FileText,
   ExternalLink,
-  Info
+  Info,
+  RefreshCw
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import SankeyChart from './SankeyChart';
@@ -49,7 +50,7 @@ function CompanyLogo({ src, alt }: { src?: string; alt: string }) {
   // 5秒超时处理
   React.useEffect(() => {
     if (!src || hasError || !isLoading) return;
-    
+
     const timeoutId = setTimeout(() => {
       if (isLoading) {
         setHasTimeout(true);
@@ -73,7 +74,7 @@ function CompanyLogo({ src, alt }: { src?: string; alt: string }) {
   // 如果没有图片 URL、加载失败或超时，显示备用图标
   if (!src || hasError || hasTimeout) {
     return (
-    <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-gemini-blue/20 to-gemini-purple/20 backdrop-blur-xl flex items-center justify-center shrink-0 border border-white/10 max-md:border-0">
+      <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-gemini-blue/20 to-gemini-purple/20 backdrop-blur-xl flex items-center justify-center shrink-0 border border-white/10 max-md:border-0">
         <Building2 className="w-10 h-10 text-gemini-blue/70" />
       </div>
     );
@@ -103,17 +104,18 @@ interface ReportProps {
   onReset: () => void;
   aiLoading?: boolean;
   aiError?: string;
+  onRegenerate?: () => Promise<void>;
 }
 
 // 分析卡片组件
-function AnalysisCard({ 
-  icon: Icon, 
-  title, 
-  gradient, 
-  children 
-}: { 
-  icon: any; 
-  title: string; 
+function AnalysisCard({
+  icon: Icon,
+  title,
+  gradient,
+  children
+}: {
+  icon: any;
+  title: string;
   gradient: string;
   children: React.ReactNode;
 }) {
@@ -159,7 +161,7 @@ function CollapsibleSection({
 }) {
   return (
     <section id={id} className="scroll-mt-28">
-      <button 
+      <button
         className="w-full flex items-center justify-between mb-6 group"
         onClick={onToggle}
       >
@@ -207,19 +209,15 @@ function SideAnchorNav({ sections, activeSection }: { sections: Array<{ id: stri
               const element = document.getElementById(section.id);
               element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }}
-            className={`group flex items-center gap-2 transition-all ${
-              activeSection === section.id ? 'opacity-100' : 'opacity-40 hover:opacity-70'
-            }`}
+            className={`group flex items-center gap-2 transition-all ${activeSection === section.id ? 'opacity-100' : 'opacity-40 hover:opacity-70'
+              }`}
           >
-            <span className={`text-xs font-mono transition-colors ${
-              activeSection === section.id ? 'text-glacier-500' : 'text-mist-600'
-            }`}>{section.number}</span>
-            <span className={`w-6 h-0.5 rounded-full transition-all ${
-              activeSection === section.id ? 'bg-glacier-500 w-8' : 'bg-mist-700 group-hover:w-8'
-            }`} />
-            <span className={`text-xs transition-all max-w-0 overflow-hidden group-hover:max-w-[100px] whitespace-nowrap ${
-              activeSection === section.id ? 'text-mist-300 max-w-[100px]' : 'text-mist-600'
-            }`}>{section.label}</span>
+            <span className={`text-xs font-mono transition-colors ${activeSection === section.id ? 'text-glacier-500' : 'text-mist-600'
+              }`}>{section.number}</span>
+            <span className={`w-6 h-0.5 rounded-full transition-all ${activeSection === section.id ? 'bg-glacier-500 w-8' : 'bg-mist-700 group-hover:w-8'
+              }`} />
+            <span className={`text-xs transition-all max-w-0 overflow-hidden group-hover:max-w-[100px] whitespace-nowrap ${activeSection === section.id ? 'text-mist-300 max-w-[100px]' : 'text-mist-600'
+              }`}>{section.label}</span>
           </button>
         ))}
       </div>
@@ -228,16 +226,16 @@ function SideAnchorNav({ sections, activeSection }: { sections: Array<{ id: stri
 }
 
 // 统计数据卡片
-function StatCard({ 
-  icon: Icon, 
-  label, 
-  value, 
+function StatCard({
+  icon: Icon,
+  label,
+  value,
   subValue,
-  gradient 
-}: { 
-  icon: any; 
-  label: string; 
-  value: string; 
+  gradient
+}: {
+  icon: any;
+  label: string;
+  value: string;
   subValue?: { text: string; positive?: boolean };
   gradient: string;
 }) {
@@ -259,11 +257,12 @@ function StatCard({
   );
 }
 
-export default function Report({ data, onReset, aiLoading = false, aiError = '' }: ReportProps) {
+export default function Report({ data, onReset, aiLoading = false, aiError = '', onRegenerate }: ReportProps) {
   const reportRef = useRef<HTMLDivElement>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
   const [activeSection, setActiveSection] = useState('');
+  const [isRegenerating, setIsRegenerating] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     aiAnalysis: true,
     financialStatements: true,
@@ -291,9 +290,9 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const { 
-    profile, 
-    incomeStatements, 
+  const {
+    profile,
+    incomeStatements,
     balanceSheets = [],
     cashFlowStatements = [],
     keyMetrics = [],
@@ -306,8 +305,8 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
     stockSplits = [],
     institutionalHolders = [],
     insiderTrading = [],
-    peers, 
-    news, 
+    peers,
+    news,
     aiAnalysis,
     earningsTranscripts = [],
     earningsCallSummary = '',
@@ -355,9 +354,9 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
   const transcriptText =
     Array.isArray(earningsTranscripts) && earningsTranscripts.length > 0
       ? earningsTranscripts[0]?.content ||
-        earningsTranscripts[0]?.transcript ||
-        earningsTranscripts[0]?.text ||
-        ''
+      earningsTranscripts[0]?.transcript ||
+      earningsTranscripts[0]?.text ||
+      ''
       : '';
 
   const showAiLoading = aiLoading;
@@ -367,8 +366,8 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
   // 兼容新旧 API 格式
   const marketCap = profile.marketCap || profile.mktCap || 0;
   const priceChange = profile.change ?? profile.changes ?? 0;
-  const priceChangePercent = profile.changePercentage 
-    ? `${profile.changePercentage.toFixed(2)}%` 
+  const priceChangePercent = profile.changePercentage
+    ? `${profile.changePercentage.toFixed(2)}%`
     : profile.changesPercentage || '0%';
   const exchangeName = profile.exchange || profile.exchangeShortName || '';
 
@@ -381,10 +380,10 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
     ...(hasHoldingsData ? [{ id: 'holdings', label: '持仓分析', icon: Briefcase }] : []),
     ...(hasNewsData ? [{ id: 'news', label: '新闻资讯', icon: Newspaper }] : []),
   ];
-  
+
   // 添加编号
   const sections = baseSections.map((s, i) => ({ ...s, number: String(i + 1).padStart(2, '0') }));
-  
+
   // 为侧边导航准备的 sections
   const navSections = sections.map((s) => ({ id: s.id, label: s.label, number: s.number }));
 
@@ -398,7 +397,7 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
     <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
       {/* 侧边锚点导航 */}
       <SideAnchorNav sections={navSections} activeSection={activeSection} />
-      
+
       {/* 操作栏 */}
       <div className="flex items-center justify-between mb-8 animate-fade-in-up">
         <button
@@ -408,7 +407,7 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
           <ArrowLeft className="w-4 h-4" />
           返回搜索
         </button>
-        
+
         <div className="flex items-center gap-3">
           {/* 快捷导航 */}
           <div className="hidden lg:flex items-center gap-1 p-1.5 rounded-2xl bg-surface/80 backdrop-blur-xl border border-white/5">
@@ -426,7 +425,7 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
               </button>
             ))}
           </div>
-          
+
           <motion.button
             onClick={() => setIsExportModalOpen(true)}
             className="gemini-btn gemini-btn-primary flex items-center gap-2"
@@ -444,25 +443,25 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
         <header className="gemini-card p-8 md:p-10 animate-fade-in-up relative overflow-hidden">
           {/* 背景装饰 */}
           <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-gemini-blue/10 to-gemini-purple/5 rounded-full blur-3xl" />
-          
+
           <div className="relative flex flex-col md:flex-row items-start gap-8">
             <CompanyLogo src={profile.image} alt={profile.companyName} />
-            
+
             <div className="flex-1 min-w-0">
               {/* 公司名称和代码 */}
-                <div className="flex flex-wrap items-center gap-3 mb-4">
-                  <h1 className="text-3xl md:text-4xl font-bold text-white">
-                    {profile.companyName}
-                  </h1>
-                  <span className="px-4 py-1.5 rounded-full bg-gradient-to-r from-gemini-blue/20 to-gemini-purple/20 border border-gemini-blue/30 text-gemini-blue text-sm font-mono font-semibold">
-                    {profile.symbol}
-                  </span>
-                  <MarketBadge market={market} />
-                  <span className="px-3 py-1 bg-white/5 text-mist-400 rounded-full text-xs border border-white/10">
-                    {exchangeName}
-                  </span>
-                </div>
-              
+              <div className="flex flex-wrap items-center gap-3 mb-4">
+                <h1 className="text-3xl md:text-4xl font-bold text-white">
+                  {profile.companyName}
+                </h1>
+                <span className="px-4 py-1.5 rounded-full bg-gradient-to-r from-gemini-blue/20 to-gemini-purple/20 border border-gemini-blue/30 text-gemini-blue text-sm font-mono font-semibold">
+                  {profile.symbol}
+                </span>
+                <MarketBadge market={market} />
+                <span className="px-3 py-1 bg-white/5 text-mist-400 rounded-full text-xs border border-white/10">
+                  {exchangeName}
+                </span>
+              </div>
+
               {/* 公司信息 */}
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-mist-400 text-sm mb-8">
                 <span className="flex items-center gap-1.5">
@@ -477,7 +476,7 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
                   {profile.country || 'N/A'}
                 </span>
               </div>
-              
+
               {/* 统计数据 */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <StatCard
@@ -490,9 +489,9 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
                   icon={TrendingUp}
                   label="股价"
                   value={`${currencySymbol}${profile.price?.toFixed(2) || 'N/A'}`}
-                  subValue={{ 
-                    text: `${priceChange >= 0 ? '+' : ''}${priceChangePercent}`, 
-                    positive: priceChange >= 0 
+                  subValue={{
+                    text: `${priceChange >= 0 ? '+' : ''}${priceChangePercent}`,
+                    positive: priceChange >= 0
                   }}
                   gradient="from-glacier-600/20 to-slate-500/20"
                 />
@@ -526,7 +525,7 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
               </div>
               <h3 className="text-base font-medium text-white">AI 正在分析</h3>
             </div>
-            
+
             {/* 分析步骤指示器 - 增加行间距，统一色彩 */}
             <div className="space-y-4 mb-6">
               <div className="flex items-center gap-3 text-sm">
@@ -542,7 +541,7 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
                 <span className="text-mist-600">生成投资建议</span>
               </div>
             </div>
-            
+
             {/* 线性进度条 */}
             <div className="h-0.5 bg-white/5 rounded-full overflow-hidden">
               <div className="h-full w-2/3 bg-glacier-500/80 rounded-full animate-pulse" />
@@ -655,7 +654,7 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
                   {/* 渐变背景 - 统一冷色调 */}
                   <div className="absolute inset-0 bg-gradient-to-br from-glacier-500/5 via-transparent to-gemini-blue/5" />
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-glacier-600 via-glacier-500 to-gemini-blue" />
-                  
+
                   <div className="relative">
                     <div className="flex items-center gap-4 mb-6">
                       <div className="relative">
@@ -702,7 +701,7 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
                   <p className="text-sm text-mist-500 mt-0.5">直观展示营收结构与财务趋势</p>
                 </div>
               </div>
-              
+
               {/* 桑基图 */}
               {sankeyData && sankeyData.links && sankeyData.links.length > 0 && (
                 <div className="mb-10">
@@ -722,7 +721,7 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
             </div>
 
             {/* 三大财务报表 */}
-            <FinancialStatements 
+            <FinancialStatements
               incomeStatements={incomeStatements}
               balanceSheets={balanceSheets}
               cashFlowStatements={cashFlowStatements}
@@ -821,7 +820,7 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
               <span className="text-3xl font-light text-mist-700 font-mono hidden md:block w-10">{getSectionNumber('news')}</span>
               <h2 className="text-2xl font-semibold text-white">相关新闻资讯</h2>
             </div>
-            
+
             {/* 清爽列表布局 */}
             <div className="divide-y divide-white/5">
               {news.slice(0, 8).map((item, index) => (
@@ -853,6 +852,39 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '' 
         {/* 免责声明 */}
         <footer className="text-center py-12">
           <div className="gemini-divider mb-8" />
+
+          {/* 报告生成时间和重新生成按钮 */}
+          {data.reportGeneratedAt && (
+            <div className="flex flex-col items-center gap-4 mb-8">
+              <p className="text-sm text-mist-400">
+                报告生成于：{new Date(data.reportGeneratedAt).toLocaleDateString('zh-CN', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </p>
+              {onRegenerate && (
+                <button
+                  onClick={async () => {
+                    setIsRegenerating(true);
+                    try {
+                      await onRegenerate();
+                    } finally {
+                      setIsRegenerating(false);
+                    }
+                  }}
+                  disabled={isRegenerating || aiLoading}
+                  className="gemini-btn gemini-btn-secondary flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isRegenerating ? 'animate-spin' : ''}`} />
+                  {isRegenerating ? '正在重新生成...' : '重新生成 AI 报告'}
+                </button>
+              )}
+            </div>
+          )}
+
           <p className="text-xs text-mist-500 max-w-2xl mx-auto leading-relaxed mb-4">
             ⚠️ 免责声明：本报告由 AI 自动生成，仅供参考，不构成任何投资建议。投资有风险，入市需谨慎。
             报告中的分析基于公开数据和 AI 推理，可能存在偏差或不准确之处，请结合专业投资顾问意见进行决策。

@@ -71,7 +71,7 @@ export async function recordSearch(
   companyName?: string
 ): Promise<{ success: boolean; recordId?: string; error?: string }> {
   const supabase = getSupabase();
-  
+
   // 如果 Supabase 未配置，静默跳过
   if (!supabase) {
     console.log('Supabase 未配置，跳过搜索记录');
@@ -316,3 +316,114 @@ export const getAllTimeTrending = unstable_cache(
     tags: ['trending'],
   }
 );
+
+// ==================== AI 报告缓存 ====================
+
+/**
+ * AI 报告记录类型
+ */
+export interface AIReportRecord {
+  id: string;
+  symbol: string;
+  market: string;
+  ai_analysis: {
+    companyOverview: string;
+    industryAnalysis: string;
+    industryPainPoints: string;
+    competitors: string;
+    competitiveAdvantage: string;
+    moat: string;
+    recentDevelopments: string;
+    investmentConclusion: string;
+  };
+  earnings_call_summary: string | null;
+  created_at: string;
+}
+
+/**
+ * 获取缓存的AI报告（7天内有效）
+ */
+export async function getCachedReport(
+  symbol: string,
+  market: string
+): Promise<AIReportRecord | null> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    return null;
+  }
+
+  try {
+    const upperSymbol = symbol.toUpperCase().trim();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const { data, error } = await supabase
+      .from('ai_reports')
+      .select('*')
+      .eq('symbol', upperSymbol)
+      .eq('market', market)
+      .gte('created_at', sevenDaysAgo.toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) {
+      // PGRST116 = no rows found, not an error
+      if (error.code !== 'PGRST116') {
+        console.error('获取缓存报告失败:', error);
+      }
+      return null;
+    }
+
+    return data as AIReportRecord;
+  } catch (error) {
+    console.error('获取缓存报告失败:', error);
+    return null;
+  }
+}
+
+/**
+ * 保存或更新AI报告到数据库
+ */
+export async function saveReport(
+  symbol: string,
+  market: string,
+  aiAnalysis: AIReportRecord['ai_analysis'],
+  earningsCallSummary?: string
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    console.log('Supabase 未配置，跳过报告保存');
+    return { success: true };
+  }
+
+  try {
+    const upperSymbol = symbol.toUpperCase().trim();
+
+    // 使用 upsert 实现插入或更新
+    const { error } = await supabase
+      .from('ai_reports')
+      .upsert(
+        {
+          symbol: upperSymbol,
+          market,
+          ai_analysis: aiAnalysis,
+          earnings_call_summary: earningsCallSummary || null,
+          created_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'symbol,market',
+        }
+      );
+
+    if (error) {
+      console.error('保存AI报告失败:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('保存AI报告失败:', error);
+    return { success: false, error: error.message };
+  }
+}

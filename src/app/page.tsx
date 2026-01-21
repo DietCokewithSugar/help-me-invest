@@ -105,7 +105,7 @@ function GeminiLoader() {
 function LinearLoader({ step, totalSteps }: { step: number; totalSteps: number }) {
   const progress = ((step + 1) / totalSteps) * 100;
   const Icon = LOADING_STEPS[step].icon;
-  
+
   return (
     <div className="w-full max-w-sm">
       {/* 图标与文字 */}
@@ -115,15 +115,15 @@ function LinearLoader({ step, totalSteps }: { step: number; totalSteps: number }
         </div>
         <span className="text-sm text-mist-300">{LOADING_STEPS[step].text}</span>
       </div>
-      
+
       {/* 线性进度条 */}
       <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-        <div 
+        <div
           className="h-full bg-glacier-500 rounded-full transition-all duration-500 ease-out"
           style={{ width: `${progress}%` }}
         />
       </div>
-      
+
       {/* 进度文字 */}
       <div className="flex items-center justify-between mt-3 text-xs text-mist-600">
         <span>{step + 1} / {totalSteps}</span>
@@ -154,7 +154,7 @@ export default function Home() {
   const [showContactModal, setShowContactModal] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestContainerRef = useRef<HTMLDivElement>(null);
-  
+
   const currentMarketConfig = getMarketConfig(selectedMarket);
 
   // 股票翻牌动画
@@ -407,9 +407,9 @@ export default function Home() {
       const response = await fetch('/api/fmp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           symbol: formattedSymbol,
-          market: marketForAnalyze 
+          market: marketForAnalyze
         }),
       });
 
@@ -451,11 +451,12 @@ export default function Home() {
         setReportData((prev) =>
           prev
             ? {
-                ...prev,
-                aiAnalysis: aiData.aiAnalysis,
-                searchResults: aiData.searchResults,
-                earningsCallSummary: aiData.earningsCallSummary,
-              }
+              ...prev,
+              aiAnalysis: aiData.aiAnalysis,
+              searchResults: aiData.searchResults,
+              earningsCallSummary: aiData.earningsCallSummary,
+              reportGeneratedAt: aiData.generatedAt,
+            }
             : prev
         );
 
@@ -528,9 +529,9 @@ export default function Home() {
                 setReportData((prev) =>
                   prev
                     ? {
-                        ...prev,
-                        earningsCallSummary: summaryData.earningsCallSummary,
-                      }
+                      ...prev,
+                      earningsCallSummary: summaryData.earningsCallSummary,
+                    }
                     : prev
                 );
               }
@@ -572,8 +573,8 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 glass-card backdrop-blur-2xl">
             <div className="flex items-center justify-between">
               {/* Logo */}
-              <div 
-                className="flex items-center gap-3 cursor-pointer group" 
+              <div
+                className="flex items-center gap-3 cursor-pointer group"
                 onClick={resetToHome}
               >
                 <div className="relative">
@@ -587,9 +588,9 @@ export default function Home() {
                   <p className="text-xs text-mist-500 hidden sm:block">AI Investment Research</p>
                 </div>
               </div>
-              
+
               {/* 联系我们 */}
-              <button 
+              <button
                 onClick={() => setShowContactModal(true)}
                 className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer"
               >
@@ -608,7 +609,7 @@ export default function Home() {
           <section className="pt-28 md:pt-32 pb-16 md:pb-24 px-4 md:px-6">
             <div className="max-w-5xl mx-auto">
               {/* 核心视觉区 */}
-              <motion.div 
+              <motion.div
                 className="text-center mt-12 md:mt-14 mb-12 md:mb-20"
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -620,7 +621,7 @@ export default function Home() {
                   <br className="md:hidden" />
                   <span className="gradient-text font-normal">见证商业逻辑</span>
                 </h2>
-                
+
                 {/* 副标题 */}
                 <p className="text-base md:text-xl text-mist-400 max-w-2xl mx-auto leading-relaxed px-4">
                   将海量数据转化为你的投资决断
@@ -630,7 +631,7 @@ export default function Home() {
               </motion.div>
 
               {/* 搜索区域 - 极简克制风格 */}
-              <motion.div 
+              <motion.div
                 className="max-w-3xl mx-auto"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -669,12 +670,12 @@ export default function Home() {
                       {/* 动态 placeholder */}
                       {!symbol && (
                         <div className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none overflow-hidden h-6">
-                          <div 
+                          <div
                             className="transition-transform duration-500 ease-in-out"
                             style={{ transform: `translateY(-${currentStockIndex * 24}px)` }}
                           >
                             {FEATURED_STOCKS.map((stock, index) => (
-                              <div 
+                              <div
                                 key={index}
                                 className="h-6 flex items-center text-mist-600 text-base md:text-lg"
                               >
@@ -687,7 +688,7 @@ export default function Home() {
                         </div>
                       )}
                     </div>
-                    
+
                     <button
                       onClick={handleAnalyze}
                       disabled={loading}
@@ -708,7 +709,7 @@ export default function Home() {
                   {/* 联想搜索下拉 - 与输入框整合为一体 */}
                   <AnimatePresence>
                     {showSuggestions && (suggestLoading || suggestions.length > 0) && (
-                      <motion.div 
+                      <motion.div
                         className="absolute left-0 right-0 sm:right-auto sm:w-[calc(100%-172px)] top-full mt-1 z-30 rounded-xl bg-[#12121a] border border-white/[0.06] shadow-xl shadow-black/40"
                         initial={{ opacity: 0, y: -4 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -748,7 +749,7 @@ export default function Home() {
 
                 {/* 错误提示 */}
                 {error && (
-                  <motion.div 
+                  <motion.div
                     className="mb-6 p-4 rounded-xl bg-red-500/5 border border-red-500/10 flex items-center gap-3"
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -815,7 +816,7 @@ export default function Home() {
 
               {/* 加载状态 - 极简线性进度 */}
               {loading && (
-                <motion.div 
+                <motion.div
                   className="mt-12 md:mt-16 flex justify-center"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -832,7 +833,7 @@ export default function Home() {
           {!loading && (
             <section className="py-16 md:py-24 px-4 md:px-6">
               <div className="max-w-6xl mx-auto">
-                <motion.div 
+                <motion.div
                   className="text-center mb-12 md:mb-16"
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -841,7 +842,7 @@ export default function Home() {
                   <h3 className="text-2xl md:text-3xl lg:text-4xl font-light text-white mb-4">为什么选择智投研究</h3>
                   <p className="text-mist-500 text-sm md:text-base">不只是工具，更是你的投研智囊</p>
                 </motion.div>
-                
+
                 <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
                   {CORE_ADVANTAGES.map((advantage, index) => (
                     <motion.div
@@ -854,10 +855,10 @@ export default function Home() {
                     >
                       {/* 中文数字 */}
                       <div className="cn-number mb-6">{advantage.number}</div>
-                      
+
                       {/* 标题 */}
                       <h4 className="text-xl font-medium text-white mb-3">{advantage.title}</h4>
-                      
+
                       {/* 描述 */}
                       <p className="text-mist-400 leading-relaxed text-[15px]">{advantage.description}</p>
                     </motion.div>
@@ -871,7 +872,7 @@ export default function Home() {
           {!loading && (
             <section className="py-16 md:py-24 px-4 md:px-6">
               <div className="max-w-6xl mx-auto">
-                <motion.div 
+                <motion.div
                   className="text-center mb-12 md:mb-16"
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -880,7 +881,7 @@ export default function Home() {
                   <h3 className="text-2xl md:text-3xl lg:text-4xl font-light text-white mb-4">AI 正在解读</h3>
                   <p className="text-mist-500 text-sm md:text-base">实时展示研报生成过程</p>
                 </motion.div>
-                
+
                 <Suspense fallback={
                   <div className="glass-card p-12 flex items-center justify-center">
                     <GeminiLoader />
@@ -914,7 +915,7 @@ export default function Home() {
                       <br className="hidden md:block" />
                       AI 为你跨越市场疆界，实时解码全球投资机会。
                     </p>
-                    
+
                     {/* 市场列表 */}
                     <div className="grid grid-cols-2 gap-4">
                       {[
@@ -933,7 +934,7 @@ export default function Home() {
                       ))}
                     </div>
                   </motion.div>
-                  
+
                   {/* 右侧 3D 地球 */}
                   <motion.div
                     initial={{ opacity: 0, x: 30 }}
@@ -958,7 +959,7 @@ export default function Home() {
           {!loading && (
             <section className="py-16 md:py-24 px-4 md:px-6">
               <div className="max-w-6xl mx-auto">
-                <motion.div 
+                <motion.div
                   className="text-center mb-12 md:mb-16"
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -967,7 +968,7 @@ export default function Home() {
                   <h3 className="text-2xl md:text-3xl lg:text-4xl font-light text-white mb-4">用户如是说</h3>
                   <p className="text-mist-500 text-sm md:text-base">来自不同背景投资者的真实反馈</p>
                 </motion.div>
-                
+
                 <Suspense fallback={
                   <div className="flex items-center justify-center py-12">
                     <GeminiLoader />
@@ -983,7 +984,7 @@ export default function Home() {
           {!loading && (
             <section className="py-16 md:py-24 px-4 md:px-6">
               <div className="max-w-3xl mx-auto">
-                <motion.div 
+                <motion.div
                   className="text-center mb-12"
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -991,10 +992,10 @@ export default function Home() {
                 >
                   <h3 className="text-2xl md:text-3xl lg:text-4xl font-light text-white mb-4">常见问题</h3>
                 </motion.div>
-                
+
                 <div className="space-y-4">
                   {/* 如何使用 */}
-                  <motion.div 
+                  <motion.div
                     className="glass-card overflow-hidden"
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -1010,11 +1011,10 @@ export default function Home() {
                         </div>
                         <span className="text-base md:text-lg font-medium text-white text-left">如何使用？</span>
                       </div>
-                      <ChevronDownIcon 
+                      <ChevronDownIcon
                         size={20}
-                        className={`text-mist-500 transition-transform duration-300 flex-shrink-0 ${
-                          expandedFaq === 0 ? 'rotate-180' : ''
-                        }`}
+                        className={`text-mist-500 transition-transform duration-300 flex-shrink-0 ${expandedFaq === 0 ? 'rotate-180' : ''
+                          }`}
                       />
                     </button>
                     <AnimatePresence>
@@ -1040,7 +1040,7 @@ export default function Home() {
                   </motion.div>
 
                   {/* 是否收费 */}
-                  <motion.div 
+                  <motion.div
                     className="glass-card overflow-hidden"
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -1057,11 +1057,10 @@ export default function Home() {
                         </div>
                         <span className="text-base md:text-lg font-medium text-white text-left">是否收费？</span>
                       </div>
-                      <ChevronDownIcon 
+                      <ChevronDownIcon
                         size={20}
-                        className={`text-mist-500 transition-transform duration-300 flex-shrink-0 ${
-                          expandedFaq === 1 ? 'rotate-180' : ''
-                        }`}
+                        className={`text-mist-500 transition-transform duration-300 flex-shrink-0 ${expandedFaq === 1 ? 'rotate-180' : ''
+                          }`}
                       />
                     </button>
                     <AnimatePresence>
@@ -1087,7 +1086,7 @@ export default function Home() {
                   </motion.div>
 
                   {/* 联系作者 */}
-                  <motion.div 
+                  <motion.div
                     className="glass-card overflow-hidden"
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -1104,11 +1103,10 @@ export default function Home() {
                         </div>
                         <span className="text-base md:text-lg font-medium text-white text-left">联系作者与反馈</span>
                       </div>
-                      <ChevronDownIcon 
+                      <ChevronDownIcon
                         size={20}
-                        className={`text-mist-500 transition-transform duration-300 flex-shrink-0 ${
-                          expandedFaq === 2 ? 'rotate-180' : ''
-                        }`}
+                        className={`text-mist-500 transition-transform duration-300 flex-shrink-0 ${expandedFaq === 2 ? 'rotate-180' : ''
+                          }`}
                       />
                     </button>
                     <AnimatePresence>
@@ -1132,8 +1130,8 @@ export default function Home() {
                                 </p>
                                 <p className="text-mist-400 text-sm md:text-base">
                                   <span className="text-mist-500">邮箱：</span>
-                                  <a 
-                                    href="mailto:wangkaizhou2024@gmail.com" 
+                                  <a
+                                    href="mailto:wangkaizhou2024@gmail.com"
                                     className="text-glacier-400 hover:text-glacier-300 transition-colors ml-2"
                                   >
                                     wangkaizhou2024@gmail.com
@@ -1147,9 +1145,9 @@ export default function Home() {
                               <div className="bg-white/5 rounded-2xl p-4 text-center">
                                 <p className="text-mist-400 text-sm mb-3">扫码加入微信群</p>
                                 <div className="w-40 h-40 md:w-48 md:h-48 bg-white rounded-xl p-2 mx-auto">
-                                  <img 
-                                    src="/wechat-qr.jpg" 
-                                    alt="微信群二维码" 
+                                  <img
+                                    src="/wechat-qr.jpg"
+                                    alt="微信群二维码"
                                     className="w-full h-full object-contain"
                                   />
                                 </div>
@@ -1164,7 +1162,7 @@ export default function Home() {
                 </div>
 
                 {/* 底部提示 */}
-                <motion.div 
+                <motion.div
                   className="text-center mt-8"
                   initial={{ opacity: 0 }}
                   whileInView={{ opacity: 1 }}
@@ -1207,11 +1205,48 @@ export default function Home() {
       {/* Report Section */}
       {reportData && (
         <div className="pt-24">
-          <Report 
-            data={reportData} 
+          <Report
+            data={reportData}
             aiLoading={aiLoading}
             aiError={aiError}
-            onReset={resetToHome} 
+            onReset={resetToHome}
+            onRegenerate={async () => {
+              if (!reportData) return;
+              setAiLoading(true);
+              setAiError('');
+              try {
+                const response = await fetch('/api/ai/regenerate', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    symbol: reportData.profile.symbol,
+                    profile: reportData.profile,
+                    incomeStatements: reportData.incomeStatements,
+                    peers: reportData.peers,
+                    earningsTranscripts: reportData.earningsTranscripts || [],
+                    market: reportData.market,
+                  }),
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                  throw new Error(data?.error || 'AI 报告重新生成失败');
+                }
+                setReportData((prev) =>
+                  prev
+                    ? {
+                      ...prev,
+                      aiAnalysis: data.aiAnalysis,
+                      earningsCallSummary: data.earningsCallSummary,
+                      reportGeneratedAt: data.generatedAt,
+                    }
+                    : prev
+                );
+              } catch (err: any) {
+                setAiError(err.message || 'AI 报告重新生成失败');
+              } finally {
+                setAiLoading(false);
+              }
+            }}
           />
         </div>
       )}
@@ -1248,9 +1283,9 @@ export default function Home() {
 
               {/* 二维码图片 */}
               <div className="flex justify-center">
-                <img 
-                  src="/wechat-qr.jpg" 
-                  alt="微信二维码" 
+                <img
+                  src="/wechat-qr.jpg"
+                  alt="微信二维码"
                   className="w-64 h-64 object-cover rounded-lg"
                 />
               </div>

@@ -498,4 +498,6 @@ export interface ReportData {
   sankeyData: SankeyData;
   // 市场信息
   market?: MarketType;
+  // 报告生成时间
+  reportGeneratedAt?: string;
 }
