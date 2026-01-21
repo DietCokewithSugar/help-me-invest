@@ -20,6 +20,7 @@ import {
   DollarSignIcon,
   MessageCircleIcon,
   LogoIcon,
+  XIcon,
 } from '@/components/Icons';
 
 // 懒加载组件
@@ -150,6 +151,7 @@ export default function Home() {
   const [isComposing, setIsComposing] = useState(false);
   const [currentStockIndex, setCurrentStockIndex] = useState(0);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const [showContactModal, setShowContactModal] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestContainerRef = useRef<HTMLDivElement>(null);
   
@@ -586,17 +588,14 @@ export default function Home() {
                 </div>
               </div>
               
-              {/* 状态指示 */}
-              <div className="flex items-center gap-3 md:gap-4">
-                <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
-                  <div className="w-2 h-2 bg-glacier-500 rounded-full animate-pulse" />
-                  <span className="text-sm text-mist-400">Gemini AI</span>
-                </div>
-                <div className="flex items-center gap-2 text-mist-500 text-sm">
-                  <FileTextIcon size={16} />
-                  <span className="hidden sm:inline">Powered by FMP</span>
-                </div>
-              </div>
+              {/* 联系我们 */}
+              <button 
+                onClick={() => setShowContactModal(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer"
+              >
+                <MessageCircleIcon size={16} className="text-glacier-500" />
+                <span className="text-sm text-mist-300">联系我们</span>
+              </button>
             </div>
           </div>
         </div>
@@ -1216,6 +1215,54 @@ export default function Home() {
           />
         </div>
       )}
+
+      {/* 联系我们弹窗 */}
+      <AnimatePresence>
+        {showContactModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowContactModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="relative bg-gradient-to-br from-arctic-800 to-arctic-900 rounded-2xl p-6 md:p-8 border border-white/10 shadow-2xl max-w-sm mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* 关闭按钮 */}
+              <button
+                onClick={() => setShowContactModal(false)}
+                className="absolute top-4 right-4 p-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors"
+              >
+                <XIcon size={18} className="text-mist-400" />
+              </button>
+
+              {/* 标题 */}
+              <h3 className="text-xl font-semibold text-white mb-2 text-center">联系我们</h3>
+              <p className="text-sm text-mist-400 mb-6 text-center">扫描二维码添加微信</p>
+
+              {/* 二维码图片 */}
+              <div className="flex justify-center">
+                <img 
+                  src="/wechat-qr.jpg" 
+                  alt="微信二维码" 
+                  className="w-64 h-64 object-cover rounded-lg"
+                />
+              </div>
+
+              {/* 提示文字 */}
+              <p className="text-xs text-mist-500 mt-4 text-center">
+                期待与您交流
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
