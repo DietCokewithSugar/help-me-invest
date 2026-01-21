@@ -26,9 +26,7 @@ export interface SearchRecord {
   id: string;
   symbol: string;
   company_name: string | null;
-  search_count: number;
   is_valid: boolean;
-  last_searched_at: string;
   created_at: string;
 }
 
@@ -42,7 +40,7 @@ export interface TrendingStock {
 
 /**
  * 记录用户搜索
- * 使用 upsert 来处理：如果 symbol 已存在则增加计数，否则创建新记录
+ * 每次搜索都创建一条独立记录
  */
 export async function recordSearch(
   symbol: string,
@@ -58,58 +56,24 @@ export async function recordSearch(
 
   try {
     const upperSymbol = symbol.toUpperCase().trim();
-    
-    // 先查询是否存在该 symbol 的记录
-    const { data: existing, error: selectError } = await supabase
+
+    // 每次搜索都创建新记录
+    const { data: newRecord, error: insertError } = await supabase
       .from('search_records')
-      .select('id, search_count')
-      .eq('symbol', upperSymbol)
+      .insert({
+        symbol: upperSymbol,
+        company_name: companyName || null,
+        is_valid: true,
+      })
+      .select('id')
       .single();
 
-    if (selectError && selectError.code !== 'PGRST116') {
-      // PGRST116 = no rows returned, 这是正常的
-      console.error('查询搜索记录失败:', selectError);
-      return { success: false, error: selectError.message };
+    if (insertError) {
+      console.error('创建搜索记录失败:', insertError);
+      return { success: false, error: insertError.message };
     }
 
-    if (existing) {
-      // 更新现有记录：增加计数，更新时间和公司名
-      const { error: updateError } = await supabase
-        .from('search_records')
-        .update({
-          search_count: existing.search_count + 1,
-          last_searched_at: new Date().toISOString(),
-          company_name: companyName || undefined,
-          is_valid: true, // 有效搜索重置为有效
-        })
-        .eq('id', existing.id);
-
-      if (updateError) {
-        console.error('更新搜索记录失败:', updateError);
-        return { success: false, error: updateError.message };
-      }
-
-      return { success: true, recordId: existing.id };
-    } else {
-      // 创建新记录
-      const { data: newRecord, error: insertError } = await supabase
-        .from('search_records')
-        .insert({
-          symbol: upperSymbol,
-          company_name: companyName || null,
-          search_count: 1,
-          is_valid: true,
-        })
-        .select('id')
-        .single();
-
-      if (insertError) {
-        console.error('创建搜索记录失败:', insertError);
-        return { success: false, error: insertError.message };
-      }
-
-      return { success: true, recordId: newRecord?.id };
-    }
+    return { success: true, recordId: newRecord?.id };
   } catch (error: any) {
     console.error('记录搜索失败:', error);
     return { success: false, error: error.message };
@@ -125,11 +89,28 @@ export async function markSearchInvalid(symbol: string): Promise<boolean> {
 
   try {
     const upperSymbol = symbol.toUpperCase().trim();
-    
+
+    const { data: latestRecord, error: selectError } = await supabase
+      .from('search_records')
+      .select('id')
+      .eq('symbol', upperSymbol)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (selectError && selectError.code !== 'PGRST116') {
+      console.error('查询最新搜索记录失败:', selectError);
+      return false;
+    }
+
+    if (!latestRecord) {
+      return true;
+    }
+
     const { error } = await supabase
       .from('search_records')
       .update({ is_valid: false })
-      .eq('symbol', upperSymbol);
+      .eq('id', latestRecord.id);
 
     if (error) {
       console.error('标记搜索记录无效失败:', error);
@@ -171,6 +152,7 @@ export async function deleteInvalidSearches(): Promise<number> {
 
 /**
  * 获取本周热门搜索（不带缓存的原始函数）
+ * 统计过去七天内按 created_at 创建的搜索记录数，每个企业名称独立计数
  */
 async function fetchTrendingStocksRaw(limit: number = 10): Promise<TrendingStock[]> {
   const supabase = getSupabase();
@@ -180,48 +162,47 @@ async function fetchTrendingStocksRaw(limit: number = 10): Promise<TrendingStock
   }
 
   try {
-    // 计算本周开始日期（周一）
-    const now = new Date();
-    const dayOfWeek = now.getDay();
-    const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // 调整为周一开始
-    const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() - diff);
-    weekStart.setHours(0, 0, 0, 0);
+    // 计算七天前的日期
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
 
+    // 获取过去七天内的所有搜索记录，按 created_at 筛选
     const { data, error } = await supabase
       .from('search_records')
-      .select('symbol, company_name, search_count, last_searched_at')
+      .select('symbol, company_name, created_at')
       .eq('is_valid', true)
-      .gte('last_searched_at', weekStart.toISOString())
-      .order('search_count', { ascending: false })
-      .limit(limit);
+      .gte('created_at', sevenDaysAgo.toISOString())
+      .order('created_at', { ascending: false }); // 按创建时间倒序，获取最新的记录
 
     if (error) {
       console.error('获取热门搜索失败:', error);
       return [];
     }
 
-    // 聚合相同 symbol 的搜索次数（以防有重复）
+    // 按 symbol 聚合，统计每个 symbol 在过去七天的搜索记录数
     const aggregated = new Map<string, TrendingStock>();
-    
+
     for (const record of data || []) {
       const existing = aggregated.get(record.symbol);
       if (existing) {
-        existing.total_searches += record.search_count;
-        if (new Date(record.last_searched_at) > new Date(existing.last_searched)) {
-          existing.last_searched = record.last_searched_at;
+        existing.total_searches += 1; // 每次搜索都算一次独立记录
+        // 更新为最新的公司名称和搜索时间
+        if (new Date(record.created_at) > new Date(existing.last_searched)) {
+          existing.last_searched = record.created_at;
           existing.company_name = record.company_name;
         }
       } else {
         aggregated.set(record.symbol, {
           symbol: record.symbol,
           company_name: record.company_name,
-          total_searches: record.search_count,
-          last_searched: record.last_searched_at,
+          total_searches: 1, // 每个 symbol 从 1 开始计数
+          last_searched: record.created_at,
         });
       }
     }
 
+    // 按搜索次数倒序排序，返回前 limit 个
     return Array.from(aggregated.values())
       .sort((a, b) => b.total_searches - a.total_searches)
       .slice(0, limit);
@@ -234,7 +215,7 @@ async function fetchTrendingStocksRaw(limit: number = 10): Promise<TrendingStock
       code: error?.code || '',
     };
     console.error('获取热门搜索失败:', errorDetails);
-    
+
     // 网络错误不应影响主流程，静默返回空数组
     return [];
   }
@@ -265,22 +246,38 @@ async function fetchAllTimeTrendingRaw(limit: number = 10): Promise<TrendingStoc
   try {
     const { data, error } = await supabase
       .from('search_records')
-      .select('symbol, company_name, search_count, last_searched_at')
+      .select('symbol, company_name, created_at')
       .eq('is_valid', true)
-      .order('search_count', { ascending: false })
-      .limit(limit);
+      .order('created_at', { ascending: false });
 
     if (error) {
       console.error('获取热门搜索失败:', error);
       return [];
     }
 
-    return (data || []).map((record) => ({
-      symbol: record.symbol,
-      company_name: record.company_name,
-      total_searches: record.search_count,
-      last_searched: record.last_searched_at,
-    }));
+    const aggregated = new Map<string, TrendingStock>();
+
+    for (const record of data || []) {
+      const existing = aggregated.get(record.symbol);
+      if (existing) {
+        existing.total_searches += 1;
+        if (new Date(record.created_at) > new Date(existing.last_searched)) {
+          existing.last_searched = record.created_at;
+          existing.company_name = record.company_name;
+        }
+      } else {
+        aggregated.set(record.symbol, {
+          symbol: record.symbol,
+          company_name: record.company_name,
+          total_searches: 1,
+          last_searched: record.created_at,
+        });
+      }
+    }
+
+    return Array.from(aggregated.values())
+      .sort((a, b) => b.total_searches - a.total_searches)
+      .slice(0, limit);
   } catch (error) {
     console.error('获取热门搜索失败:', error);
     return [];
