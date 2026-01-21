@@ -38,6 +38,30 @@ export interface TrendingStock {
   last_searched: string;
 }
 
+export async function getTotalReportCount(): Promise<number> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    return 0;
+  }
+
+  try {
+    const { count, error } = await supabase
+      .from('search_records')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_valid', true);
+
+    if (error) {
+      console.error('获取研报总数失败:', error);
+      return 0;
+    }
+
+    return count || 0;
+  } catch (error) {
+    console.error('获取研报总数失败:', error);
+    return 0;
+  }
+}
+
 /**
  * 记录用户搜索
  * 每次搜索都创建一条独立记录

@@ -141,6 +141,7 @@ export default function Home() {
   const [loadingStep, setLoadingStep] = useState(0);
   const [trendingStocks, setTrendingStocks] = useState<TrendingStock[]>([]);
   const [trendingLoading, setTrendingLoading] = useState(true);
+  const [reportCount, setReportCount] = useState<number | null>(null);
   const [suggestions, setSuggestions] = useState<SymbolSuggestion[]>([]);
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -188,6 +189,22 @@ export default function Home() {
       }
     };
     fetchTrending();
+  }, []);
+
+  // 获取研报总数
+  useEffect(() => {
+    const fetchReportCount = async () => {
+      try {
+        const response = await fetch('/api/report-count');
+        const data = await response.json();
+        if (data.success && typeof data.count === 'number') {
+          setReportCount(data.count);
+        }
+      } catch (error) {
+        console.log('获取研报总数失败:', error);
+      }
+    };
+    fetchReportCount();
   }, []);
 
   useEffect(() => {
@@ -1097,6 +1114,9 @@ export default function Home() {
           {!loading && (
             <footer className="py-8 md:py-12 px-4 md:px-6 border-t border-white/5">
               <div className="max-w-6xl mx-auto text-center">
+                <p className="text-mist-500 text-sm">
+                  已产出 {reportCount === null ? '—' : reportCount.toLocaleString()} 篇企业研报
+                </p>
                 <p className="text-mist-600 text-sm">
                   © {new Date().getFullYear()} 智投研究 · AI Investment Research
                 </p>
