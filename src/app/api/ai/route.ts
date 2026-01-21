@@ -138,9 +138,12 @@ export async function POST(request: NextRequest) {
     // 3. 成功解析后保存到数据库
     const generatedAt = new Date().toISOString();
     if (parseSuccess) {
-      saveReport(upperSymbol, marketType, aiAnalysis).catch((err) => {
-        console.error('后台保存报告失败:', err);
-      });
+      try {
+        await saveReport(upperSymbol, marketType, aiAnalysis);
+      } catch (err) {
+        console.error('保存报告失败:', err);
+        // 保存失败不影响返回结果
+      }
     }
 
     return NextResponse.json({
