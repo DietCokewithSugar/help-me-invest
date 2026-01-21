@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense, lazy } from 'react';
+import { useState, useEffect, useRef, Suspense, lazy, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Report from '@/components/Report';
 import type { ReportData, MarketType } from '@/types';
 import { MARKET_CONFIGS, detectMarketFromSymbol, formatSymbolForMarket, getMarketConfig } from '@/lib/markets';
+import { getSupabaseClient, isSupabaseClientConfigured } from '@/lib/supabase-client';
 import {
   TrendingUpIcon,
   FileTextIcon,
@@ -21,10 +22,11 @@ import {
   LogoIcon,
 } from '@/components/Icons';
 
-// 懒加载 3D 地球组件
+// 懒加载组件
 const ParticleGlobe = lazy(() => import('@/components/ParticleGlobe'));
 const AIShowcase = lazy(() => import('@/components/AIShowcase'));
 const Testimonials = lazy(() => import('@/components/Testimonials'));
+const FlipCounter = lazy(() => import('@/components/FlipCounter'));
 
 // 热门股票类型
 interface TrendingStock {
@@ -191,21 +193,91 @@ export default function Home() {
     fetchTrending();
   }, []);
 
-  // 获取研报总数
-  useEffect(() => {
-    const fetchReportCount = async () => {
-      try {
-        const response = await fetch('/api/report-count');
-        const data = await response.json();
-        if (data.success && typeof data.count === 'number') {
-          setReportCount(data.count);
-        }
-      } catch (error) {
-        console.log('获取研报总数失败:', error);
+  // 获取研报总数的函数
+  const fetchReportCount = useCallback(async () => {
+    try {
+      const response = await fetch('/api/report-count');
+      const data = await response.json();
+      if (data.success && typeof data.count === 'number') {
+        setReportCount(data.count);
       }
-    };
-    fetchReportCount();
+    } catch (error) {
+      console.log('获取研报总数失败:', error);
+    }
   }, []);
+
+  // 获取研报总数 + Realtime 订阅
+  useEffect(() => {
+    // 初始获取
+    fetchReportCount();
+
+    // 设置 Supabase Realtime 订阅
+    if (!isSupabaseClientConfigured) {
+      console.log('Supabase 客户端未配置，跳过 Realtime 订阅');
+      return;
+    }
+
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+
+    // 订阅 search_records 表的变化
+    const channel = supabase
+      .channel('report-count-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'search_records',
+          filter: 'is_valid=eq.true',
+        },
+        (payload) => {
+          console.log('收到新研报记录:', payload);
+          // 乐观更新：直接增加计数
+          setReportCount((prev) => (prev !== null ? prev + 1 : 1));
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'search_records',
+        },
+        (payload) => {
+          // 当记录从有效变为无效时，减少计数
+          const oldValid = payload.old?.is_valid;
+          const newValid = payload.new?.is_valid;
+          if (oldValid === true && newValid === false) {
+            setReportCount((prev) => (prev !== null && prev > 0 ? prev - 1 : 0));
+          } else if (oldValid === false && newValid === true) {
+            setReportCount((prev) => (prev !== null ? prev + 1 : 1));
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'search_records',
+        },
+        (payload) => {
+          // 删除有效记录时减少计数
+          if (payload.old?.is_valid === true) {
+            setReportCount((prev) => (prev !== null && prev > 0 ? prev - 1 : 0));
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('Realtime 订阅状态:', status);
+      });
+
+    // 清理订阅
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchReportCount]);
 
   useEffect(() => {
     if (loading) {
@@ -1114,9 +1186,13 @@ export default function Home() {
           {!loading && (
             <footer className="py-8 md:py-12 px-4 md:px-6 border-t border-white/5">
               <div className="max-w-6xl mx-auto text-center">
-                <p className="text-mist-500 text-sm">
-                  已产出 {reportCount === null ? '—' : reportCount.toLocaleString()} 篇企业研报
-                </p>
+                <div className="flex items-center justify-center gap-2 text-mist-500 text-sm mb-1">
+                  <span>已产出</span>
+                  <Suspense fallback={<span className="font-mono">—</span>}>
+                    <FlipCounter value={reportCount} className="text-glacier-400 text-base relative" />
+                  </Suspense>
+                  <span>篇企业研报</span>
+                </div>
                 <p className="text-mist-600 text-sm">
                   © {new Date().getFullYear()} 智投研究 · AI Investment Research
                 </p>
