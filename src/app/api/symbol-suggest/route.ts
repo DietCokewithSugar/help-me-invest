@@ -18,6 +18,10 @@ function normalizeSuggestion(item: any) {
   let symbol = String(item?.symbol || '').toUpperCase().trim();
   if (!symbol) return null;
 
+  if (market === 'US' && symbol.endsWith('.US')) {
+    symbol = symbol.replace(/\.US$/i, '');
+  }
+
   if (!symbol.includes('.')) {
     if (market === 'HK' && /^\d{1,5}$/.test(symbol)) {
       symbol = symbol.padStart(symbol.length <= 4 ? 4 : 5, '0');
