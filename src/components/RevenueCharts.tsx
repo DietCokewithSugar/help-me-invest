@@ -20,6 +20,12 @@ export default function RevenueCharts({ incomeStatements }: Props) {
   const revenues = incomeStatements.map(i => (i.revenue || 0) / 1e9).reverse();
   const netIncomes = incomeStatements.map(i => (i.netIncome || 0) / 1e9).reverse();
   const grossProfits = incomeStatements.map(i => (i.grossProfit || 0) / 1e9).reverse();
+  // 计算毛利率 (毛利润 / 营收 * 100%)
+  const grossProfitMargins = incomeStatements.map(i => {
+    const revenue = i.revenue || 0;
+    const grossProfit = i.grossProfit || 0;
+    return revenue > 0 ? (grossProfit / revenue) * 100 : 0;
+  }).reverse();
 
   // 柱状图 - 营收趋势
   const barOption = {
@@ -39,24 +45,26 @@ export default function RevenueCharts({ incomeStatements }: Props) {
       formatter: (params: any) => {
         let result = `<div style="font-weight: 600; margin-bottom: 8px;">${params[0].axisValue}</div>`;
         params.forEach((p: any) => {
+          const isMargin = p.seriesName === '毛利率';
+          const valueStr = isMargin ? `${p.value.toFixed(1)}%` : `$${p.value.toFixed(2)}B`;
           result += `<div style="display: flex; align-items: center; gap: 8px; margin: 4px 0;">
-            <span style="width: 10px; height: 10px; background: ${p.color}; border-radius: 2px;"></span>
+            <span style="width: 10px; height: 10px; background: ${p.color}; border-radius: ${isMargin ? '50%' : '2px'};"></span>
             <span>${p.seriesName}: </span>
-            <span style="font-weight: 600;">$${p.value.toFixed(2)}B</span>
+            <span style="font-weight: 600;">${valueStr}</span>
           </div>`;
         });
         return result;
       },
     },
     legend: {
-      data: ['营收', '毛利润', '净利润'],
+      data: ['营收', '毛利润', '净利润', '毛利率'],
       textStyle: { color: '#94a3b8', fontSize: 12 },
       top: 0,
       itemGap: 24,
     },
     grid: { 
       left: '3%', 
-      right: '4%', 
+      right: '8%', 
       bottom: '3%', 
       top: '70px', 
       containLabel: true 
@@ -72,31 +80,56 @@ export default function RevenueCharts({ incomeStatements }: Props) {
       },
       axisTick: { show: false },
     },
-    yAxis: {
-      type: 'value',
-      name: '金额 (十亿美元)',
-      nameTextStyle: { 
-        color: '#64748b',
-        fontSize: 11,
-        padding: [0, 0, 8, 0],
+    yAxis: [
+      {
+        type: 'value',
+        name: '金额 (十亿美元)',
+        nameTextStyle: { 
+          color: '#64748b',
+          fontSize: 11,
+          padding: [0, 0, 8, 0],
+        },
+        axisLine: { show: false },
+        axisLabel: { 
+          color: '#64748b',
+          fontSize: 11,
+          formatter: (value: number) => `$${value}B`,
+        },
+        splitLine: { 
+          lineStyle: { 
+            color: '#1e293b',
+            type: 'dashed',
+          } 
+        },
       },
-      axisLine: { show: false },
-      axisLabel: { 
-        color: '#64748b',
-        fontSize: 11,
-        formatter: (value: number) => `$${value}B`,
+      {
+        type: 'value',
+        name: '毛利率 (%)',
+        nameTextStyle: { 
+          color: '#e879a0',
+          fontSize: 11,
+          padding: [0, 0, 8, 0],
+        },
+        position: 'right',
+        min: 0,
+        max: 100,
+        axisLine: { 
+          show: true,
+          lineStyle: { color: '#e879a0', opacity: 0.3 }
+        },
+        axisLabel: { 
+          color: '#e879a0',
+          fontSize: 11,
+          formatter: (value: number) => `${value}%`,
+        },
+        splitLine: { show: false },
       },
-      splitLine: { 
-        lineStyle: { 
-          color: '#1e293b',
-          type: 'dashed',
-        } 
-      },
-    },
+    ],
     series: [
       {
         name: '营收',
         type: 'bar',
+        yAxisIndex: 0,
         data: revenues,
         barWidth: '20%',
         itemStyle: { 
@@ -122,6 +155,7 @@ export default function RevenueCharts({ incomeStatements }: Props) {
       {
         name: '毛利润',
         type: 'bar',
+        yAxisIndex: 0,
         data: grossProfits,
         barWidth: '20%',
         itemStyle: { 
@@ -147,6 +181,7 @@ export default function RevenueCharts({ incomeStatements }: Props) {
       {
         name: '净利润',
         type: 'bar',
+        yAxisIndex: 0,
         data: netIncomes,
         barWidth: '20%',
         itemStyle: { 
@@ -167,6 +202,44 @@ export default function RevenueCharts({ incomeStatements }: Props) {
           fontSize: 10,
           fontFamily: 'JetBrains Mono, monospace',
           formatter: (params: any) => `$${params.value.toFixed(1)}B`,
+        },
+      },
+      {
+        name: '毛利率',
+        type: 'line',
+        yAxisIndex: 1,
+        data: grossProfitMargins,
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 8,
+        lineStyle: {
+          color: '#e879a0',
+          width: 2.5,
+          shadowColor: 'rgba(232, 121, 160, 0.3)',
+          shadowBlur: 8,
+        },
+        itemStyle: {
+          color: '#e879a0',
+          borderColor: '#1a1a2e',
+          borderWidth: 2,
+        },
+        areaStyle: {
+          color: {
+            type: 'linear',
+            x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: 'rgba(232, 121, 160, 0.15)' },
+              { offset: 1, color: 'rgba(232, 121, 160, 0)' }
+            ]
+          },
+        },
+        label: {
+          show: true,
+          position: 'top',
+          color: '#e879a0',
+          fontSize: 10,
+          fontFamily: 'JetBrains Mono, monospace',
+          formatter: (params: any) => `${params.value.toFixed(1)}%`,
         },
       },
     ],
