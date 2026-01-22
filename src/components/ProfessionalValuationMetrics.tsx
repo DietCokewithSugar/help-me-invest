@@ -377,12 +377,12 @@ export default function ProfessionalValuationMetrics({
       },
       {
         label: '总资产周转率',
-        value: formatRatio(latestRatiosTTM?.assetTurnoverTTM || latestRatios?.assetTurnover),
+        value: formatRatio(latestRatiosTTM?.assetTurnoverTTM),
         metricKey: 'assetTurnover',
       },
       {
         label: '库存周转率',
-        value: formatRatio(latestRatiosTTM?.inventoryTurnoverTTM || latestRatios?.inventoryTurnover),
+        value: formatRatio(latestRatiosTTM?.inventoryTurnoverTTM),
         metricKey: 'inventoryTurnover',
       },
     ];
