@@ -7,7 +7,7 @@ export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
-    const { symbol, market } = await request.json();
+    const { symbol, market, period } = await request.json();
 
     if (!symbol) {
       return NextResponse.json({ error: '请提供股票代码' }, { status: 400 });
@@ -19,9 +19,10 @@ export async function POST(request: NextRequest) {
     }
 
     const fmp = new FMPClient(fmpApiKey);
-    const fmpData = await fetchFmpReportData(fmp, { 
-      symbol, 
-      market: market as MarketType | undefined 
+    const fmpData = await fetchFmpReportData(fmp, {
+      symbol,
+      market: market as MarketType | undefined,
+      period: period as 'annual' | 'quarter' | undefined
     });
 
     return NextResponse.json(fmpData);

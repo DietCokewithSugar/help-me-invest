@@ -1,35 +1,38 @@
 import { FMPClient } from '@/lib/fmp';
 import type { ReportData } from '@/types';
-import { 
-  MarketType, 
-  detectMarketFromSymbol, 
-  formatSymbolForMarket, 
+import {
+  MarketType,
+  detectMarketFromSymbol,
+  formatSymbolForMarket,
   getMarketConfig,
-  isFeatureSupported 
+  isFeatureSupported
 } from '@/lib/markets';
 
 export interface FetchOptions {
   symbol: string;
   market?: MarketType;
+  period?: 'annual' | 'quarter';
 }
 
 export async function fetchFmpReportData(
-  fmp: FMPClient, 
+  fmp: FMPClient,
   symbolOrOptions: string | FetchOptions
 ): Promise<ReportData> {
   // 支持旧的调用方式（仅传入 symbol 字符串）和新的调用方式（传入 options 对象）
-  const options: FetchOptions = typeof symbolOrOptions === 'string' 
-    ? { symbol: symbolOrOptions }
-    : symbolOrOptions;
-  
+  const options: FetchOptions = typeof symbolOrOptions === 'string'
+    ? { symbol: symbolOrOptions, period: 'annual' }
+    : { period: 'annual', ...symbolOrOptions };
+
+  const period = options.period || 'annual';
+
   // 检测或使用指定的市场
   const detectedMarket = detectMarketFromSymbol(options.symbol);
   const market = options.market || detectedMarket;
-  
+
   // 格式化股票代码
   const formattedSymbol = formatSymbolForMarket(options.symbol, market);
   const upperSymbol = formattedSymbol.toUpperCase();
-  
+
   const config = getMarketConfig(market);
   const features = config.supportedFeatures;
 
@@ -42,25 +45,32 @@ export async function fetchFmpReportData(
     features.news ? fmp.getNews(upperSymbol, 15) : Promise.resolve([]),
   ];
 
-  // 财务报表数据
+  // 财务报表数据 (年度)
   const financialPromises = [
     features.incomeStatement ? fmp.getIncomeStatement(upperSymbol, 'annual', 5) : Promise.resolve([]),
     features.balanceSheet ? fmp.getBalanceSheet(upperSymbol, 'annual', 5) : Promise.resolve([]),
     features.cashFlow ? fmp.getCashFlowStatement(upperSymbol, 'annual', 5) : Promise.resolve([]),
   ];
 
+  // 财务报表数据 (季度)
+  const financialQuarterPromises = [
+    features.incomeStatement ? fmp.getIncomeStatement(upperSymbol, 'quarter', 5) : Promise.resolve([]),
+    features.balanceSheet ? fmp.getBalanceSheet(upperSymbol, 'quarter', 5) : Promise.resolve([]),
+    features.cashFlow ? fmp.getCashFlowStatement(upperSymbol, 'quarter', 5) : Promise.resolve([]),
+  ];
+
   // 关键指标
   const metricsPromises = [
-    features.keyMetrics ? fmp.getKeyMetrics(upperSymbol, 'annual', 5) : Promise.resolve([]),
-    features.financialRatios ? fmp.getFinancialRatios(upperSymbol, 'annual', 5) : Promise.resolve([]),
+    features.keyMetrics ? fmp.getKeyMetrics(upperSymbol, period, 5) : Promise.resolve([]),
+    features.financialRatios ? fmp.getFinancialRatios(upperSymbol, period, 5) : Promise.resolve([]),
     features.financialRatios ? fmp.getFinancialRatiosTTM(upperSymbol).catch(() => []) : Promise.resolve([]),
-    features.financialGrowth ? fmp.getFinancialGrowth(upperSymbol, 'annual', 5) : Promise.resolve([]),
+    features.financialGrowth ? fmp.getFinancialGrowth(upperSymbol, period, 5) : Promise.resolve([]),
   ];
 
   // 估值数据
   const valuationPromises = [
     features.dcf ? fmp.getDCF(upperSymbol).catch(() => []) : Promise.resolve([]),
-    features.enterpriseValue ? fmp.getEnterpriseValue(upperSymbol, 'annual', 5).catch(() => []) : Promise.resolve([]),
+    features.enterpriseValue ? fmp.getEnterpriseValue(upperSymbol, period, 5).catch(() => []) : Promise.resolve([]),
   ];
 
   // 事件日历
@@ -91,6 +101,9 @@ export async function fetchFmpReportData(
     incomeData,
     balanceSheetData,
     cashFlowData,
+    incomeQuarterData,
+    balanceSheetQuarterData,
+    cashFlowQuarterData,
     keyMetricsData,
     financialRatiosData,
     financialRatiosTTMData,
@@ -108,6 +121,7 @@ export async function fetchFmpReportData(
   ] = await Promise.all([
     ...basePromises,
     ...financialPromises,
+    ...financialQuarterPromises,
     ...metricsPromises,
     ...valuationPromises,
     ...eventPromises,
@@ -127,7 +141,7 @@ export async function fetchFmpReportData(
   // 添加市场信息到 profile
   (profile as any).market = market;
   (profile as any).marketName = config.nameCn;
-  
+
   const peers = peersData || [];
   const quote = Array.isArray(quoteData) && quoteData.length > 0 ? quoteData[0] : null;
 
@@ -161,6 +175,10 @@ export async function fetchFmpReportData(
     incomeStatements: incomeData || [],
     balanceSheets: balanceSheetData || [],
     cashFlowStatements: cashFlowData || [],
+    // 季度报表数据
+    incomeStatementsQuarter: incomeQuarterData || [],
+    balanceSheetsQuarter: balanceSheetQuarterData || [],
+    cashFlowStatementsQuarter: cashFlowQuarterData || [],
     // 关键指标
     keyMetrics: keyMetricsData || [],
     financialRatios: financialRatiosData || [],
@@ -187,6 +205,8 @@ export async function fetchFmpReportData(
     sankeyData: buildSankeyData(incomeData?.[0]),
     // 添加市场信息
     market,
+    // 添加周期信息
+    period,
   };
 }
 

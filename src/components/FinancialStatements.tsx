@@ -9,11 +9,22 @@ interface Props {
   incomeStatements: IncomeStatement[];
   balanceSheets: BalanceSheet[];
   cashFlowStatements: CashFlowStatement[];
+  incomeStatementsQuarter?: IncomeStatement[];
+  balanceSheetsQuarter?: BalanceSheet[];
+  cashFlowStatementsQuarter?: CashFlowStatement[];
 }
 
 type TabType = 'income' | 'balance' | 'cashflow';
 
-export default function FinancialStatements({ incomeStatements, balanceSheets, cashFlowStatements }: Props) {
+export default function FinancialStatements({
+  incomeStatements,
+  balanceSheets,
+  cashFlowStatements,
+  incomeStatementsQuarter,
+  balanceSheetsQuarter,
+  cashFlowStatementsQuarter
+}: Props) {
+  const [period, setPeriod] = useState<'annual' | 'quarter'>('annual');
   const [activeTab, setActiveTab] = useState<TabType>('income');
   const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart');
 
@@ -32,13 +43,20 @@ export default function FinancialStatements({ incomeStatements, balanceSheets, c
     { key: 'cashflow', label: '现金流量表', icon: <ArrowRightLeft className="w-4 h-4" /> },
   ];
 
+  const activeIncome = period === 'quarter' && incomeStatementsQuarter?.length ? incomeStatementsQuarter : incomeStatements;
+  const activeBalance = period === 'quarter' && balanceSheetsQuarter?.length ? balanceSheetsQuarter : balanceSheets;
+  const activeCashFlow = period === 'quarter' && cashFlowStatementsQuarter?.length ? cashFlowStatementsQuarter : cashFlowStatements;
+
   // ==================== 利润表图表 ====================
   const renderIncomeChart = () => {
-    const years = incomeStatements.map(i => i.date?.split('-')[0] || '').reverse();
-    const revenues = incomeStatements.map(i => (i.revenue || 0) / 1e9).reverse();
-    const grossProfits = incomeStatements.map(i => (i.grossProfit || 0) / 1e9).reverse();
-    const operatingIncomes = incomeStatements.map(i => (i.operatingIncome || 0) / 1e9).reverse();
-    const netIncomes = incomeStatements.map(i => (i.netIncome || 0) / 1e9).reverse();
+    const years = activeIncome.map(i => {
+      if (period === 'quarter') return `${i.fiscalYear} ${i.period}`;
+      return i.date?.split('-')[0] || '';
+    }).reverse();
+    const revenues = activeIncome.map(i => (i.revenue || 0) / 1e9).reverse();
+    const grossProfits = activeIncome.map(i => (i.grossProfit || 0) / 1e9).reverse();
+    const operatingIncomes = activeIncome.map(i => (i.operatingIncome || 0) / 1e9).reverse();
+    const netIncomes = activeIncome.map(i => (i.netIncome || 0) / 1e9).reverse();
 
     const option = {
       backgroundColor: 'transparent',
@@ -94,7 +112,7 @@ export default function FinancialStatements({ incomeStatements, balanceSheets, c
           type: 'bar',
           data: revenues,
           barWidth: '18%',
-          itemStyle: { 
+          itemStyle: {
             color: {
               type: 'linear',
               x: 0, y: 0, x2: 0, y2: 1,
@@ -119,7 +137,7 @@ export default function FinancialStatements({ incomeStatements, balanceSheets, c
           type: 'bar',
           data: grossProfits,
           barWidth: '18%',
-          itemStyle: { 
+          itemStyle: {
             color: {
               type: 'linear',
               x: 0, y: 0, x2: 0, y2: 1,
@@ -144,7 +162,7 @@ export default function FinancialStatements({ incomeStatements, balanceSheets, c
           type: 'bar',
           data: operatingIncomes,
           barWidth: '18%',
-          itemStyle: { 
+          itemStyle: {
             color: {
               type: 'linear',
               x: 0, y: 0, x2: 0, y2: 1,
@@ -169,7 +187,7 @@ export default function FinancialStatements({ incomeStatements, balanceSheets, c
           type: 'bar',
           data: netIncomes,
           barWidth: '18%',
-          itemStyle: { 
+          itemStyle: {
             color: {
               type: 'linear',
               x: 0, y: 0, x2: 0, y2: 1,
@@ -197,12 +215,15 @@ export default function FinancialStatements({ incomeStatements, balanceSheets, c
 
   // ==================== 资产负债表图表 ====================
   const renderBalanceChart = () => {
-    const years = balanceSheets.map(b => b.date?.split('-')[0] || '').reverse();
-    const totalAssets = balanceSheets.map(b => (b.totalAssets || 0) / 1e9).reverse();
-    const totalLiabilities = balanceSheets.map(b => (b.totalLiabilities || 0) / 1e9).reverse();
-    const totalEquity = balanceSheets.map(b => (b.totalStockholdersEquity || 0) / 1e9).reverse();
-    const totalDebt = balanceSheets.map(b => (b.totalDebt || 0) / 1e9).reverse();
-    const cash = balanceSheets.map(b => (b.cashAndCashEquivalents || 0) / 1e9).reverse();
+    const years = activeBalance.map(b => {
+      if (period === 'quarter') return `${b.fiscalYear} ${b.period}`;
+      return b.date?.split('-')[0] || '';
+    }).reverse();
+    const totalAssets = activeBalance.map(b => (b.totalAssets || 0) / 1e9).reverse();
+    const totalLiabilities = activeBalance.map(b => (b.totalLiabilities || 0) / 1e9).reverse();
+    const totalEquity = activeBalance.map(b => (b.totalStockholdersEquity || 0) / 1e9).reverse();
+    const totalDebt = activeBalance.map(b => (b.totalDebt || 0) / 1e9).reverse();
+    const cash = activeBalance.map(b => (b.cashAndCashEquivalents || 0) / 1e9).reverse();
 
     const option = {
       backgroundColor: 'transparent',
@@ -249,12 +270,15 @@ export default function FinancialStatements({ incomeStatements, balanceSheets, c
 
   // ==================== 现金流量表图表 ====================
   const renderCashFlowChart = () => {
-    const years = cashFlowStatements.map(c => c.date?.split('-')[0] || '').reverse();
-    const operatingCF = cashFlowStatements.map(c => (c.netCashProvidedByOperatingActivities || 0) / 1e9).reverse();
-    const investingCF = cashFlowStatements.map(c => (c.netCashUsedForInvestingActivites || 0) / 1e9).reverse();
-    const financingCF = cashFlowStatements.map(c => (c.netCashUsedProvidedByFinancingActivities || 0) / 1e9).reverse();
-    const freeCF = cashFlowStatements.map(c => (c.freeCashFlow || 0) / 1e9).reverse();
-    const capex = cashFlowStatements.map(c => (c.capitalExpenditure || 0) / 1e9).reverse();
+    const years = activeCashFlow.map(c => {
+      if (period === 'quarter') return `${c.fiscalYear} ${c.period}`;
+      return c.date?.split('-')[0] || '';
+    }).reverse();
+    const operatingCF = activeCashFlow.map(c => (c.netCashProvidedByOperatingActivities || 0) / 1e9).reverse();
+    const investingCF = activeCashFlow.map(c => (c.netCashUsedForInvestingActivites || 0) / 1e9).reverse();
+    const financingCF = activeCashFlow.map(c => (c.netCashUsedProvidedByFinancingActivities || 0) / 1e9).reverse();
+    const freeCF = activeCashFlow.map(c => (c.freeCashFlow || 0) / 1e9).reverse();
+    const capex = activeCashFlow.map(c => (c.capitalExpenditure || 0) / 1e9).reverse();
 
     const option = {
       backgroundColor: 'transparent',
@@ -306,8 +330,10 @@ export default function FinancialStatements({ incomeStatements, balanceSheets, c
         <thead>
           <tr className="border-b border-white/10">
             <th className="text-left py-3 px-4 text-slate-400 font-medium whitespace-nowrap">指标</th>
-            {incomeStatements.map((s, i) => (
-              <th key={i} className="text-right py-3 px-4 text-slate-400 font-mono whitespace-nowrap">{s.date?.split('-')[0]}</th>
+            {activeIncome.map((s, i) => (
+              <th key={i} className="text-right py-3 px-4 text-slate-400 font-mono whitespace-nowrap">
+                {period === 'quarter' ? `${s.fiscalYear} ${s.period}` : s.date?.split('-')[0]}
+              </th>
             ))}
           </tr>
         </thead>
@@ -327,7 +353,7 @@ export default function FinancialStatements({ incomeStatements, balanceSheets, c
           ].map((row) => (
             <tr key={row.key} className="border-b border-white/5 hover:bg-white/5 transition-colors">
               <td className="py-3 px-4 text-slate-300 whitespace-nowrap">{row.label}</td>
-              {incomeStatements.map((s: any, i) => (
+              {activeIncome.map((s: any, i) => (
                 <td key={i} className="text-right py-3 px-4 font-mono text-white whitespace-nowrap">
                   {row.key === 'epsdiluted' ? `$${s[row.key]?.toFixed(2) || 'N/A'}` : `$${formatNumber(s[row.key])}`}
                 </td>
@@ -345,8 +371,10 @@ export default function FinancialStatements({ incomeStatements, balanceSheets, c
         <thead>
           <tr className="border-b border-white/10">
             <th className="text-left py-3 px-4 text-slate-400 font-medium whitespace-nowrap">指标</th>
-            {balanceSheets.map((s, i) => (
-              <th key={i} className="text-right py-3 px-4 text-slate-400 font-mono whitespace-nowrap">{s.date?.split('-')[0]}</th>
+            {activeBalance.map((s, i) => (
+              <th key={i} className="text-right py-3 px-4 text-slate-400 font-mono whitespace-nowrap">
+                {period === 'quarter' ? `${s.fiscalYear} ${s.period}` : s.date?.split('-')[0]}
+              </th>
             ))}
           </tr>
         </thead>
@@ -370,16 +398,14 @@ export default function FinancialStatements({ incomeStatements, balanceSheets, c
             { label: '总债务', key: 'totalDebt', section: '其他' },
             { label: '净债务', key: 'netDebt', section: '其他' },
           ].map((row, idx) => (
-            <tr key={row.key} className={`border-b border-white/5 hover:bg-white/5 transition-colors ${
-              row.key === 'totalCurrentAssets' || row.key === 'totalAssets' || 
+            <tr key={row.key} className={`border-b border-white/5 hover:bg-white/5 transition-colors ${row.key === 'totalCurrentAssets' || row.key === 'totalAssets' ||
               row.key === 'totalCurrentLiabilities' || row.key === 'totalLiabilities' ||
               row.key === 'totalStockholdersEquity' ? 'bg-white/5 font-semibold' : ''
-            }`}>
+              }`}>
               <td className="py-3 px-4 text-slate-300 whitespace-nowrap">{row.label}</td>
-              {balanceSheets.map((s: any, i) => (
-                <td key={i} className={`text-right py-3 px-4 font-mono ${
-                  s[row.key] < 0 ? 'text-red-400' : 'text-white'
-                } whitespace-nowrap`}>
+              {activeBalance.map((s: any, i) => (
+                <td key={i} className={`text-right py-3 px-4 font-mono ${s[row.key] < 0 ? 'text-red-400' : 'text-white'
+                  } whitespace-nowrap`}>
                   ${formatNumber(s[row.key])}
                 </td>
               ))}
@@ -396,8 +422,10 @@ export default function FinancialStatements({ incomeStatements, balanceSheets, c
         <thead>
           <tr className="border-b border-white/10">
             <th className="text-left py-3 px-4 text-slate-400 font-medium whitespace-nowrap">指标</th>
-            {cashFlowStatements.map((s, i) => (
-              <th key={i} className="text-right py-3 px-4 text-slate-400 font-mono whitespace-nowrap">{s.date?.split('-')[0]}</th>
+            {activeCashFlow.map((s, i) => (
+              <th key={i} className="text-right py-3 px-4 text-slate-400 font-mono whitespace-nowrap">
+                {period === 'quarter' ? `${s.fiscalYear} ${s.period}` : s.date?.split('-')[0]}
+              </th>
             ))}
           </tr>
         </thead>
@@ -419,14 +447,12 @@ export default function FinancialStatements({ incomeStatements, balanceSheets, c
             { label: '现金净变动', key: 'netChangeInCash', section: '汇总' },
             { label: '自由现金流', key: 'freeCashFlow', section: '汇总' },
           ].map((row) => (
-            <tr key={row.key} className={`border-b border-white/5 hover:bg-white/5 transition-colors ${
-              row.key.includes('netCash') || row.key === 'freeCashFlow' ? 'bg-white/5 font-semibold' : ''
-            }`}>
+            <tr key={row.key} className={`border-b border-white/5 hover:bg-white/5 transition-colors ${row.key.includes('netCash') || row.key === 'freeCashFlow' ? 'bg-white/5 font-semibold' : ''
+              }`}>
               <td className="py-3 px-4 text-slate-300 whitespace-nowrap">{row.label}</td>
-              {cashFlowStatements.map((s: any, i) => (
-                <td key={i} className={`text-right py-3 px-4 font-mono ${
-                  s[row.key] < 0 ? 'text-red-400' : 'text-white'
-                } whitespace-nowrap`}>
+              {activeCashFlow.map((s: any, i) => (
+                <td key={i} className={`text-right py-3 px-4 font-mono ${s[row.key] < 0 ? 'text-red-400' : 'text-white'
+                  } whitespace-nowrap`}>
                   ${formatNumber(s[row.key])}
                 </td>
               ))}
@@ -452,28 +478,49 @@ export default function FinancialStatements({ incomeStatements, balanceSheets, c
           </div>
           <div>
             <h2 className="text-lg font-semibold text-slate-200">三大财务报表</h2>
-            <p className="text-sm text-slate-500 mt-0.5">近5年年度财务数据</p>
+            <p className="text-sm text-slate-500 mt-0.5">近5{period === 'quarter' ? '季度' : '年度'}财务数据分析</p>
           </div>
         </div>
-        
-        {/* 视图切换 */}
-        <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1 border border-white/5">
-          <button
-            onClick={() => setViewMode('chart')}
-            className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-              viewMode === 'chart' ? 'bg-slate-600/30 text-slate-300' : 'text-slate-500 hover:text-slate-300'
-            }`}
-          >
-            图表
-          </button>
-          <button
-            onClick={() => setViewMode('table')}
-            className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-              viewMode === 'table' ? 'bg-slate-600/30 text-slate-300' : 'text-slate-500 hover:text-slate-300'
-            }`}
-          >
-            表格
-          </button>
+
+        {/* 周期及视图切换 */}
+        <div className="flex items-center gap-4">
+          <div className="flex p-1 bg-white/5 border border-white/10 rounded-lg">
+            <button
+              onClick={() => setPeriod('annual')}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${period === 'annual'
+                ? 'bg-glacier-500 text-white shadow-sm'
+                : 'text-mist-400 hover:text-mist-200'
+                }`}
+            >
+              年度
+            </button>
+            <button
+              onClick={() => setPeriod('quarter')}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${period === 'quarter'
+                ? 'bg-glacier-500 text-white shadow-sm'
+                : 'text-mist-400 hover:text-mist-200'
+                }`}
+            >
+              季度
+            </button>
+          </div>
+
+          <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1 border border-white/5">
+            <button
+              onClick={() => setViewMode('chart')}
+              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${viewMode === 'chart' ? 'bg-slate-600/30 text-slate-300' : 'text-slate-500 hover:text-slate-300'
+                }`}
+            >
+              图表
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${viewMode === 'table' ? 'bg-slate-600/30 text-slate-300' : 'text-slate-500 hover:text-slate-300'
+                }`}
+            >
+              表格
+            </button>
+          </div>
         </div>
       </div>
 
@@ -483,11 +530,10 @@ export default function FinancialStatements({ incomeStatements, balanceSheets, c
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-              activeTab === tab.key
-                ? 'bg-slate-600/20 text-slate-300 border border-slate-500/30'
-                : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${activeTab === tab.key
+              ? 'bg-slate-600/20 text-slate-300 border border-slate-500/30'
+              : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+              }`}
           >
             {tab.icon}
             {tab.label}

@@ -141,6 +141,7 @@ export default function Home() {
   const [aiError, setAiError] = useState('');
   const [error, setError] = useState('');
   const [reportData, setReportData] = useState<ReportData | null>(null);
+  const [fmpLoading, setFmpLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [trendingStocks, setTrendingStocks] = useState<TrendingStock[]>([]);
   const [trendingLoading, setTrendingLoading] = useState(true);
@@ -405,6 +406,7 @@ export default function Home() {
     }
   };
 
+
   const handleAnalyze = async () => {
     const trimmedSymbol = symbol.trim().toUpperCase();
     if (!trimmedSymbol) {
@@ -456,10 +458,10 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           symbol: formattedSymbol,
-          market: marketForAnalyze
+          market: marketForAnalyze,
+          period: 'annual'
         }),
       });
-
       const data = await parseJsonResponse(response);
 
       if (!response.ok) {

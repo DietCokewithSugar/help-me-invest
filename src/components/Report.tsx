@@ -257,7 +257,13 @@ function StatCard({
   );
 }
 
-export default function Report({ data, onReset, aiLoading = false, aiError = '', onRegenerate }: ReportProps) {
+export default function Report({
+  data,
+  onReset,
+  aiLoading = false,
+  aiError = '',
+  onRegenerate,
+}: ReportProps) {
   const reportRef = useRef<HTMLDivElement>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
@@ -438,7 +444,7 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '',
         </div>
       </div>
 
-      <div ref={reportRef} className="report-mobile-borderless space-y-10 bg-[#0a0a0f] p-4 md:p-10 rounded-3xl border border-white/10 max-md:border-0 shadow-2xl max-md:shadow-none">
+      <div ref={reportRef} className="report-mobile-borderless space-y-10 bg-[#0a0a0f] p-4 md:p-10 rounded-3xl border border-white/10 max-md:border-0 shadow-2xl max-md:shadow-none relative">
         {/* 公司头部信息 */}
         <header className="gemini-card p-8 md:p-10 animate-fade-in-up relative overflow-hidden">
           {/* 背景装饰 */}
@@ -460,6 +466,7 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '',
                 <span className="px-3 py-1 bg-white/5 text-mist-400 rounded-full text-xs border border-white/10">
                   {exchangeName}
                 </span>
+
               </div>
 
               {/* 公司信息 */}
@@ -717,7 +724,10 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '',
               )}
 
               {/* 其他图表 */}
-              <RevenueCharts incomeStatements={incomeStatements} />
+              <RevenueCharts
+                incomeStatements={incomeStatements}
+                incomeStatementsQuarter={data.incomeStatementsQuarter}
+              />
             </div>
 
             {/* 三大财务报表 */}
@@ -725,6 +735,9 @@ export default function Report({ data, onReset, aiLoading = false, aiError = '',
               incomeStatements={incomeStatements}
               balanceSheets={balanceSheets}
               cashFlowStatements={cashFlowStatements}
+              incomeStatementsQuarter={data.incomeStatementsQuarter}
+              balanceSheetsQuarter={data.balanceSheetsQuarter}
+              cashFlowStatementsQuarter={data.cashFlowStatementsQuarter}
             />
           </div>
         </CollapsibleSection>

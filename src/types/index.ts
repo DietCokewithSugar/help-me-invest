@@ -29,6 +29,7 @@ export interface IncomeStatement {
   symbol: string;
   reportedCurrency: string;
   calendarYear: string;
+  fiscalYear: string;
   period: string;
   revenue: number;
   costOfRevenue: number;
@@ -65,6 +66,7 @@ export interface BalanceSheet {
   symbol: string;
   reportedCurrency: string;
   calendarYear: string;
+  fiscalYear: string;
   period: string;
   // 资产
   cashAndCashEquivalents: number;
@@ -120,6 +122,7 @@ export interface CashFlowStatement {
   symbol: string;
   reportedCurrency: string;
   calendarYear: string;
+  fiscalYear: string;
   period: string;
   // 经营活动现金流
   netIncome: number;
@@ -163,6 +166,7 @@ export interface KeyMetrics {
   date: string;
   symbol: string;
   calendarYear: string;
+  fiscalYear: string;
   period: string;
   revenuePerShare: number;
   netIncomePerShare: number;
@@ -227,6 +231,7 @@ export interface FinancialRatios {
   date: string;
   symbol: string;
   calendarYear: string;
+  fiscalYear: string;
   period: string;
   // 盈利能力
   grossProfitMargin: number;
@@ -276,6 +281,7 @@ export interface FinancialGrowth {
   date: string;
   symbol: string;
   calendarYear: string;
+  fiscalYear: string;
   period: string;
   revenueGrowth: number;
   grossProfitGrowth: number;
@@ -498,6 +504,14 @@ export interface ReportData {
   sankeyData: SankeyData;
   // 市场信息
   market?: MarketType;
+  // 原始报表周期控制
+  period?: 'annual' | 'quarter';
+
+  // 季度报表数据字段
+  incomeStatementsQuarter?: IncomeStatement[];
+  balanceSheetsQuarter?: BalanceSheet[];
+  cashFlowStatementsQuarter?: CashFlowStatement[];
+
   // 报告生成时间
   reportGeneratedAt?: string;
 }

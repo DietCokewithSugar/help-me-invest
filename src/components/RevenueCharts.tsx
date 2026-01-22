@@ -1,14 +1,21 @@
 'use client';
 
+import { useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { IncomeStatement } from '@/types';
 
 interface Props {
   incomeStatements: IncomeStatement[];
+  incomeStatementsQuarter?: IncomeStatement[];
 }
 
-export default function RevenueCharts({ incomeStatements }: Props) {
-  if (!incomeStatements || incomeStatements.length === 0) {
+export default function RevenueCharts({ incomeStatements, incomeStatementsQuarter }: Props) {
+  const [period, setPeriod] = useState<'annual' | 'quarter'>('annual');
+  const activeStatements = period === 'quarter' && incomeStatementsQuarter?.length
+    ? incomeStatementsQuarter
+    : incomeStatements;
+
+  if (!activeStatements || activeStatements.length === 0) {
     return (
       <div className="text-center text-slate-400 p-8">
         暂无财务数据
@@ -16,12 +23,15 @@ export default function RevenueCharts({ incomeStatements }: Props) {
     );
   }
 
-  const years = incomeStatements.map(i => i.date?.split('-')[0] || '').reverse();
-  const revenues = incomeStatements.map(i => (i.revenue || 0) / 1e9).reverse();
-  const netIncomes = incomeStatements.map(i => (i.netIncome || 0) / 1e9).reverse();
-  const grossProfits = incomeStatements.map(i => (i.grossProfit || 0) / 1e9).reverse();
+  const years = activeStatements.map(i => {
+    if (period === 'quarter') return `${i.fiscalYear} ${i.period}`;
+    return i.date?.split('-')[0] || '';
+  }).reverse();
+  const revenues = activeStatements.map(i => (i.revenue || 0) / 1e9).reverse();
+  const netIncomes = activeStatements.map(i => (i.netIncome || 0) / 1e9).reverse();
+  const grossProfits = activeStatements.map(i => (i.grossProfit || 0) / 1e9).reverse();
   // 计算毛利率 (毛利润 / 营收 * 100%)
-  const grossProfitMargins = incomeStatements.map(i => {
+  const grossProfitMargins = activeStatements.map(i => {
     const revenue = i.revenue || 0;
     const grossProfit = i.grossProfit || 0;
     return revenue > 0 ? (grossProfit / revenue) * 100 : 0;
@@ -62,18 +72,18 @@ export default function RevenueCharts({ incomeStatements }: Props) {
       top: 0,
       itemGap: 24,
     },
-    grid: { 
-      left: '3%', 
-      right: '8%', 
-      bottom: '3%', 
-      top: '70px', 
-      containLabel: true 
+    grid: {
+      left: '3%',
+      right: '8%',
+      bottom: '3%',
+      top: '70px',
+      containLabel: true
     },
     xAxis: {
       type: 'category',
       data: years,
       axisLine: { lineStyle: { color: '#334155' } },
-      axisLabel: { 
+      axisLabel: {
         color: '#94a3b8',
         fontSize: 12,
         fontFamily: 'JetBrains Mono, monospace',
@@ -84,28 +94,28 @@ export default function RevenueCharts({ incomeStatements }: Props) {
       {
         type: 'value',
         name: '金额 (十亿美元)',
-        nameTextStyle: { 
+        nameTextStyle: {
           color: '#64748b',
           fontSize: 11,
           padding: [0, 0, 8, 0],
         },
         axisLine: { show: false },
-        axisLabel: { 
+        axisLabel: {
           color: '#64748b',
           fontSize: 11,
           formatter: (value: number) => `$${value}B`,
         },
-        splitLine: { 
-          lineStyle: { 
+        splitLine: {
+          lineStyle: {
             color: '#1e293b',
             type: 'dashed',
-          } 
+          }
         },
       },
       {
         type: 'value',
         name: '毛利率 (%)',
-        nameTextStyle: { 
+        nameTextStyle: {
           color: '#e879a0',
           fontSize: 11,
           padding: [0, 0, 8, 0],
@@ -113,11 +123,11 @@ export default function RevenueCharts({ incomeStatements }: Props) {
         position: 'right',
         min: 0,
         max: 100,
-        axisLine: { 
+        axisLine: {
           show: true,
           lineStyle: { color: '#e879a0', opacity: 0.3 }
         },
-        axisLabel: { 
+        axisLabel: {
           color: '#e879a0',
           fontSize: 11,
           formatter: (value: number) => `${value}%`,
@@ -132,7 +142,7 @@ export default function RevenueCharts({ incomeStatements }: Props) {
         yAxisIndex: 0,
         data: revenues,
         barWidth: '20%',
-        itemStyle: { 
+        itemStyle: {
           color: {
             type: 'linear',
             x: 0, y: 0, x2: 0, y2: 1,
@@ -158,7 +168,7 @@ export default function RevenueCharts({ incomeStatements }: Props) {
         yAxisIndex: 0,
         data: grossProfits,
         barWidth: '20%',
-        itemStyle: { 
+        itemStyle: {
           color: {
             type: 'linear',
             x: 0, y: 0, x2: 0, y2: 1,
@@ -184,7 +194,7 @@ export default function RevenueCharts({ incomeStatements }: Props) {
         yAxisIndex: 0,
         data: netIncomes,
         barWidth: '20%',
-        itemStyle: { 
+        itemStyle: {
           color: {
             type: 'linear',
             x: 0, y: 0, x2: 0, y2: 1,
@@ -246,7 +256,7 @@ export default function RevenueCharts({ incomeStatements }: Props) {
   };
 
   // 饼图 - 成本结构
-  const latestIncome = incomeStatements[0];
+  const latestIncome = activeStatements[0];
   const pieData = latestIncome ? [
     { name: '营业成本', value: latestIncome.costOfRevenue || 0 },
     { name: '研发费用', value: latestIncome.researchAndDevelopmentExpenses || 0 },
@@ -323,14 +333,14 @@ export default function RevenueCharts({ incomeStatements }: Props) {
           borderColor: '#1a1a2e',
           borderWidth: 3,
         },
-        label: { 
+        label: {
           show: false,
         },
         labelLine: {
           show: false,
         },
         emphasis: {
-          label: { 
+          label: {
             show: false,
           },
           scaleSize: 8,
@@ -347,28 +357,52 @@ export default function RevenueCharts({ incomeStatements }: Props) {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="bg-midnight/50 rounded-xl p-4 md:p-5 border border-white/5 max-md:border-0">
-        <h4 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
-          <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
-          年度营收趋势
-        </h4>
-        <ReactECharts
-          option={barOption}
-          style={{ height: '320px', width: '100%' }}
-          opts={{ renderer: 'canvas' }}
-        />
+    <div className="space-y-6">
+      <div className="flex justify-end">
+        <div className="flex p-1 bg-white/5 border border-white/10 rounded-xl">
+          <button
+            onClick={() => setPeriod('annual')}
+            className={`px-4 py-1.5 text-xs font-medium rounded-lg transition-all ${period === 'annual'
+              ? 'bg-glacier-500 text-white shadow-lg shadow-glacier-500/20'
+              : 'text-mist-400 hover:text-mist-200'
+              }`}
+          >
+            年度
+          </button>
+          <button
+            onClick={() => setPeriod('quarter')}
+            className={`px-4 py-1.5 text-xs font-medium rounded-lg transition-all ${period === 'quarter'
+              ? 'bg-glacier-500 text-white shadow-lg shadow-glacier-500/20'
+              : 'text-mist-400 hover:text-mist-200'
+              }`}
+          >
+            季度
+          </button>
+        </div>
       </div>
-      <div className="bg-midnight/50 rounded-xl p-4 md:p-5 border border-white/5 max-md:border-0">
-        <h4 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
-          <span className="w-2 h-2 bg-slate-500 rounded-full"></span>
-          {latestIncome?.date?.split('-')[0] || ''} 成本结构分布
-        </h4>
-        <ReactECharts
-          option={pieOption}
-          style={{ height: '320px', width: '100%' }}
-          opts={{ renderer: 'canvas' }}
-        />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-midnight/50 rounded-xl p-4 md:p-5 border border-white/5 max-md:border-0">
+          <h4 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
+            <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
+            {period === 'quarter' ? '季度' : '年度'}营收趋势
+          </h4>
+          <ReactECharts
+            option={barOption}
+            style={{ height: '320px', width: '100%' }}
+            opts={{ renderer: 'canvas' }}
+          />
+        </div>
+        <div className="bg-midnight/50 rounded-xl p-4 md:p-5 border border-white/5 max-md:border-0">
+          <h4 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
+            <span className="w-2 h-2 bg-slate-500 rounded-full"></span>
+            {latestIncome ? (period === 'quarter' ? `${latestIncome.fiscalYear} ${latestIncome.period}` : latestIncome.date?.split('-')[0]) : ''} 成本结构分布
+          </h4>
+          <ReactECharts
+            option={pieOption}
+            style={{ height: '320px', width: '100%' }}
+            opts={{ renderer: 'canvas' }}
+          />
+        </div>
       </div>
     </div>
   );
