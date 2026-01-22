@@ -42,27 +42,33 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
-      backgroundColor: 'rgba(15, 15, 35, 0.95)',
-      borderColor: 'rgba(20, 184, 166, 0.3)',
+      backgroundColor: '#121212',
+      borderColor: 'rgba(255, 255, 255, 0.1)',
       borderWidth: 1,
-      textStyle: { color: '#f8fafc' },
+      padding: [8, 12],
+      textStyle: { color: '#e2e8f0', fontFamily: 'JetBrains Mono, monospace', fontSize: 12 },
       axisPointer: {
-        type: 'shadow',
-        shadowStyle: {
-          color: 'rgba(20, 184, 166, 0.1)',
+        type: 'line',
+        lineStyle: {
+          color: 'rgba(255, 255, 255, 0.2)',
+          type: 'dashed'
         }
       },
       formatter: (params: any) => {
-        let result = `<div style="font-weight: 600; margin-bottom: 8px;">${params[0].axisValue}</div>`;
+        let result = `<div style="font-weight: 500; margin-bottom: 4px; color: #94a3b8; font-size: 11px;">${params[0].axisValue}</div>`;
+        result += '<table style="width:100%; border-collapse: collapse;">';
         params.forEach((p: any) => {
           const isMargin = p.seriesName === '毛利率';
           const valueStr = isMargin ? `${p.value.toFixed(1)}%` : `$${p.value.toFixed(2)}B`;
-          result += `<div style="display: flex; align-items: center; gap: 8px; margin: 4px 0;">
-            <span style="width: 10px; height: 10px; background: ${p.color}; border-radius: ${isMargin ? '50%' : '2px'};"></span>
-            <span>${p.seriesName}: </span>
-            <span style="font-weight: 600;">${valueStr}</span>
-          </div>`;
+          result += `<tr>
+            <td style="padding: 2px 8px 2px 0; display: flex; align-items: center;">
+              <span style="width: 6px; height: 6px; background: ${p.color}; margin-right: 6px; display: inline-block;"></span>
+              <span style="color: #cbd5e1; font-size: 12px;">${p.seriesName}</span>
+            </td>
+            <td style="padding: 2px 0 2px 8px; text-align: right; color: #fff; font-weight: 500;">${valueStr}</td>
+          </tr>`;
         });
+        result += '</table>';
         return result;
       },
     },
@@ -85,52 +91,39 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
       axisLine: { lineStyle: { color: '#334155' } },
       axisLabel: {
         color: '#94a3b8',
-        fontSize: 12,
+        fontSize: 10,
         fontFamily: 'JetBrains Mono, monospace',
       },
-      axisTick: { show: false },
+      axisTick: { show: true, lineStyle: { color: '#334155' } },
     },
     yAxis: [
       {
         type: 'value',
-        name: '金额 (十亿美元)',
-        nameTextStyle: {
-          color: '#64748b',
-          fontSize: 11,
-          padding: [0, 0, 8, 0],
-        },
+        name: '',
         axisLine: { show: false },
         axisLabel: {
           color: '#64748b',
-          fontSize: 11,
-          formatter: (value: number) => `$${value}B`,
+          fontSize: 10,
+          fontFamily: 'JetBrains Mono, monospace',
+          formatter: (value: number) => `${value}`,
         },
         splitLine: {
           lineStyle: {
             color: '#1e293b',
             type: 'dashed',
+            opacity: 0.5
           }
         },
       },
       {
         type: 'value',
-        name: '毛利率 (%)',
-        nameTextStyle: {
-          color: '#e879a0',
-          fontSize: 11,
-          padding: [0, 0, 8, 0],
-        },
+        name: '',
         position: 'right',
         min: 0,
         max: 100,
-        axisLine: {
-          show: true,
-          lineStyle: { color: '#e879a0', opacity: 0.3 }
-        },
+        axisLine: { show: false },
         axisLabel: {
-          color: '#e879a0',
-          fontSize: 11,
-          formatter: (value: number) => `${value}%`,
+          show: false,
         },
         splitLine: { show: false },
       },
@@ -143,23 +136,8 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
         data: revenues,
         barWidth: '20%',
         itemStyle: {
-          color: {
-            type: 'linear',
-            x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: '#64948b' },  // 低饱和度青绿
-              { offset: 1, color: '#4a7a72' }
-            ]
-          },
-          borderRadius: [4, 4, 0, 0]
-        },
-        label: {
-          show: true,
-          position: 'top',
-          color: '#94a3b8',
-          fontSize: 10,
-          fontFamily: 'JetBrains Mono, monospace',
-          formatter: (params: any) => `$${params.value.toFixed(1)}B`,
+          color: '#2dd4bf', // Teal 400
+          borderRadius: 0
         },
       },
       {
@@ -169,23 +147,8 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
         data: grossProfits,
         barWidth: '20%',
         itemStyle: {
-          color: {
-            type: 'linear',
-            x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: '#7a8494' },  // 低饱和度蓝灰
-              { offset: 1, color: '#5a6474' }
-            ]
-          },
-          borderRadius: [4, 4, 0, 0]
-        },
-        label: {
-          show: true,
-          position: 'top',
-          color: '#94a3b8',
-          fontSize: 10,
-          fontFamily: 'JetBrains Mono, monospace',
-          formatter: (params: any) => `$${params.value.toFixed(1)}B`,
+          color: '#94a3b8', // Slate 400
+          borderRadius: 0
         },
       },
       {
@@ -195,23 +158,8 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
         data: netIncomes,
         barWidth: '20%',
         itemStyle: {
-          color: {
-            type: 'linear',
-            x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: '#5a9472' },  // 低饱和度绿
-              { offset: 1, color: '#3a7452' }
-            ]
-          },
-          borderRadius: [4, 4, 0, 0]
-        },
-        label: {
-          show: true,
-          position: 'top',
-          color: '#94a3b8',
-          fontSize: 10,
-          fontFamily: 'JetBrains Mono, monospace',
-          formatter: (params: any) => `$${params.value.toFixed(1)}B`,
+          color: '#10b981', // Emerald 500
+          borderRadius: 0
         },
       },
       {
@@ -219,37 +167,14 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
         type: 'line',
         yAxisIndex: 1,
         data: grossProfitMargins,
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 8,
+        smooth: false, // Sharp lines
+        symbol: 'none',
         lineStyle: {
-          color: '#e879a0',
-          width: 2.5,
-          shadowColor: 'rgba(232, 121, 160, 0.3)',
-          shadowBlur: 8,
+          color: '#f43f5e', // Rose 500 (distinct from others)
+          width: 1.5,
         },
         itemStyle: {
-          color: '#e879a0',
-          borderColor: '#1a1a2e',
-          borderWidth: 2,
-        },
-        areaStyle: {
-          color: {
-            type: 'linear',
-            x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: 'rgba(232, 121, 160, 0.15)' },
-              { offset: 1, color: 'rgba(232, 121, 160, 0)' }
-            ]
-          },
-        },
-        label: {
-          show: true,
-          position: 'top',
-          color: '#e879a0',
-          fontSize: 10,
-          fontFamily: 'JetBrains Mono, monospace',
-          formatter: (params: any) => `${params.value.toFixed(1)}%`,
+          color: '#f43f5e',
         },
       },
     ],
@@ -259,8 +184,8 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
   const latestIncome = activeStatements[0];
   const pieData = latestIncome ? [
     { name: '营业成本', value: latestIncome.costOfRevenue || 0 },
-    { name: '研发费用', value: latestIncome.researchAndDevelopmentExpenses || 0 },
-    { name: '销售管理费用', value: latestIncome.sellingGeneralAndAdministrativeExpenses || 0 },
+    { name: '研发', value: latestIncome.researchAndDevelopmentExpenses || 0 },
+    { name: '销售管理', value: latestIncome.sellingGeneralAndAdministrativeExpenses || 0 },
     { name: '净利润', value: latestIncome.netIncome || 0 },
   ].filter(d => d.value > 0) : [];
 
@@ -359,21 +284,21 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
   return (
     <div className="space-y-6">
       <div className="flex justify-end">
-        <div className="flex p-1 bg-white/5 border border-white/10 rounded-xl">
+        <div className="flex p-0.5 bg-white/5 border border-white/10 rounded-sm">
           <button
             onClick={() => setPeriod('annual')}
-            className={`px-4 py-1.5 text-xs font-medium rounded-lg transition-all ${period === 'annual'
-              ? 'bg-glacier-500 text-white shadow-lg shadow-glacier-500/20'
-              : 'text-mist-400 hover:text-mist-200'
+            className={`px-3 py-1 text-xs font-mono rounded-sm transition-all ${period === 'annual'
+              ? 'bg-glacier-500 text-obsidian font-bold'
+              : 'text-mist-500 hover:text-mist-200'
               }`}
           >
             年度
           </button>
           <button
             onClick={() => setPeriod('quarter')}
-            className={`px-4 py-1.5 text-xs font-medium rounded-lg transition-all ${period === 'quarter'
-              ? 'bg-glacier-500 text-white shadow-lg shadow-glacier-500/20'
-              : 'text-mist-400 hover:text-mist-200'
+            className={`px-3 py-1 text-xs font-mono rounded-sm transition-all ${period === 'quarter'
+              ? 'bg-glacier-500 text-obsidian font-bold'
+              : 'text-mist-500 hover:text-mist-200'
               }`}
           >
             季度
@@ -381,25 +306,23 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
         </div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-midnight/50 rounded-xl p-4 md:p-5 border border-white/5 max-md:border-0">
-          <h4 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
-            <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
+        <div className="bg-white/5 rounded-sm p-4 border border-white/10">
+          <h4 className="text-xs font-mono font-medium text-mist-500 mb-4 uppercase tracking-wider">
             {period === 'quarter' ? '季度' : '年度'}营收趋势
           </h4>
           <ReactECharts
             option={barOption}
-            style={{ height: '320px', width: '100%' }}
+            style={{ height: '300px', width: '100%' }}
             opts={{ renderer: 'canvas' }}
           />
         </div>
-        <div className="bg-midnight/50 rounded-xl p-4 md:p-5 border border-white/5 max-md:border-0">
-          <h4 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
-            <span className="w-2 h-2 bg-slate-500 rounded-full"></span>
-            {latestIncome ? (period === 'quarter' ? `${latestIncome.fiscalYear} ${latestIncome.period}` : latestIncome.date?.split('-')[0]) : ''} 成本结构分布
+        <div className="bg-white/5 rounded-sm p-4 border border-white/10">
+          <h4 className="text-xs font-mono font-medium text-mist-500 mb-4 uppercase tracking-wider">
+            成本结构 ({(pieData[0]?.value / 1e9).toFixed(1)}B+)
           </h4>
           <ReactECharts
             option={pieOption}
-            style={{ height: '320px', width: '100%' }}
+            style={{ height: '300px', width: '100%' }}
             opts={{ renderer: 'canvas' }}
           />
         </div>

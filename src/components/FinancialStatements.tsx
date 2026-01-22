@@ -62,25 +62,31 @@ export default function FinancialStatements({
       backgroundColor: 'transparent',
       tooltip: {
         trigger: 'axis',
-        backgroundColor: 'rgba(15, 15, 35, 0.95)',
-        borderColor: 'rgba(100, 116, 139, 0.3)',
+        backgroundColor: '#121212',
+        borderColor: 'rgba(255, 255, 255, 0.1)',
         borderWidth: 1,
-        textStyle: { color: '#f8fafc' },
+        padding: [8, 12],
+        textStyle: { color: '#e2e8f0', fontFamily: 'JetBrains Mono, monospace', fontSize: 12 },
         axisPointer: {
-          type: 'shadow',
-          shadowStyle: {
-            color: 'rgba(100, 116, 139, 0.1)',
+          type: 'line',
+          lineStyle: {
+            color: 'rgba(255, 255, 255, 0.2)',
+            type: 'dashed'
           }
         },
         formatter: (params: any) => {
-          let result = `<div style="font-weight: 600; margin-bottom: 8px;">${params[0].axisValue}</div>`;
+          let result = `<div style="font-weight: 500; margin-bottom: 4px; color: #94a3b8; font-size: 11px;">${params[0].axisValue}</div>`;
+          result += '<table style="width:100%; border-collapse: collapse;">';
           params.forEach((p: any) => {
-            result += `<div style="display: flex; align-items: center; gap: 8px; margin: 4px 0;">
-              <span style="width: 10px; height: 10px; background: ${p.color}; border-radius: 2px;"></span>
-              <span>${p.seriesName}: </span>
-              <span style="font-weight: 600;">$${p.value.toFixed(2)}B</span>
-            </div>`;
+            result += `<tr>
+              <td style="padding: 2px 8px 2px 0; display: flex; align-items: center;">
+                <span style="width: 6px; height: 6px; background: ${p.color}; margin-right: 6px; display: inline-block;"></span>
+                <span style="color: #cbd5e1; font-size: 12px;">${p.seriesName}</span>
+              </td>
+              <td style="padding: 2px 0 2px 8px; text-align: right; color: #fff; font-weight: 500;">$${p.value.toFixed(2)}B</td>
+            </tr>`;
           });
+          result += '</table>';
           return result;
         },
       },
@@ -96,116 +102,48 @@ export default function FinancialStatements({
         data: years,
         axisLine: { lineStyle: { color: '#334155' } },
         axisLabel: { color: '#94a3b8', fontSize: 12, fontFamily: 'JetBrains Mono, monospace' },
-        axisTick: { show: false },
+        axisTick: { show: true, lineStyle: { color: '#334155' } },
       },
       yAxis: {
         type: 'value',
-        name: '金额 (十亿美元)',
+        name: '',
         nameTextStyle: { color: '#64748b', fontSize: 11, padding: [0, 0, 8, 0] },
         axisLine: { show: false },
         axisLabel: { color: '#64748b', fontSize: 11, formatter: (v: number) => `$${v}B` },
-        splitLine: { lineStyle: { color: '#1e293b', type: 'dashed' } },
+        splitLine: { lineStyle: { color: '#1e293b', type: 'dashed', opacity: 0.5 } },
       },
       series: [
         {
           name: '营收',
           type: 'bar',
           data: revenues,
-          barWidth: '18%',
-          itemStyle: {
-            color: {
-              type: 'linear',
-              x: 0, y: 0, x2: 0, y2: 1,
-              colorStops: [
-                { offset: 0, color: '#64948b' },
-                { offset: 1, color: '#4a7a72' }
-              ]
-            },
-            borderRadius: [4, 4, 0, 0]
-          },
-          label: {
-            show: true,
-            position: 'top',
-            color: '#94a3b8',
-            fontSize: 10,
-            fontFamily: 'JetBrains Mono, monospace',
-            formatter: (params: any) => `$${params.value.toFixed(1)}B`,
-          },
+          barWidth: '20%',
+          itemStyle: { color: '#2dd4bf', borderRadius: 0 },
+          label: { show: true, position: 'top', color: '#94a3b8', fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `$${params.value.toFixed(1)}B` },
         },
         {
           name: '毛利润',
           type: 'bar',
           data: grossProfits,
-          barWidth: '18%',
-          itemStyle: {
-            color: {
-              type: 'linear',
-              x: 0, y: 0, x2: 0, y2: 1,
-              colorStops: [
-                { offset: 0, color: '#7a8494' },
-                { offset: 1, color: '#5a6474' }
-              ]
-            },
-            borderRadius: [4, 4, 0, 0]
-          },
-          label: {
-            show: true,
-            position: 'top',
-            color: '#94a3b8',
-            fontSize: 10,
-            fontFamily: 'JetBrains Mono, monospace',
-            formatter: (params: any) => `$${params.value.toFixed(1)}B`,
-          },
+          barWidth: '20%',
+          itemStyle: { color: '#94a3b8', borderRadius: 0 },
+          label: { show: true, position: 'top', color: '#94a3b8', fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `$${params.value.toFixed(1)}B` },
         },
         {
           name: '营业利润',
           type: 'bar',
           data: operatingIncomes,
-          barWidth: '18%',
-          itemStyle: {
-            color: {
-              type: 'linear',
-              x: 0, y: 0, x2: 0, y2: 1,
-              colorStops: [
-                { offset: 0, color: '#947a5a' },
-                { offset: 1, color: '#7a5a3a' }
-              ]
-            },
-            borderRadius: [4, 4, 0, 0]
-          },
-          label: {
-            show: true,
-            position: 'top',
-            color: '#94a3b8',
-            fontSize: 10,
-            fontFamily: 'JetBrains Mono, monospace',
-            formatter: (params: any) => `$${params.value.toFixed(1)}B`,
-          },
+          barWidth: '20%',
+          itemStyle: { color: '#fbbf24', borderRadius: 0 }, // Amber 400
+          label: { show: true, position: 'top', color: '#94a3b8', fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `$${params.value.toFixed(1)}B` },
         },
         {
           name: '净利润',
           type: 'bar',
           data: netIncomes,
-          barWidth: '18%',
-          itemStyle: {
-            color: {
-              type: 'linear',
-              x: 0, y: 0, x2: 0, y2: 1,
-              colorStops: [
-                { offset: 0, color: '#5a9472' },
-                { offset: 1, color: '#3a7452' }
-              ]
-            },
-            borderRadius: [4, 4, 0, 0]
-          },
-          label: {
-            show: true,
-            position: 'top',
-            color: '#94a3b8',
-            fontSize: 10,
-            fontFamily: 'JetBrains Mono, monospace',
-            formatter: (params: any) => `$${params.value.toFixed(1)}B`,
-          },
+          barWidth: '20%',
+          itemStyle: { color: '#10b981', borderRadius: 0 },
+          label: { show: true, position: 'top', color: '#94a3b8', fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `$${params.value.toFixed(1)}B` },
         },
       ],
     };
@@ -229,10 +167,26 @@ export default function FinancialStatements({
       backgroundColor: 'transparent',
       tooltip: {
         trigger: 'axis',
-        backgroundColor: 'rgba(15, 15, 35, 0.95)',
-        borderColor: 'rgba(100, 116, 139, 0.3)',
+        backgroundColor: '#121212',
+        borderColor: 'rgba(255, 255, 255, 0.1)',
         borderWidth: 1,
-        textStyle: { color: '#f8fafc' },
+        padding: [8, 12],
+        textStyle: { color: '#e2e8f0', fontFamily: 'JetBrains Mono, monospace', fontSize: 12 },
+        formatter: (params: any) => {
+          let result = `<div style="font-weight: 500; margin-bottom: 4px; color: #94a3b8; font-size: 11px;">${params[0].axisValue}</div>`;
+          result += '<table style="width:100%; border-collapse: collapse;">';
+          params.forEach((p: any) => {
+            result += `<tr>
+              <td style="padding: 2px 8px 2px 0; display: flex; align-items: center;">
+                <span style="width: 6px; height: 6px; background: ${p.color}; margin-right: 6px; display: inline-block; border-radius: 50%;"></span>
+                <span style="color: #cbd5e1; font-size: 12px;">${p.seriesName}</span>
+              </td>
+              <td style="padding: 2px 0 2px 8px; text-align: right; color: #fff; font-weight: 500;">$${p.value.toFixed(2)}B</td>
+            </tr>`;
+          });
+          result += '</table>';
+          return result;
+        },
       },
       legend: {
         data: ['总资产', '总负债', '股东权益', '总债务', '现金'],
@@ -246,22 +200,22 @@ export default function FinancialStatements({
         data: years,
         axisLine: { lineStyle: { color: '#334155' } },
         axisLabel: { color: '#94a3b8', fontSize: 12, fontFamily: 'JetBrains Mono, monospace' },
-        axisTick: { show: false },
+        axisTick: { show: true, lineStyle: { color: '#334155' } },
       },
       yAxis: {
         type: 'value',
-        name: '金额 (十亿美元)',
+        name: '',
         nameTextStyle: { color: '#64748b', fontSize: 11, padding: [0, 0, 8, 0] },
         axisLine: { show: false },
         axisLabel: { color: '#64748b', fontSize: 11, formatter: (v: number) => `$${v}B` },
-        splitLine: { lineStyle: { color: '#1e293b', type: 'dashed' } },
+        splitLine: { lineStyle: { color: '#1e293b', type: 'dashed', opacity: 0.5 } },
       },
       series: [
-        { name: '总资产', type: 'line', data: totalAssets, smooth: true, lineStyle: { width: 3 }, itemStyle: { color: '#64748b' }, symbol: 'circle', symbolSize: 6, label: { show: true, position: 'top', color: '#64748b', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
-        { name: '总负债', type: 'line', data: totalLiabilities, smooth: true, lineStyle: { width: 3 }, itemStyle: { color: '#94655a' }, symbol: 'circle', symbolSize: 6, label: { show: true, position: 'bottom', color: '#94655a', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
-        { name: '股东权益', type: 'line', data: totalEquity, smooth: true, lineStyle: { width: 3 }, itemStyle: { color: '#5a9472' }, symbol: 'circle', symbolSize: 6, label: { show: true, position: 'top', color: '#5a9472', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
-        { name: '总债务', type: 'line', data: totalDebt, smooth: true, lineStyle: { width: 3, type: 'dashed' }, itemStyle: { color: '#947a5a' }, symbol: 'circle', symbolSize: 6, label: { show: true, position: 'bottom', color: '#947a5a', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
-        { name: '现金', type: 'line', data: cash, smooth: true, lineStyle: { width: 3, type: 'dashed' }, itemStyle: { color: '#7a8494' }, symbol: 'circle', symbolSize: 6, label: { show: true, position: 'top', color: '#7a8494', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
+        { name: '总资产', type: 'line', data: totalAssets, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#64748b' }, symbol: 'none', label: { show: true, position: 'top', color: '#64748b', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
+        { name: '总负债', type: 'line', data: totalLiabilities, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#b91c1c' }, symbol: 'none', label: { show: true, position: 'bottom', color: '#b91c1c', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
+        { name: '股东权益', type: 'line', data: totalEquity, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#10b981' }, symbol: 'none', label: { show: true, position: 'top', color: '#10b981', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
+        { name: '总债务', type: 'line', data: totalDebt, smooth: false, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: '#fbbf24' }, symbol: 'none', label: { show: true, position: 'bottom', color: '#fbbf24', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
+        { name: '现金', type: 'line', data: cash, smooth: false, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: '#94a3b8' }, symbol: 'none', label: { show: true, position: 'top', color: '#94a3b8', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
       ],
     };
 
@@ -284,10 +238,26 @@ export default function FinancialStatements({
       backgroundColor: 'transparent',
       tooltip: {
         trigger: 'axis',
-        backgroundColor: 'rgba(15, 15, 35, 0.95)',
-        borderColor: 'rgba(100, 116, 139, 0.3)',
+        backgroundColor: '#121212',
+        borderColor: 'rgba(255, 255, 255, 0.1)',
         borderWidth: 1,
-        textStyle: { color: '#f8fafc' },
+        padding: [8, 12],
+        textStyle: { color: '#e2e8f0', fontFamily: 'JetBrains Mono, monospace', fontSize: 12 },
+        formatter: (params: any) => {
+          let result = `<div style="font-weight: 500; margin-bottom: 4px; color: #94a3b8; font-size: 11px;">${params[0].axisValue}</div>`;
+          result += '<table style="width:100%; border-collapse: collapse;">';
+          params.forEach((p: any) => {
+            result += `<tr>
+              <td style="padding: 2px 8px 2px 0; display: flex; align-items: center;">
+                <span style="width: 6px; height: 6px; background: ${p.color}; margin-right: 6px; display: inline-block;"></span>
+                <span style="color: #cbd5e1; font-size: 12px;">${p.seriesName}</span>
+              </td>
+              <td style="padding: 2px 0 2px 8px; text-align: right; color: #fff; font-weight: 500;">$${p.value.toFixed(2)}B</td>
+            </tr>`;
+          });
+          result += '</table>';
+          return result;
+        },
       },
       legend: {
         data: ['经营现金流', '投资现金流', '融资现金流', '自由现金流', '资本开支'],
@@ -301,22 +271,22 @@ export default function FinancialStatements({
         data: years,
         axisLine: { lineStyle: { color: '#334155' } },
         axisLabel: { color: '#94a3b8', fontSize: 12, fontFamily: 'JetBrains Mono, monospace' },
-        axisTick: { show: false },
+        axisTick: { show: true, lineStyle: { color: '#334155' } },
       },
       yAxis: {
         type: 'value',
-        name: '金额 (十亿美元)',
+        name: '',
         nameTextStyle: { color: '#64748b', fontSize: 11, padding: [0, 0, 8, 0] },
         axisLine: { show: false },
         axisLabel: { color: '#64748b', fontSize: 11, formatter: (v: number) => `$${v}B` },
-        splitLine: { lineStyle: { color: '#1e293b', type: 'dashed' } },
+        splitLine: { lineStyle: { color: '#1e293b', type: 'dashed', opacity: 0.5 } },
       },
       series: [
-        { name: '经营现金流', type: 'bar', data: operatingCF, barWidth: '15%', itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#5a9472' }, { offset: 1, color: '#3a7452' }] }, borderRadius: [4, 4, 0, 0] }, label: { show: true, position: 'top', color: '#94a3b8', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
-        { name: '投资现金流', type: 'bar', data: investingCF, barWidth: '15%', itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#94655a' }, { offset: 1, color: '#74453a' }] }, borderRadius: [4, 4, 0, 0] }, label: { show: true, position: 'bottom', color: '#94a3b8', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
-        { name: '融资现金流', type: 'bar', data: financingCF, barWidth: '15%', itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#947a5a' }, { offset: 1, color: '#7a5a3a' }] }, borderRadius: [4, 4, 0, 0] }, label: { show: true, position: 'bottom', color: '#94a3b8', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
-        { name: '自由现金流', type: 'line', data: freeCF, smooth: true, lineStyle: { width: 3 }, itemStyle: { color: '#64948b' }, symbol: 'circle', symbolSize: 6, label: { show: true, position: 'top', color: '#64948b', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
-        { name: '资本开支', type: 'line', data: capex, smooth: true, lineStyle: { width: 3, type: 'dashed' }, itemStyle: { color: '#7a8494' }, symbol: 'circle', symbolSize: 6, label: { show: true, position: 'bottom', color: '#7a8494', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
+        { name: '经营现金流', type: 'bar', data: operatingCF, barWidth: '18%', itemStyle: { color: '#10b981', borderRadius: 0 }, label: { show: true, position: 'top', color: '#94a3b8', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
+        { name: '投资现金流', type: 'bar', data: investingCF, barWidth: '18%', itemStyle: { color: '#f43f5e', borderRadius: 0 }, label: { show: true, position: 'bottom', color: '#94a3b8', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
+        { name: '融资现金流', type: 'bar', data: financingCF, barWidth: '18%', itemStyle: { color: '#fbbf24', borderRadius: 0 }, label: { show: true, position: 'bottom', color: '#94a3b8', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
+        { name: '自由现金流', type: 'line', data: freeCF, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#2dd4bf' }, symbol: 'none', label: { show: true, position: 'top', color: '#2dd4bf', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
+        { name: '资本开支', type: 'line', data: capex, smooth: false, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: '#94a3b8' }, symbol: 'none', label: { show: true, position: 'bottom', color: '#94a3b8', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
       ],
     };
 
@@ -468,54 +438,54 @@ export default function FinancialStatements({
   }
 
   return (
-    <div className="bg-midnight/50 rounded-xl p-6 md:p-8 border border-white/5 max-md:border-0 animate-fade-in-up">
+    <div className="bg-obsidian border-y border-white/10 py-6 animate-fade-in-up">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
           <div className="relative">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#64748b]/20 to-[#5a6474]/20 flex items-center justify-center border border-white/5">
-              <FileSpreadsheet className="w-5 h-5 text-slate-400" />
+            <div className="w-8 h-8 rounded-sm bg-white/5 flex items-center justify-center border border-white/10">
+              <FileSpreadsheet className="w-4 h-4 text-mist-400" />
             </div>
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-slate-200">三大财务报表</h2>
-            <p className="text-sm text-slate-500 mt-0.5">近5{period === 'quarter' ? '季度' : '年度'}财务数据分析</p>
+            <h2 className="text-base font-semibold text-white uppercase tracking-wider">三大财务报表</h2>
+            <p className="text-xs text-mist-500 mt-0.5 font-mono">近5{period === 'quarter' ? '季度' : '年度'}财务数据分析</p>
           </div>
         </div>
 
         {/* 周期及视图切换 */}
         <div className="flex items-center gap-4">
-          <div className="flex p-1 bg-white/5 border border-white/10 rounded-lg">
+          <div className="flex p-0.5 bg-white/5 border border-white/10 rounded-sm">
             <button
               onClick={() => setPeriod('annual')}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${period === 'annual'
-                ? 'bg-glacier-500 text-white shadow-sm'
-                : 'text-mist-400 hover:text-mist-200'
+              className={`px-3 py-1 text-xs font-mono rounded-sm transition-all ${period === 'annual'
+                ? 'bg-glacier-500 text-obsidian font-bold'
+                : 'text-mist-500 hover:text-mist-200'
                 }`}
             >
               年度
             </button>
             <button
               onClick={() => setPeriod('quarter')}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${period === 'quarter'
-                ? 'bg-glacier-500 text-white shadow-sm'
-                : 'text-mist-400 hover:text-mist-200'
+              className={`px-3 py-1 text-xs font-mono rounded-sm transition-all ${period === 'quarter'
+                ? 'bg-glacier-500 text-obsidian font-bold'
+                : 'text-mist-500 hover:text-mist-200'
                 }`}
             >
               季度
             </button>
           </div>
 
-          <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1 border border-white/5">
+          <div className="flex items-center gap-1 bg-white/5 rounded-sm p-0.5 border border-white/5">
             <button
               onClick={() => setViewMode('chart')}
-              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${viewMode === 'chart' ? 'bg-slate-600/30 text-slate-300' : 'text-slate-500 hover:text-slate-300'
+              className={`px-3 py-1.5 text-xs font-medium rounded-sm transition-colors ${viewMode === 'chart' ? 'bg-white/10 text-white' : 'text-mist-500 hover:text-mist-300'
                 }`}
             >
               图表
             </button>
             <button
               onClick={() => setViewMode('table')}
-              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${viewMode === 'table' ? 'bg-slate-600/30 text-slate-300' : 'text-slate-500 hover:text-slate-300'
+              className={`px-3 py-1.5 text-xs font-medium rounded-sm transition-colors ${viewMode === 'table' ? 'bg-white/10 text-white' : 'text-mist-500 hover:text-mist-300'
                 }`}
             >
               表格
@@ -530,9 +500,9 @@ export default function FinancialStatements({
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${activeTab === tab.key
-              ? 'bg-slate-600/20 text-slate-300 border border-slate-500/30'
-              : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+            className={`flex items-center gap-2 px-4 py-2 rounded-sm transition-all text-sm font-medium ${activeTab === tab.key
+              ? 'bg-white/10 text-white border-b-2 border-glacier-500'
+              : 'text-mist-500 hover:text-mist-300 hover:bg-white/5'
               }`}
           >
             {tab.icon}
@@ -542,7 +512,7 @@ export default function FinancialStatements({
       </div>
 
       {/* 内容区域 */}
-      <div className="bg-midnight/30 rounded-xl p-4 border border-white/5 max-md:border-0">
+      <div className="bg-white/5 rounded-sm p-4 border border-white/10">
         {activeTab === 'income' && (
           viewMode === 'chart' ? renderIncomeChart() : renderIncomeTable()
         )}

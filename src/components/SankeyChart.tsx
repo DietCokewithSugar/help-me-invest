@@ -15,9 +15,10 @@ export default function SankeyChart({ data }: SankeyProps) {
   };
 
   // 低饱和度配色 - 电子墨水风格
-  const REVENUE_COLOR = '#64748b';  // 中性灰
-  const EXPENSE_COLOR = '#94655a';  // 低饱和度暗红
-  const PROFIT_COLOR = '#5a9472';   // 低饱和度暗绿
+  // 低饱和度配色 - 实用主义风格
+  const REVENUE_COLOR = '#475569';  // Slate 600
+  const EXPENSE_COLOR = '#b91c1c';  // Red 700 (darker semantic error)
+  const PROFIT_COLOR = '#059669';   // Emerald 600
 
   const revenueNodes = new Set(['主营业务收入', '其他收入', '总营收']);
   const expenseNodes = new Set(['营业成本', '研发费用', '销售及管理费用', '税费及其他']);
@@ -48,17 +49,19 @@ export default function SankeyChart({ data }: SankeyProps) {
     tooltip: {
       trigger: 'item',
       triggerOn: 'mousemove',
-      backgroundColor: 'rgba(15, 15, 35, 0.95)',
-      borderColor: 'rgba(20, 184, 166, 0.3)',
+      backgroundColor: '#121212',
+      borderColor: 'rgba(255, 255, 255, 0.1)',
       borderWidth: 1,
-      textStyle: { 
-        color: '#f8fafc',
-        fontSize: 13,
+      padding: [8, 12],
+      textStyle: {
+        color: '#e2e8f0',
+        fontSize: 12,
+        fontFamily: 'JetBrains Mono, monospace',
       },
       formatter: (params: any) => {
         if (params.dataType === 'edge') {
-          return `<div style="font-weight: 600;">${params.data.source} → ${params.data.target}</div>
-                  <div style="color: #14b8a6; font-size: 16px; margin-top: 4px;">${formatValue(params.data.value)}</div>`;
+          return `<div style="font-weight: 500; font-size: 11px; color: #94a3b8; margin-bottom: 4px;">${params.data.source} → ${params.data.target}</div>
+                  <div style="color: #fff; font-size: 13px; font-weight: 600;">${formatValue(params.data.value)}</div>`;
         }
         return `<div style="font-weight: 600;">${params.name}</div>`;
       },
@@ -67,7 +70,7 @@ export default function SankeyChart({ data }: SankeyProps) {
       {
         type: 'sankey',
         layout: 'none',
-        emphasis: { 
+        emphasis: {
           focus: 'adjacency',
           lineStyle: {
             opacity: 0.8,
@@ -88,9 +91,9 @@ export default function SankeyChart({ data }: SankeyProps) {
           borderRadius: 4,
         },
         label: {
-          color: '#f8fafc',
-          fontSize: 13,
-          fontFamily: 'DM Sans, system-ui, sans-serif',
+          color: '#e2e8f0',
+          fontSize: 11,
+          fontFamily: 'Inter, system-ui, sans-serif',
           fontWeight: 500,
           position: 'right',
           formatter: (params: any) => {
@@ -134,14 +137,14 @@ export default function SankeyChart({ data }: SankeyProps) {
 
   if (!data.links || data.links.length === 0) {
     return (
-      <div className="bg-midnight/50 rounded-xl p-8 text-center text-slate-400">
-        <p>暂无足够的财务数据来生成桑基图</p>
+      <div className="bg-white/5 border border-white/10 rounded-sm p-8 text-center text-slate-500 font-mono text-xs">
+        <p>暂无足够的财务数据生成桑基图</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-midnight/50 rounded-xl p-3 md:p-4 border border-white/5 max-md:border-0 overflow-x-auto">
+    <div className="bg-white/5 border border-white/10 rounded-sm p-4 overflow-x-auto">
       {/* 移动端：高度窄、可横向滚动查看完整图表 */}
       <div className="md:hidden" style={{ minWidth: '580px' }}>
         <ReactECharts

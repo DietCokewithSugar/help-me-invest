@@ -26,6 +26,7 @@ import { getMarketConfig } from '@/lib/markets';
 import { buildSankeyData } from '@/lib/sankey-utils';
 
 // 市场标识徽章 - 极简设计，无 emoji
+// 市场标识徽章 - 极简设计，无 emoji，直角
 const MarketBadge = ({ market }: { market: MarketType }) => {
   const marketInfo: Record<MarketType, { name: string; abbr: string }> = {
     US: { name: '美股', abbr: 'US' },
@@ -35,9 +36,9 @@ const MarketBadge = ({ market }: { market: MarketType }) => {
   };
   const info = marketInfo[market] || marketInfo.US;
   return (
-    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-mist-300 text-xs font-medium">
+    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-white/5 border border-white/10 text-mist-300 text-xs font-medium">
       <span className="text-glacier-500 font-mono">{info.abbr}</span>
-      <span className="text-mist-500">·</span>
+      <span className="text-mist-700">|</span>
       <span>{info.name}</span>
     </span>
   );
@@ -76,17 +77,17 @@ function CompanyLogo({ src, alt }: { src?: string; alt: string }) {
   // 如果没有图片 URL、加载失败或超时，显示备用图标
   if (!src || hasError || hasTimeout) {
     return (
-      <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-gemini-blue/20 to-gemini-purple/20 backdrop-blur-xl flex items-center justify-center shrink-0 border border-white/10 max-md:border-0">
-        <Building2 className="w-10 h-10 text-gemini-blue/70" />
+      <div className="w-20 h-20 rounded bg-white/5 flex items-center justify-center shrink-0 border border-white/10">
+        <Building2 className="w-8 h-8 text-mist-500" />
       </div>
     );
   }
 
   return (
-    <div className="w-24 h-24 rounded-3xl bg-white/5 backdrop-blur-xl flex items-center justify-center p-4 shrink-0 border border-white/10 max-md:border-0 relative">
+    <div className="w-20 h-20 rounded bg-white/5 flex items-center justify-center p-3 shrink-0 border border-white/10 relative">
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-gemini-blue/30 border-t-gemini-blue rounded-full animate-spin" />
+        <div className="absolute inset-0 flex items-center justify-center bg-obsidian">
+          <div className="w-6 h-6 border-2 border-white/10 border-t-glacier-500 rounded-full animate-spin" />
         </div>
       )}
       <img
@@ -110,6 +111,7 @@ interface ReportProps {
 }
 
 // 分析卡片组件
+// 分析卡片组件
 function AnalysisCard({
   icon: Icon,
   title,
@@ -118,27 +120,23 @@ function AnalysisCard({
 }: {
   icon: any;
   title: string;
-  gradient: string;
+  gradient: string; // Keep interface but ignore gradient in implementation
   children: React.ReactNode;
 }) {
   return (
-    <div className="gemini-card gemini-card-glow p-6 md:p-8">
-      <div className="flex items-center gap-4 mb-6">
-        <div className="relative">
-          <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center`}>
-            <Icon className="w-5 h-5 text-white" />
-          </div>
-          <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${gradient} opacity-30 blur-xl`} />
-        </div>
-        <h3 className="text-xl font-semibold text-white">{title}</h3>
+    <div className="gemini-card p-6">
+      <div className="flex items-center gap-3 mb-4 border-b border-white/5 pb-3">
+        <Icon className="w-4 h-4 text-glacier-500" />
+        <h3 className="text-base font-medium text-white uppercase tracking-wider">{title}</h3>
       </div>
-      <div className="prose prose-gemini max-w-none prose-p:text-mist-300 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-300 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5">
+      <div className="prose prose-gemini max-w-none prose-p:text-mist-300 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-300 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 text-sm">
         {children}
       </div>
     </div>
   );
 }
 
+// 可折叠区块 - 支持编号
 // 可折叠区块 - 支持编号
 function CollapsibleSection({
   id,
@@ -164,35 +162,34 @@ function CollapsibleSection({
   return (
     <section id={id} className="scroll-mt-28">
       <button
-        className="w-full flex items-center justify-between mb-6 group"
+        className="w-full flex items-center justify-between mb-4 group"
         onClick={onToggle}
       >
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {/* 编号 */}
           {sectionNumber && (
-            <span className="text-3xl font-light text-mist-700 font-mono hidden md:block w-10">{sectionNumber}</span>
+            <span className="text-xl font-light text-mist-600 font-mono hidden md:block w-8 border-r border-white/10 mr-2">{sectionNumber}</span>
           )}
-          <div className="relative">
-            <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center transition-transform group-hover:scale-105`}>
-              <Icon className="w-5 h-5 text-white" />
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center border border-white/10 group-hover:bg-white/10 transition-colors">
+              <Icon className="w-4 h-4 text-mist-300 group-hover:text-white" />
             </div>
-            <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-20 blur-xl transition-opacity`} />
-          </div>
-          <div className="text-left">
-            <h2 className="text-2xl font-semibold text-white">{title}</h2>
-            {subtitle && <p className="text-sm text-mist-500 mt-0.5">{subtitle}</p>}
+            <div className="text-left">
+              <h2 className="text-lg font-medium text-white uppercase tracking-wide group-hover:text-glacier-500 transition-colors">{title}</h2>
+              {subtitle && <p className="text-xs text-mist-500 font-mono">{subtitle}</p>}
+            </div>
           </div>
         </div>
-        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
+        <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center border border-white/10 group-hover:bg-white/10 transition-colors">
           {expanded ? (
-            <ChevronUp className="w-5 h-5 text-mist-400 group-hover:text-white transition-colors" />
+            <ChevronUp className="w-4 h-4 text-mist-400 group-hover:text-white" />
           ) : (
-            <ChevronDown className="w-5 h-5 text-mist-400 group-hover:text-white transition-colors" />
+            <ChevronDown className="w-4 h-4 text-mist-400 group-hover:text-white" />
           )}
         </div>
       </button>
 
-      <div className={`transition-all duration-500 ease-out ${expanded ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
+      <div className={`transition-all duration-300 ease-out ${expanded ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
         {children}
       </div>
     </section>
@@ -228,6 +225,7 @@ function SideAnchorNav({ sections, activeSection }: { sections: Array<{ id: stri
 }
 
 // 统计数据卡片
+// 统计数据卡片
 function StatCard({
   icon: Icon,
   label,
@@ -242,19 +240,19 @@ function StatCard({
   gradient: string;
 }) {
   return (
-    <div className="gemini-card p-5 group">
-      <div className="flex items-center gap-2 text-mist-500 text-xs mb-3">
-        <Icon className="w-4 h-4" />
-        {label}
+    <div className="bg-white/5 border border-white/10 p-4 rounded-sm hover:border-white/20 transition-colors">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-mist-500 text-xs font-mono uppercase tracking-wider">{label}</span>
       </div>
-      <p className="text-xl md:text-2xl font-bold text-white font-mono mb-1 whitespace-nowrap">{value}</p>
-      {subValue && (
-        <span className={`text-sm ${subValue.positive ? 'text-gemini-green' : 'text-gemini-red'}`}>
-          {subValue.text}
-        </span>
-      )}
-      {/* Hover 发光效果 */}
-      <div className={`absolute inset-0 rounded-3xl bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-5 transition-opacity`} />
+      <div className="flex items-baseline gap-2">
+        <p className="text-lg font-bold text-white font-mono tracking-tight">{value}</p>
+        <div className="flex-1" />
+        {subValue && (
+          <span className={`text-xs font-mono px-1.5 py-0.5 rounded-sm ${subValue.positive ? 'text-growth bg-growth/10' : 'text-decay bg-decay/10'}`}>
+            {subValue.text}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -467,8 +465,8 @@ export default function Report({
             <button
               onClick={() => setReportVersion('standard')}
               className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${reportVersion === 'standard'
-                  ? 'bg-glacier-500 text-white'
-                  : 'text-mist-400 hover:text-white'
+                ? 'bg-glacier-500 text-white'
+                : 'text-mist-400 hover:text-white'
                 }`}
             >
               普通版
@@ -476,8 +474,8 @@ export default function Report({
             <button
               onClick={() => setReportVersion('professional')}
               className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${reportVersion === 'professional'
-                  ? 'bg-glacier-500 text-white'
-                  : 'text-mist-400 hover:text-white'
+                ? 'bg-glacier-500 text-white'
+                : 'text-mist-400 hover:text-white'
                 }`}
             >
               专业版
@@ -485,7 +483,7 @@ export default function Report({
           </div>
 
           {/* 快捷导航 */}
-          <div className="hidden lg:flex items-center gap-1 p-1.5 rounded-2xl bg-surface/80 backdrop-blur-xl border border-white/5">
+          <div className="hidden lg:flex items-center gap-1 p-1 rounded bg-white/5 border border-white/5">
             {sections.map((section) => (
               <button
                 key={section.id}
@@ -493,9 +491,9 @@ export default function Report({
                   const element = document.getElementById(section.id);
                   element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }}
-                className="flex items-center gap-2 px-4 py-2 text-sm text-mist-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+                className="flex items-center gap-2 px-3 py-1.5 text-xs text-mist-400 hover:text-white hover:bg-white/5 rounded-sm transition-all"
               >
-                <section.icon className="w-4 h-4" />
+                <section.icon className="w-3 h-3" />
                 <span>{section.label}</span>
               </button>
             ))}
@@ -513,53 +511,49 @@ export default function Report({
         </div>
       </div>
 
-      <div ref={reportRef} className="report-mobile-borderless space-y-10 bg-[#0a0a0f] p-4 md:p-10 rounded-3xl border border-white/10 max-md:border-0 shadow-2xl max-md:shadow-none relative">
+      <div ref={reportRef} className="space-y-6 bg-obsidian py-4">
         {/* 公司头部信息 */}
-        <header className="gemini-card p-8 md:p-10 animate-fade-in-up relative overflow-hidden">
-          {/* 背景装饰 */}
-          <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-gemini-blue/10 to-gemini-purple/5 rounded-full blur-3xl" />
-
-          <div className="relative flex flex-col md:flex-row items-start gap-8">
+        <header className="border-b border-white/10 pb-6 mb-8 animate-fade-in-up">
+          <div className="flex flex-col md:flex-row items-start gap-6">
             <CompanyLogo src={profile.image} alt={profile.companyName} />
 
             <div className="flex-1 min-w-0">
               {/* 公司名称和代码 */}
-              <div className="flex flex-wrap items-center gap-3 mb-4">
-                <h1 className="text-3xl md:text-4xl font-bold text-white">
+              <div className="flex flex-wrap items-center gap-3 mb-3">
+                <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
                   {profile.companyName}
                 </h1>
-                <span className="px-4 py-1.5 rounded-full bg-gradient-to-r from-gemini-blue/20 to-gemini-purple/20 border border-gemini-blue/30 text-gemini-blue text-sm font-mono font-semibold">
+                <span className="px-2 py-0.5 rounded-sm bg-white/5 border border-white/10 text-mist-300 text-sm font-mono font-semibold">
                   {profile.symbol}
                 </span>
                 <MarketBadge market={market} />
-                <span className="px-3 py-1 bg-white/5 text-mist-400 rounded-full text-xs border border-white/10">
+                <span className="px-2 py-0.5 bg-white/5 text-mist-400 rounded-sm text-xs border border-white/10 font-mono">
                   {exchangeName}
                 </span>
-
               </div>
 
               {/* 公司信息 */}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-mist-400 text-sm mb-8">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-mist-500 text-xs mb-6 font-mono uppercase tracking-wider">
                 <span className="flex items-center gap-1.5">
-                  <Building2 className="w-4 h-4" />
+                  <Building2 className="w-3 h-3" />
                   {profile.sector || 'N/A'}
                 </span>
-                <span className="text-mist-600">•</span>
+                <span className="text-mist-700">|</span>
                 <span>{profile.industry || 'N/A'}</span>
-                <span className="text-mist-600">•</span>
+                <span className="text-mist-700">|</span>
                 <span className="flex items-center gap-1.5">
-                  <Globe className="w-4 h-4" />
+                  <Globe className="w-3 h-3" />
                   {profile.country || 'N/A'}
                 </span>
               </div>
 
               {/* 统计数据 */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard
                   icon={DollarSign}
                   label="市值"
                   value={`${currencySymbol}${formatNumber(marketCap)}`}
-                  gradient="from-glacier-500/20 to-glacier-600/20"
+                  gradient="none"
                 />
                 <StatCard
                   icon={TrendingUp}
@@ -569,19 +563,19 @@ export default function Report({
                     text: `${priceChange >= 0 ? '+' : ''}${priceChangePercent}`,
                     positive: priceChange >= 0
                   }}
-                  gradient="from-glacier-600/20 to-slate-500/20"
+                  gradient="none"
                 />
                 <StatCard
                   icon={Users2}
                   label="员工数"
                   value={profile.fullTimeEmployees ? parseInt(profile.fullTimeEmployees).toLocaleString() : 'N/A'}
-                  gradient="from-slate-500/20 to-slate-600/20"
+                  gradient="none"
                 />
                 <StatCard
                   icon={Calendar}
                   label="IPO 日期"
                   value={profile.ipoDate || 'N/A'}
-                  gradient="from-slate-600/20 to-glacier-700/20"
+                  gradient="none"
                 />
               </div>
             </div>
@@ -590,37 +584,28 @@ export default function Report({
 
         {/* ==================== AI 生成中提示（仅普通版） ==================== */}
         {showAiLoading && showAiSectionInVersion && (
-          <div className="gemini-card p-6 md:p-8 animate-fade-in">
+          <div className="bg-white/5 border border-white/10 p-4 border-l-2 border-l-glacier-500 animate-fade-in rounded-sm">
             {/* 标题区域 */}
-            <div className="flex items-center gap-3 mb-6">
-              <div className="relative w-8 h-8 shrink-0">
-                <div className="absolute inset-0 rounded-lg border border-glacier-500/40 border-t-glacier-500 animate-spin" style={{ animationDuration: '1.2s' }} />
-                <div className="absolute inset-1.5 rounded bg-glacier-500/10 flex items-center justify-center">
-                  <Sparkles className="w-3 h-3 text-glacier-500" />
-                </div>
-              </div>
-              <h3 className="text-base font-medium text-white">AI 正在分析</h3>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-4 h-4 border-2 border-white/10 border-t-glacier-500 rounded-full animate-spin" />
+              <h3 className="text-sm font-medium text-white font-mono uppercase tracking-wider">AI 分析进行中...</h3>
             </div>
 
-            {/* 分析步骤指示器 - 增加行间距，统一色彩 */}
-            <div className="space-y-4 mb-6">
-              <div className="flex items-center gap-3 text-sm">
-                <div className="w-1.5 h-1.5 rounded-full bg-glacier-500" />
-                <span className="text-mist-300">财务数据已加载</span>
+            {/* 分析步骤指示器 */}
+            <div className="space-y-2 mb-4 pl-7">
+              <div className="flex items-center gap-3 text-xs font-mono">
+                <div className="w-1 h-1 rounded-full bg-glacier-500" />
+                <span className="text-mist-300">数据加载完成</span>
               </div>
-              <div className="flex items-center gap-3 text-sm">
-                <div className="w-1.5 h-1.5 rounded-full bg-glacier-500/60 animate-pulse" />
-                <span className="text-mist-400">分析竞争优势与护城河</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <div className="w-1.5 h-1.5 rounded-full bg-mist-700" />
-                <span className="text-mist-600">生成投资建议</span>
+              <div className="flex items-center gap-3 text-xs font-mono">
+                <div className="w-1 h-1 rounded-full bg-glacier-500 animate-pulse" />
+                <span className="text-mist-400">正在分析护城河...</span>
               </div>
             </div>
 
             {/* 线性进度条 */}
-            <div className="h-0.5 bg-white/5 rounded-full overflow-hidden">
-              <div className="h-full w-2/3 bg-glacier-500/80 rounded-full animate-pulse" />
+            <div className="h-0.5 bg-white/10 w-full">
+              <div className="h-full w-2/3 bg-glacier-500 animate-pulse" />
             </div>
           </div>
         )}
@@ -796,8 +781,8 @@ export default function Report({
                                 key={year.index}
                                 onClick={() => setSankeyYearIndex(year.index)}
                                 className={`px-3 py-1 text-xs font-medium rounded-md transition-all whitespace-nowrap ${sankeyYearIndex === year.index
-                                    ? 'bg-glacier-500 text-white shadow-sm'
-                                    : 'text-mist-400 hover:text-mist-200'
+                                  ? 'bg-glacier-500 text-white shadow-sm'
+                                  : 'text-mist-400 hover:text-mist-200'
                                   }`}
                               >
                                 {year.label}

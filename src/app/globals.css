@@ -1,863 +1,131 @@
-/* 字体导入 - PingFang SC 和 Inter */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ============================================
-   设计系统 - 核心变量
-   ============================================ */
 :root {
-  /* 深色背景 - 更纯粹的深蓝黑 */
-  --obsidian: #0A0A0B;
-  --carbon: #0D0D0F;
-  --void: #0a0a0f;
-  --abyss: #0d0d14;
-  --deep: #12121a;
-  --surface: #1a1a24;
-  --elevated: #24242f;
-  
-  /* 点缀色 - 冰川蓝 */
-  --glacier: #14b8a6;
-  --glacier-light: #2dd4bf;
-  --glacier-dark: #0d9488;
-  
-  /* Google 品牌色 */
-  --gemini-blue: #4285f4;
-  --gemini-red: #ea4335;
-  --gemini-yellow: #fbbc04;
-  --gemini-green: #34a853;
-  
-  /* 极光渐变色 */
-  --aurora-1: #4285f4;
-  --aurora-2: #a855f7;
-  --aurora-3: #ec4899;
-  --aurora-4: #22d3ee;
-  
-  /* 文字色 */
-  --text-primary: #f8fafc;
+  --bg-obsidian: #0A0A0B;
+  --bg-surface: #121212;
+  --text-primary: #e2e8f0;
   --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-}
-
-/* ============================================
-   基础样式
-   ============================================ */
-* {
-  box-sizing: border-box;
-}
-
-html {
-  scroll-behavior: smooth;
+  --border-color: rgba(255, 255, 255, 0.1);
+  --accent-glacier: #14b8a6;
 }
 
 body {
-  background-color: #0A0A0B;
-  background-image:
-    radial-gradient(circle, rgba(185, 195, 210, 0.12) 0.6px, transparent 1.4px),
-    radial-gradient(900px 650px at 78% 42%, rgba(20, 184, 166, 0.06), transparent 60%),
-    radial-gradient(1200px 900px at 15% 60%, rgba(66, 133, 244, 0.04), transparent 65%);
-  background-size: 18px 18px, auto, auto;
-  background-position: 0 0, center, center;
-  background-repeat: repeat, no-repeat, no-repeat;
+  background-color: var(--bg-obsidian);
   color: var(--text-primary);
-  min-height: 100vh;
-  font-feature-settings: 'kern' 1, 'liga' 1;
+  font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-family: 'PingFang SC', 'Inter', system-ui, sans-serif;
 }
 
-/* 数字排版 - 统一等宽数字，避免错位 */
-.numeric-tabular {
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: 'tnum' 1, 'lnum' 1;
-}
-
-.font-mono {
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: 'tnum' 1, 'lnum' 1;
-}
-
-/* 自定义选择高亮 */
-::selection {
-  background: rgba(20, 184, 166, 0.3);
-  color: #fff;
-}
-
-/* ============================================
-   自定义滚动条 - 极简风格
-   ============================================ */
+/* Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--bg-obsidian);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, var(--glacier), var(--gemini-blue));
-  border-radius: 100px;
+  background: #333;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, var(--glacier-light), var(--aurora-2));
+  background: #444;
 }
 
-/* Firefox */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--glacier) transparent;
-}
-
-/* ============================================
-   极光背景动画
-   ============================================ */
-.aurora-bg {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 0;
-}
-
-.aurora-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(100px);
-  opacity: 0.4;
-  will-change: transform;
-}
-
-.aurora-orb-1 {
-  width: 600px;
-  height: 600px;
-  top: -10%;
-  right: -10%;
-  background: linear-gradient(135deg, var(--gemini-blue), var(--aurora-2));
-  animation: aurora 20s ease-in-out infinite;
-}
-
-.aurora-orb-2 {
-  width: 500px;
-  height: 500px;
-  bottom: -15%;
-  left: -10%;
-  background: linear-gradient(135deg, var(--aurora-3), var(--aurora-4));
-  animation: aurora 25s ease-in-out infinite reverse;
-}
-
-.aurora-orb-3 {
-  width: 400px;
-  height: 400px;
-  top: 40%;
-  left: 30%;
-  background: linear-gradient(135deg, var(--gemini-green), var(--gemini-blue));
-  animation: aurora 18s ease-in-out infinite 2s;
-}
-
-@keyframes aurora {
-  0%, 100% { 
-    transform: translateY(0) translateX(0) rotate(0deg) scale(1);
-    opacity: 0.3;
-  }
-  25% { 
-    transform: translateY(-30px) translateX(20px) rotate(5deg) scale(1.1);
-    opacity: 0.5;
-  }
-  50% { 
-    transform: translateY(20px) translateX(-30px) rotate(-5deg) scale(0.95);
-    opacity: 0.4;
-  }
-  75% { 
-    transform: translateY(-15px) translateX(-10px) rotate(3deg) scale(1.05);
-    opacity: 0.45;
-  }
-}
-
-/* ============================================
-   玻璃拟态卡片 - 极简毛玻璃风格
-   ============================================ */
-.glass-card {
-  background: rgba(255, 255, 255, 0.02);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  border-radius: 24px;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.glass-card:hover {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.08);
+/* Utilities */
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
 
 .gemini-card {
-  background: rgba(26, 26, 36, 0.6);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 24px;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 4px; /* Sharp corners/minimal radius */
+  transition: border-color 0.2s ease;
 }
 
+/* No hover lift, just border change or subtle bg change */
 .gemini-card:hover {
-  background: rgba(36, 36, 47, 0.7);
-  border-color: rgba(255, 255, 255, 0.1);
-  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
-.gemini-card-glow {
-  position: relative;
-  overflow: hidden;
-}
-
-.gemini-card-glow::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, 
-    transparent, 
-    rgba(20, 184, 166, 0.5), 
-    rgba(66, 133, 244, 0.5), 
-    transparent
-  );
-  opacity: 0;
-  transition: opacity 0.4s ease;
-}
-
-.gemini-card-glow:hover::before {
-  opacity: 1;
-}
-
-/* ============================================
-   按钮系统
-   ============================================ */
 .gemini-btn {
-  position: relative;
-  padding: 14px 28px;
-  border-radius: 100px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  font-size: 14px;
   font-weight: 500;
-  font-size: 15px;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  overflow: hidden;
-  isolation: isolate;
+  border-radius: 4px;
+  transition: all 0.2s ease;
 }
 
 .gemini-btn-primary {
-  background: linear-gradient(135deg, var(--glacier), var(--gemini-blue));
-  color: white;
-  box-shadow: 0 4px 16px -4px rgba(20, 184, 166, 0.25);
+  background-color: var(--accent-glacier);
+  color: #000;
+  font-weight: 600;
 }
 
 .gemini-btn-primary:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 8px 24px -4px rgba(20, 184, 166, 0.35);
+  background-color: #0d9488; /* Slightly darker teal */
 }
 
-.gemini-btn-primary:active {
-  transform: translateY(0) scale(0.98);
-}
-
-/* 按钮光晕效果 */
-.gemini-btn-primary::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, 
-    rgba(255, 255, 255, 0.2), 
-    transparent 60%
-  );
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.gemini-btn-primary:hover::before {
-  opacity: 1;
-}
-
-/* 次要按钮 */
 .gemini-btn-secondary {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: transparent;
+  border: 1px solid var(--border-color);
   color: var(--text-secondary);
 }
 
 .gemini-btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
   color: var(--text-primary);
-  transform: translateY(-1px);
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
-/* ============================================
-   输入框样式 - 极简克制风格
-   ============================================ */
-.gemini-input {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 16px;
-  padding: 16px 20px;
-  color: var(--text-primary);
-  font-size: 16px;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.gemini-input::placeholder {
-  color: var(--text-muted);
-}
-
-.gemini-input:focus {
-  outline: none;
-  border-color: rgba(20, 184, 166, 0.4);
-  background: rgba(255, 255, 255, 0.03);
-  box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.08);
-}
-
-/* ============================================
-   渐变文字
-   ============================================ */
-.gradient-text {
-  background: linear-gradient(135deg, 
-    var(--glacier) 0%, 
-    var(--gemini-blue) 50%, 
-    var(--aurora-2) 100%
-  );
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: gradient-shift 5s ease infinite;
-}
-
-.gradient-text-static {
-  background: linear-gradient(135deg, var(--glacier), var(--gemini-blue));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-@keyframes gradient-shift {
-  0%, 100% { background-position: 0% center; }
-  50% { background-position: 200% center; }
-}
-
-/* ============================================
-   光晕发光效果
-   ============================================ */
-.glow-effect {
-  position: relative;
-}
-
-.glow-effect::after {
-  content: '';
-  position: absolute;
-  inset: -20px;
-  background: inherit;
-  filter: blur(40px);
-  opacity: 0.4;
-  z-index: -1;
-  border-radius: inherit;
-}
-
-/* 脉冲发光 */
-.pulse-glow {
-  animation: pulse-glow 3s ease-in-out infinite;
-}
-
-@keyframes pulse-glow {
-  0%, 100% {
-    box-shadow: 0 0 30px -10px var(--glacier);
-  }
-  50% {
-    box-shadow: 0 0 60px -10px var(--glacier), 0 0 100px -20px var(--gemini-blue);
-  }
-}
-
-/* ============================================
-   加载动画 - Gemini 风格
-   ============================================ */
-.gemini-loader {
-  position: relative;
-  width: 80px;
-  height: 80px;
-}
-
-.gemini-loader-ring {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 3px solid transparent;
-  border-top-color: var(--glacier);
-  animation: spin 1.5s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
-}
-
-.gemini-loader-ring:nth-child(2) {
-  inset: 8px;
-  border-top-color: var(--aurora-2);
-  animation-delay: 0.2s;
-  animation-direction: reverse;
-}
-
-.gemini-loader-ring:nth-child(3) {
-  inset: 16px;
-  border-top-color: var(--aurora-3);
-  animation-delay: 0.4s;
-}
-
-.gemini-loader-core {
-  position: absolute;
-  inset: 24px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--glacier), var(--gemini-blue));
-  animation: breathe 2s ease-in-out infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-@keyframes breathe {
-  0%, 100% { transform: scale(0.9); opacity: 0.7; }
-  50% { transform: scale(1.1); opacity: 1; }
-}
-
-/* 四点加载动画 - Google 风格 */
-.google-dots {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.google-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  animation: bounce-dot 1.4s ease-in-out infinite;
-}
-
-.google-dot:nth-child(1) { background: var(--glacier); animation-delay: 0s; }
-.google-dot:nth-child(2) { background: var(--gemini-blue); animation-delay: 0.1s; }
-.google-dot:nth-child(3) { background: var(--aurora-2); animation-delay: 0.2s; }
-.google-dot:nth-child(4) { background: var(--aurora-3); animation-delay: 0.3s; }
-
-@keyframes bounce-dot {
-  0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
-  40% { transform: scale(1); opacity: 1; }
-}
-
-/* ============================================
-   波纹效果
-   ============================================ */
-.ripple-container {
-  position: relative;
-  overflow: hidden;
-}
-
-.ripple {
-  position: absolute;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(20, 184, 166, 0.4) 0%, transparent 70%);
-  transform: scale(0);
-  animation: ripple-expand 0.6s ease-out forwards;
-  pointer-events: none;
-}
-
-@keyframes ripple-expand {
-  to {
-    transform: scale(4);
-    opacity: 0;
-  }
-}
-
-/* ============================================
-   标签 / 徽章
-   ============================================ */
-.gemini-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: 100px;
-  font-size: 13px;
-  font-weight: 500;
-  background: rgba(20, 184, 166, 0.1);
-  border: 1px solid rgba(20, 184, 166, 0.2);
-  color: var(--glacier);
-}
-
-.gemini-badge-glow {
-  box-shadow: 0 0 20px -5px var(--glacier);
-}
-
-/* ============================================
-   分隔线
-   ============================================ */
-.gemini-divider {
-  height: 1px;
-  background: linear-gradient(90deg, 
-    transparent, 
-    rgba(255, 255, 255, 0.1) 20%, 
-    rgba(255, 255, 255, 0.1) 80%, 
-    transparent
-  );
-}
-
-/* ============================================
-   动画延迟工具类
-   ============================================ */
-.delay-100 { animation-delay: 100ms; }
-.delay-200 { animation-delay: 200ms; }
-.delay-300 { animation-delay: 300ms; }
-.delay-400 { animation-delay: 400ms; }
-.delay-500 { animation-delay: 500ms; }
-.delay-600 { animation-delay: 600ms; }
-.delay-700 { animation-delay: 700ms; }
-.delay-800 { animation-delay: 800ms; }
-
-/* ============================================
-   磨砂玻璃叠加层
-   ============================================ */
-.frosted-overlay {
-  background: linear-gradient(
-    to bottom,
-    rgba(10, 10, 11, 0.8) 0%,
-    rgba(10, 10, 11, 0.4) 50%,
-    rgba(10, 10, 11, 0.8) 100%
-  );
-  backdrop-filter: blur(2px);
-}
-
-/* ============================================
-   图标容器
-   ============================================ */
-.icon-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 16px;
-  background: linear-gradient(135deg, 
-    rgba(20, 184, 166, 0.15), 
-    rgba(66, 133, 244, 0.1)
-  );
-  transition: all 0.3s ease;
-}
-
-.icon-container:hover {
-  background: linear-gradient(135deg, 
-    rgba(20, 184, 166, 0.25), 
-    rgba(66, 133, 244, 0.2)
-  );
-  transform: scale(1.05);
-}
-
-/* ============================================
-   股票标签
-   ============================================ */
-.stock-chip {
-  padding: 8px 16px;
-  border-radius: 100px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: var(--text-secondary);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 14px;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  cursor: pointer;
-}
-
-.stock-chip:hover {
-  background: rgba(20, 184, 166, 0.08);
-  border-color: rgba(20, 184, 166, 0.25);
-  color: var(--glacier);
-  transform: translateY(-1px);
-}
-
-/* ============================================
-   特性卡片
-   ============================================ */
-.feature-card {
-  position: relative;
-  padding: 32px;
-  border-radius: 28px;
-  background: rgba(26, 26, 36, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.feature-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: radial-gradient(
-    ellipse at top left,
-    rgba(20, 184, 166, 0.1) 0%,
-    transparent 50%
-  );
-  opacity: 0;
-  transition: opacity 0.4s ease;
-}
-
-.feature-card:hover {
-  border-color: rgba(20, 184, 166, 0.2);
-  transform: translateY(-4px);
-}
-
-.feature-card:hover::before {
-  opacity: 1;
-}
-
-/* ============================================
-   行文本截断
-   ============================================ */
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.line-clamp-3 {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* ============================================
-   闪烁效果
-   ============================================ */
-.shimmer {
-  position: relative;
-  overflow: hidden;
-}
-
-.shimmer::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.08),
-    transparent
-  );
-  animation: shimmer 2s infinite;
-}
-
-@keyframes shimmer {
-  100% { left: 100%; }
-}
-
-/* ============================================
-   Prose 样式覆盖 - 优化阅读体验
-   ============================================ */
+/* Prose overrides for Markdown */
 .prose-gemini {
-  --tw-prose-body: #cbd5e1;
-  --tw-prose-headings: #f8fafc;
-  --tw-prose-lead: #94a3b8;
-  --tw-prose-links: var(--glacier);
-  --tw-prose-bold: var(--glacier);
-  --tw-prose-counters: #64748b;
-  --tw-prose-bullets: #475569;
-  --tw-prose-hr: rgba(255, 255, 255, 0.1);
-  --tw-prose-quotes: #e2e8f0;
-  --tw-prose-quote-borders: var(--glacier);
-  --tw-prose-captions: #64748b;
-  --tw-prose-code: #f1f5f9;
-  --tw-prose-pre-code: #e2e8f0;
-  --tw-prose-pre-bg: rgba(18, 18, 26, 0.8);
-  --tw-prose-th-borders: rgba(255, 255, 255, 0.1);
-  --tw-prose-td-borders: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  max-width: none;
 }
-
-/* 段落间距和行高优化 */
-.prose-gemini p {
-  line-height: 1.75 !important;
-  margin-bottom: 1.25em !important;
+.prose-gemini h1, .prose-gemini h2, .prose-gemini h3, .prose-gemini h4 {
+  color: var(--text-primary);
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
-
-.prose-gemini li {
-  line-height: 1.7 !important;
-  margin-bottom: 0.5em !important;
-}
-
-.prose-gemini ul,
-.prose-gemini ol {
-  margin-top: 1em !important;
-  margin-bottom: 1em !important;
-}
-
-.prose-gemini h1,
-.prose-gemini h2,
-.prose-gemini h3,
-.prose-gemini h4 {
-  margin-top: 1.5em !important;
-  margin-bottom: 0.75em !important;
-  line-height: 1.4 !important;
-}
-
-/* 加粗文字统一为品牌色 */
-.prose-gemini strong,
-.prose-gemini b {
-  color: var(--glacier) !important;
+.prose-gemini strong {
+  color: var(--text-primary);
   font-weight: 600;
 }
-
-/* ============================================
-   中文数字序号样式
-   ============================================ */
-.cn-number {
-  font-family: 'PingFang SC', serif;
-  font-weight: 300;
-  color: rgba(255, 255, 255, 0.15);
-  font-size: 3rem;
-  line-height: 1;
+.prose-gemini a {
+  color: var(--accent-glacier);
+  text-decoration: none;
+}
+.prose-gemini a:hover {
+  text-decoration: underline;
+}
+.prose-gemini code {
+  color: #e2e8f0;
+  background-color: rgba(255,255,255,0.1);
+  padding: 2px 4px;
+  border-radius: 2px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9em;
 }
 
-/* ============================================
-   打字机效果
-   ============================================ */
-.typewriter-container {
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-.typewriter-text {
-  display: inline-block;
-  animation: typewriter 2s steps(30) forwards;
-}
-
-.typewriter-cursor {
-  display: inline-block;
-  width: 2px;
-  height: 1.2em;
-  background: var(--glacier);
-  margin-left: 2px;
-  animation: blink 1s infinite;
-}
-
-/* ============================================
-   响应式辅助类
-   ============================================ */
-@media (max-width: 768px) {
-  .gemini-card {
-    border-radius: 20px;
-  }
-  
-  .feature-card {
-    padding: 24px;
-    border-radius: 24px;
-  }
-
-  .gemini-card {
-    padding: 16px;
-    border: none;
-  }
-
-  .glass-card {
-    padding: 16px;
-    border: none;
-  }
-
-  .report-mobile-borderless .border {
-    border-width: 0;
-  }
-
-  .report-mobile-borderless .gemini-card,
-  .report-mobile-borderless .glass-card {
-    border: none;
-  }
-
-  .cn-number {
-    font-size: 2rem;
-  }
-}
-
-/* ============================================
-   AI 分析动画
-   ============================================ */
-.ai-analysis-item {
-  opacity: 0;
-  transform: translateX(-10px);
-  animation: slideInRight 0.3s ease forwards;
-}
-
-@keyframes slideInRight {
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-/* ============================================
-   地球容器样式
-   ============================================ */
-.globe-container {
-  position: relative;
-  width: 100%;
-  height: 400px;
-  overflow: hidden;
-}
-
-@media (max-width: 768px) {
-  .globe-container {
-    height: 300px;
-  }
-}
-
-/* ============================================
-   评价卡片样式
-   ============================================ */
-.testimonial-card {
-  position: relative;
-  background: rgba(255, 255, 255, 0.02);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 24px;
-  padding: 32px;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.testimonial-card:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(20, 184, 166, 0.2);
-  transform: translateY(-4px);
-}
-
-.testimonial-card::before {
-  content: '"';
-  position: absolute;
-  top: 20px;
-  left: 24px;
-  font-size: 4rem;
-  font-family: Georgia, serif;
-  color: rgba(20, 184, 166, 0.15);
-  line-height: 1;
-}
-
-/* ============================================
-   AI 加载动画 - 渐变流动效果
-   ============================================ */
-.animate-gradient-x {
-  background-size: 200% 100%;
-  animation: gradient-x 2s ease infinite;
-}
-
-@keyframes gradient-x {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+/* Sparklines helper */
+.sparkline-path {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
