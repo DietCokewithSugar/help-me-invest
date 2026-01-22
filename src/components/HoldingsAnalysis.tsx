@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import ReactECharts from 'echarts-for-react';
-import { 
-  Building, Users, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, 
+import {
+  Building, Users, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight,
   ExternalLink, Briefcase, UserCheck
 } from 'lucide-react';
 import type { InstitutionalHolder, InsiderTrading } from '@/types';
@@ -121,8 +121,8 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
                     color: '#94a3b8',
                     fontSize: 10,
                     formatter: (params: any) => {
-                      return params.name.length > 15 
-                        ? params.name.substring(0, 15) + '...' 
+                      return params.name.length > 15
+                        ? params.name.substring(0, 15) + '...'
                         : params.name;
                     },
                   },
@@ -172,9 +172,8 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
                   </td>
                   <td className="text-right py-3 px-4 font-mono text-white whitespace-nowrap">{formatNumber(h.shares)}</td>
                   <td className="text-right py-3 px-4 font-mono text-aurora-400 whitespace-nowrap">${formatNumber(h.value)}</td>
-                  <td className={`text-right py-3 px-4 font-mono whitespace-nowrap ${
-                    h.change > 0 ? 'text-green-400' : h.change < 0 ? 'text-red-400' : 'text-slate-400'
-                  }`}>
+                  <td className={`text-right py-3 px-4 font-mono whitespace-nowrap ${h.change > 0 ? 'text-green-400' : h.change < 0 ? 'text-red-400' : 'text-slate-400'
+                    }`}>
                     <div className="flex items-center justify-end gap-1">
                       {h.change > 0 ? (
                         <ArrowUpRight className="w-4 h-4" />
@@ -202,13 +201,13 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
     }
 
     // 统计买入和卖出
-    const buys = insiderTrading.filter(t => 
-      t.acquistionOrDisposition === 'A' || 
+    const buys = insiderTrading.filter(t =>
+      t.acquistionOrDisposition === 'A' ||
       t.transactionType?.toLowerCase().includes('buy') ||
       t.transactionType?.toLowerCase().includes('purchase')
     );
-    const sells = insiderTrading.filter(t => 
-      t.acquistionOrDisposition === 'D' || 
+    const sells = insiderTrading.filter(t =>
+      t.acquistionOrDisposition === 'D' ||
       t.transactionType?.toLowerCase().includes('sell') ||
       t.transactionType?.toLowerCase().includes('sale')
     );
@@ -253,13 +252,11 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
             <p className="text-sm text-slate-400 mb-1">卖出次数</p>
             <p className="text-xl md:text-2xl font-bold font-mono text-red-400 whitespace-nowrap">{sells.length}</p>
           </div>
-          <div className={`rounded-lg p-4 text-center ${
-            totalBuyValue > totalSellValue ? 'bg-green-500/10' : 'bg-red-500/10'
-          }`}>
+          <div className={`rounded-lg p-4 text-center ${totalBuyValue > totalSellValue ? 'bg-green-500/10' : 'bg-red-500/10'
+            }`}>
             <p className="text-sm text-slate-400 mb-1">净买入金额</p>
-            <p className={`text-2xl font-bold font-mono ${
-              totalBuyValue > totalSellValue ? 'text-green-400' : 'text-red-400'
-            } whitespace-nowrap text-xl md:text-2xl`}>
+            <p className={`text-2xl font-bold font-mono ${totalBuyValue > totalSellValue ? 'text-green-400' : 'text-red-400'
+              } whitespace-nowrap text-xl md:text-2xl`}>
               ${formatNumber(totalBuyValue - totalSellValue)}
             </p>
           </div>
@@ -351,9 +348,8 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
                       {t.typeOfOwner}
                     </td>
                     <td className="text-center py-3 px-4">
-                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
-                        isBuy ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                      }`}>
+                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${isBuy ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                        }`}>
                         {isBuy ? (
                           <>
                             <TrendingUp className="w-3 h-3" /> 买入
@@ -371,9 +367,8 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
                     <td className="text-right py-3 px-4 font-mono text-slate-400 whitespace-nowrap">
                       ${t.price?.toFixed(2) || 'N/A'}
                     </td>
-                    <td className={`text-right py-3 px-4 font-mono font-semibold whitespace-nowrap ${
-                      isBuy ? 'text-green-400' : 'text-red-400'
-                    }`}>
+                    <td className={`text-right py-3 px-4 font-mono font-semibold whitespace-nowrap ${isBuy ? 'text-green-400' : 'text-red-400'
+                      }`}>
                       ${formatNumber(value)}
                     </td>
                   </tr>
@@ -387,20 +382,20 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
   };
 
   const hasData = institutionalHolders?.length || insiderTrading?.length;
-  
+
   if (!hasData) {
     return null;
   }
 
   return (
-    <div className="glass-card p-6 animate-fade-in-up">
+    <div className="bg-white/5 border border-white/10 p-6 rounded-md animate-fade-in-up">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 flex items-center justify-center">
-          <Briefcase className="w-5 h-5 text-cyan-400" />
+        <div className="w-10 h-10 rounded-md bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
+          <Briefcase className="w-5 h-5 text-cyan-500" />
         </div>
         <div>
-          <h2 className="text-xl font-display font-bold text-white">持仓与交易分析</h2>
-          <p className="text-sm text-slate-500">机构持仓 (13F) 与内幕交易记录</p>
+          <h2 className="text-lg font-semibold text-white">持仓与交易分析</h2>
+          <p className="text-sm text-mist-500">机构持仓 (13F) 与内幕交易记录</p>
         </div>
       </div>
 
@@ -411,25 +406,24 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             disabled={tab.count === 0}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-              activeTab === tab.key
-                ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all text-sm font-medium ${activeTab === tab.key
+                ? 'bg-cyan-500/10 text-cyan-500 border border-cyan-500/20'
                 : tab.count === 0
-                  ? 'text-slate-600 cursor-not-allowed'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
-            }`}
+                  ? 'text-mist-600 cursor-not-allowed'
+                  : 'text-mist-400 hover:text-white hover:bg-white/5'
+              }`}
           >
             {tab.icon}
             {tab.label}
             {tab.count > 0 && (
-              <span className="text-xs bg-white/10 px-2 py-0.5 rounded-full">{tab.count}</span>
+              <span className={`text-xs px-1.5 py-0.5 rounded-sm ${activeTab === tab.key ? 'bg-cyan-500/20 text-cyan-400' : 'bg-white/10 text-mist-400'}`}>{tab.count}</span>
             )}
           </button>
         ))}
       </div>
 
       {/* 内容区域 */}
-      <div className="bg-midnight/30 rounded-xl p-4 border border-white/5 max-md:border-0">
+      <div className="bg-black/20 rounded-md p-4 border border-white/10">
         {activeTab === 'institutional' && renderInstitutionalHolders()}
         {activeTab === 'insider' && renderInsiderTrading()}
       </div>

@@ -187,7 +187,7 @@ export default function ProfessionalValuationMetrics({
 
   if (!keyMetrics || keyMetrics.length === 0) {
     return (
-      <div className="gemini-card p-6 text-center text-mist-400">
+      <div className="bg-white/5 border border-white/10 rounded-md p-6 text-center text-mist-400 font-mono text-sm">
         暂无估值指标数据
       </div>
     );
@@ -394,10 +394,12 @@ export default function ProfessionalValuationMetrics({
 
     if (!hasValuation && !hasProfitability && !hasEfficiency) return null;
 
+    if (!hasValuation && !hasProfitability && !hasEfficiency) return null;
+
     return (
-      <div className="gemini-card p-6 md:p-8">
-        <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
-          <span className="w-2 h-2 bg-glacier-500 rounded-full"></span>
+      <div className="bg-white/5 border border-white/10 p-6 md:p-8 rounded-md">
+        <h3 className="text-sm font-semibold text-mist-200 mb-6 flex items-center gap-2">
+          <span className="w-1 h-4 bg-glacier-500 rounded-sm"></span>
           财务指标
         </h3>
 
@@ -459,9 +461,9 @@ export default function ProfessionalValuationMetrics({
     if (!hasCapital && !hasReturns) return null;
 
     return (
-      <div className="gemini-card p-6 md:p-8">
-        <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
-          <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
+      <div className="bg-white/5 border border-white/10 p-6 md:p-8 rounded-md">
+        <h3 className="text-sm font-semibold text-mist-200 mb-6 flex items-center gap-2">
+          <span className="w-1 h-4 bg-amber-500 rounded-sm"></span>
           资本与回报
         </h3>
 

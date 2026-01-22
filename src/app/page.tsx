@@ -1021,23 +1021,23 @@ export default function Home() {
                 <div className="space-y-4">
                   {/* 如何使用 */}
                   <motion.div
-                    className="glass-card overflow-hidden"
+                    className="bg-white/5 border border-white/10 rounded-md overflow-hidden"
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                   >
                     <button
                       onClick={() => setExpandedFaq(expandedFaq === 0 ? null : 0)}
-                      className="w-full px-6 py-5 flex items-center justify-between hover:bg-white/5 transition-colors"
+                      className="w-full px-5 py-4 flex items-center justify-between hover:bg-white/5 transition-colors group"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-glacier-500 to-gemini-blue flex items-center justify-center flex-shrink-0">
-                          <HelpCircleIcon size={20} className="text-white" />
+                        <div className="w-8 h-8 rounded-sm bg-glacier-500/10 border border-glacier-500/20 flex items-center justify-center flex-shrink-0 text-glacier-500">
+                          <HelpCircleIcon size={16} />
                         </div>
-                        <span className="text-base md:text-lg font-medium text-white text-left">如何使用？</span>
+                        <span className="text-sm md:text-base font-medium text-mist-200 group-hover:text-white transition-colors text-left">如何使用？</span>
                       </div>
                       <ChevronDownIcon
-                        size={20}
+                        size={16}
                         className={`text-mist-500 transition-transform duration-300 flex-shrink-0 ${expandedFaq === 0 ? 'rotate-180' : ''
                           }`}
                       />
@@ -1048,15 +1048,15 @@ export default function Home() {
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: 'auto', opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.3 }}
+                          transition={{ duration: 0.2 }}
                           className="overflow-hidden"
                         >
-                          <div className="px-6 pb-6 pt-2 space-y-3 border-t border-white/5">
-                            <p className="text-mist-400 leading-relaxed text-sm md:text-base">
-                              在搜索框输入股票代码（如 <span className="text-glacier-400 font-mono">AAPL</span>、<span className="text-glacier-400 font-mono">600519</span>、<span className="text-glacier-400 font-mono">0700.HK</span>）或公司名称，点击"开始分析"即可。
+                          <div className="px-5 pb-5 pt-1 space-y-3 border-t border-white/5">
+                            <p className="text-mist-400 leading-relaxed text-sm">
+                              在搜索框输入股票代码（如 <span className="text-glacier-400 font-mono">AAPL</span>、<span className="text-glacier-400 font-mono">600519</span>）或名称，点击"开始分析"。
                             </p>
-                            <p className="text-mist-400 leading-relaxed text-sm md:text-base">
-                              生成报告通常需要 <span className="text-glacier-400 font-semibold">15-30 秒</span>，系统会自动识别市场并调用 AI 进行深度分析。
+                            <p className="text-mist-400 leading-relaxed text-sm">
+                              生成报告通常需要 <span className="text-white font-mono">15-30s</span>，系统会自动识别市场并调用 AI 进行深度分析。
                             </p>
                           </div>
                         </motion.div>
@@ -1066,7 +1066,7 @@ export default function Home() {
 
                   {/* 是否收费 */}
                   <motion.div
-                    className="glass-card overflow-hidden"
+                    className="bg-white/5 border border-white/10 rounded-md overflow-hidden"
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
@@ -1074,16 +1074,16 @@ export default function Home() {
                   >
                     <button
                       onClick={() => setExpandedFaq(expandedFaq === 1 ? null : 1)}
-                      className="w-full px-6 py-5 flex items-center justify-between hover:bg-white/5 transition-colors"
+                      className="w-full px-5 py-4 flex items-center justify-between hover:bg-white/5 transition-colors group"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gemini-purple to-aurora-3 flex items-center justify-center flex-shrink-0">
-                          <DollarSignIcon size={20} className="text-white" />
+                        <div className="w-8 h-8 rounded-sm bg-gemini-purple/10 border border-gemini-purple/20 flex items-center justify-center flex-shrink-0 text-gemini-purple">
+                          <DollarSignIcon size={16} />
                         </div>
-                        <span className="text-base md:text-lg font-medium text-white text-left">是否收费？</span>
+                        <span className="text-sm md:text-base font-medium text-mist-200 group-hover:text-white transition-colors text-left">是否收费？</span>
                       </div>
                       <ChevronDownIcon
-                        size={20}
+                        size={16}
                         className={`text-mist-500 transition-transform duration-300 flex-shrink-0 ${expandedFaq === 1 ? 'rotate-180' : ''
                           }`}
                       />
@@ -1094,14 +1094,14 @@ export default function Home() {
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: 'auto', opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.3 }}
+                          transition={{ duration: 0.2 }}
                           className="overflow-hidden"
                         >
-                          <div className="px-6 pb-6 pt-2 space-y-3 border-t border-white/5">
-                            <p className="text-mist-400 leading-relaxed text-sm md:text-base">
-                              目前 <span className="text-glacier-400 font-semibold">完全免费</span>，所有 API 调用、AI 分析等费用均由创作者个人承担。
+                          <div className="px-5 pb-5 pt-1 space-y-3 border-t border-white/5">
+                            <p className="text-mist-400 leading-relaxed text-sm">
+                              目前 <span className="text-white font-semibold">完全免费</span>，所有 API 调用、AI 分析等费用均由创作者个人承担。
                             </p>
-                            <p className="text-mist-400 leading-relaxed text-sm md:text-base">
+                            <p className="text-mist-400 leading-relaxed text-sm">
                               我们的目标是帮助更多人了解股票投资，做出更明智的决策。
                             </p>
                           </div>
@@ -1112,7 +1112,7 @@ export default function Home() {
 
                   {/* 联系作者 */}
                   <motion.div
-                    className="glass-card overflow-hidden"
+                    className="bg-white/5 border border-white/10 rounded-md overflow-hidden"
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
@@ -1120,16 +1120,16 @@ export default function Home() {
                   >
                     <button
                       onClick={() => setExpandedFaq(expandedFaq === 2 ? null : 2)}
-                      className="w-full px-6 py-5 flex items-center justify-between hover:bg-white/5 transition-colors"
+                      className="w-full px-5 py-4 flex items-center justify-between hover:bg-white/5 transition-colors group"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gemini-yellow to-gemini-red flex items-center justify-center flex-shrink-0">
-                          <MessageCircleIcon size={20} className="text-white" />
+                        <div className="w-8 h-8 rounded-sm bg-gemini-yellow/10 border border-gemini-yellow/20 flex items-center justify-center flex-shrink-0 text-gemini-yellow">
+                          <MessageCircleIcon size={16} />
                         </div>
-                        <span className="text-base md:text-lg font-medium text-white text-left">联系作者与反馈</span>
+                        <span className="text-sm md:text-base font-medium text-mist-200 group-hover:text-white transition-colors text-left">联系作者与反馈</span>
                       </div>
                       <ChevronDownIcon
-                        size={20}
+                        size={16}
                         className={`text-mist-500 transition-transform duration-300 flex-shrink-0 ${expandedFaq === 2 ? 'rotate-180' : ''
                           }`}
                       />
@@ -1140,20 +1140,20 @@ export default function Home() {
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: 'auto', opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.3 }}
+                          transition={{ duration: 0.2 }}
                           className="overflow-hidden"
                         >
-                          <div className="px-6 pb-6 pt-2 space-y-4 border-t border-white/5">
+                          <div className="px-5 pb-5 pt-1 space-y-4 border-t border-white/5">
                             <div className="space-y-2">
-                              <p className="text-mist-400 leading-relaxed text-sm md:text-base">
+                              <p className="text-mist-400 leading-relaxed text-sm">
                                 欢迎通过以下方式联系我们：
                               </p>
                               <div className="space-y-2 pl-4">
-                                <p className="text-mist-400 text-sm md:text-base">
+                                <p className="text-mist-400 text-sm">
                                   <span className="text-mist-500">微信：</span>
-                                  <span className="text-glacier-400 font-mono ml-2">kaizhou_wang</span>
+                                  <span className="text-white font-mono ml-2">kaizhou_wang</span>
                                 </p>
-                                <p className="text-mist-400 text-sm md:text-base">
+                                <p className="text-mist-400 text-sm">
                                   <span className="text-mist-500">邮箱：</span>
                                   <a
                                     href="mailto:wangkaizhou2024@gmail.com"
@@ -1166,10 +1166,10 @@ export default function Home() {
                             </div>
 
                             {/* 微信群二维码 */}
-                            <div className="pt-4">
-                              <div className="bg-white/5 rounded-2xl p-4 text-center">
+                            <div className="pt-2">
+                              <div className="bg-white/5 rounded-md p-4 text-center border border-white/5">
                                 <p className="text-mist-400 text-sm mb-3">扫码加入微信群</p>
-                                <div className="w-40 h-40 md:w-48 md:h-48 bg-white rounded-xl p-2 mx-auto">
+                                <div className="w-32 h-32 bg-white rounded-sm p-1 mx-auto">
                                   <img
                                     src="/wechat-qr.jpg"
                                     alt="微信群二维码"

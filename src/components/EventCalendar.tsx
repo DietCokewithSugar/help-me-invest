@@ -155,9 +155,8 @@ export default function EventCalendar({ earningsCalendar, dividendHistory, stock
                     <td className="text-right py-3 px-4 font-mono text-slate-400">
                       ${e.epsEstimated?.toFixed(2) || 'N/A'}
                     </td>
-                    <td className={`text-right py-3 px-4 font-mono font-semibold ${
-                      beat ? 'text-green-400' : miss ? 'text-red-400' : 'text-white'
-                    }`}>
+                    <td className={`text-right py-3 px-4 font-mono font-semibold ${beat ? 'text-green-400' : miss ? 'text-red-400' : 'text-white'
+                      }`}>
                       ${e.epsActual?.toFixed(2) || 'N/A'}
                     </td>
                     <td className="text-right py-3 px-4 font-mono text-slate-400">
@@ -360,7 +359,7 @@ export default function EventCalendar({ earningsCalendar, dividendHistory, stock
                     </span>
                   </td>
                   <td className="py-3 px-4 text-slate-400">
-                    {s.numerator > s.denominator 
+                    {s.numerator > s.denominator
                       ? `每 ${s.denominator} 股拆分为 ${s.numerator} 股`
                       : `每 ${s.denominator} 股合并为 ${s.numerator} 股`
                     }
@@ -375,20 +374,20 @@ export default function EventCalendar({ earningsCalendar, dividendHistory, stock
   };
 
   const hasData = earningsCalendar?.length || dividendHistory?.length || stockSplits?.length;
-  
+
   if (!hasData) {
     return null;
   }
 
   return (
-    <div className="glass-card p-6 animate-fade-in-up">
+    <div className="bg-white/5 border border-white/10 p-6 rounded-md animate-fade-in-up">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-600/20 flex items-center justify-center">
-          <Calendar className="w-5 h-5 text-amber-400" />
+        <div className="w-10 h-10 rounded-md bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+          <Calendar className="w-5 h-5 text-amber-500" />
         </div>
         <div>
-          <h2 className="text-xl font-display font-bold text-white">市场事件日历</h2>
-          <p className="text-sm text-slate-500">财报发布、分红记录、股票拆分</p>
+          <h2 className="text-lg font-semibold text-white">市场事件日历</h2>
+          <p className="text-sm text-mist-500">财报发布、分红记录、股票拆分</p>
         </div>
       </div>
 
@@ -399,25 +398,24 @@ export default function EventCalendar({ earningsCalendar, dividendHistory, stock
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             disabled={tab.count === 0}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-              activeTab === tab.key
-                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all text-sm font-medium ${activeTab === tab.key
+                ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
                 : tab.count === 0
-                  ? 'text-slate-600 cursor-not-allowed'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
-            }`}
+                  ? 'text-mist-600 cursor-not-allowed'
+                  : 'text-mist-400 hover:text-white hover:bg-white/5'
+              }`}
           >
             {tab.icon}
             {tab.label}
             {tab.count > 0 && (
-              <span className="text-xs bg-white/10 px-2 py-0.5 rounded-full">{tab.count}</span>
+              <span className={`text-xs px-1.5 py-0.5 rounded-sm ${activeTab === tab.key ? 'bg-amber-500/20 text-amber-400' : 'bg-white/10 text-mist-400'}`}>{tab.count}</span>
             )}
           </button>
         ))}
       </div>
 
       {/* 内容区域 */}
-      <div className="bg-midnight/30 rounded-xl p-3 md:p-4 border border-white/5 max-md:border-0">
+      <div className="bg-black/20 rounded-md p-4 border border-white/10">
         {activeTab === 'earnings' && renderEarningsCalendar()}
         {activeTab === 'dividends' && renderDividendHistory()}
         {activeTab === 'splits' && renderStockSplits()}

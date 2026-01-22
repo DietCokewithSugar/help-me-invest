@@ -25,7 +25,6 @@ import type { ReportData, MarketType } from '@/types';
 import { getMarketConfig } from '@/lib/markets';
 import { buildSankeyData } from '@/lib/sankey-utils';
 
-// 市场标识徽章 - 极简设计，无 emoji
 // 市场标识徽章 - 极简设计，无 emoji，直角
 const MarketBadge = ({ market }: { market: MarketType }) => {
   const marketInfo: Record<MarketType, { name: string; abbr: string }> = {
@@ -77,23 +76,23 @@ function CompanyLogo({ src, alt }: { src?: string; alt: string }) {
   // 如果没有图片 URL、加载失败或超时，显示备用图标
   if (!src || hasError || hasTimeout) {
     return (
-      <div className="w-20 h-20 rounded bg-white/5 flex items-center justify-center shrink-0 border border-white/10">
+      <div className="w-16 h-16 md:w-20 md:h-20 rounded-md bg-white/5 flex items-center justify-center shrink-0 border border-white/10">
         <Building2 className="w-8 h-8 text-mist-500" />
       </div>
     );
   }
 
   return (
-    <div className="w-20 h-20 rounded bg-white/5 flex items-center justify-center p-3 shrink-0 border border-white/10 relative">
+    <div className="w-16 h-16 md:w-20 md:h-20 rounded-md bg-white/5 flex items-center justify-center p-3 shrink-0 border border-white/10 relative overflow-hidden">
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-obsidian">
-          <div className="w-6 h-6 border-2 border-white/10 border-t-glacier-500 rounded-full animate-spin" />
+          <div className="w-5 h-5 border-2 border-white/10 border-t-glacier-500 rounded-full animate-spin" />
         </div>
       )}
       <img
         src={src}
         alt={alt}
-        className={`w-full h-full object-contain transition-opacity ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+        className={`w-full h-full object-contain transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
         onError={handleError}
         onLoad={handleLoad}
         crossOrigin="anonymous"
@@ -111,7 +110,7 @@ interface ReportProps {
 }
 
 // 分析卡片组件
-// 分析卡片组件
+// 分析卡片组件 - 扁平化设计
 function AnalysisCard({
   icon: Icon,
   title,
@@ -124,7 +123,7 @@ function AnalysisCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="gemini-card p-6">
+    <div className="bg-white/5 border border-white/10 p-6 rounded-md hover:border-white/20 transition-colors">
       <div className="flex items-center gap-3 mb-4 border-b border-white/5 pb-3">
         <Icon className="w-4 h-4 text-glacier-500" />
         <h3 className="text-base font-medium text-white uppercase tracking-wider">{title}</h3>
@@ -136,8 +135,7 @@ function AnalysisCard({
   );
 }
 
-// 可折叠区块 - 支持编号
-// 可折叠区块 - 支持编号
+// 可折叠区块 - 扁平化设计
 function CollapsibleSection({
   id,
   icon: Icon,
@@ -171,7 +169,7 @@ function CollapsibleSection({
             <span className="text-xl font-light text-mist-600 font-mono hidden md:block w-8 border-r border-white/10 mr-2">{sectionNumber}</span>
           )}
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center border border-white/10 group-hover:bg-white/10 transition-colors">
+            <div className="w-8 h-8 rounded-sm bg-white/5 flex items-center justify-center border border-white/10 group-hover:bg-white/10 transition-colors">
               <Icon className="w-4 h-4 text-mist-300 group-hover:text-white" />
             </div>
             <div className="text-left">
@@ -180,7 +178,7 @@ function CollapsibleSection({
             </div>
           </div>
         </div>
-        <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center border border-white/10 group-hover:bg-white/10 transition-colors">
+        <div className="w-8 h-8 rounded-sm bg-white/5 flex items-center justify-center border border-white/10 group-hover:bg-white/10 transition-colors">
           {expanded ? (
             <ChevronUp className="w-4 h-4 text-mist-400 group-hover:text-white" />
           ) : (
@@ -667,13 +665,10 @@ export default function Report({
                   </div>
 
                   {/* 最新动态 */}
-                  <div className="gemini-card gemini-card-glow p-6 md:p-8">
+                  <div className="bg-white/5 border border-white/10 p-6 md:p-8 rounded-md hover:border-white/20 transition-colors">
                     <div className="flex items-center gap-4 mb-6">
-                      <div className="relative">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-glacier-500 to-glacier-600 flex items-center justify-center">
-                          <Sparkles className="w-5 h-5 text-white" />
-                        </div>
-                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-glacier-500 to-glacier-600 opacity-20 blur-xl" />
+                      <div className="w-10 h-10 rounded-md bg-glacier-500/10 flex items-center justify-center border border-glacier-500/20">
+                        <Sparkles className="w-5 h-5 text-glacier-500" />
                       </div>
                       <div className="flex items-center gap-3">
                         <h3 className="text-xl font-semibold text-white">最新发展动态</h3>
@@ -699,8 +694,8 @@ export default function Report({
                         {showTranscript ? '收起原文' : '查看原文'}
                       </button>
                       {showTranscript && (
-                        <div className="rounded-2xl border border-white/10 max-md:border-0 bg-black/30 p-4 max-h-[420px] overflow-auto">
-                          <pre className="whitespace-pre-wrap text-xs text-mist-300 leading-relaxed">
+                        <div className="rounded-md border border-white/10 max-md:border-0 bg-black/30 p-4 max-h-[420px] overflow-auto">
+                          <pre className="whitespace-pre-wrap text-xs text-mist-300 leading-relaxed font-mono">
                             {transcriptText}
                           </pre>
                         </div>
@@ -711,18 +706,11 @@ export default function Report({
               )}
 
               {aiAnalysis && (
-                <div className="relative gemini-card p-8 md:p-10 overflow-hidden">
-                  {/* 渐变背景 - 统一冷色调 */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-glacier-500/5 via-transparent to-gemini-blue/5" />
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-glacier-600 via-glacier-500 to-gemini-blue" />
-
+                <div className="gemini-card p-6 md:p-8 rounded-md bg-white/5 border border-white/10">
                   <div className="relative">
                     <div className="flex items-center gap-4 mb-6">
-                      <div className="relative">
-                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-glacier-500 to-gemini-blue flex items-center justify-center">
-                          <Sparkles className="w-6 h-6 text-white" />
-                        </div>
-                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-glacier-500 to-gemini-blue opacity-25 blur-2xl" />
+                      <div className="w-12 h-12 rounded-md bg-glacier-500/10 flex items-center justify-center border border-glacier-500/20">
+                        <Sparkles className="w-6 h-6 text-glacier-500" />
                       </div>
                       <h3 className="text-2xl font-bold text-white">投资建议总结</h3>
                     </div>
@@ -750,13 +738,10 @@ export default function Report({
           >
             <div className="space-y-6 animate-fade-in">
               {/* 桑基图和营收图表 */}
-              <div className="gemini-card p-6 md:p-8">
+              <div className="bg-white/5 border border-white/10 p-6 md:p-8 rounded-md">
                 <div className="flex items-center gap-4 mb-8">
-                  <div className="relative">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center">
-                      <TrendingUp className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-slate-500 to-slate-600 opacity-20 blur-xl" />
+                  <div className="w-10 h-10 rounded-md bg-slate-500/10 flex items-center justify-center border border-slate-500/20">
+                    <TrendingUp className="w-5 h-5 text-slate-400" />
                   </div>
                   <div>
                     <h3 className="text-xl font-semibold text-white">财务数据可视化</h3>
