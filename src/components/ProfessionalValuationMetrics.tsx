@@ -442,7 +442,7 @@ export default function ProfessionalValuationMetrics({
       },
       {
         label: '派息率',
-        value: formatPercent(latestRatios?.payoutRatio || latestMetrics.payoutRatio),
+        value: formatPercent(latestMetrics?.payoutRatio),
         metricKey: 'dividendPayoutRatio',
       },
       {
