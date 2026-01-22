@@ -303,6 +303,17 @@ export class FMPClient {
     return this.fetch<any>(`/technical-indicators`, { symbol, period });
   }
 
+  // ==================== 财务健康评分 ====================
+  
+  // Financial Scores (Altman Z-Score, Piotroski Score)
+  async getFinancialScores(symbol: string) {
+    try {
+      return this.fetch<any[]>(`/financial-scores`, { symbol });
+    } catch (e) {
+      return [];
+    }
+  }
+
   // ==================== 评级与目标价 ====================
   
   // 分析师评级

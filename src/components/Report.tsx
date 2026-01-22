@@ -850,6 +850,7 @@ export default function Report({
                 keyMetrics={keyMetrics}
                 financialRatios={financialRatios}
                 financialRatiosTTM={financialRatiosTTM}
+                financialScores={data.financialScores}
               />
             </div>
           </CollapsibleSection>

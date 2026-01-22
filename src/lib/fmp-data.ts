@@ -72,6 +72,8 @@ export async function fetchFmpReportData(
   const valuationPromises = [
     features.dcf ? fmp.getDCF(upperSymbol).catch(() => []) : Promise.resolve([]),
     features.enterpriseValue ? fmp.getEnterpriseValue(upperSymbol, period, 5).catch(() => []) : Promise.resolve([]),
+    // 财务健康评分 (仅美股支持)
+    market === 'US' ? fmp.getFinancialScores(upperSymbol).catch(() => []) : Promise.resolve([]),
   ];
 
   // 事件日历
@@ -111,6 +113,7 @@ export async function fetchFmpReportData(
     financialGrowthData,
     dcfData,
     enterpriseValueData,
+    financialScoresData,
     earningsCalendarData,
     dividendHistoryData,
     stockSplitsData,
@@ -188,6 +191,8 @@ export async function fetchFmpReportData(
     // 估值
     dcfValuation: dcfData && dcfData.length > 0 ? dcfData[0] : null,
     enterpriseValues: enterpriseValueData || [],
+    // 财务健康评分
+    financialScores: financialScoresData && financialScoresData.length > 0 ? financialScoresData[0] : null,
     // 事件日历
     earningsCalendar: earningsCalendarData || [],
     dividendHistory: dividendHistoryData || [],

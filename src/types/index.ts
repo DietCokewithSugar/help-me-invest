@@ -319,6 +319,23 @@ export interface FinancialGrowth {
   sgaexpensesGrowth: number;
 }
 
+// ==================== 财务健康评分 ====================
+
+export interface FinancialScores {
+  symbol: string;
+  // 两大核心评分
+  altmanZScore: number;      // 奥特曼 Z-Score (破产预测模型)
+  piotroskiScore: number;    // 皮奥特罗斯基 F-Score (财务改善模型)
+  // 计算因子
+  workingCapital: number;    // 营运资金
+  totalAssets: number;       // 总资产
+  retainedEarnings: number;  // 留存收益
+  ebit: number;              // 息税前利润
+  marketCap: number;         // 市值
+  totalLiabilities: number;  // 总负债
+  revenue: number;           // 营收
+}
+
 // ==================== 估值与分析 ====================
 
 export interface DCFValuation {
@@ -480,6 +497,8 @@ export interface ReportData {
   financialRatios: FinancialRatios[];
   financialRatiosTTM: any[];
   financialGrowth: FinancialGrowth[];
+  // 财务健康评分
+  financialScores?: FinancialScores | null;
   // 估值
   dcfValuation: DCFValuation | null;
   enterpriseValues: EnterpriseValue[];

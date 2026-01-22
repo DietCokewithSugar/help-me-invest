@@ -2,16 +2,18 @@
 
 import ReactECharts from 'echarts-for-react';
 import { Calculator, TrendingUp, TrendingDown, Target, Percent, PiggyBank, BarChart3, Activity, Info, DollarSign, Shield, Zap, Building2 } from 'lucide-react';
-import type { KeyMetrics, CompanyProfile, FinancialRatios } from '@/types';
+import type { KeyMetrics, CompanyProfile, FinancialRatios, FinancialScores } from '@/types';
 import { useState } from 'react';
 import FinancialRatiosDisplay from './FinancialRatiosDisplay';
 import FinancialRatiosTTMDisplay from './FinancialRatiosTTMDisplay';
+import FinancialScoresDisplay from './FinancialScoresDisplay';
 
 interface Props {
   profile: CompanyProfile;
   keyMetrics: KeyMetrics[];
   financialRatios?: FinancialRatios[];
   financialRatiosTTM?: any[];
+  financialScores?: FinancialScores | null;
 }
 
 // 指标说明映射
@@ -83,6 +85,7 @@ export default function ProfessionalValuationMetrics({
   keyMetrics,
   financialRatios = [],
   financialRatiosTTM = [],
+  financialScores,
 }: Props) {
   const [hoveredMetric, setHoveredMetric] = useState<string | null>(null);
 
@@ -707,6 +710,11 @@ export default function ProfessionalValuationMetrics({
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* 财务健康评分 - 最重要的指标放在最前面 */}
+      {financialScores && (
+        <FinancialScoresDisplay financialScores={financialScores} />
+      )}
+      
       {renderBasicInfo()}
       {renderValuationMetrics()}
       {renderProfitabilityMetrics()}
