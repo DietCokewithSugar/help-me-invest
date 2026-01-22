@@ -22,18 +22,18 @@ export class FMPClient {
         'apikey': this.apiKey,
       }
     });
-    
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('FMP API Error:', response.status, errorText);
       throw new Error(`FMP API error: ${response.status} - ${errorText}`);
     }
-    
+
     return response.json();
   }
 
   // ==================== 公司基础信息 ====================
-  
+
   // 公司概况
   async getProfile(symbol: string) {
     return this.fetch<any[]>(`/profile`, { symbol });
@@ -62,51 +62,51 @@ export class FMPClient {
   }
 
   // ==================== 三大财务报表 ====================
-  
+
   // 利润表 Income Statement
   async getIncomeStatement(symbol: string, period: 'annual' | 'quarter' = 'annual', limit = 5) {
-    return this.fetch<any[]>(`/income-statement`, { 
-      symbol, 
-      period, 
-      limit: String(limit) 
+    return this.fetch<any[]>(`/income-statement`, {
+      symbol,
+      period,
+      limit: String(limit)
     });
   }
 
   // 资产负债表 Balance Sheet
   async getBalanceSheet(symbol: string, period: 'annual' | 'quarter' = 'annual', limit = 5) {
-    return this.fetch<any[]>(`/balance-sheet-statement`, { 
-      symbol, 
-      period, 
-      limit: String(limit) 
+    return this.fetch<any[]>(`/balance-sheet-statement`, {
+      symbol,
+      period,
+      limit: String(limit)
     });
   }
 
   // 现金流量表 Cash Flow Statement
   async getCashFlowStatement(symbol: string, period: 'annual' | 'quarter' = 'annual', limit = 5) {
-    return this.fetch<any[]>(`/cash-flow-statement`, { 
-      symbol, 
-      period, 
-      limit: String(limit) 
+    return this.fetch<any[]>(`/cash-flow-statement`, {
+      symbol,
+      period,
+      limit: String(limit)
     });
   }
 
   // ==================== 关键财务指标 ====================
-  
+
   // 关键指标 (市值、PE、PB、EV/EBITDA 等)
   async getKeyMetrics(symbol: string, period: 'annual' | 'quarter' = 'annual', limit = 5) {
-    return this.fetch<any[]>(`/key-metrics`, { 
-      symbol, 
-      period, 
-      limit: String(limit) 
+    return this.fetch<any[]>(`/key-metrics`, {
+      symbol,
+      period,
+      limit: String(limit)
     });
   }
 
   // 财务比率 (ROE、ROA、流动比率、速动比率等)
   async getFinancialRatios(symbol: string, period: 'annual' | 'quarter' = 'annual', limit = 5) {
-    return this.fetch<any[]>(`/ratios`, { 
-      symbol, 
-      period, 
-      limit: String(limit) 
+    return this.fetch<any[]>(`/ratios`, {
+      symbol,
+      period,
+      limit: String(limit)
     });
   }
 
@@ -115,17 +115,22 @@ export class FMPClient {
     return this.fetch<any[]>(`/ratios-ttm`, { symbol });
   }
 
+  // TTM 关键指标 (过去12个月)
+  async getKeyMetricsTTM(symbol: string) {
+    return this.fetch<any[]>(`/key-metrics-ttm`, { symbol });
+  }
+
   // 财务增长指标
   async getFinancialGrowth(symbol: string, period: 'annual' | 'quarter' = 'annual', limit = 5) {
-    return this.fetch<any[]>(`/financial-growth`, { 
-      symbol, 
-      period, 
-      limit: String(limit) 
+    return this.fetch<any[]>(`/financial-growth`, {
+      symbol,
+      period,
+      limit: String(limit)
     });
   }
 
   // ==================== 估值与分析 ====================
-  
+
   // DCF 估值 (Discounted Cash Flow)
   async getDCF(symbol: string) {
     return this.fetch<any[]>(`/discounted-cash-flow`, { symbol });
@@ -133,7 +138,7 @@ export class FMPClient {
 
   // 历史 DCF 估值
   async getHistoricalDCF(symbol: string, period: 'annual' | 'quarter' = 'annual', limit = 5) {
-    return this.fetch<any[]>(`/historical-discounted-cash-flow-statement`, { 
+    return this.fetch<any[]>(`/historical-discounted-cash-flow-statement`, {
       symbol,
       period,
       limit: String(limit)
@@ -142,7 +147,7 @@ export class FMPClient {
 
   // 企业价值 (Enterprise Value)
   async getEnterpriseValue(symbol: string, period: 'annual' | 'quarter' = 'annual', limit = 5) {
-    return this.fetch<any[]>(`/enterprise-values`, { 
+    return this.fetch<any[]>(`/enterprise-values`, {
       symbol,
       period,
       limit: String(limit)
@@ -151,22 +156,22 @@ export class FMPClient {
 
   // 收入分部数据
   async getRevenueSegmentation(symbol: string) {
-    return this.fetch<any>(`/revenue-product-segmentation`, { 
-      symbol, 
-      structure: 'flat' 
+    return this.fetch<any>(`/revenue-product-segmentation`, {
+      symbol,
+      structure: 'flat'
     });
   }
 
   // 地区收入分部
   async getRevenueGeographic(symbol: string) {
-    return this.fetch<any>(`/revenue-geographic-segmentation`, { 
+    return this.fetch<any>(`/revenue-geographic-segmentation`, {
       symbol,
       structure: 'flat'
     });
   }
 
   // ==================== 市场事件与日历 ====================
-  
+
   // 财报日历 (Earnings Calendar)
   async getEarningsCalendar(symbol: string) {
     return this.fetch<any[]>(`/earning-calendar`, { symbol });
@@ -174,7 +179,7 @@ export class FMPClient {
 
   // 历史财报日历
   async getHistoricalEarnings(symbol: string, limit = 10) {
-    return this.fetch<any[]>(`/historical/earning-calendar`, { 
+    return this.fetch<any[]>(`/historical/earning-calendar`, {
       symbol,
       limit: String(limit)
     });
@@ -196,7 +201,7 @@ export class FMPClient {
   }
 
   // ==================== 机构持仓与内幕交易 ====================
-  
+
   // 机构持仓 (13F Reports)
   async getInstitutionalHolders(symbol: string) {
     return this.fetch<any[]>(`/institutional-holder`, { symbol });
@@ -214,7 +219,7 @@ export class FMPClient {
 
   // 内幕交易
   async getInsiderTrading(symbol: string, limit = 50) {
-    return this.fetch<any[]>(`/insider-trading`, { 
+    return this.fetch<any[]>(`/insider-trading`, {
       symbol,
       limit: String(limit)
     });
@@ -226,12 +231,12 @@ export class FMPClient {
   }
 
   // ==================== 新闻与电话会议 ====================
-  
+
   // 股票新闻
   async getNews(symbol: string, limit = 10) {
     try {
-      const result = await this.fetch<any[]>(`/news/stock`, { 
-        symbols: symbol, 
+      const result = await this.fetch<any[]>(`/news/stock`, {
+        symbols: symbol,
         limit: String(limit),
         page: '0'
       });
@@ -244,15 +249,15 @@ export class FMPClient {
 
   // 财报电话会议记录
   async getEarningsTranscript(symbol: string, year: number, quarter: number) {
-    return this.fetch<any[]>(`/earning-call-transcript`, { 
+    return this.fetch<any[]>(`/earning-call-transcript`, {
       symbol,
-      year: String(year), 
-      quarter: String(quarter) 
+      year: String(year),
+      quarter: String(quarter)
     });
   }
 
   // ==================== 行业与板块 ====================
-  
+
   // 行业表现
   async getSectorPerformance() {
     return this.fetch<any[]>(`/sector-performance`);
@@ -279,7 +284,7 @@ export class FMPClient {
   }
 
   // ==================== 股价相关 ====================
-  
+
   // 实时股价
   async getQuote(symbol: string) {
     return this.fetch<any[]>(`/quote`, { symbol });
@@ -304,7 +309,7 @@ export class FMPClient {
   }
 
   // ==================== 财务健康评分 ====================
-  
+
   // Financial Scores (Altman Z-Score, Piotroski Score)
   async getFinancialScores(symbol: string) {
     try {
@@ -315,7 +320,7 @@ export class FMPClient {
   }
 
   // ==================== 评级与目标价 ====================
-  
+
   // 分析师评级
   async getAnalystRatings(symbol: string) {
     try {

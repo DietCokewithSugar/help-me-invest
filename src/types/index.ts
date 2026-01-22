@@ -494,6 +494,7 @@ export interface ReportData {
   cashFlowStatements: CashFlowStatement[];
   // 关键指标
   keyMetrics: KeyMetrics[];
+  keyMetricsTTM: any[];
   financialRatios: FinancialRatios[];
   financialRatiosTTM: any[];
   financialGrowth: FinancialGrowth[];

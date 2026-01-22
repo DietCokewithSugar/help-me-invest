@@ -288,6 +288,7 @@ export default function Report({
     balanceSheets = [],
     cashFlowStatements = [],
     keyMetrics = [],
+    keyMetricsTTM = [],
     financialRatios = [],
     financialRatiosTTM = [],
     financialGrowth = [],
@@ -407,7 +408,7 @@ export default function Report({
       // 所有版本都可能有这些
       if (hasEventsData) availableSections.push('events');
       if (hasHoldingsData) availableSections.push('holdings');
-      
+
       for (const id of availableSections) {
         const element = document.getElementById(id);
         if (element) {
@@ -465,21 +466,19 @@ export default function Report({
           <div className="flex items-center gap-1 p-1 rounded-xl bg-surface/80 backdrop-blur-xl border border-white/5">
             <button
               onClick={() => setReportVersion('standard')}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-                reportVersion === 'standard'
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${reportVersion === 'standard'
                   ? 'bg-glacier-500 text-white'
                   : 'text-mist-400 hover:text-white'
-              }`}
+                }`}
             >
               普通版
             </button>
             <button
               onClick={() => setReportVersion('professional')}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-                reportVersion === 'professional'
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${reportVersion === 'professional'
                   ? 'bg-glacier-500 text-white'
                   : 'text-mist-400 hover:text-white'
-              }`}
+                }`}
             >
               专业版
             </button>
@@ -764,72 +763,71 @@ export default function Report({
             onToggle={() => toggleSection('financialStatements')}
             sectionNumber={getSectionNumber('financialStatements')}
           >
-          <div className="space-y-6 animate-fade-in">
-            {/* 桑基图和营收图表 */}
-            <div className="gemini-card p-6 md:p-8">
-              <div className="flex items-center gap-4 mb-8">
-                <div className="relative">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-white" />
+            <div className="space-y-6 animate-fade-in">
+              {/* 桑基图和营收图表 */}
+              <div className="gemini-card p-6 md:p-8">
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="relative">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center">
+                      <TrendingUp className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-slate-500 to-slate-600 opacity-20 blur-xl" />
                   </div>
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-slate-500 to-slate-600 opacity-20 blur-xl" />
+                  <div>
+                    <h3 className="text-xl font-semibold text-white">财务数据可视化</h3>
+                    <p className="text-sm text-mist-500 mt-0.5">直观展示营收结构与财务趋势</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-white">财务数据可视化</h3>
-                  <p className="text-sm text-mist-500 mt-0.5">直观展示营收结构与财务趋势</p>
-                </div>
+
+                {/* 桑基图 */}
+                {currentSankeyData && currentSankeyData.links && currentSankeyData.links.length > 0 && (
+                  <div className="mb-10">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 bg-gemini-blue rounded-full" />
+                        <h4 className="text-base font-medium text-mist-200">营收流向分析（桑基图）</h4>
+                      </div>
+                      {availableYears.length > 1 && (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs text-mist-500 whitespace-nowrap">选择年份：</span>
+                          <div className="flex p-1 bg-white/5 border border-white/10 rounded-lg flex-wrap gap-1">
+                            {availableYears.map((year) => (
+                              <button
+                                key={year.index}
+                                onClick={() => setSankeyYearIndex(year.index)}
+                                className={`px-3 py-1 text-xs font-medium rounded-md transition-all whitespace-nowrap ${sankeyYearIndex === year.index
+                                    ? 'bg-glacier-500 text-white shadow-sm'
+                                    : 'text-mist-400 hover:text-mist-200'
+                                  }`}
+                              >
+                                {year.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <SankeyChart data={currentSankeyData} />
+                  </div>
+                )}
+
+                {/* 其他图表 */}
+                <RevenueCharts
+                  incomeStatements={incomeStatements}
+                  incomeStatementsQuarter={data.incomeStatementsQuarter}
+                />
               </div>
 
-              {/* 桑基图 */}
-              {currentSankeyData && currentSankeyData.links && currentSankeyData.links.length > 0 && (
-                <div className="mb-10">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-gemini-blue rounded-full" />
-                      <h4 className="text-base font-medium text-mist-200">营收流向分析（桑基图）</h4>
-                    </div>
-                    {availableYears.length > 1 && (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs text-mist-500 whitespace-nowrap">选择年份：</span>
-                        <div className="flex p-1 bg-white/5 border border-white/10 rounded-lg flex-wrap gap-1">
-                          {availableYears.map((year) => (
-                            <button
-                              key={year.index}
-                              onClick={() => setSankeyYearIndex(year.index)}
-                              className={`px-3 py-1 text-xs font-medium rounded-md transition-all whitespace-nowrap ${
-                                sankeyYearIndex === year.index
-                                  ? 'bg-glacier-500 text-white shadow-sm'
-                                  : 'text-mist-400 hover:text-mist-200'
-                              }`}
-                            >
-                              {year.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <SankeyChart data={currentSankeyData} />
-                </div>
-              )}
-
-              {/* 其他图表 */}
-              <RevenueCharts
+              {/* 三大财务报表 */}
+              <FinancialStatements
                 incomeStatements={incomeStatements}
+                balanceSheets={balanceSheets}
+                cashFlowStatements={cashFlowStatements}
                 incomeStatementsQuarter={data.incomeStatementsQuarter}
+                balanceSheetsQuarter={data.balanceSheetsQuarter}
+                cashFlowStatementsQuarter={data.cashFlowStatementsQuarter}
               />
             </div>
-
-            {/* 三大财务报表 */}
-            <FinancialStatements
-              incomeStatements={incomeStatements}
-              balanceSheets={balanceSheets}
-              cashFlowStatements={cashFlowStatements}
-              incomeStatementsQuarter={data.incomeStatementsQuarter}
-              balanceSheetsQuarter={data.balanceSheetsQuarter}
-              cashFlowStatementsQuarter={data.cashFlowStatementsQuarter}
-            />
-          </div>
           </CollapsibleSection>
         )}
 
@@ -848,6 +846,7 @@ export default function Report({
               <ProfessionalValuationMetrics
                 profile={profile}
                 keyMetrics={keyMetrics}
+                keyMetricsTTM={keyMetricsTTM}
                 financialRatios={financialRatios}
                 financialRatiosTTM={financialRatiosTTM}
                 financialScores={data.financialScores}

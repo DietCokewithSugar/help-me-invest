@@ -63,6 +63,7 @@ export async function fetchFmpReportData(
   // 关键指标
   const metricsPromises = [
     features.keyMetrics ? fmp.getKeyMetrics(upperSymbol, period, 5) : Promise.resolve([]),
+    features.keyMetrics ? fmp.getKeyMetricsTTM(upperSymbol).catch(() => []) : Promise.resolve([]),
     features.financialRatios ? fmp.getFinancialRatios(upperSymbol, period, 5) : Promise.resolve([]),
     features.financialRatios ? fmp.getFinancialRatiosTTM(upperSymbol).catch(() => []) : Promise.resolve([]),
     features.financialGrowth ? fmp.getFinancialGrowth(upperSymbol, period, 5) : Promise.resolve([]),
@@ -108,6 +109,7 @@ export async function fetchFmpReportData(
     balanceSheetQuarterData,
     cashFlowQuarterData,
     keyMetricsData,
+    keyMetricsTTMData,
     financialRatiosData,
     financialRatiosTTMData,
     financialGrowthData,
@@ -185,6 +187,7 @@ export async function fetchFmpReportData(
     cashFlowStatementsQuarter: cashFlowQuarterData || [],
     // 关键指标
     keyMetrics: keyMetricsData || [],
+    keyMetricsTTM: keyMetricsTTMData || [],
     financialRatios: financialRatiosData || [],
     financialRatiosTTM: financialRatiosTTMData || [],
     financialGrowth: financialGrowthData || [],
