@@ -21,6 +21,8 @@ import {
   MessageCircleIcon,
   LogoIcon,
   XIcon,
+  SunIcon,
+  MoonIcon,
 } from '@/components/Icons';
 
 // 懒加载组件
@@ -153,10 +155,27 @@ export default function Home() {
   const [currentStockIndex, setCurrentStockIndex] = useState(0);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const [showContactModal, setShowContactModal] = useState(false);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestContainerRef = useRef<HTMLDivElement>(null);
 
   const currentMarketConfig = getMarketConfig(selectedMarket);
+
+  // 初始化主题
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') as 'dark' | 'light' | null;
+    const initialTheme = savedTheme || 'dark';
+    setTheme(initialTheme);
+    document.documentElement.setAttribute('data-theme', initialTheme);
+  }, []);
+
+  // 切换主题
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+  };
 
   // 股票翻牌动画
   useEffect(() => {
@@ -614,14 +633,30 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* 联系我们 */}
-              <button
-                onClick={() => setShowContactModal(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer"
-              >
-                <MessageCircleIcon size={16} className="text-glacier-500" />
-                <span className="text-sm text-mist-300">联系我们</span>
-              </button>
+              {/* 右侧操作区 */}
+              <div className="flex items-center gap-3">
+                {/* 联系我们 */}
+                <button
+                  onClick={() => setShowContactModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer"
+                >
+                  <MessageCircleIcon size={16} className="text-glacier-500" />
+                  <span className="text-sm text-mist-300">联系我们</span>
+                </button>
+
+                {/* 主题切换 */}
+                <button
+                  onClick={toggleTheme}
+                  className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer"
+                  title={theme === 'dark' ? '切换到亮色模式' : '切换到深色模式'}
+                >
+                  {theme === 'dark' ? (
+                    <SunIcon size={18} className="text-mist-300" />
+                  ) : (
+                    <MoonIcon size={18} className="text-mist-300" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
