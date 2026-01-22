@@ -17,6 +17,7 @@ import SankeyChart from './SankeyChart';
 import RevenueCharts from './RevenueCharts';
 import FinancialStatements from './FinancialStatements';
 import ValuationMetrics from './ValuationMetrics';
+import ProfessionalValuationMetrics from './ProfessionalValuationMetrics';
 import EventCalendar from './EventCalendar';
 import HoldingsAnalysis from './HoldingsAnalysis';
 import ExportModal from './ExportModal';
@@ -270,6 +271,7 @@ export default function Report({
   const [showTranscript, setShowTranscript] = useState(false);
   const [activeSection, setActiveSection] = useState('');
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [reportVersion, setReportVersion] = useState<'standard' | 'professional'>('standard');
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     aiAnalysis: true,
     financialStatements: true,
@@ -280,25 +282,6 @@ export default function Report({
   // 桑基图年份选择状态（0 表示最新年份）
   const [sankeyYearIndex, setSankeyYearIndex] = useState(0);
 
-  // 监听滚动，更新当前活跃的 section
-  React.useEffect(() => {
-    const handleScroll = () => {
-      const sections = ['aiAnalysis', 'financialStatements', 'valuation', 'events', 'holdings', 'news'];
-      for (const id of sections) {
-        const element = document.getElementById(id);
-        if (element) {
-          const rect = element.getBoundingClientRect();
-          if (rect.top <= 200 && rect.bottom >= 200) {
-            setActiveSection(id);
-            break;
-          }
-        }
-      }
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   const {
     profile,
     incomeStatements,
@@ -306,6 +289,7 @@ export default function Report({
     cashFlowStatements = [],
     keyMetrics = [],
     financialRatios = [],
+    financialRatiosTTM = [],
     financialGrowth = [],
     dcfValuation = null,
     enterpriseValues = [],
@@ -402,14 +386,51 @@ export default function Report({
     : profile.changesPercentage || '0%';
   const exchangeName = profile.exchange || profile.exchangeShortName || '';
 
-  // 快捷导航 - 根据市场类型和数据可用性显示
+  // 根据版本决定显示哪些部分
+  const showValuationSection = reportVersion === 'professional';
+  const showAiSectionInVersion = reportVersion === 'standard' && showAiSection;
+  const showFinancialStatementsInVersion = reportVersion === 'standard';
+  const showNewsInVersion = reportVersion === 'standard' && hasNewsData;
+
+  // 监听滚动，更新当前活跃的 section
+  React.useEffect(() => {
+    const handleScroll = () => {
+      // 根据版本动态构建可用的 sections
+      const availableSections: string[] = [];
+      if (reportVersion === 'standard') {
+        if (showAiSection) availableSections.push('aiAnalysis');
+        availableSections.push('financialStatements');
+        if (hasNewsData) availableSections.push('news');
+      } else {
+        availableSections.push('valuation');
+      }
+      // 所有版本都可能有这些
+      if (hasEventsData) availableSections.push('events');
+      if (hasHoldingsData) availableSections.push('holdings');
+      
+      for (const id of availableSections) {
+        const element = document.getElementById(id);
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          if (rect.top <= 200 && rect.bottom >= 200) {
+            setActiveSection(id);
+            break;
+          }
+        }
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [reportVersion, showAiSection, hasEventsData, hasHoldingsData, hasNewsData]);
+
+  // 快捷导航 - 根据版本和市场类型和数据可用性显示
   const baseSections = [
-    ...(showAiSection ? [{ id: 'aiAnalysis', label: 'AI 分析', icon: Sparkles }] : []),
-    { id: 'financialStatements', label: '财务报表', icon: FileSpreadsheet },
-    { id: 'valuation', label: '估值指标', icon: Calculator },
+    ...(showAiSectionInVersion ? [{ id: 'aiAnalysis', label: 'AI 分析', icon: Sparkles }] : []),
+    ...(showFinancialStatementsInVersion ? [{ id: 'financialStatements', label: '财务报表', icon: FileSpreadsheet }] : []),
+    ...(showValuationSection ? [{ id: 'valuation', label: '估值指标', icon: Calculator }] : []),
     ...(hasEventsData ? [{ id: 'events', label: '事件日历', icon: Calendar }] : []),
     ...(hasHoldingsData ? [{ id: 'holdings', label: '持仓分析', icon: Briefcase }] : []),
-    ...(hasNewsData ? [{ id: 'news', label: '新闻资讯', icon: Newspaper }] : []),
+    ...(showNewsInVersion ? [{ id: 'news', label: '新闻资讯', icon: Newspaper }] : []),
   ];
 
   // 添加编号
@@ -440,6 +461,30 @@ export default function Report({
         </button>
 
         <div className="flex items-center gap-3">
+          {/* 版本切换 */}
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-surface/80 backdrop-blur-xl border border-white/5">
+            <button
+              onClick={() => setReportVersion('standard')}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                reportVersion === 'standard'
+                  ? 'bg-glacier-500 text-white'
+                  : 'text-mist-400 hover:text-white'
+              }`}
+            >
+              普通版
+            </button>
+            <button
+              onClick={() => setReportVersion('professional')}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                reportVersion === 'professional'
+                  ? 'bg-glacier-500 text-white'
+                  : 'text-mist-400 hover:text-white'
+              }`}
+            >
+              专业版
+            </button>
+          </div>
+
           {/* 快捷导航 */}
           <div className="hidden lg:flex items-center gap-1 p-1.5 rounded-2xl bg-surface/80 backdrop-blur-xl border border-white/5">
             {sections.map((section) => (
@@ -544,8 +589,8 @@ export default function Report({
           </div>
         </header>
 
-        {/* ==================== AI 生成中提示 ==================== */}
-        {showAiLoading && (
+        {/* ==================== AI 生成中提示（仅普通版） ==================== */}
+        {showAiLoading && showAiSectionInVersion && (
           <div className="gemini-card p-6 md:p-8 animate-fade-in">
             {/* 标题区域 */}
             <div className="flex items-center gap-3 mb-6">
@@ -581,8 +626,8 @@ export default function Report({
           </div>
         )}
 
-        {/* ==================== AI 分析内容 ==================== */}
-        {showAiSection && (
+        {/* ==================== AI 分析内容（仅普通版） ==================== */}
+        {showAiSectionInVersion && (
           <CollapsibleSection
             id="aiAnalysis"
             icon={Sparkles}
@@ -707,17 +752,18 @@ export default function Report({
           </CollapsibleSection>
         )}
 
-        {/* ==================== 财务报表 ==================== */}
-        <CollapsibleSection
-          id="financialStatements"
-          icon={FileSpreadsheet}
-          title="财务数据"
-          subtitle="基于近5年财务报表数据"
-          gradient="from-slate-500 to-slate-600"
-          expanded={expandedSections.financialStatements}
-          onToggle={() => toggleSection('financialStatements')}
-          sectionNumber={getSectionNumber('financialStatements')}
-        >
+        {/* ==================== 财务报表（仅普通版） ==================== */}
+        {showFinancialStatementsInVersion && (
+          <CollapsibleSection
+            id="financialStatements"
+            icon={FileSpreadsheet}
+            title="财务数据"
+            subtitle="基于近5年财务报表数据"
+            gradient="from-slate-500 to-slate-600"
+            expanded={expandedSections.financialStatements}
+            onToggle={() => toggleSection('financialStatements')}
+            sectionNumber={getSectionNumber('financialStatements')}
+          >
           <div className="space-y-6 animate-fade-in">
             {/* 桑基图和营收图表 */}
             <div className="gemini-card p-6 md:p-8">
@@ -784,29 +830,30 @@ export default function Report({
               cashFlowStatementsQuarter={data.cashFlowStatementsQuarter}
             />
           </div>
-        </CollapsibleSection>
+          </CollapsibleSection>
+        )}
 
-        {/* ==================== 估值与财务指标 ==================== */}
-        <CollapsibleSection
-          id="valuation"
-          icon={Calculator}
-          title="估值与指标"
-          gradient="from-glacier-600 to-gemini-blue"
-          expanded={expandedSections.valuation}
-          onToggle={() => toggleSection('valuation')}
-          sectionNumber={getSectionNumber('valuation')}
-        >
-          <div className="animate-fade-in">
-            <ValuationMetrics
-              profile={profile}
-              keyMetrics={keyMetrics}
-              financialRatios={financialRatios}
-              financialGrowth={financialGrowth}
-              dcfValuation={dcfValuation}
-              enterpriseValues={enterpriseValues}
-            />
-          </div>
-        </CollapsibleSection>
+        {/* ==================== 估值与财务指标（仅专业版） ==================== */}
+        {showValuationSection && (
+          <CollapsibleSection
+            id="valuation"
+            icon={Calculator}
+            title="估值与指标"
+            gradient="from-glacier-600 to-gemini-blue"
+            expanded={expandedSections.valuation}
+            onToggle={() => toggleSection('valuation')}
+            sectionNumber={getSectionNumber('valuation')}
+          >
+            <div className="animate-fade-in">
+              <ProfessionalValuationMetrics
+                profile={profile}
+                keyMetrics={keyMetrics}
+                financialRatios={financialRatios}
+                financialRatiosTTM={financialRatiosTTM}
+              />
+            </div>
+          </CollapsibleSection>
+        )}
 
         {/* ==================== 事件日历 ==================== */}
         {hasEventsData && (
@@ -869,8 +916,8 @@ export default function Report({
           </div>
         )}
 
-        {/* ==================== 最新新闻 ==================== */}
-        {hasNewsData && (
+        {/* ==================== 最新新闻（仅普通版） ==================== */}
+        {showNewsInVersion && (
           <section id="news" className="gemini-card p-6 md:p-8 animate-fade-in-up scroll-mt-28">
             <div className="flex items-center gap-4 mb-6">
               {/* 编号 */}
