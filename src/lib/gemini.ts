@@ -115,20 +115,20 @@ export class GeminiClient {
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
-      
+
       if (!text || text.trim().length === 0) {
         throw new Error('AI 返回空响应');
       }
-      
+
       const cleaned = text
         .replace(/```json\n?/g, '')
         .replace(/```\n?/g, '')
         .trim();
-      
+
       if (!cleaned.startsWith('{')) {
         throw new Error('AI 响应格式不正确');
       }
-      
+
       return JSON.parse(cleaned);
     } catch (error: any) {
       console.error('Gemini suggestSymbol error:', error?.message || error);
@@ -145,7 +145,7 @@ export class GeminiClient {
   ): Promise<string> {
     const marketName = MARKET_NAMES[market] || '美股';
     const isNonUS = market !== 'US';
-    
+
     // 对于非美股，添加额外的分析指引
     const marketContext = isNonUS ? `
 ## 市场背景
@@ -205,20 +205,20 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
-      
+
       // 检查是否返回了有效的 JSON 格式响应
       if (!text || text.trim().length === 0) {
         console.error('Gemini returned empty response');
         throw new Error('AI 返回空响应');
       }
-      
+
       return text;
     } catch (error: any) {
       console.error('Gemini analyzeCompany error:', error?.message || error);
       // 如果是网络错误，抛出更友好的错误信息
-      if (error?.message?.includes('fetch failed') || 
-          error?.message?.includes('ECONNRESET') ||
-          error?.message?.includes('network')) {
+      if (error?.message?.includes('fetch failed') ||
+        error?.message?.includes('ECONNRESET') ||
+        error?.message?.includes('network')) {
         throw new Error('网络连接失败，请检查网络后重试');
       }
       throw error;
@@ -226,8 +226,8 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
   }
 
   async searchAndAnalyze(
-    companyName: string, 
-    symbol: string, 
+    companyName: string,
+    symbol: string,
     market: MarketType = 'US'
   ): Promise<string> {
     void market;
@@ -256,9 +256,9 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
     } catch (error: any) {
       console.error('Google Search grounding error:', error?.message || error);
       // 网络错误时返回空字符串，让主流程继续
-      if (error?.message?.includes('fetch failed') || 
-          error?.message?.includes('ECONNRESET') ||
-          error?.message?.includes('network')) {
+      if (error?.message?.includes('fetch failed') ||
+        error?.message?.includes('ECONNRESET') ||
+        error?.message?.includes('network')) {
         console.log('Network error in searchAndAnalyze, returning empty result');
       }
       return '';
@@ -303,25 +303,25 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
       const result = await modelWithSearch.generateContent(prompt);
       const response = await result.response;
       const rawText = response.text();
-      
+
       // 检查是否返回了错误消息
-      if (rawText.toLowerCase().startsWith('an error') || 
-          rawText.toLowerCase().startsWith('error')) {
+      if (rawText.toLowerCase().startsWith('an error') ||
+        rawText.toLowerCase().startsWith('error')) {
         console.error('Search returned error message:', rawText.substring(0, 100));
         throw new Error('Search returned error');
       }
-      
+
       const text = rawText
         .replace(/```json\n?/g, '')
         .replace(/```\n?/g, '')
         .trim();
-      
+
       // 确保看起来像 JSON
       if (!text.startsWith('{')) {
         console.error('Search response does not look like JSON:', text.substring(0, 100));
         throw new Error('Invalid JSON format');
       }
-      
+
       return JSON.parse(text);
     } catch (error: any) {
       console.error('Search company details error:', error?.message || error);
@@ -393,12 +393,230 @@ ${transcriptText}
       return response.text();
     } catch (error: any) {
       console.error('Summarize earnings call error:', error?.message || error);
-      if (error?.message?.includes('fetch failed') || 
-          error?.message?.includes('ECONNRESET') ||
-          error?.message?.includes('network')) {
+      if (error?.message?.includes('fetch failed') ||
+        error?.message?.includes('ECONNRESET') ||
+        error?.message?.includes('network')) {
         throw new Error('网络连接失败，请检查网络后重试');
       }
       throw error;
     }
+  }
+
+  // ============================================================================
+  // 新的流式生成方法 (Granular Streaming Methods)
+  // ============================================================================
+
+  // 通用的流式生成辅助方法
+  async *generateStream(prompt: string, tier: ModelTier = 'standard'): AsyncGenerator<string, void, unknown> {
+    const model = this.getModel(tier, {
+      temperature: 0.7,
+      topP: 0.95,
+      maxOutputTokens: 8192
+    });
+
+    try {
+      const result = await model.generateContentStream(prompt);
+      for await (const chunk of result.stream) {
+        const chunkText = chunk.text();
+        if (chunkText) {
+          yield chunkText;
+        }
+      }
+    } catch (error: any) {
+      console.error('Stream generation error:', error?.message || error);
+      throw error;
+    }
+  }
+
+  // 1. 企业概况
+  async streamCompanyOverview(companyData: any, market: MarketType): AsyncGenerator<string, void, unknown> {
+    const prompt = `
+你是一位专业的金融分析师。请根据以下公司信息，撰写一份简洁的“企业概况”。
+
+数据：
+${JSON.stringify(companyData, null, 2)}
+
+要求：
+- 介绍主营业务、商业模式和简要发展历程。
+- 字数控制在 300-500 字。
+- 使用中文。
+- 格式：Markdown，关键信息（如核心产品、市场地位）加粗。
+`;
+    return this.generateStream(prompt, 'standard');
+  }
+
+  // 2. 行业分析
+  async streamIndustryAnalysis(companyData: any, market: MarketType): AsyncGenerator<string, void, unknown> {
+    const prompt = `
+请分析 ${companyData.companyName} (${companyData.symbol}) 所处的行业。
+
+要求：
+- 分析行业规模、增长趋势、技术演进方向。
+- 字数控制在 300-400 字。
+- 使用中文。
+- 格式：Markdown，关键数据和趋势加粗。
+`;
+    return this.generateStream(prompt, 'standard');
+  }
+
+  // 3. 行业痛点与障碍
+  async streamIndustryPainPoints(companyData: any, market: MarketType): AsyncGenerator<string, void, unknown> {
+    const prompt = `
+请深入分析 ${companyData.companyName} 所处行业当前面临的最大痛点与发展障碍。
+
+要求：
+- 涵盖技术挑战、监管压力、供应链问题、人才短缺、成本压力、竞争加剧等方面。
+- 必须提供具体分析，而非泛泛而谈。
+- 字数 200-300 字。
+- 使用中文。
+- 格式：Markdown，关键痛点加粗。
+`;
+    return this.generateStream(prompt, 'standard');
+  }
+
+  // 4. 竞争格局
+  async streamCompetitors(companyData: any, peers: string[], market: MarketType): AsyncGenerator<string, void, unknown> {
+    const prompt = `
+请分析 ${companyData.companyName} 的竞争格局。
+
+已知竞争对手：${peers.join(', ')}
+
+要求：
+- 分析主要竞争对手的市场地位和特点。
+- 字数 200-300 字。
+- 使用中文。
+- 格式：Markdown，对手名称和关键特点加粗。
+`;
+    return this.generateStream(prompt, 'standard');
+  }
+
+  // 5. 竞争优势
+  async streamCompetitiveAdvantage(companyData: any, market: MarketType): AsyncGenerator<string, void, unknown> {
+    const prompt = `
+请分析 ${companyData.companyName} 相较于竞争对手的独特优势。
+
+要求：
+- 聚焦于不可复制的优势。
+- 字数 200-300 字。
+- 使用中文。
+- 格式：Markdown，核心优势点加粗。
+`;
+    return this.generateStream(prompt, 'standard');
+  }
+
+  // 6. 核心护城河
+  async streamMoat(companyData: any, market: MarketType): AsyncGenerator<string, void, unknown> {
+    const prompt = `
+请深入剖析 ${companyData.companyName} 的核心护城河。
+
+要求：
+- 分析技术壁垒、品牌效应、网络效应、转换成本等。
+- 字数 300-400 字。
+- 使用中文。
+- 格式：Markdown，关键护城河加粗。
+`;
+    return this.generateStream(prompt, 'standard');
+  }
+
+  // 7. 最新发展动态 (需要联网搜索能力)
+  async streamRecentDevelopments(companyName: string, symbol: string, market: MarketType): AsyncGenerator<string, void, unknown> {
+    const marketName = MARKET_NAMES[market] || '美股';
+    // 使用 search 模型
+    const model = this.getModel('search', {
+      temperature: 0.7,
+      topP: 0.95,
+      maxOutputTokens: 4096,
+      tools: [{ googleSearch: {} }] as any,
+    });
+
+    const prompt = `请搜索 ${companyName} (${symbol}，${marketName}市场) 的详细信息，时间范围限定为近90天。
+     请总结企业最近的重要发展动态（200-300字）。
+     重点关注：公告、业绩、财报、指引、监管、重组、并购、订单、合作。
+     如果没有近期的重大消息，请说明。
+     使用中文，Markdown 格式，关键动态加粗。`;
+
+    const result = await model.generateContentStream(prompt);
+    // Note: AsyncGenerator doesn't automatically imply * functionality in standard implementation unless tailored, 
+    // but here we just return the iterable.
+    async function* streamIterator() {
+      for await (const chunk of result.stream) {
+        yield chunk.text();
+      }
+    }
+    return streamIterator();
+  }
+
+  // 8. 投资建议总结 (需要前面所有模块的汇总)
+  async streamInvestmentConclusion(
+    companyData: any,
+    context: string,
+    market: MarketType
+  ): AsyncGenerator<string, void, unknown> {
+    const prompt = `
+你是一位首席投资官。请根据以下关于 ${companyData.companyName} (${companyData.symbol}) 的研究报告内容，撰写一份“投资建议总结”。
+
+已有报告内容：
+${context}
+
+要求：
+- 综合上述信息，给出最终的投资判断逻辑。
+- 明确机遇与风险。
+- 字数 200-300 字。
+- 使用中文。
+- 格式：Markdown，核心建议及风险点加粗。
+`;
+    return this.generateStream(prompt, 'standard');
+  }
+
+  // 9. 财报电话会议总结 (流式)
+  async streamEarningsCallSummary(
+    transcriptText: string,
+    companyName: string,
+    symbol: string
+  ): AsyncGenerator<string, void, unknown> {
+    const prompt = `
+你是一位资深卖方分析师。请根据以下英文电话会议全文，生成中文“财报电话会议精要”。
+必须严格围绕用户关心的四个区域输出，并给出清晰的要点与判断：
+
+1. 必读区域：问答环节 (Q&A Session)
+这是整份文件中含金量最高的地方。分析师代表了市场的疑虑，而管理层的回答代表了应对能力。
+- 抓出分析师的关键提问与管理层的回答。
+- 重复出现的尖锐问题：如果两三个分析师都在问同一个问题（例如：“你们的利润率为什么下滑？”或“AI什么时候能变现？”），即使管理层试图回避，这本身就说明这是市场目前最担心的核心矛盾。
+- 非正面回答 (Non-answers)：注意观察管理层是否在绕圈子。例如分析师问“明年的增长目标是多少？”，管理层回答“我们对长期充满信心”，这就是典型的信号——短期可能不仅不如意，甚至可能很糟糕。
+- 语气变化：文字版虽然听不到声音，但如果回答变得简短、生硬，或者频繁出现“正如我刚才所说...”的防御性措辞，通常意味着压力较大。
+
+2. 核心数据区：业绩指引 (Guidance/Outlook)
+这部分通常位于CFO发言的末尾，或者CEO总结陈词时。
+- 预期的修正：这是股价波动的直接催化剂。重点看他们是上调 (Raise)、下调 (Lower) 还是重申 (Reiterate) 了全年目标？
+- 措辞的确定性：注意修饰词。是“保守估计 (Conservative)”还是“强劲可见度 (Strong visibility)”？如果管理层说“宏观环境不确定性增加”，通常是在为未来业绩不达标打预防针。
+
+3. 关键指标解释区：CFO 的财务陈述
+CFO的发言虽然枯燥，但往往包含了解释数据的“钥匙”。重点搜索以下关键词：
+- Margins (利润率)：搜索 "Gross Margin" (毛利率) 和 "Operating Margin" (营业利润率)。如果利润率下降，必须找到解释：是因为产品降价了（坏事），还是因为投入了研发（可能是好事）？
+- One-time items (一次性项目)：有时候利润大增是因为卖了一栋楼，有时候大跌是因为付了一笔罚款。CFO会在这里把这些“噪音”剔除，告诉你真实的经营状况 (Non-GAAP数据)。
+- Capital Allocation (资本配置)：关注他们赚的钱打算怎么花？是回购股票 (Buyback)（利好股价）、分红 (Dividend)，还是资本开支 (CapEx)（比如买显卡、建厂）？如果是巨额资本开支，市场通常会审视这笔钱花得值不值。
+
+4. 业务亮点区：CEO 的开场白 (Prepared Remarks)
+这部分大多是公关稿，全是好话，但有一点值得看：战略优先级的变化。
+- 提炼战略优先级变化与业务亮点（避免套话）。
+
+输出要求：
+- 中文输出，结构化呈现，每个部分用清晰标题。
+- 每部分 3-6 条要点，简洁、可读。
+- 如果原文未披露某项，明确写“未披露/未提及”。
+- 只输出内容，不要包含任何代码块标记。
+- **格式要求**：使用 Markdown 格式：
+  - 使用 **加粗** 来标注关键数据、重要结论、核心观点（如具体的财务指标、增长率、管理层的关键表态等）
+  - 使用列表来组织要点
+  - 关键的财务数据和百分比必须加粗，例如：**营收同比增长 25%**、**毛利率下降 3 个百分点**
+  - 每个要点中应有关键词加粗，方便读者快速抓住重点
+
+公司：${companyName} (${symbol})
+电话会议原文：
+${transcriptText}
+`;
+
+    // 使用 lite 模型：财报摘要是结构化提取任务，lite 模型足够
+    return this.generateStream(prompt, 'lite');
   }
 }

@@ -359,6 +359,52 @@ export default function Home() {
     }
   };
 
+  // Streaming helper
+  const streamSection = async (section: string, payload: any) => {
+    try {
+      const response = await fetch('/api/ai/stream-section', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ section, ...payload }),
+      });
+
+      if (!response.body) return '';
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let done = false;
+      let text = '';
+
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        const chunkValue = decoder.decode(value, { stream: !done });
+        text += chunkValue;
+
+        setReportData((prev) => {
+          if (!prev) return prev;
+
+          if (section === 'earningsCallSummary') {
+            return { ...prev, earningsCallSummary: text };
+          }
+
+          // For AI Analysis fields
+          return {
+            ...prev,
+            aiAnalysis: {
+              ...(prev.aiAnalysis || {} as any),
+              [section]: text,
+            } as any,
+          };
+        });
+      }
+      return text;
+    } catch (error) {
+      console.error(`Stream error for ${section}:`, error);
+      return '';
+    }
+  };
+
   const handleAnalyze = async () => {
     const trimmedSymbol = symbol.trim().toUpperCase();
     if (!trimmedSymbol) {
@@ -398,12 +444,13 @@ export default function Home() {
       try {
         return JSON.parse(text);
       } catch (error) {
-        const snippet = text.trim().slice(0, 200);
-        throw new Error(snippet || '服务返回了非 JSON 响应');
+        // FMP or other APIs might return non-JSON on error
+        throw new Error('服务返回了非 JSON 响应');
       }
     };
 
     try {
+      // 1. Fetch Basic FMP Data
       const response = await fetch('/api/fmp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -424,128 +471,104 @@ export default function Home() {
       }
 
       recordSearchToDb(formattedSymbol, data?.profile?.companyName);
-      setReportData(data);
+
+      // Initialize Report Data with empty AI Analysis to trigger UI rendering
+      setReportData({
+        ...data,
+        aiAnalysis: {
+          companyOverview: '',
+          industryAnalysis: '',
+          industryPainPoints: '',
+          competitors: '',
+          competitiveAdvantage: '',
+          moat: '',
+          recentDevelopments: '',
+          investmentConclusion: '',
+        },
+        earningsCallSummary: '',
+      });
+
       setLoading(false);
+      // Do NOT set aiLoading to true, because we want to show the results immediately as they stream
+      // We rely on the existence of aiAnalysis object (even with empty strings) to show the section
 
-      setAiLoading(true);
-      try {
-        const aiResponse = await fetch('/api/ai', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            symbol: formattedSymbol,
-            profile: data.profile,
-            incomeStatements: data.incomeStatements,
-            peers: data.peers,
-            earningsTranscripts: data.earningsTranscripts || [],
-            market: marketForAnalyze,
-          }),
-        });
+      // 2. Start Parallel Streaming
+      const companyData = data.profile; // basic profile
+      const peers = data.peers || [];
+      const market = marketForAnalyze;
 
-        const aiData = await parseJsonResponse(aiResponse);
+      // Prepare independent tasks
+      const tasks: Promise<string>[] = [];
 
-        if (!aiResponse.ok) {
-          throw new Error(aiData?.error || 'AI 分析失败，请稍后重试');
+      // Company Overview
+      tasks.push(streamSection('companyOverview', { data: companyData, market }));
+
+      // Industry Analysis
+      tasks.push(streamSection('industryAnalysis', { data: companyData, market }));
+
+      // Industry Pain Points
+      tasks.push(streamSection('industryPainPoints', { data: companyData, market }));
+
+      // Competitors
+      tasks.push(streamSection('competitors', { data: { ...companyData, peers }, market }));
+
+      // Competitive Advantage
+      tasks.push(streamSection('competitiveAdvantage', { data: companyData, market }));
+
+      // Moat
+      tasks.push(streamSection('moat', { data: companyData, market }));
+
+      // Recent Developments (Search) - passes companyName and symbol
+      // The API expects { data: { companyName, symbol } } for recentDevelopments case? 
+      // Let's check API route. 
+      // API: case 'recentDevelopments': client.streamRecentDevelopments(data.companyName, data.symbol...)
+      // So payload should be { data: { companyName, symbol } }
+      tasks.push(streamSection('recentDevelopments', { data: { companyName: companyData.companyName, symbol: formattedSymbol }, market }));
+
+      // Earnings Call Summary (if US and transcript exists)
+      // Check earningsTranscripts
+      const transcript = data.earningsTranscripts?.[0];
+      let earningsPromise: Promise<string> | null = null;
+      if (transcript && companyData.companyName) {
+        // API expects data.transcript
+        const transcriptText = transcript.content || transcript.transcript || transcript.text || '';
+        if (transcriptText) {
+          earningsPromise = streamSection('earningsCallSummary', {
+            data: {
+              transcript: transcriptText,
+              companyName: companyData.companyName,
+              symbol: formattedSymbol
+            },
+            market
+          });
         }
-
-        setReportData((prev) =>
-          prev
-            ? {
-              ...prev,
-              aiAnalysis: aiData.aiAnalysis,
-              searchResults: aiData.searchResults,
-              earningsCallSummary: aiData.earningsCallSummary,
-              reportGeneratedAt: aiData.generatedAt,
-            }
-            : prev
-        );
-
-        const companyName = data.profile?.companyName;
-        const transcript = data.earningsTranscripts?.[0];
-        const transcriptText =
-          transcript?.content || transcript?.transcript || transcript?.text || '';
-
-        if (companyName) {
-          (async () => {
-            try {
-              const searchResponse = await fetch('/api/ai/search', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  symbol: formattedSymbol,
-                  companyName,
-                  market: marketForAnalyze,
-                }),
-              });
-              const searchData = await parseJsonResponse(searchResponse);
-              if (searchResponse.ok && searchData) {
-                const searchResultsText = searchData.searchResults || '';
-                const supplementary = searchData.supplementary || {};
-                setReportData((prev) => {
-                  if (!prev || !prev.aiAnalysis) return prev;
-                  const nextAnalysis = { ...prev.aiAnalysis };
-                  if (searchResultsText) {
-                    nextAnalysis.recentDevelopments = searchResultsText;
-                  } else if (supplementary.recentNews) {
-                    nextAnalysis.recentDevelopments = supplementary.recentNews;
-                  }
-                  if (supplementary.competitors && nextAnalysis.competitors === '暂无竞争对手数据') {
-                    nextAnalysis.competitors = supplementary.competitors;
-                  }
-
-                  let nextEarningsSummary = prev.earningsCallSummary;
-                  if (!transcriptText && supplementary.analystViews && !nextEarningsSummary) {
-                    nextEarningsSummary = `## 分析师观点\n\n${supplementary.analystViews}`;
-                  }
-
-                  return {
-                    ...prev,
-                    aiAnalysis: nextAnalysis,
-                    searchResults: searchResultsText || prev.searchResults,
-                    earningsCallSummary: nextEarningsSummary,
-                  };
-                });
-              }
-            } catch (e) {
-              console.log('AI search update failed:', e);
-            }
-          })();
-        }
-
-        if (transcriptText && companyName) {
-          (async () => {
-            try {
-              const summaryResponse = await fetch('/api/ai/earnings-summary', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  transcriptText,
-                  companyName,
-                  symbol: formattedSymbol,
-                }),
-              });
-              const summaryData = await parseJsonResponse(summaryResponse);
-              if (summaryResponse.ok && summaryData?.earningsCallSummary) {
-                setReportData((prev) =>
-                  prev
-                    ? {
-                      ...prev,
-                      earningsCallSummary: summaryData.earningsCallSummary,
-                    }
-                    : prev
-                );
-              }
-            } catch (e) {
-              console.log('Earnings summary update failed:', e);
-            }
-          })();
-        }
-      } catch (err: any) {
-        setAiError(err.message || 'AI 分析失败，请稍后重试');
-      } finally {
-        setAiLoading(false);
       }
+
+      // Wait for all independent sections to complete
+      const results = await Promise.all(tasks);
+      const earningsResult = earningsPromise ? await earningsPromise : '';
+
+      // 3. Generate Investment Conclusion
+      // Gather context
+      const context = `
+      Company Overview: ${results[0]}
+      Industry Analysis: ${results[1]}
+      Industry Pain Points: ${results[2]}
+      Competitors: ${results[3]}
+      Competitive Advantage: ${results[4]}
+      Moat: ${results[5]}
+      Recent Developments: ${results[6]}
+      Earnings Call Summary: ${earningsResult}
+      `;
+
+      await streamSection('investmentConclusion', {
+        data: companyData,
+        market,
+        prevContext: context
+      });
+
     } catch (err: any) {
+      console.error(err);
       setError(err.message || '网络错误，请检查连接后重试');
       setLoading(false);
     }
