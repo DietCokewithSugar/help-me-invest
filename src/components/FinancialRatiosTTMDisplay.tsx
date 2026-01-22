@@ -588,7 +588,7 @@ export default function FinancialRatiosTTMDisplay({
         format: formatPercent,
         icon: TrendingUp,
         metricKey: 'returnOnEquityTTM',
-        highlight: latestTTM.returnOnEquityTTM && (Math.abs(latestTTM.returnOnEquityTTM) > 1 ? latestTTM.returnOnEquityTTM : latestTTM.returnOnEquityTTM * 100) > 25,
+        highlight: !!(latestTTM.returnOnEquityTTM && (Math.abs(latestTTM.returnOnEquityTTM) > 1 ? latestTTM.returnOnEquityTTM : latestTTM.returnOnEquityTTM * 100) > 25),
       },
       { 
         label: 'ROIC', 
@@ -596,7 +596,7 @@ export default function FinancialRatiosTTMDisplay({
         format: formatPercent,
         icon: Target,
         metricKey: 'returnOnInvestedCapitalTTM',
-        highlight: latestTTM.returnOnInvestedCapitalTTM && (Math.abs(latestTTM.returnOnInvestedCapitalTTM) > 1 ? latestTTM.returnOnInvestedCapitalTTM : latestTTM.returnOnInvestedCapitalTTM * 100) > 20,
+        highlight: !!(latestTTM.returnOnInvestedCapitalTTM && (Math.abs(latestTTM.returnOnInvestedCapitalTTM) > 1 ? latestTTM.returnOnInvestedCapitalTTM : latestTTM.returnOnInvestedCapitalTTM * 100) > 20),
       },
       { 
         label: 'ROA', 
@@ -611,7 +611,7 @@ export default function FinancialRatiosTTMDisplay({
         format: formatRatio,
         icon: Activity,
         metricKey: 'incomeQualityTTM',
-        highlight: latestTTM.incomeQualityTTM && latestTTM.incomeQualityTTM > 1,
+        highlight: !!(latestTTM.incomeQualityTTM && latestTTM.incomeQualityTTM > 1),
         highlightColor: 'gemini-green',
       },
     ].filter(m => m.value !== undefined && m.value !== null && !isNaN(m.value));

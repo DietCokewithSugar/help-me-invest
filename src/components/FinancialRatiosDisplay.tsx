@@ -271,14 +271,14 @@ export default function FinancialRatiosDisplay({
       },
       { 
         label: '总资产周转率', 
-        value: latestRatios.assetTurnover || latestMetrics?.assetTurnover, 
+        value: (latestRatios as unknown as { assetTurnover?: number }).assetTurnover || (latestMetrics as unknown as { assetTurnover?: number } | undefined)?.assetTurnover, 
         format: formatRatio,
         icon: BarChart3,
         metricKey: 'assetTurnover',
       },
       { 
         label: '固定资产周转率', 
-        value: latestRatios.fixedAssetTurnover, 
+        value: (latestRatios as unknown as { fixedAssetTurnover?: number }).fixedAssetTurnover, 
         format: formatRatio,
         icon: Building2,
         metricKey: 'fixedAssetTurnover',
