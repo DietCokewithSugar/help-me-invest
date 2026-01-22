@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   Building2, TrendingUp, Target, Shield, Newspaper,
@@ -22,6 +22,7 @@ import HoldingsAnalysis from './HoldingsAnalysis';
 import ExportModal from './ExportModal';
 import type { ReportData, MarketType } from '@/types';
 import { getMarketConfig } from '@/lib/markets';
+import { buildSankeyData } from '@/lib/sankey-utils';
 
 // 市场标识徽章 - 极简设计，无 emoji
 const MarketBadge = ({ market }: { market: MarketType }) => {
@@ -276,6 +277,8 @@ export default function Report({
     events: false,
     holdings: false,
   });
+  // 桑基图年份选择状态（0 表示最新年份）
+  const [sankeyYearIndex, setSankeyYearIndex] = useState(0);
 
   // 监听滚动，更新当前活跃的 section
   React.useEffect(() => {
@@ -316,9 +319,31 @@ export default function Report({
     aiAnalysis,
     earningsTranscripts = [],
     earningsCallSummary = '',
-    sankeyData,
+    sankeyData: initialSankeyData,
     market = 'US' as MarketType,
   } = data;
+
+  // 根据选择的年份动态构建桑基图数据
+  const currentSankeyData = useMemo(() => {
+    if (!incomeStatements || incomeStatements.length === 0) {
+      return initialSankeyData || { nodes: [], links: [] };
+    }
+    const selectedIncome = incomeStatements[sankeyYearIndex];
+    if (!selectedIncome) {
+      return initialSankeyData || { nodes: [], links: [] };
+    }
+    return buildSankeyData(selectedIncome);
+  }, [incomeStatements, sankeyYearIndex, initialSankeyData]);
+
+  // 获取可用的年份列表
+  const availableYears = useMemo(() => {
+    if (!incomeStatements || incomeStatements.length === 0) return [];
+    return incomeStatements.map((stmt, index) => ({
+      index,
+      year: stmt.date?.split('-')[0] || stmt.calendarYear || stmt.fiscalYear || '',
+      label: stmt.date?.split('-')[0] || stmt.calendarYear || stmt.fiscalYear || `第${index + 1}年`,
+    }));
+  }, [incomeStatements]);
 
   // 获取市场配置
   const marketConfig = getMarketConfig(market);
@@ -710,16 +735,35 @@ export default function Report({
               </div>
 
               {/* 桑基图 */}
-              {sankeyData && sankeyData.links && sankeyData.links.length > 0 && (
+              {currentSankeyData && currentSankeyData.links && currentSankeyData.links.length > 0 && (
                 <div className="mb-10">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-2 h-2 bg-gemini-blue rounded-full" />
-                    <h4 className="text-base font-medium text-mist-200">营收流向分析（桑基图）</h4>
-                    <span className="text-xs text-mist-500">
-                      {incomeStatements[0]?.date?.split('-')[0] || ''} 财年
-                    </span>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 bg-gemini-blue rounded-full" />
+                      <h4 className="text-base font-medium text-mist-200">营收流向分析（桑基图）</h4>
+                    </div>
+                    {availableYears.length > 1 && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs text-mist-500 whitespace-nowrap">选择年份：</span>
+                        <div className="flex p-1 bg-white/5 border border-white/10 rounded-lg flex-wrap gap-1">
+                          {availableYears.map((year) => (
+                            <button
+                              key={year.index}
+                              onClick={() => setSankeyYearIndex(year.index)}
+                              className={`px-3 py-1 text-xs font-medium rounded-md transition-all whitespace-nowrap ${
+                                sankeyYearIndex === year.index
+                                  ? 'bg-glacier-500 text-white shadow-sm'
+                                  : 'text-mist-400 hover:text-mist-200'
+                              }`}
+                            >
+                              {year.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <SankeyChart data={sankeyData} />
+                  <SankeyChart data={currentSankeyData} />
                 </div>
               )}
 
