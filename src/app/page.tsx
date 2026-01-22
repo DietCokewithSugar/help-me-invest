@@ -24,7 +24,7 @@ import {
 } from '@/components/Icons';
 
 // 懒加载组件
-const ParticleGlobe = lazy(() => import('@/components/ParticleGlobe'));
+
 const AIShowcase = lazy(() => import('@/components/AIShowcase'));
 const Testimonials = lazy(() => import('@/components/Testimonials'));
 const FlipCounter = lazy(() => import('@/components/FlipCounter'));
@@ -922,35 +922,34 @@ export default function Home() {
           {!loading && (
             <section className="py-16 md:py-24 px-4 md:px-6 overflow-hidden">
               <div className="max-w-6xl mx-auto">
-                <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
-                  {/* 左侧文案 */}
+                <div className="max-w-4xl mx-auto text-center">
+                  {/* 文案 & 市场列表 */}
                   <motion.div
-                    initial={{ opacity: 0, x: -30 }}
-                    whileInView={{ opacity: 1, x: 0 }}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true, margin: '-100px' }}
                     transition={{ duration: 0.6 }}
                   >
                     <h3 className="text-2xl md:text-3xl lg:text-4xl font-light text-white mb-6">
                       全球视野，
-                      <br />
                       <span className="gradient-text">本土洞察</span>
                     </h3>
-                    <p className="text-mist-400 leading-relaxed mb-8 text-[15px] md:text-base">
+                    <p className="text-mist-400 leading-relaxed mb-10 text-[15px] md:text-base max-w-2xl mx-auto">
                       无论是硅谷的创新脉搏，还是沪深的产业律动，
                       <br className="hidden md:block" />
                       AI 为你跨越市场疆界，实时解码全球投资机会。
                     </p>
 
                     {/* 市场列表 */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
                       {[
                         { name: '美股', code: 'NYSE / NASDAQ', color: '#4285f4' },
                         { name: 'A股', code: 'SSE / SZSE', color: '#ea4335' },
                         { name: '港股', code: 'HKEX', color: '#fbbc04' },
                         { name: '日股', code: 'TSE', color: '#34a853' },
                       ].map((market) => (
-                        <div key={market.name} className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: market.color }} />
+                        <div key={market.name} className="flex items-center justify-center gap-3 p-4 rounded-xl bg-white/5 border border-white/5 text-left hover:bg-white/10 transition-colors">
+                          <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: market.color }} />
                           <div>
                             <div className="text-white font-medium text-sm">{market.name}</div>
                             <div className="text-mist-600 text-xs">{market.code}</div>
@@ -958,22 +957,6 @@ export default function Home() {
                         </div>
                       ))}
                     </div>
-                  </motion.div>
-
-                  {/* 右侧 3D 地球 */}
-                  <motion.div
-                    initial={{ opacity: 0, x: 30 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true, margin: '-100px' }}
-                    transition={{ duration: 0.6, delay: 0.2 }}
-                  >
-                    <Suspense fallback={
-                      <div className="globe-container flex items-center justify-center">
-                        <GeminiLoader />
-                      </div>
-                    }>
-                      <ParticleGlobe />
-                    </Suspense>
                   </motion.div>
                 </div>
               </div>
