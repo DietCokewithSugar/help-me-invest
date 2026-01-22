@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import ReactECharts from 'echarts-for-react';
-import { Shield, TrendingUp, AlertTriangle, CheckCircle, Info, DollarSign, Building2, Zap, PiggyBank } from 'lucide-react';
+import { Shield, TrendingUp, AlertTriangle, Info, DollarSign, Building2, Zap, PiggyBank } from 'lucide-react';
 import type { FinancialScores } from '@/types';
 
 interface Props {
@@ -131,10 +131,10 @@ export default function FinancialScoresDisplay({ financialScores }: Props) {
         max: 12,
         splitNumber: 6,
         itemStyle: {
-          color: financialScores.altmanZScore < 1.8 
-            ? '#ef4444' 
-            : financialScores.altmanZScore < 3.0 
-              ? '#f59e0b' 
+          color: financialScores.altmanZScore < 1.8
+            ? '#ef4444'
+            : financialScores.altmanZScore < 3.0
+              ? '#f59e0b'
               : '#10b981',
         },
         progress: {
@@ -259,58 +259,131 @@ export default function FinancialScoresDisplay({ financialScores }: Props) {
     ],
   };
 
-  // 计算因子指标卡片
-  const MetricCard = ({
+  // 紧凑的指标行组件（带 tooltip）
+  const CompactMetricRow = ({
     label,
     value,
     metricKey,
-    icon: Icon,
+    highlight = false,
+    highlightColor = 'text-white',
   }: {
     label: string;
-    value: number | undefined | null;
-    metricKey: string;
-    icon: any;
+    value: string;
+    metricKey?: string;
+    highlight?: boolean;
+    highlightColor?: string;
   }) => {
-    const description = scoreDescriptions[metricKey];
-    const showTooltip = hoveredMetric === metricKey;
-    const isNegative = value !== undefined && value !== null && value < 0;
+    const desc = metricKey ? scoreDescriptions[metricKey] : null;
+    const showTooltip = desc && hoveredMetric === metricKey;
 
     return (
       <div
-        className="relative p-4 rounded-xl bg-white/5 border border-white/5 group cursor-help transition-all hover:bg-white/[0.07]"
-        onMouseEnter={() => setHoveredMetric(metricKey)}
+        className="relative flex justify-between items-center py-1.5 group cursor-help"
+        onMouseEnter={() => metricKey && setHoveredMetric(metricKey)}
         onMouseLeave={() => setHoveredMetric(null)}
       >
-        <div className="flex items-center gap-2 mb-2 text-mist-400">
-          <Icon className="w-4 h-4" />
-          <span className="text-xs font-medium">{label}</span>
-          <Info className="w-3 h-3 opacity-50" />
-        </div>
-        <p className={`text-lg md:text-xl font-bold font-mono whitespace-nowrap ${isNegative ? 'text-amber-400' : 'text-white'}`}>
-          {formatNumber(value)}
-        </p>
+        <span className="text-mist-400 text-sm group-hover:text-mist-300 transition-colors">
+          {label}
+        </span>
+        <span className={`font-mono text-sm font-medium ${highlight ? highlightColor : 'text-white'}`}>
+          {value}
+        </span>
 
         {/* Tooltip */}
-        {showTooltip && description && (
-          <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 max-w-[calc(100vw-2rem)] p-4 bg-midnight border border-white/20 rounded-xl shadow-2xl text-xs pointer-events-none">
+        {showTooltip && (
+          <div className="absolute z-50 bottom-full right-0 mb-2 w-72 max-w-[calc(100vw-2rem)] p-4 bg-midnight border border-white/20 rounded-lg shadow-xl text-xs text-mist-200 leading-relaxed pointer-events-none">
             <div className="flex items-start gap-2 mb-2">
               <Info className="w-4 h-4 text-glacier-400 shrink-0 mt-0.5" />
-              <p className="font-semibold text-white text-sm">{description.title}</p>
+              <div>
+                <p className="font-semibold text-white mb-1">{desc.title}</p>
+                <p className="text-mist-300">{desc.description}</p>
+              </div>
             </div>
-            <p className="text-mist-300 leading-relaxed">{description.description}</p>
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white/20" />
+            <div className="absolute bottom-0 right-4 translate-y-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white/20" />
           </div>
         )}
       </div>
     );
   };
 
+  // 指标列组件
+  const MetricColumn = ({
+    title,
+    metrics,
+  }: {
+    title: string;
+    metrics: { label: string; value: string; metricKey?: string; highlight?: boolean; highlightColor?: string }[];
+  }) => {
+    const validMetrics = metrics.filter(m => m.value !== 'N/A');
+    if (validMetrics.length === 0) return null;
+
+    return (
+      <div className="flex-1 min-w-0">
+        <h4 className="text-white font-semibold text-sm mb-3 pb-2 border-b border-white/10">{title}</h4>
+        <div className="space-y-0.5">
+          {validMetrics.map((m, i) => (
+            <CompactMetricRow key={i} {...m} />
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // 计算因子数据 - 分组为三列
+  const assetMetrics = [
+    {
+      label: '总资产',
+      value: formatNumber(financialScores.totalAssets),
+      metricKey: 'totalAssets',
+    },
+    {
+      label: '市值',
+      value: formatNumber(financialScores.marketCap),
+      metricKey: 'marketCap',
+    },
+    {
+      label: '营收',
+      value: formatNumber(financialScores.revenue),
+      metricKey: 'revenue',
+    },
+  ];
+
+  const profitMetrics = [
+    {
+      label: '留存收益',
+      value: formatNumber(financialScores.retainedEarnings),
+      metricKey: 'retainedEarnings',
+      highlight: financialScores.retainedEarnings < 0,
+      highlightColor: 'text-amber-400',
+    },
+    {
+      label: '息税前利润 (EBIT)',
+      value: formatNumber(financialScores.ebit),
+      metricKey: 'ebit',
+    },
+  ];
+
+  const liabilityMetrics = [
+    {
+      label: '营运资金',
+      value: formatNumber(financialScores.workingCapital),
+      metricKey: 'workingCapital',
+      highlight: financialScores.workingCapital < 0,
+      highlightColor: 'text-amber-400',
+    },
+    {
+      label: '总负债',
+      value: formatNumber(financialScores.totalLiabilities),
+      metricKey: 'totalLiabilities',
+    },
+  ];
+
   return (
     <div className="space-y-6">
       {/* 核心评分区域 */}
-      <div className="bg-midnight/30 rounded-xl p-6 border border-white/5">
+      <div className="gemini-card p-6 md:p-8">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-2 h-2 bg-gradient-to-r from-emerald-500 to-glacier-500 rounded-full" />
+          <span className="w-2 h-2 bg-gradient-to-r from-emerald-500 to-glacier-500 rounded-full" />
           <h3 className="text-lg font-semibold text-white">财务健康评分</h3>
           <span className="text-xs text-mist-500 bg-white/5 px-2 py-1 rounded-full">量化投资核心指标</span>
         </div>
@@ -430,59 +503,17 @@ export default function FinancialScoresDisplay({ financialScores }: Props) {
         </div>
       </div>
 
-      {/* 计算因子区域 */}
-      <div className="bg-midnight/30 rounded-xl p-6 border border-white/5">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-2 h-2 bg-slate-400 rounded-full" />
-          <h3 className="text-lg font-semibold text-white">计算因子</h3>
-        </div>
-        <p className="text-xs text-mist-500 mb-6">
-          这些数据是计算 Z-Score 和 F-Score 的原材料，悬停可查看详细说明
-        </p>
+      {/* 计算因子区域 - 紧凑 3 列布局 */}
+      <div className="gemini-card p-6 md:p-8">
+        <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+          <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
+          计算因子
+        </h3>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <MetricCard
-            label="营运资金"
-            value={financialScores.workingCapital}
-            metricKey="workingCapital"
-            icon={Zap}
-          />
-          <MetricCard
-            label="总资产"
-            value={financialScores.totalAssets}
-            metricKey="totalAssets"
-            icon={Building2}
-          />
-          <MetricCard
-            label="留存收益"
-            value={financialScores.retainedEarnings}
-            metricKey="retainedEarnings"
-            icon={PiggyBank}
-          />
-          <MetricCard
-            label="息税前利润 (EBIT)"
-            value={financialScores.ebit}
-            metricKey="ebit"
-            icon={TrendingUp}
-          />
-          <MetricCard
-            label="市值"
-            value={financialScores.marketCap}
-            metricKey="marketCap"
-            icon={DollarSign}
-          />
-          <MetricCard
-            label="总负债"
-            value={financialScores.totalLiabilities}
-            metricKey="totalLiabilities"
-            icon={AlertTriangle}
-          />
-          <MetricCard
-            label="营收"
-            value={financialScores.revenue}
-            metricKey="revenue"
-            icon={DollarSign}
-          />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
+          <MetricColumn title="资产规模" metrics={assetMetrics} />
+          <MetricColumn title="盈利水平" metrics={profitMetrics} />
+          <MetricColumn title="负债情况" metrics={liabilityMetrics} />
         </div>
       </div>
     </div>

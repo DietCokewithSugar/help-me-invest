@@ -1,7 +1,6 @@
 'use client';
 
-import ReactECharts from 'echarts-for-react';
-import { Calculator, TrendingUp, TrendingDown, Target, Percent, PiggyBank, BarChart3, Activity, Info, DollarSign, Shield, Zap, Building2, AlertTriangle, Gift, CircleDollarSign, Clock } from 'lucide-react';
+import { Info, Zap } from 'lucide-react';
 import type { KeyMetrics, CompanyProfile, FinancialRatios, FinancialScores } from '@/types';
 import { useState } from 'react';
 import FinancialScoresDisplay from './FinancialScoresDisplay';
@@ -199,48 +198,39 @@ export default function ProfessionalValuationMetrics({
   const latestRatios = financialRatios?.[0];
   const latestRatiosTTM = financialRatiosTTM?.[0];
 
-  // 指标卡片组件（带 tooltip）
-  const MetricCard = ({
+  // 紧凑的指标行组件（带 tooltip）
+  const CompactMetricRow = ({
     label,
     value,
-    format,
-    icon: Icon,
     metricKey,
     highlight = false,
-    highlightColor = 'gemini-blue',
+    highlightColor = 'text-glacier-400',
   }: {
     label: string;
-    value: number | undefined | null;
-    format: (val: number | undefined | null) => string;
-    icon: any;
+    value: string;
     metricKey?: string;
     highlight?: boolean;
     highlightColor?: string;
   }) => {
-    if (value === undefined || value === null || isNaN(value)) {
-      return null;
-    }
-
     const desc = metricKey ? metricDescriptions[metricKey] : null;
     const showTooltip = desc && hoveredMetric === metricKey;
 
     return (
       <div
-        className={`relative p-4 rounded-xl bg-white/5 border ${highlight ? `border-${highlightColor}/30` : 'border-white/5'} max-md:border-0 group cursor-help transition-all hover:bg-white/10`}
+        className="relative flex justify-between items-center py-1.5 group cursor-help"
         onMouseEnter={() => metricKey && setHoveredMetric(metricKey)}
         onMouseLeave={() => setHoveredMetric(null)}
       >
-        <div className="flex items-center gap-2 mb-2 text-mist-400">
-          <Icon className="w-4 h-4" />
-          <span className="text-xs font-medium truncate">{label}</span>
-        </div>
-        <p className={`text-lg md:text-xl font-bold font-mono ${highlight ? `text-${highlightColor}` : 'text-white'} whitespace-nowrap`}>
-          {format(value)}
-        </p>
+        <span className="text-mist-400 text-sm group-hover:text-mist-300 transition-colors">
+          {label}
+        </span>
+        <span className={`font-mono text-sm font-medium ${highlight ? highlightColor : 'text-white'}`}>
+          {value}
+        </span>
 
         {/* Tooltip */}
         {showTooltip && (
-          <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 max-w-[calc(100vw-2rem)] p-4 bg-midnight border border-white/20 rounded-lg shadow-xl text-xs text-mist-200 leading-relaxed pointer-events-none">
+          <div className="absolute z-50 bottom-full right-0 mb-2 w-72 max-w-[calc(100vw-2rem)] p-4 bg-midnight border border-white/20 rounded-lg shadow-xl text-xs text-mist-200 leading-relaxed pointer-events-none">
             <div className="flex items-start gap-2 mb-2">
               <Info className="w-4 h-4 text-glacier-400 shrink-0 mt-0.5" />
               <div>
@@ -256,9 +246,32 @@ export default function ProfessionalValuationMetrics({
                 </div>
               </div>
             )}
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white/20" />
+            <div className="absolute bottom-0 right-4 translate-y-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white/20" />
           </div>
         )}
+      </div>
+    );
+  };
+
+  // 指标列组件
+  const MetricColumn = ({
+    title,
+    metrics,
+  }: {
+    title: string;
+    metrics: { label: string; value: string; metricKey?: string; highlight?: boolean; highlightColor?: string }[];
+  }) => {
+    const validMetrics = metrics.filter(m => m.value !== 'N/A');
+    if (validMetrics.length === 0) return null;
+
+    return (
+      <div className="flex-1 min-w-0">
+        <h4 className="text-white font-semibold text-sm mb-3 pb-2 border-b border-white/10">{title}</h4>
+        <div className="space-y-0.5">
+          {validMetrics.map((m, i) => (
+            <CompactMetricRow key={i} {...m} />
+          ))}
+        </div>
       </div>
     );
   };
@@ -269,438 +282,193 @@ export default function ProfessionalValuationMetrics({
     return <FinancialScoresDisplay financialScores={financialScores} />;
   };
 
-  // 2. 估值指标 (Valuation Metrics)
-  const renderValuationMetrics = () => {
-    const metrics = [
+  // 2. 主要财务指标 - 紧凑 3 列布局
+  const renderFundamentals = () => {
+    // 估值指标列
+    const valuationMetrics = [
       {
         label: '市盈率 (TTM)',
-        value: latestRatiosTTM?.peRatioTTM,
-        format: formatRatio,
-        icon: Calculator,
+        value: formatRatio(latestRatiosTTM?.peRatioTTM),
         metricKey: 'peRatioTTM',
       },
       {
         label: 'EV/EBITDA',
-        value: latestRatiosTTM?.enterpriseValueMultipleTTM || latestRatiosTTM?.evToEBITDATTM,
-        format: formatRatio,
-        icon: BarChart3,
+        value: formatRatio(latestRatiosTTM?.enterpriseValueMultipleTTM || latestRatiosTTM?.evToEBITDATTM),
         metricKey: 'evToEBITDATTM',
       },
       {
         label: '盈利收益率',
-        value: latestRatiosTTM?.earningsYieldTTM,
-        format: formatPercent,
-        icon: Percent,
+        value: formatPercent(latestRatiosTTM?.earningsYieldTTM),
         metricKey: 'earningsYieldTTM',
       },
       {
         label: 'FCF 收益率',
-        value: latestRatiosTTM?.freeCashFlowYieldTTM,
-        format: formatPercent,
-        icon: Zap,
+        value: formatPercent(latestRatiosTTM?.freeCashFlowYieldTTM),
         metricKey: 'freeCashFlowYieldTTM',
         highlight: true,
+        highlightColor: 'text-glacier-400',
       },
       {
         label: '格雷厄姆数字',
-        value: latestMetrics.grahamNumber,
-        format: formatCurrency,
-        icon: Target,
+        value: formatCurrency(latestMetrics.grahamNumber),
         metricKey: 'grahamNumber',
       },
       {
         label: '企业价值 (EV)',
-        value: latestMetrics.enterpriseValue,
-        format: formatCurrency,
-        icon: Building2,
+        value: formatCurrency(latestMetrics.enterpriseValue),
         metricKey: 'enterpriseValue',
       },
-    ].filter(m => m.value !== undefined && m.value !== null && !isNaN(m.value));
+    ];
 
-    if (metrics.length === 0) return null;
-
-    return (
-      <div className="bg-midnight/30 rounded-xl p-6 border border-white/5 max-md:border-0">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-              <span className="w-2 h-2 bg-glacier-500 rounded-full"></span>
-              估值指标
-            </h3>
-            <p className="text-xs text-mist-500 mt-1">
-              "现在买贵不贵？" —— 解决定价问题
-            </p>
-          </div>
-          <div className="flex items-center gap-1 text-xs text-mist-500">
-            <Clock className="w-3 h-3" />
-            <span>Ratios TTM + Key Metrics</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {metrics.map((m, i) => (
-            <MetricCard key={i} {...m} />
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  // 3. 盈利能力 (Profitability)
-  const renderProfitabilityMetrics = () => {
-    const metrics = [
+    // 盈利能力列
+    const profitabilityMetrics = [
       {
         label: '毛利率',
-        value: latestRatios?.grossProfitMargin,
-        format: formatPercent,
-        icon: TrendingUp,
+        value: formatPercent(latestRatios?.grossProfitMargin),
         metricKey: 'grossProfitMargin',
       },
       {
         label: '净利率',
-        value: latestRatios?.netProfitMargin,
-        format: formatPercent,
-        icon: DollarSign,
+        value: formatPercent(latestRatios?.netProfitMargin),
         metricKey: 'netProfitMargin',
       },
       {
         label: 'ROE',
-        value: latestMetricsTTM?.roeTTM || latestMetrics.roe,
-        format: formatPercent,
-        icon: Target,
+        value: formatPercent(latestMetricsTTM?.roeTTM || latestMetrics.roe),
         metricKey: 'returnOnEquity',
         highlight: (latestMetricsTTM?.roeTTM || latestMetrics.roe) > 0.15,
+        highlightColor: 'text-gemini-green',
       },
       {
         label: 'ROIC',
-        value: latestMetricsTTM?.roicTTM || latestMetrics.roic,
-        format: formatPercent,
-        icon: Shield,
+        value: formatPercent(latestMetricsTTM?.roicTTM || latestMetrics.roic),
         metricKey: 'returnOnInvestedCapital',
         highlight: (latestMetricsTTM?.roicTTM || latestMetrics.roic) > 0.15,
-        highlightColor: 'gemini-green',
+        highlightColor: 'text-gemini-green',
       },
       {
         label: '收益质量',
-        value: latestMetrics.incomeQuality,
-        format: formatRatio,
-        icon: Activity,
+        value: formatRatio(latestMetrics.incomeQuality),
         metricKey: 'incomeQuality',
         highlight: latestMetrics.incomeQuality > 1,
-        highlightColor: 'gemini-green',
+        highlightColor: 'text-gemini-green',
       },
-    ].filter(m => m.value !== undefined && m.value !== null && !isNaN(m.value));
+    ];
 
-    if (metrics.length === 0) return null;
-
-    const roicValue = latestMetricsTTM?.roicTTM || latestMetrics.roic;
-    const roicStrong = roicValue && (Math.abs(roicValue) > 1 ? roicValue : roicValue * 100) > 15;
-
-    return (
-      <div className="bg-midnight/30 rounded-xl p-6 border border-white/5 max-md:border-0">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-              <span className="w-2 h-2 bg-gemini-blue rounded-full"></span>
-              盈利能力
-            </h3>
-            <p className="text-xs text-mist-500 mt-1">
-              "赚钱能力强不强？"
-            </p>
-          </div>
-          <div className="flex items-center gap-1 text-xs text-mist-500">
-            <Clock className="w-3 h-3" />
-            <span>Financial Ratios</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-4">
-          {metrics.map((m, i) => (
-            <MetricCard key={i} {...m} />
-          ))}
-        </div>
-
-        {roicStrong && (
-          <div className="p-4 bg-gemini-green/10 border border-gemini-green/20 rounded-lg">
-            <div className="flex items-center gap-2 text-gemini-green text-sm mb-1">
-              <Shield className="w-4 h-4" />
-              <span className="font-medium">护城河信号</span>
-            </div>
-            <p className="text-xs text-mist-300">
-              ROIC {">"} 15%，说明公司具有较深的护城河。
-            </p>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // 4. 运营效率与周期 (Efficiency & Cycle)
-  const renderEfficiencyMetrics = () => {
+    // 效率与周期列
     const ccc = latestMetricsTTM?.cashConversionCycleTTM || latestRatios?.cashConversionCycle;
-
-    const metrics = [
+    const efficiencyMetrics = [
       {
         label: '现金循环周期',
-        value: ccc,
-        format: formatDays,
-        icon: Zap,
+        value: formatDays(ccc),
         metricKey: 'cashConversionCycle',
         highlight: ccc && ccc < 0,
-        highlightColor: 'gemini-green',
+        highlightColor: 'text-gemini-green',
       },
       {
         label: '库存周转天数',
-        value: latestMetricsTTM?.daysOfInventoryOutstandingTTM || latestMetrics.daysOfInventoryOnHand,
-        format: formatDays,
-        icon: Activity,
+        value: formatDays(latestMetricsTTM?.daysOfInventoryOutstandingTTM || latestMetrics.daysOfInventoryOnHand),
         metricKey: 'daysOfInventoryOutstanding',
       },
       {
         label: '应付账款天数',
-        value: latestMetricsTTM?.daysOfPayablesOutstandingTTM || latestMetrics.daysPayablesOutstanding,
-        format: formatDays,
-        icon: TrendingDown,
+        value: formatDays(latestMetricsTTM?.daysOfPayablesOutstandingTTM || latestMetrics.daysPayablesOutstanding),
         metricKey: 'daysOfPayablesOutstanding',
       },
       {
         label: '总资产周转率',
-        value: latestRatiosTTM?.assetTurnoverTTM || latestRatios?.assetTurnover,
-        format: formatRatio,
-        icon: BarChart3,
+        value: formatRatio(latestRatiosTTM?.assetTurnoverTTM || latestRatios?.assetTurnover),
         metricKey: 'assetTurnover',
       },
       {
         label: '库存周转率',
-        value: latestRatiosTTM?.inventoryTurnoverTTM || latestRatios?.inventoryTurnover,
-        format: formatRatio,
-        icon: Activity,
+        value: formatRatio(latestRatiosTTM?.inventoryTurnoverTTM || latestRatios?.inventoryTurnover),
         metricKey: 'inventoryTurnover',
       },
-    ].filter(m => m.value !== undefined && m.value !== null && !isNaN(m.value));
+    ];
 
-    if (metrics.length === 0) return null;
+    // 检查是否有任何有效数据
+    const hasValuation = valuationMetrics.some(m => m.value !== 'N/A');
+    const hasProfitability = profitabilityMetrics.some(m => m.value !== 'N/A');
+    const hasEfficiency = efficiencyMetrics.some(m => m.value !== 'N/A');
 
-    const cccNegative = ccc && ccc < 0;
+    if (!hasValuation && !hasProfitability && !hasEfficiency) return null;
 
     return (
-      <div className="bg-midnight/30 rounded-xl p-6 border border-white/5 max-md:border-0">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-              <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
-              运营效率与周期
-            </h3>
-            <p className="text-xs text-mist-500 mt-1">
-              "生意做得顺不顺，资金占用久不久？"
-            </p>
-          </div>
-          <div className="flex items-center gap-1 text-xs text-mist-500">
-            <Clock className="w-3 h-3" />
-            <span>Key Metrics TTM</span>
-          </div>
-        </div>
+      <div className="gemini-card p-6 md:p-8">
+        <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+          <span className="w-2 h-2 bg-glacier-500 rounded-full"></span>
+          财务指标
+        </h3>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-4">
-          {metrics.map((m, i) => (
-            <MetricCard key={i} {...m} />
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
+          <MetricColumn title="估值" metrics={valuationMetrics} />
+          <MetricColumn title="盈利能力" metrics={profitabilityMetrics} />
+          <MetricColumn title="效率与周期" metrics={efficiencyMetrics} />
         </div>
-
-        {cccNegative && (
-          <div className="p-4 bg-gemini-green/10 border border-gemini-green/20 rounded-lg">
-            <div className="flex items-center gap-2 text-gemini-green text-sm mb-1">
-              <Zap className="w-4 h-4" />
-              <span className="font-medium">极强供应链话语权</span>
-            </div>
-            <p className="text-xs text-mist-300">
-              现金循环周期为负，意味着公司还没给供应商付钱，就已经把货卖给消费者并收到钱了！
-            </p>
-          </div>
-        )}
       </div>
     );
   };
 
-  // 5. 资本结构与开支 (Capital Structure & Expenses)
-  const renderCapitalExpenseMetrics = () => {
-    const metrics = [
+  // 3. 资本结构与股东回报 - 紧凑 2 列布局
+  const renderCapitalAndReturns = () => {
+    // 资本结构列
+    const capitalMetrics = [
       {
         label: '研发占比',
-        value: latestMetricsTTM?.researchAndDevelopementToRevenueTTM || latestMetrics.researchAndDdevelopementToRevenue,
-        format: formatPercent,
-        icon: Zap,
+        value: formatPercent(latestMetricsTTM?.researchAndDevelopementToRevenueTTM || latestMetrics.researchAndDdevelopementToRevenue),
         metricKey: 'researchAndDevelopementToRevenue',
       },
       {
         label: '资本开支占比',
-        value: latestMetricsTTM?.capexToRevenueTTM || latestMetrics.capexToRevenue,
-        format: formatPercent,
-        icon: Building2,
+        value: formatPercent(latestMetricsTTM?.capexToRevenueTTM || latestMetrics.capexToRevenue),
         metricKey: 'capexToRevenue',
       },
       {
         label: '股权激励占比',
-        value: latestMetricsTTM?.stockBasedCompensationToRevenueTTM || latestMetrics.stockBasedCompensationToRevenue,
-        format: formatPercent,
-        icon: AlertTriangle,
+        value: formatPercent(latestMetricsTTM?.stockBasedCompensationToRevenueTTM || latestMetrics.stockBasedCompensationToRevenue),
         metricKey: 'stockBasedCompensationToRevenue',
         highlight: (latestMetricsTTM?.stockBasedCompensationToRevenueTTM || latestMetrics.stockBasedCompensationToRevenue) > 0.1,
-        highlightColor: 'gemini-red',
+        highlightColor: 'text-gemini-red',
       },
-    ].filter(m => m.value !== undefined && m.value !== null && !isNaN(m.value));
+    ];
 
-    if (metrics.length === 0) return null;
-
-    return (
-      <div className="bg-midnight/30 rounded-xl p-6 border border-white/5 max-md:border-0">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-              <span className="w-2 h-2 bg-slate-500 rounded-full"></span>
-              资本结构与开支
-            </h3>
-            <p className="text-xs text-mist-500 mt-1">
-              "钱花哪儿了，未来的增长动力在哪？"
-            </p>
-          </div>
-          <div className="flex items-center gap-1 text-xs text-mist-500">
-            <Clock className="w-3 h-3" />
-            <span>Key Metrics TTM</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {metrics.map((m, i) => (
-            <MetricCard key={i} {...m} />
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  // 6. 股东回报 (Shareholder Returns)
-  const renderShareholderReturns = () => {
-    const metrics = [
+    // 股东回报列
+    const returnMetrics = [
       {
         label: '股息率',
-        value: latestRatios?.dividendYield,
-        format: formatPercent,
-        icon: Gift,
+        value: formatPercent(latestRatios?.dividendYield),
         metricKey: 'dividendYield',
       },
       {
         label: '派息率',
-        value: latestRatios?.payoutRatio || latestMetrics.payoutRatio,
-        format: formatPercent,
-        icon: CircleDollarSign,
+        value: formatPercent(latestRatios?.payoutRatio || latestMetrics.payoutRatio),
         metricKey: 'dividendPayoutRatio',
       },
       {
         label: '每股自由现金流',
-        value: latestMetrics.freeCashFlowPerShare,
-        format: formatCurrency,
-        icon: DollarSign,
+        value: formatCurrency(latestMetrics.freeCashFlowPerShare),
         metricKey: 'freeCashFlowPerShare',
       },
-    ].filter(m => m.value !== undefined && m.value !== null && !isNaN(m.value));
+    ];
 
-    if (metrics.length === 0) return null;
+    // 检查是否有任何有效数据
+    const hasCapital = capitalMetrics.some(m => m.value !== 'N/A');
+    const hasReturns = returnMetrics.some(m => m.value !== 'N/A');
 
-    return (
-      <div className="bg-midnight/30 rounded-xl p-6 border border-white/5 max-md:border-0">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-              <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
-              股东回报
-            </h3>
-            <p className="text-xs text-mist-500 mt-1">
-              "散户能分到多少钱？"
-            </p>
-          </div>
-          <div className="flex items-center gap-1 text-xs text-mist-500">
-            <Clock className="w-3 h-3" />
-            <span>Financial Ratios + Key Metrics</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {metrics.map((m, i) => (
-            <MetricCard key={i} {...m} />
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  // 趋势图表 - 展示关键指标的历史趋势
-  const renderTrendCharts = () => {
-    if (keyMetrics.length < 2) return null;
-
-    const years = keyMetrics.map(m => m.calendarYear || m.fiscalYear || m.date?.split('-')[0] || '').reverse();
-    const evToEbitda = keyMetrics.map(m => m.enterpriseValueOverEBITDA || 0).reverse();
-    const roe = keyMetrics.map(m => (m.roe || 0) * 100).reverse();
-    const roic = keyMetrics.map(m => (m.roic || 0) * 100).reverse();
-
-    const colors = {
-      evToEbitda: '#64948b',
-      roe: '#7a8494',
-      roic: '#948a6a',
-    };
-
-    const option = {
-      backgroundColor: 'transparent',
-      tooltip: {
-        trigger: 'axis',
-        backgroundColor: 'rgba(15, 15, 35, 0.95)',
-        borderColor: 'rgba(100, 116, 139, 0.3)',
-        textStyle: { color: '#f8fafc' },
-      },
-      legend: {
-        data: ['EV/EBITDA', 'ROE (%)', 'ROIC (%)'],
-        textStyle: { color: '#94a3b8' },
-        top: 0,
-      },
-      grid: { left: '3%', right: '4%', bottom: '3%', top: '60px', containLabel: true },
-      xAxis: {
-        type: 'category',
-        data: years,
-        axisLine: { lineStyle: { color: '#334155' } },
-        axisLabel: { color: '#94a3b8' },
-      },
-      yAxis: [
-        {
-          type: 'value',
-          name: '倍数',
-          nameTextStyle: { color: '#64748b' },
-          axisLine: { show: false },
-          axisLabel: { color: '#64748b' },
-          splitLine: { lineStyle: { color: '#1e293b', type: 'dashed' } },
-        },
-        {
-          type: 'value',
-          name: '百分比 (%)',
-          nameTextStyle: { color: '#64748b' },
-          axisLine: { show: false },
-          axisLabel: { color: '#64748b', formatter: (v: number) => `${v}%` },
-          splitLine: { show: false },
-        },
-      ],
-      series: [
-        { name: 'EV/EBITDA', type: 'line', data: evToEbitda, smooth: true, lineStyle: { width: 2 }, itemStyle: { color: colors.evToEbitda }, symbol: 'circle', symbolSize: 6 },
-        { name: 'ROE (%)', type: 'line', yAxisIndex: 1, data: roe, smooth: true, lineStyle: { width: 2 }, itemStyle: { color: colors.roe }, symbol: 'circle', symbolSize: 6 },
-        { name: 'ROIC (%)', type: 'line', yAxisIndex: 1, data: roic, smooth: true, lineStyle: { width: 2 }, itemStyle: { color: colors.roic }, symbol: 'circle', symbolSize: 6 },
-      ],
-    };
+    if (!hasCapital && !hasReturns) return null;
 
     return (
-      <div className="bg-midnight/30 rounded-xl p-6 border border-white/5 max-md:border-0">
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <span className="w-2 h-2 bg-gemini-purple rounded-full"></span>
-          关键指标趋势
+      <div className="gemini-card p-6 md:p-8">
+        <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+          <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
+          资本与回报
         </h3>
-        <ReactECharts option={option} style={{ height: '300px' }} />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+          <MetricColumn title="资本结构" metrics={capitalMetrics} />
+          <MetricColumn title="股东回报" metrics={returnMetrics} />
+        </div>
       </div>
     );
   };
@@ -710,20 +478,11 @@ export default function ProfessionalValuationMetrics({
       {/* 1. 核心风控与综合评分 */}
       {renderCoreRiskScores()}
 
-      {/* 2. 估值指标 */}
-      {renderValuationMetrics()}
+      {/* 2. 财务指标 - 紧凑 3 列布局 */}
+      {renderFundamentals()}
 
-      {/* 3. 盈利能力 */}
-      {renderProfitabilityMetrics()}
-
-      {/* 4. 运营效率与周期 */}
-      {renderEfficiencyMetrics()}
-
-      {/* 5. 资本结构与开支 */}
-      {renderCapitalExpenseMetrics()}
-
-      {/* 6. 股东回报 */}
-      {renderShareholderReturns()}
+      {/* 3. 资本与回报 - 紧凑 2 列布局 */}
+      {renderCapitalAndReturns()}
     </div>
   );
 }
