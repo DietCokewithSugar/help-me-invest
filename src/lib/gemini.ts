@@ -429,7 +429,7 @@ ${transcriptText}
   }
 
   // 1. 企业概况
-  async streamCompanyOverview(companyData: any, market: MarketType): AsyncGenerator<string, void, unknown> {
+  async streamCompanyOverview(companyData: any, market: MarketType): Promise<AsyncGenerator<string, void, unknown>> {
     const prompt = `
 你是一位专业的金融分析师。请根据以下公司信息，撰写一份简洁的“企业概况”。
 
@@ -446,7 +446,7 @@ ${JSON.stringify(companyData, null, 2)}
   }
 
   // 2. 行业分析
-  async streamIndustryAnalysis(companyData: any, market: MarketType): AsyncGenerator<string, void, unknown> {
+  async streamIndustryAnalysis(companyData: any, market: MarketType): Promise<AsyncGenerator<string, void, unknown>> {
     const prompt = `
 请分析 ${companyData.companyName} (${companyData.symbol}) 所处的行业。
 
@@ -460,7 +460,7 @@ ${JSON.stringify(companyData, null, 2)}
   }
 
   // 3. 行业痛点与障碍
-  async streamIndustryPainPoints(companyData: any, market: MarketType): AsyncGenerator<string, void, unknown> {
+  async streamIndustryPainPoints(companyData: any, market: MarketType): Promise<AsyncGenerator<string, void, unknown>> {
     const prompt = `
 请深入分析 ${companyData.companyName} 所处行业当前面临的最大痛点与发展障碍。
 
@@ -475,7 +475,7 @@ ${JSON.stringify(companyData, null, 2)}
   }
 
   // 4. 竞争格局
-  async streamCompetitors(companyData: any, peers: string[], market: MarketType): AsyncGenerator<string, void, unknown> {
+  async streamCompetitors(companyData: any, peers: string[], market: MarketType): Promise<AsyncGenerator<string, void, unknown>> {
     const prompt = `
 请分析 ${companyData.companyName} 的竞争格局。
 
@@ -491,7 +491,7 @@ ${JSON.stringify(companyData, null, 2)}
   }
 
   // 5. 竞争优势
-  async streamCompetitiveAdvantage(companyData: any, market: MarketType): AsyncGenerator<string, void, unknown> {
+  async streamCompetitiveAdvantage(companyData: any, market: MarketType): Promise<AsyncGenerator<string, void, unknown>> {
     const prompt = `
 请分析 ${companyData.companyName} 相较于竞争对手的独特优势。
 
@@ -505,7 +505,7 @@ ${JSON.stringify(companyData, null, 2)}
   }
 
   // 6. 核心护城河
-  async streamMoat(companyData: any, market: MarketType): AsyncGenerator<string, void, unknown> {
+  async streamMoat(companyData: any, market: MarketType): Promise<AsyncGenerator<string, void, unknown>> {
     const prompt = `
 请深入剖析 ${companyData.companyName} 的核心护城河。
 
@@ -519,7 +519,7 @@ ${JSON.stringify(companyData, null, 2)}
   }
 
   // 7. 最新发展动态 (需要联网搜索能力)
-  async streamRecentDevelopments(companyName: string, symbol: string, market: MarketType): AsyncGenerator<string, void, unknown> {
+  async streamRecentDevelopments(companyName: string, symbol: string, market: MarketType): Promise<AsyncGenerator<string, void, unknown>> {
     const marketName = MARKET_NAMES[market] || '美股';
     // 使用 search 模型
     const model = this.getModel('search', {
@@ -551,7 +551,7 @@ ${JSON.stringify(companyData, null, 2)}
     companyData: any,
     context: string,
     market: MarketType
-  ): AsyncGenerator<string, void, unknown> {
+  ): Promise<AsyncGenerator<string, void, unknown>> {
     const prompt = `
 你是一位首席投资官。请根据以下关于 ${companyData.companyName} (${companyData.symbol}) 的研究报告内容，撰写一份“投资建议总结”。
 
@@ -573,7 +573,7 @@ ${context}
     transcriptText: string,
     companyName: string,
     symbol: string
-  ): AsyncGenerator<string, void, unknown> {
+  ): Promise<AsyncGenerator<string, void, unknown>> {
     const prompt = `
 你是一位资深卖方分析师。请根据以下英文电话会议全文，生成中文“财报电话会议精要”。
 必须严格围绕用户关心的四个区域输出，并给出清晰的要点与判断：
