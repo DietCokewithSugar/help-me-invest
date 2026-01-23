@@ -120,16 +120,22 @@ function AnalysisCard({
   gradient,
   children,
   onShare,
+  collapsible = true,
+  defaultExpanded = true,
 }: {
   icon: any;
   title: string;
   gradient: string; // Keep interface but ignore gradient in implementation
   children: React.ReactNode;
   onShare?: (title: string, contentElement: HTMLDivElement) => void;
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
 }) {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  const handleShare = () => {
+  const handleShare = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (onShare && contentRef.current) {
       onShare(title, contentRef.current);
     }
@@ -137,22 +143,46 @@ function AnalysisCard({
 
   return (
     <div className="bg-white/5 border border-white/10 p-6 rounded-md hover:border-white/20 transition-colors relative group">
-      <div className="flex items-center justify-between gap-3 mb-4 border-b border-white/5 pb-3">
+      <div
+        className={`flex items-center justify-between gap-3 border-b border-white/5 pb-3 ${collapsible ? 'cursor-pointer' : ''}`}
+        onClick={() => collapsible && setIsExpanded(!isExpanded)}
+      >
         <div className="flex items-center gap-3">
           <Icon className="w-4 h-4 text-glacier-500" />
           <h3 className="text-base font-medium text-white uppercase tracking-wider">{title}</h3>
         </div>
-        {onShare && (
-          <button
-            onClick={handleShare}
-            className="w-7 h-7 rounded-md bg-white/5 flex items-center justify-center text-mist-500 hover:text-white hover:bg-white/10 transition-all opacity-0 group-hover:opacity-100"
-            title="分享此模块"
-          >
-            <Share2 className="w-3.5 h-3.5" />
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {onShare && (
+            <button
+              onClick={handleShare}
+              className="w-7 h-7 rounded-md bg-white/5 flex items-center justify-center text-mist-500 hover:text-white hover:bg-white/10 transition-all opacity-0 group-hover:opacity-100"
+              title="分享此模块"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {collapsible && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsExpanded(!isExpanded);
+              }}
+              className="w-7 h-7 rounded-md bg-white/5 flex items-center justify-center text-mist-500 hover:text-white hover:bg-white/10 transition-all"
+            >
+              {isExpanded ? (
+                <ChevronUp className="w-3.5 h-3.5" />
+              ) : (
+                <ChevronDown className="w-3.5 h-3.5" />
+              )}
+            </button>
+          )}
+        </div>
       </div>
-      <div ref={contentRef} className="prose prose-gemini max-w-none prose-p:text-mist-300 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-300 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 text-sm">
+      <div
+        ref={contentRef}
+        className={`prose prose-gemini max-w-none prose-p:text-mist-300 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-300 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 text-sm transition-all duration-300 ease-in-out ${isExpanded ? 'mt-4 opacity-100' : 'h-0 opacity-0 overflow-hidden'
+          }`}
+      >
         {children}
       </div>
     </div>
@@ -737,20 +767,16 @@ export default function Report({
                   </div>
 
                   {/* 最新动态 */}
-                  <div className="bg-white/5 border border-white/10 p-6 md:p-8 rounded-md hover:border-white/20 transition-colors">
-                    <div className="flex items-center gap-4 mb-6">
-                      <div className="w-10 h-10 rounded-md bg-glacier-500/10 flex items-center justify-center border border-glacier-500/20">
-                        <Sparkles className="w-5 h-5 text-glacier-500" />
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <h3 className="text-xl font-semibold text-white">最新发展动态</h3>
-                        <span className="gemini-badge text-xs">AI + Google Search</span>
-                      </div>
-                    </div>
+                  <AnalysisCard
+                    icon={Sparkles}
+                    title="最新发展动态"
+                    gradient="none"
+                    onShare={handleShareModule}
+                  >
                     <div className="prose prose-gemini max-w-none prose-p:text-mist-300 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-300 prose-a:text-glacier-500 prose-a:no-underline hover:prose-a:underline text-sm">
                       <ReactMarkdown>{aiAnalysis.recentDevelopments}</ReactMarkdown>
                     </div>
-                  </div>
+                  </AnalysisCard>
                 </>
               )}
 
@@ -760,7 +786,10 @@ export default function Report({
                   {transcriptText && (
                     <div className="not-prose mt-4 space-y-3">
                       <button
-                        onClick={() => setShowTranscript((prev) => !prev)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowTranscript((prev) => !prev);
+                        }}
                         className="gemini-btn gemini-btn-secondary text-sm"
                       >
                         {showTranscript ? '收起原文' : '查看原文'}
@@ -778,19 +807,16 @@ export default function Report({
               )}
 
               {aiAnalysis && (
-                <div className="gemini-card p-6 md:p-8 rounded-md bg-white/5 border border-white/10">
-                  <div className="relative">
-                    <div className="flex items-center gap-4 mb-6">
-                      <div className="w-12 h-12 rounded-md bg-glacier-500/10 flex items-center justify-center border border-glacier-500/20">
-                        <Sparkles className="w-6 h-6 text-glacier-500" />
-                      </div>
-                      <h3 className="text-2xl font-bold text-white">投资建议总结</h3>
-                    </div>
-                    <div className="prose prose-gemini max-w-none prose-p:text-mist-200 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-200 text-base">
-                      <ReactMarkdown>{aiAnalysis.investmentConclusion}</ReactMarkdown>
-                    </div>
+                <AnalysisCard
+                  icon={Sparkles}
+                  title="投资建议总结"
+                  gradient="none"
+                  onShare={handleShareModule}
+                >
+                  <div className="prose prose-gemini max-w-none prose-p:text-mist-200 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-200 text-base">
+                    <ReactMarkdown>{aiAnalysis.investmentConclusion}</ReactMarkdown>
                   </div>
-                </div>
+                </AnalysisCard>
               )}
             </div>
           </CollapsibleSection>
