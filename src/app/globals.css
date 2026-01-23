@@ -24,6 +24,8 @@
   --glass-border: rgba(255, 255, 255, 0.06);
   --gradient-text-from: #14b8a6;
   --gradient-text-to: #3b82f6;
+  --bg-pattern: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  --bg-pattern-size: 24px 24px;
 }
 
 /* Light mode */
@@ -45,15 +47,21 @@
   --glass-border: rgba(0, 0, 0, 0.08);
   --gradient-text-from: #0d9488;
   --gradient-text-to: #2563eb;
+  --bg-pattern: linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+  --bg-pattern-size: 32px 32px;
 }
 
 body {
   background-color: var(--bg-obsidian);
+  background-image: var(--bg-pattern);
+  background-size: var(--bg-pattern-size);
   color: var(--text-primary);
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.3s ease, color 0.3s ease;
+  background-attachment: fixed;
 }
 
 /* Scrollbar */
