@@ -1,57 +1,40 @@
-# UI Design System: Utilitarian Dark Mode
+# UI Design System: Utilitarian Mode
 
 ## Design Philosophy
 - **Minimalist**: Remove unnecessary decorations, gradients, and blurred backgrounds.
 - **Data-First**: Focus on readability and data presentation.
 - **Sharp & Industrial**: Use sharp or slightly rounded corners, thin borders, and monospaced fonts for data.
-- **Dark Mode**: High contrast dark theme.
+- **Dual Theme**: Support both high-contrast Dark mode and clean Slate-based Light mode.
 
 ## Core Palette
 
-### Backgrounds
-- **Main**: `bg-obsidian` (#0A0A0B)
-- **Card/Surface**: `bg-surface` (#121212) or `bg-white/5`
-- **Hover**: `bg-white/10` or `bg-surface-hover` (#1A1A1A)
+### Dark Mode (Default)
+- **Main BG**: `bg-obsidian` (#0A0A0B)
+- **Surface**: `bg-surface` (#121212)
+- **Text Primary**: `text-mist-200` (#E2E8F0)
+- **Text Secondary**: `text-mist-400` (#94A3B8)
+- **Text Muted**: `text-mist-500` (#64748B)
+- **Accent**: `text-glacier-500` (#14B8A6)
+- **Growth**: `#10B981` | **Decay**: `#EF4444`
 
-### Typography
-- **Primary Text**: `text-white` or `text-mist-200` (#e2e8f0)
-- **Secondary**: `text-mist-400` (#94a3b8)
-- **Muted**: `text-mist-500` (#64748b)
-- **Fonts**:
-  - Headings/Body: `font-sans` ("Inter")
-  - Data/Numbers: `font-mono` ("JetBrains Mono")
+### Light Mode (`[data-theme="light"]`)
+- **Main BG**: `#F8FAFC` (Slate 50)
+- **Surface**: `#FFFFFF` (White)
+- **Text Heading**: `#0F172A` (Slate 900)
+- **Text Primary**: `#1E293B` (Slate 800)
+- **Text Secondary**: `#475569` (Slate 600)
+- **Text Muted**: `#64748B` (Slate 500)
+- **Accent**: `#0D9488` (Teal 600)
+- **Growth**: `#059669` | **Decay**: `#DC2626`
 
-### Borders
-- **Default**: `border-white/10` or `border-white/5`
-- **Active/Hover**: `border-white/20`
-
-### Semantic Colors
-- **Primary Accent**: `text-glacier-500` (#14b8a6) (Teal)
-- **Success/Growth**: `text-growth` (#10B981) (Emerald)
-- **Error/Decay**: `text-decay` (#EF4444) (Red)
-
-## Component Guidelines
-
-### Cards
-- **Shape**: `rounded-sm` (2px) or `rounded-md` (4px). Avoid `rounded-xl` or larger.
-- **Style**: Flat background (`bg-white/5`), thin border (`border border-white/10`).
-- **No Drop Shadows**: Unless heavily elevated.
-
-### Charts
-- **Palette**: Flat colors.
-  - Revenue: `#2dd4bf` (Teal 400)
-  - Gross Profit: `#94a3b8` (Slate 400)
-  - Op Income: `#fbbf24` (Amber 400)
-  - Net Income: `#10b981` (Emerald 500)
-  - Investing: `#f43f5e` (Rose 500)
-- **Grid**: `splitLine: { show: false }` or dashed opacity 0.5.
-- **Tooltip**: Simple, tabular, dark background (`#121212`), no shadow blur.
-
-### Buttons & Inputs
-- **Buttons**: Outline style or flat utilitarian background. `rounded-sm`.
-- **Inputs**: `bg-white/5`, `border-white/10`, `rounded-sm`.
+## Typography & Components
+- **Fonts**: `font-sans` (Inter) for UI; `font-mono` (JetBrains Mono) for financial data.
+- **Rounded**: `rounded-sm` (2px) or `rounded-md` (4px). *Exception: Inputs use 12px.*
+- **Borders**: 1px width. `border-white/10` (Dark) vs `rgba(0,0,0,0.1)` (Light).
+- **Glass**: 20px blur. `rgba(10,10,11,0.8)` (Dark) vs `rgba(248,250,252,0.9)` (Light).
 
 ## Implementation Rules
-1. **Always use `font-mono` for financial numbers.**
-2. **Avoid gradients** for background fills.
-3. **Use 1px borders** to define spacing rather than large gaps or shadows.
+1. **Financial Precision**: Always use `font-mono` for all currency and percentage values.
+2. **Theme Consistency**: Use CSS variables (e.g., `--bg-surface`) or theme-aware utility classes.
+3. **No Gradients**: Avoid background gradients; use solid fills or subtle 1px borders for definition.
+4. **Transition**: All theme-related changes should have `transition: background-color 0.2s, color 0.2s`.
