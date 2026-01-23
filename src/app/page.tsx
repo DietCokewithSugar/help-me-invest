@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef, Suspense, lazy, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import Report from '@/components/Report';
 import type { ReportData, MarketType } from '@/types';
@@ -135,7 +137,7 @@ function LinearLoader({ step, totalSteps }: { step: number; totalSteps: number }
   );
 }
 
-export default function Home() {
+function HomeContent() {
   const [symbol, setSymbol] = useState('');
   const [selectedMarket, setSelectedMarket] = useState<MarketType>('US');
   const [loading, setLoading] = useState(false);
@@ -158,6 +160,7 @@ export default function Home() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestContainerRef = useRef<HTMLDivElement>(null);
+  const searchParams = useSearchParams();
 
   const currentMarketConfig = getMarketConfig(selectedMarket);
 
@@ -214,6 +217,24 @@ export default function Home() {
     };
     fetchTrending();
   }, []);
+
+  // 处理 URL 中的 symbol 参数
+  useEffect(() => {
+    const symbolFromUrl = searchParams.get('symbol');
+    if (symbolFromUrl && !reportData && !loading) {
+      setSymbol(symbolFromUrl.toUpperCase());
+      // 这里的 handleAnalyze 调用需要确保在 symbol 状态更新后
+      // 但由于 useState 是异步的，我们直接传入 symbolFromUrl 
+    }
+  }, [searchParams, reportData, loading]);
+
+  // 当 symbol 因为 URL 改变时，触发分析
+  useEffect(() => {
+    const symbolFromUrl = searchParams.get('symbol');
+    if (symbolFromUrl && symbol === symbolFromUrl.toUpperCase() && !reportData && !loading) {
+      handleAnalyze();
+    }
+  }, [symbol, searchParams, reportData, loading]);
 
   // 获取研报总数的函数
   const fetchReportCount = useCallback(async () => {
@@ -643,6 +664,15 @@ export default function Home() {
                   <MessageCircleIcon size={16} className="text-glacier-500" />
                   <span className="text-sm text-mist-300">联系我们</span>
                 </button>
+
+                {/* 追踪功能入口 */}
+                <Link
+                  href="/tracking"
+                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer"
+                >
+                  <TrendingUpIcon size={16} className="text-glacier-500" />
+                  <span className="text-sm text-mist-300">追踪</span>
+                </Link>
 
                 {/* 主题切换 */}
                 <button
@@ -1343,5 +1373,17 @@ export default function Home() {
         )}
       </AnimatePresence>
     </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#0A0A0B]">
+        <GeminiLoader />
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }
