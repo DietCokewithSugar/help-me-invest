@@ -18,9 +18,10 @@ export default function SankeyChart({ data, theme = 'dark' }: SankeyProps) {
   };
 
   // 实用主义风格配色
-  const REVENUE_COLOR = '#475569';  // Slate 600
-  const EXPENSE_COLOR = isLight ? '#dc2626' : '#b91c1c';  // Red 600 vs Red 700
-  const PROFIT_COLOR = isLight ? '#059669' : '#059669';   // Emerald 600
+  // 传统色配色 (窈蓝 Yao Lan, 黄润 Huang Run, 鞠尘 Ju Chen)
+  const REVENUE_COLOR = '#88ABDA';   // 窈蓝
+  const EXPENSE_COLOR = '#CB523E';   // 艳炽
+  const PROFIT_COLOR = '#C0D09D';    // 鞠尘
   const TEXT_COLOR = isLight ? '#1e293b' : '#e2e8f0';     // Slate 800 vs Mist 200
   const SUB_TEXT_COLOR = isLight ? '#475569' : '#94a3b8'; // Slate 600 vs Mist 400
   const TOOLTIP_BG = isLight ? '#ffffff' : '#121212';

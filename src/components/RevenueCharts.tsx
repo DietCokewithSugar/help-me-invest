@@ -35,8 +35,8 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
   const TOOLTIP_BG = isLight ? '#ffffff' : '#121212';
   const ACCENT_COLOR = isLight ? '#0d9488' : '#14b8a6';
 
-  // 成本结构分类配色 (Muted Industrial) - Consistent with CLAUDE.md
-  const CATEGORICAL_COLORS = ['#94655a', '#7a8494', '#947a5a', '#5a9472'];
+  // 传统色分类配色 (白青 Bai Qing, 窈蓝 Yao Lan, 鞠尘 Ju Chen, 艳炽 Yan Chi)
+  const CATEGORICAL_COLORS = ['#98B6C2', '#88ABDA', '#C0D09D', '#CB523E'];
 
   const years = activeStatements.map(i => {
     if (period === 'quarter') return `${i.fiscalYear} ${i.period}`;
@@ -150,7 +150,7 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
         data: revenues,
         barWidth: '20%',
         itemStyle: {
-          color: isLight ? '#0d9488' : '#2dd4bf', // Teal 600 vs Teal 400
+          color: '#88ABDA', // 窈蓝
           borderRadius: 0
         },
       },
@@ -161,7 +161,7 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
         data: grossProfits,
         barWidth: '20%',
         itemStyle: {
-          color: isLight ? '#94a3b8' : '#94a3b8', // Slate 400
+          color: '#98B6C2', // 白青
           borderRadius: 0
         },
       },
@@ -172,7 +172,7 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
         data: netIncomes,
         barWidth: '20%',
         itemStyle: {
-          color: isLight ? '#059669' : '#10b981', // Emerald 600 vs Emerald 500
+          color: '#C0D09D', // 鞠尘
           borderRadius: 0
         },
       },
@@ -184,11 +184,11 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
         smooth: false,
         symbol: 'none',
         lineStyle: {
-          color: isLight ? '#dc2626' : '#f43f5e', // Red 600 vs Rose 500
+          color: '#CB523E', // 艳炽
           width: 1.5,
         },
         itemStyle: {
-          color: isLight ? '#dc2626' : '#f43f5e',
+          color: '#CB523E',
         },
       },
     ],
@@ -221,11 +221,11 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
       },
     },
     legend: {
-      orient: 'vertical',
-      right: '3%',
-      top: 'center',
-      itemWidth: 16,
-      itemHeight: 16,
+      orient: 'horizontal',
+      bottom: '0',
+      left: 'center',
+      itemWidth: 12,
+      itemHeight: 12,
       itemGap: 16,
       formatter: (name: string) => {
         const item = pieData.find(d => d.name === name);
@@ -264,13 +264,12 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
     series: [
       {
         type: 'pie',
-        radius: ['50%', '80%'],
-        center: ['30%', '50%'],
+        radius: ['50%', '75%'],
+        center: ['50%', '42%'],
         avoidLabelOverlap: true,
         itemStyle: {
-          borderRadius: 8,
-          borderColor: isLight ? '#ffffff' : '#121212',
-          borderWidth: 3,
+          borderRadius: 4,
+          borderWidth: 0,
         },
         label: { show: false },
         labelLine: { show: false },

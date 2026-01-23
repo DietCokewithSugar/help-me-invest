@@ -35,18 +35,21 @@
 
 ## Data Visualization Palette
 
-### Semantic Colors
-- **Revenue/Primary**: `Slate 600` (#475569)
-- **Profit/Positive**: `Emerald 600` (#059669)
-- **Expense/Negative**: `Red 700` (#B91C1C)
-- **Neutral/Secondary**: `Slate 400` (#94A3B8)
+### Semantic Colors (Standard Report)
+- **Revenue/Primary**: `窈蓝` (#88ABDA)
+- **Profit/Positive**: `鞠尘` (#C0D09D)
+- **Expense/Negative**: `艳炽` (#CB523E)
+- **Secondary/Assets**: `白青` (#98B6C2)
+- **Neutral/Secondary**: `缟羽` (#EFEFEF)
 
-### Categorical Palette (Muted Industrial)
+### Categorical Palette (Traditional Chinese)
 Used for pie charts and multi-series charts:
-1.  **Muted Red**: `#94655A` (Expenses)
-2.  **Blue Grey**: `#7A8494` (Operations/R&D)
-3.  **Muted Amber**: `#947A5A` (Management/Admin)
-4.  **Muted Green**: `#5A9472` (Profit/Others)
+1.  **窈蓝 (Yao Lan)**: `#88ABDA` (Revenue / Primary)
+2.  **白青 (Bai Qing)**: `#98B6C2` (Gross Profit / Assets)
+3.  **鞠尘 (Ju Chen)**: `#C0D09D` (Net Profit / Equity)
+4.  **艳炽 (Yan Chi)**: `#CB523E` (Expenses / Debt)
+5.  **黄润 (Huang Run)**: `#DFD6B8` (Secondary Categories)
+6.  **玉色 (Yu Se)**: `#EAE4D1` (Muted Categories)
 
 ## Implementation Rules
 1. **Financial Precision**: Always use `font-mono` for all currency and percentage values.
