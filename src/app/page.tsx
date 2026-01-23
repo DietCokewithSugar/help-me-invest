@@ -1253,6 +1253,7 @@ export default function Home() {
             aiLoading={aiLoading}
             aiError={aiError}
             onReset={resetToHome}
+            theme={theme}
             onRegenerate={async () => {
               if (!reportData) return;
               setAiLoading(true);

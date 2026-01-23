@@ -6,6 +6,7 @@ import type { FinancialScores } from '@/types';
 
 interface Props {
   financialScores: FinancialScores;
+  theme?: 'dark' | 'light';
 }
 
 // 指标说明映射
@@ -64,7 +65,8 @@ function getFScoreInfo(score: number) {
   return { label: '优秀', color: 'text-emerald-500', bg: 'bg-emerald-500' };
 }
 
-export default function FinancialScoresDisplay({ financialScores }: Props) {
+export default function FinancialScoresDisplay({ financialScores, theme = 'dark' }: Props) {
+  const isLight = theme === 'light';
   const [hoveredMetric, setHoveredMetric] = useState<string | null>(null);
 
   const formatNumber = (num: number | undefined | null) => {
@@ -133,11 +135,11 @@ export default function FinancialScoresDisplay({ financialScores }: Props) {
             {/* Visual Meter */}
             <div className="h-1.5 w-full bg-white/10 rounded-sm overflow-hidden flex gap-0.5">
               {/* 危险区 < 1.8 */}
-              <div className={`h-full flex-1 ${zScore < 1.8 ? 'bg-red-500' : 'bg-red-900/30'}`} />
+              <div className={`h-full flex-1 ${zScore < 1.8 ? 'bg-red-500' : (isLight ? 'bg-red-100' : 'bg-red-900/30')}`} />
               {/* 灰色区 1.8 - 3.0 */}
-              <div className={`h-full flex-1 ${zScore >= 1.8 && zScore < 3.0 ? 'bg-amber-500' : 'bg-amber-900/30'}`} />
+              <div className={`h-full flex-1 ${zScore >= 1.8 && zScore < 3.0 ? 'bg-amber-500' : (isLight ? 'bg-amber-100' : 'bg-amber-900/30')}`} />
               {/* 安全区 > 3.0 */}
-              <div className={`h-full flex-1 ${zScore >= 3.0 ? 'bg-emerald-500' : 'bg-emerald-900/30'}`} />
+              <div className={`h-full flex-1 ${zScore >= 3.0 ? 'bg-emerald-500' : (isLight ? 'bg-emerald-100' : 'bg-emerald-900/30')}`} />
             </div>
             <div className="flex justify-between text-[10px] text-mist-600 font-mono mt-1">
               <span>0</span>
@@ -175,7 +177,7 @@ export default function FinancialScoresDisplay({ financialScores }: Props) {
               {Array.from({ length: 9 }).map((_, i) => (
                 <div
                   key={i}
-                  className={`flex-1 rounded-[1px] ${i < fScore ? fInfo.bg : 'bg-white/10'}`}
+                  className={`flex-1 rounded-[1px] ${i < fScore ? fInfo.bg : (isLight ? 'bg-slate-200' : 'bg-white/10')}`}
                 />
               ))}
             </div>

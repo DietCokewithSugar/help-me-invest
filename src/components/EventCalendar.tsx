@@ -9,11 +9,13 @@ interface Props {
   earningsCalendar: EarningsCalendar[];
   dividendHistory: DividendCalendar[];
   stockSplits: StockSplit[];
+  theme?: 'dark' | 'light';
 }
 
 type TabType = 'earnings' | 'dividends' | 'splits';
 
-export default function EventCalendar({ earningsCalendar, dividendHistory, stockSplits }: Props) {
+export default function EventCalendar({ earningsCalendar, dividendHistory, stockSplits, theme = 'dark' }: Props) {
+  const isLight = theme === 'light';
   const [activeTab, setActiveTab] = useState<TabType>('earnings');
 
   const formatDate = (dateStr: string) => {
@@ -61,11 +63,11 @@ export default function EventCalendar({ earningsCalendar, dividendHistory, stock
           </div>
           <div className="bg-green-500/10 rounded-lg p-4 text-center">
             <p className="text-sm text-slate-400 mb-1">超预期次数</p>
-            <p className="text-2xl font-bold font-mono text-green-400">{beats}</p>
+            <p className="text-2xl font-bold font-mono" style={{ color: isLight ? '#059669' : '#4dd483' }}>{beats}</p>
           </div>
           <div className="bg-red-500/10 rounded-lg p-4 text-center">
             <p className="text-sm text-slate-400 mb-1">低于预期次数</p>
-            <p className="text-2xl font-bold font-mono text-red-400">{misses}</p>
+            <p className="text-2xl font-bold font-mono" style={{ color: isLight ? '#dc2626' : '#ef4444' }}>{misses}</p>
           </div>
         </div>
 
@@ -78,29 +80,30 @@ export default function EventCalendar({ earningsCalendar, dividendHistory, stock
                 backgroundColor: 'transparent',
                 tooltip: {
                   trigger: 'axis',
-                  backgroundColor: 'rgba(15, 15, 35, 0.95)',
-                  borderColor: 'rgba(20, 184, 166, 0.3)',
-                  textStyle: { color: '#f8fafc' },
+                  backgroundColor: isLight ? '#ffffff' : '#121212',
+                  borderColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)',
+                  borderWidth: 1,
+                  textStyle: { color: isLight ? '#1e293b' : '#f8fafc' },
                 },
                 legend: {
                   data: ['预期 EPS', '实际 EPS'],
-                  textStyle: { color: '#94a3b8' },
+                  textStyle: { color: isLight ? '#475569' : '#94a3b8' },
                   top: 0,
                 },
                 grid: { left: '3%', right: '4%', bottom: '3%', top: '50px', containLabel: true },
                 xAxis: {
                   type: 'category',
                   data: earningsCalendar.map(e => formatDate(e.date)).reverse(),
-                  axisLine: { lineStyle: { color: '#334155' } },
-                  axisLabel: { color: '#94a3b8', rotate: 45 },
+                  axisLine: { lineStyle: { color: isLight ? '#e2e8f0' : '#334155' } },
+                  axisLabel: { color: isLight ? '#475569' : '#94a3b8', rotate: 45 },
                 },
                 yAxis: {
                   type: 'value',
                   name: 'EPS ($)',
-                  nameTextStyle: { color: '#64748b' },
+                  nameTextStyle: { color: isLight ? '#64748b' : '#64748b' },
                   axisLine: { show: false },
-                  axisLabel: { color: '#64748b', formatter: (v: number) => `$${v.toFixed(2)}` },
-                  splitLine: { lineStyle: { color: '#1e293b', type: 'dashed' } },
+                  axisLabel: { color: isLight ? '#64748b' : '#64748b', formatter: (v: number) => `$${v.toFixed(2)}` },
+                  splitLine: { lineStyle: { color: isLight ? '#f1f5f9' : '#1e293b', type: 'dashed' } },
                 },
                 series: [
                   {
@@ -119,7 +122,7 @@ export default function EventCalendar({ earningsCalendar, dividendHistory, stock
                         const idx = params.dataIndex;
                         const actual = earningsCalendar[earningsCalendar.length - 1 - idx]?.epsActual;
                         const estimated = earningsCalendar[earningsCalendar.length - 1 - idx]?.epsEstimated;
-                        return actual >= estimated ? '#22c55e' : '#ef4444';
+                        return actual >= estimated ? (isLight ? '#059669' : '#22c55e') : (isLight ? '#dc2626' : '#ef4444');
                       },
                       borderRadius: [4, 4, 0, 0],
                     },
@@ -155,7 +158,9 @@ export default function EventCalendar({ earningsCalendar, dividendHistory, stock
                     <td className="text-right py-3 px-4 font-mono text-slate-400">
                       ${e.epsEstimated?.toFixed(2) || 'N/A'}
                     </td>
-                    <td className={`text-right py-3 px-4 font-mono font-semibold ${beat ? 'text-green-400' : miss ? 'text-red-400' : 'text-white'
+                    <td className={`text-right py-3 px-4 font-mono font-semibold ${beat ? (isLight ? 'text-emerald-600' : 'text-green-400') :
+                        miss ? (isLight ? 'text-red-600' : 'text-red-400') :
+                          'text-white'
                       }`}>
                       ${e.epsActual?.toFixed(2) || 'N/A'}
                     </td>
@@ -237,24 +242,25 @@ export default function EventCalendar({ earningsCalendar, dividendHistory, stock
                 backgroundColor: 'transparent',
                 tooltip: {
                   trigger: 'axis',
-                  backgroundColor: 'rgba(15, 15, 35, 0.95)',
-                  borderColor: 'rgba(20, 184, 166, 0.3)',
-                  textStyle: { color: '#f8fafc' },
+                  backgroundColor: isLight ? '#ffffff' : '#121212',
+                  borderColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)',
+                  borderWidth: 1,
+                  textStyle: { color: isLight ? '#1e293b' : '#f8fafc' },
                 },
                 grid: { left: '3%', right: '4%', bottom: '3%', top: '30px', containLabel: true },
                 xAxis: {
                   type: 'category',
                   data: years,
-                  axisLine: { lineStyle: { color: '#334155' } },
-                  axisLabel: { color: '#94a3b8' },
+                  axisLine: { lineStyle: { color: isLight ? '#e2e8f0' : '#334155' } },
+                  axisLabel: { color: isLight ? '#475569' : '#94a3b8' },
                 },
                 yAxis: {
                   type: 'value',
                   name: '分红 ($)',
-                  nameTextStyle: { color: '#64748b' },
+                  nameTextStyle: { color: isLight ? '#64748b' : '#64748b' },
                   axisLine: { show: false },
-                  axisLabel: { color: '#64748b', formatter: (v: number) => `$${v.toFixed(2)}` },
-                  splitLine: { lineStyle: { color: '#1e293b', type: 'dashed' } },
+                  axisLabel: { color: isLight ? '#64748b' : '#64748b', formatter: (v: number) => `$${v.toFixed(2)}` },
+                  splitLine: { lineStyle: { color: isLight ? '#f1f5f9' : '#1e293b', type: 'dashed' } },
                 },
                 series: [
                   {
@@ -265,8 +271,8 @@ export default function EventCalendar({ earningsCalendar, dividendHistory, stock
                         type: 'linear',
                         x: 0, y: 0, x2: 0, y2: 1,
                         colorStops: [
-                          { offset: 0, color: '#22c55e' },
-                          { offset: 1, color: '#16a34a' }
+                          { offset: 0, color: isLight ? '#059669' : '#22c55e' },
+                          { offset: 1, color: isLight ? '#047857' : '#16a34a' }
                         ]
                       },
                       borderRadius: [4, 4, 0, 0],
@@ -274,7 +280,7 @@ export default function EventCalendar({ earningsCalendar, dividendHistory, stock
                     label: {
                       show: true,
                       position: 'top',
-                      color: '#94a3b8',
+                      color: isLight ? '#475569' : '#94a3b8',
                       formatter: (params: any) => `$${params.value.toFixed(2)}`,
                     },
                   },
@@ -399,10 +405,10 @@ export default function EventCalendar({ earningsCalendar, dividendHistory, stock
             onClick={() => setActiveTab(tab.key)}
             disabled={tab.count === 0}
             className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all text-sm font-medium ${activeTab === tab.key
-                ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
-                : tab.count === 0
-                  ? 'text-mist-600 cursor-not-allowed'
-                  : 'text-mist-400 hover:text-white hover:bg-white/5'
+              ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+              : tab.count === 0
+                ? 'text-mist-600 cursor-not-allowed'
+                : 'text-mist-400 hover:text-white hover:bg-white/5'
               }`}
           >
             {tab.icon}
@@ -415,7 +421,7 @@ export default function EventCalendar({ earningsCalendar, dividendHistory, stock
       </div>
 
       {/* 内容区域 */}
-      <div className="bg-black/20 rounded-md p-4 border border-white/10">
+      <div className="bg-white/5 rounded-md p-4 border border-white/10">
         {activeTab === 'earnings' && renderEarningsCalendar()}
         {activeTab === 'dividends' && renderDividendHistory()}
         {activeTab === 'splits' && renderStockSplits()}

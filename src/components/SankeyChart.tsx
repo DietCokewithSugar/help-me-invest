@@ -5,20 +5,26 @@ import type { SankeyData } from '@/types';
 
 interface SankeyProps {
   data: SankeyData;
+  theme?: 'dark' | 'light';
 }
 
-export default function SankeyChart({ data }: SankeyProps) {
+export default function SankeyChart({ data, theme = 'dark' }: SankeyProps) {
+  const isLight = theme === 'light';
+
   const formatValue = (value: number) => {
     if (value >= 1e9) return `$${(value / 1e9).toFixed(1)}B`;
     if (value >= 1e6) return `$${(value / 1e6).toFixed(1)}M`;
     return `$${value.toLocaleString()}`;
   };
 
-  // 低饱和度配色 - 电子墨水风格
-  // 低饱和度配色 - 实用主义风格
+  // 实用主义风格配色
   const REVENUE_COLOR = '#475569';  // Slate 600
-  const EXPENSE_COLOR = '#b91c1c';  // Red 700 (darker semantic error)
-  const PROFIT_COLOR = '#059669';   // Emerald 600
+  const EXPENSE_COLOR = isLight ? '#dc2626' : '#b91c1c';  // Red 600 vs Red 700
+  const PROFIT_COLOR = isLight ? '#059669' : '#059669';   // Emerald 600
+  const TEXT_COLOR = isLight ? '#1e293b' : '#e2e8f0';     // Slate 800 vs Mist 200
+  const SUB_TEXT_COLOR = isLight ? '#475569' : '#94a3b8'; // Slate 600 vs Mist 400
+  const TOOLTIP_BG = isLight ? '#ffffff' : '#121212';
+  const TOOLTIP_BORDER = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
 
   const revenueNodes = new Set(['主营业务收入', '其他收入', '总营收']);
   const expenseNodes = new Set(['营业成本', '研发费用', '销售及管理费用', '税费及其他']);
@@ -49,21 +55,21 @@ export default function SankeyChart({ data }: SankeyProps) {
     tooltip: {
       trigger: 'item',
       triggerOn: 'mousemove',
-      backgroundColor: '#121212',
-      borderColor: 'rgba(255, 255, 255, 0.1)',
+      backgroundColor: TOOLTIP_BG,
+      borderColor: TOOLTIP_BORDER,
       borderWidth: 1,
       padding: [8, 12],
       textStyle: {
-        color: '#e2e8f0',
+        color: TEXT_COLOR,
         fontSize: 12,
         fontFamily: 'JetBrains Mono, monospace',
       },
       formatter: (params: any) => {
         if (params.dataType === 'edge') {
-          return `<div style="font-weight: 500; font-size: 11px; color: #94a3b8; margin-bottom: 4px;">${params.data.source} → ${params.data.target}</div>
-                  <div style="color: #fff; font-size: 13px; font-weight: 600;">${formatValue(params.data.value)}</div>`;
+          return `<div style="font-weight: 500; font-size: 11px; color: ${SUB_TEXT_COLOR}; margin-bottom: 4px;">${params.data.source} → ${params.data.target}</div>
+                  <div style="color: ${TEXT_COLOR}; font-size: 13px; font-weight: 600;">${formatValue(params.data.value)}</div>`;
         }
-        return `<div style="font-weight: 600;">${params.name}</div>`;
+        return `<div style="font-weight: 600; color: ${TEXT_COLOR};">${params.name}</div>`;
       },
     },
     series: [
@@ -91,7 +97,7 @@ export default function SankeyChart({ data }: SankeyProps) {
           borderRadius: 4,
         },
         label: {
-          color: '#e2e8f0',
+          color: TEXT_COLOR,
           fontSize: 11,
           fontFamily: 'Inter, system-ui, sans-serif',
           fontWeight: 500,

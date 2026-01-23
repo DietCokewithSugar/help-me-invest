@@ -33,8 +33,24 @@
 - **Borders**: 1px width. `border-white/10` (Dark) vs `rgba(0,0,0,0.1)` (Light).
 - **Glass**: 20px blur. `rgba(10,10,11,0.8)` (Dark) vs `rgba(248,250,252,0.9)` (Light).
 
+## Data Visualization Palette
+
+### Semantic Colors
+- **Revenue/Primary**: `Slate 600` (#475569)
+- **Profit/Positive**: `Emerald 600` (#059669)
+- **Expense/Negative**: `Red 700` (#B91C1C)
+- **Neutral/Secondary**: `Slate 400` (#94A3B8)
+
+### Categorical Palette (Muted Industrial)
+Used for pie charts and multi-series charts:
+1.  **Muted Red**: `#94655A` (Expenses)
+2.  **Blue Grey**: `#7A8494` (Operations/R&D)
+3.  **Muted Amber**: `#947A5A` (Management/Admin)
+4.  **Muted Green**: `#5A9472` (Profit/Others)
+
 ## Implementation Rules
 1. **Financial Precision**: Always use `font-mono` for all currency and percentage values.
 2. **Theme Consistency**: Use CSS variables (e.g., `--bg-surface`) or theme-aware utility classes.
-3. **No Gradients**: Avoid background gradients; use solid fills or subtle 1px borders for definition.
-4. **Transition**: All theme-related changes should have `transition: background-color 0.2s, color 0.2s`.
+3. **Chart Adaptation**: Data visualizations must detect the current theme and adjust background, tooltip, and label colors accordingly.
+4. **No Gradients**: Avoid background gradients; use solid fills or subtle 1px borders for definition.
+5. **Transition**: All theme-related changes should have `transition: background-color 0.2s, color 0.2s`.

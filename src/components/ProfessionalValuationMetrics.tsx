@@ -12,6 +12,7 @@ interface Props {
   financialRatios?: FinancialRatios[];
   financialRatiosTTM?: any[];
   financialScores?: FinancialScores | null;
+  theme?: 'dark' | 'light';
 }
 
 // 指标说明映射 - 按用户要求分类
@@ -151,6 +152,7 @@ export default function ProfessionalValuationMetrics({
   financialRatios = [],
   financialRatiosTTM = [],
   financialScores,
+  theme = 'dark',
 }: Props) {
   const [hoveredMetric, setHoveredMetric] = useState<string | null>(null);
 
@@ -282,7 +284,7 @@ export default function ProfessionalValuationMetrics({
   // 1. 核心风控与综合评分 - 使用 FinancialScoresDisplay 组件
   const renderCoreRiskScores = () => {
     if (!financialScores) return null;
-    return <FinancialScoresDisplay financialScores={financialScores} />;
+    return <FinancialScoresDisplay financialScores={financialScores} theme={theme} />;
   };
 
   // 2. 主要财务指标 - 紧凑 3 列布局

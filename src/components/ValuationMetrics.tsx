@@ -11,6 +11,7 @@ interface Props {
   financialGrowth: FinancialGrowth[];
   dcfValuation: DCFValuation | null;
   enterpriseValues: EnterpriseValue[];
+  theme?: 'dark' | 'light';
 }
 
 export default function ValuationMetrics({
@@ -20,7 +21,9 @@ export default function ValuationMetrics({
   financialGrowth,
   dcfValuation,
   enterpriseValues,
+  theme = 'dark',
 }: Props) {
+  const isLight = theme === 'light';
   const formatNumber = (num: number | undefined | null) => {
     if (num === undefined || num === null || isNaN(num)) return 'N/A';
     if (Math.abs(num) >= 1e12) return (num / 1e12).toFixed(2) + 'T';
@@ -52,9 +55,9 @@ export default function ValuationMetrics({
     const upside = ((dcfValue - currentPrice) / currentPrice) * 100;
     const isUndervalued = upside > 0;
 
-    // 低饱和度颜色
-    const positiveColor = '#5a9472';  // 低饱和度绿
-    const negativeColor = '#94655a';  // 低饱和度红
+    // 颜色定义
+    const positiveColor = isLight ? '#059669' : '#5a9472';
+    const negativeColor = isLight ? '#dc2626' : '#94655a';
     const accentColor = isUndervalued ? positiveColor : negativeColor;
 
     return (
@@ -63,7 +66,7 @@ export default function ValuationMetrics({
           <Calculator className="w-5 h-5 text-glacier-500" />
           <h3 className="text-base font-semibold text-white">DCF 估值分析</h3>
         </div>
-        
+
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
           <div className="text-center p-4 bg-white/5 rounded-lg">
             <p className="text-sm text-slate-400 mb-1">当前股价</p>
@@ -89,7 +92,7 @@ export default function ValuationMetrics({
               <TrendingDown className="w-5 h-5" style={{ color: negativeColor }} />
             )}
             <p className="text-sm font-medium text-mist-300">
-              {isUndervalued 
+              {isUndervalued
                 ? `基于 DCF 模型，该股票可能被低估约 ${upside.toFixed(1)}%`
                 : `基于 DCF 模型，该股票可能被高估约 ${Math.abs(upside).toFixed(1)}%`
               }
@@ -105,39 +108,39 @@ export default function ValuationMetrics({
     if (!latestMetrics && !latestRatios) return null;
 
     const metrics = [
-      { 
-        label: 'P/E 市盈率', 
-        value: latestMetrics?.peRatio || latestRatios?.priceEarningsRatio, 
+      {
+        label: 'P/E 市盈率',
+        value: latestMetrics?.peRatio || latestRatios?.priceEarningsRatio,
         format: formatRatio,
         icon: <BarChart3 className="w-4 h-4" />,
       },
-      { 
-        label: 'P/B 市净率', 
-        value: latestMetrics?.pbRatio || latestRatios?.priceBookValueRatio, 
+      {
+        label: 'P/B 市净率',
+        value: latestMetrics?.pbRatio || latestRatios?.priceBookValueRatio,
         format: formatRatio,
         icon: <PiggyBank className="w-4 h-4" />,
       },
-      { 
-        label: 'P/S 市销率', 
-        value: latestMetrics?.priceToSalesRatio || latestRatios?.priceToSalesRatio, 
+      {
+        label: 'P/S 市销率',
+        value: latestMetrics?.priceToSalesRatio || latestRatios?.priceToSalesRatio,
         format: formatRatio,
         icon: <Target className="w-4 h-4" />,
       },
-      { 
-        label: 'EV/EBITDA', 
-        value: latestMetrics?.enterpriseValueOverEBITDA, 
+      {
+        label: 'EV/EBITDA',
+        value: latestMetrics?.enterpriseValueOverEBITDA,
         format: formatRatio,
         icon: <Calculator className="w-4 h-4" />,
       },
-      { 
-        label: '股息率', 
-        value: latestMetrics?.dividendYield, 
+      {
+        label: '股息率',
+        value: latestMetrics?.dividendYield,
         format: formatPercent,
         icon: <Percent className="w-4 h-4" />,
       },
-      { 
-        label: '收益率', 
-        value: latestMetrics?.earningsYield, 
+      {
+        label: '收益率',
+        value: latestMetrics?.earningsYield,
         format: formatPercent,
         icon: <Activity className="w-4 h-4" />,
       },
@@ -178,16 +181,19 @@ export default function ValuationMetrics({
           盈利能力指标
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {metrics.map((m, i) => (
-            <div key={i} className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
-              <span className="text-sm text-slate-400">{m.label}</span>
-              <span className="font-mono font-semibold" style={{ 
-                color: m.value && m.value > 0 ? '#5a9472' : '#94655a' 
-              }}>
-                {m.isPercent ? formatPercent(m.value) : formatRatio(m.value)}
-              </span>
-            </div>
-          ))}
+          {metrics.map((m, i) => {
+            const color = m.value && m.value > 0
+              ? (isLight ? '#059669' : '#5a9472')
+              : (isLight ? '#dc2626' : '#94655a');
+            return (
+              <div key={i} className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+                <span className="text-sm text-slate-400">{m.label}</span>
+                <span className="font-mono font-semibold" style={{ color }}>
+                  {m.isPercent ? formatPercent(m.value) : formatRatio(m.value)}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
     );
@@ -214,12 +220,15 @@ export default function ValuationMetrics({
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {metrics.map((m, i) => {
-            const isGood = m.value !== undefined && m.value !== null && !isNaN(m.value) && 
+            const isGood = m.value !== undefined && m.value !== null && !isNaN(m.value) &&
               (m.higherBetter ? m.value >= m.threshold : m.value <= m.threshold);
+            const color = isGood
+              ? (isLight ? '#059669' : '#5a9472')
+              : (isLight ? '#d97706' : '#947a5a');
             return (
               <div key={i} className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
                 <span className="text-sm text-slate-400">{m.label}</span>
-                <span className="font-mono font-semibold" style={{ color: isGood ? '#5a9472' : '#947a5a' }}>
+                <span className="font-mono font-semibold" style={{ color }}>
                   {formatRatio(m.value)}
                 </span>
               </div>
@@ -254,16 +263,17 @@ export default function ValuationMetrics({
       backgroundColor: 'transparent',
       tooltip: {
         trigger: 'axis',
-        backgroundColor: 'rgba(15, 15, 35, 0.95)',
-        borderColor: 'rgba(100, 116, 139, 0.3)',
-        textStyle: { color: '#f8fafc' },
+        backgroundColor: isLight ? '#ffffff' : '#121212',
+        borderColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)',
+        borderWidth: 1,
+        textStyle: { color: isLight ? '#1e293b' : '#f8fafc' },
         formatter: (params: any) => {
-          let result = `<div style="font-weight: 600; margin-bottom: 8px;">${params[0].axisValue}</div>`;
+          let result = `<div style="font-weight: 600; margin-bottom: 8px; color: ${isLight ? '#1e293b' : '#f8fafc'};">${params[0].axisValue}</div>`;
           params.forEach((p: any) => {
             const color = p.value >= 0 ? colors.positive : colors.negative;
             result += `<div style="display: flex; align-items: center; gap: 8px; margin: 4px 0;">
               <span style="width: 10px; height: 10px; background: ${p.color}; border-radius: 50%;"></span>
-              <span>${p.seriesName}: </span>
+              <span style="color: ${isLight ? '#475569' : '#94a3b8'};">${p.seriesName}: </span>
               <span style="font-weight: 600; color: ${color};">${p.value >= 0 ? '+' : ''}${p.value.toFixed(1)}%</span>
             </div>`;
           });
@@ -272,23 +282,23 @@ export default function ValuationMetrics({
       },
       legend: {
         data: ['营收增长', '净利润增长', 'EPS增长', '自由现金流增长'],
-        textStyle: { color: '#94a3b8' },
+        textStyle: { color: isLight ? '#475569' : '#94a3b8' },
         top: 0,
       },
       grid: { left: '3%', right: '4%', bottom: '3%', top: '60px', containLabel: true },
       xAxis: {
         type: 'category',
         data: years,
-        axisLine: { lineStyle: { color: '#334155' } },
-        axisLabel: { color: '#94a3b8' },
+        axisLine: { lineStyle: { color: isLight ? '#e2e8f0' : '#334155' } },
+        axisLabel: { color: isLight ? '#475569' : '#94a3b8' },
       },
       yAxis: {
         type: 'value',
         name: '增长率 (%)',
-        nameTextStyle: { color: '#64748b' },
+        nameTextStyle: { color: isLight ? '#64748b' : '#64748b' },
         axisLine: { show: false },
-        axisLabel: { color: '#64748b', formatter: (v: number) => `${v}%` },
-        splitLine: { lineStyle: { color: '#1e293b', type: 'dashed' } },
+        axisLabel: { color: isLight ? '#64748b' : '#64748b', formatter: (v: number) => `${v}%` },
+        splitLine: { lineStyle: { color: isLight ? '#f1f5f9' : '#1e293b', type: 'dashed' } },
       },
       series: [
         { name: '营收增长', type: 'line', data: revenueGrowth, smooth: true, lineStyle: { width: 2 }, itemStyle: { color: colors.revenue }, symbol: 'circle', symbolSize: 5, label: { show: true, position: 'top', color: colors.revenue, fontSize: 9, fontFamily: 'JetBrains Mono', formatter: (p: any) => `${p.value >= 0 ? '+' : ''}${p.value.toFixed(1)}%` } },
@@ -329,16 +339,19 @@ export default function ValuationMetrics({
           长期增长指标
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {metrics.map((m, i) => (
-            <div key={i} className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
-              <span className="text-sm text-slate-400">{m.label}</span>
-              <span className="font-mono font-semibold" style={{
-                color: m.value && m.value > 0 ? '#5a9472' : m.value && m.value < 0 ? '#94655a' : '#64748b'
-              }}>
-                {formatPercent(m.value)}
-              </span>
-            </div>
-          ))}
+          {metrics.map((m, i) => {
+            const color = m.value && m.value > 0
+              ? (isLight ? '#059669' : '#5a9472')
+              : (m.value && m.value < 0 ? (isLight ? '#dc2626' : '#94655a') : (isLight ? '#64748b' : '#64748b'));
+            return (
+              <div key={i} className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+                <span className="text-sm text-slate-400">{m.label}</span>
+                <span className="font-mono font-semibold" style={{ color }}>
+                  {formatPercent(m.value)}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
     );

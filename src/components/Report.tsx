@@ -107,6 +107,7 @@ interface ReportProps {
   aiLoading?: boolean;
   aiError?: string;
   onRegenerate?: () => Promise<void>;
+  theme?: 'dark' | 'light';
 }
 
 // 分析卡片组件
@@ -261,6 +262,7 @@ export default function Report({
   aiLoading = false,
   aiError = '',
   onRegenerate,
+  theme = 'dark',
 }: ReportProps) {
   const reportRef = useRef<HTMLDivElement>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -274,6 +276,7 @@ export default function Report({
     valuation: true,
     events: false,
     holdings: false,
+    news: true,
   });
   // 桑基图年份选择状态（0 表示最新年份）
   const [sankeyYearIndex, setSankeyYearIndex] = useState(0);
@@ -777,7 +780,7 @@ export default function Report({
                         </div>
                       )}
                     </div>
-                    <SankeyChart data={currentSankeyData} />
+                    <SankeyChart data={currentSankeyData} theme={theme} />
                   </div>
                 )}
 
@@ -785,6 +788,7 @@ export default function Report({
                 <RevenueCharts
                   incomeStatements={incomeStatements}
                   incomeStatementsQuarter={data.incomeStatementsQuarter}
+                  theme={theme}
                 />
               </div>
 
@@ -796,6 +800,7 @@ export default function Report({
                 incomeStatementsQuarter={data.incomeStatementsQuarter}
                 balanceSheetsQuarter={data.balanceSheetsQuarter}
                 cashFlowStatementsQuarter={data.cashFlowStatementsQuarter}
+                theme={theme}
               />
             </div>
           </CollapsibleSection>
@@ -820,6 +825,7 @@ export default function Report({
                 financialRatios={financialRatios}
                 financialRatiosTTM={financialRatiosTTM}
                 financialScores={data.financialScores}
+                theme={theme}
               />
             </div>
           </CollapsibleSection>
@@ -842,6 +848,7 @@ export default function Report({
                 earningsCalendar={earningsCalendar}
                 dividendHistory={dividendHistory}
                 stockSplits={stockSplits}
+                theme={theme}
               />
             </div>
           </CollapsibleSection>
@@ -863,6 +870,7 @@ export default function Report({
               <HoldingsAnalysis
                 institutionalHolders={institutionalHolders}
                 insiderTrading={insiderTrading}
+                theme={theme}
               />
             </div>
           </CollapsibleSection>
@@ -888,39 +896,44 @@ export default function Report({
 
         {/* ==================== 最新新闻（仅普通版） ==================== */}
         {showNewsInVersion && (
-          <section id="news" className="gemini-card p-6 md:p-8 animate-fade-in-up scroll-mt-28">
-            <div className="flex items-center gap-4 mb-6">
-              {/* 编号 */}
-              <span className="text-3xl font-light text-mist-700 font-mono hidden md:block w-10">{getSectionNumber('news')}</span>
-              <h2 className="text-2xl font-semibold text-white">相关新闻资讯</h2>
+          <CollapsibleSection
+            id="news"
+            icon={Newspaper}
+            title="相关新闻资讯"
+            gradient="from-slate-600 to-slate-700"
+            expanded={expandedSections.news}
+            onToggle={() => toggleSection('news')}
+            sectionNumber={getSectionNumber('news')}
+          >
+            <div className="animate-fade-in">
+              <div className="bg-white/5 border border-white/10 p-6 md:p-8 rounded-md">
+                <div className="divide-y divide-white/5">
+                  {news.slice(0, 8).map((item, index) => (
+                    <a
+                      key={index}
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group flex items-start gap-4 py-4 first:pt-0 last:pb-0 hover:bg-white/[0.02] -mx-2 px-2 rounded-lg transition-colors"
+                    >
+                      <span className="text-sm text-mist-600 font-mono w-6 shrink-0 pt-0.5">{String(index + 1).padStart(2, '0')}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-mist-200 font-medium mb-2 line-clamp-2 group-hover:text-white transition-colors leading-relaxed">
+                          {item.title}
+                        </p>
+                        <div className="flex items-center gap-3 text-xs text-mist-500">
+                          <span className="truncate max-w-[120px]">{item.site}</span>
+                          <span className="text-mist-700">·</span>
+                          <span>{formatDate(item.publishedDate)}</span>
+                        </div>
+                      </div>
+                      <ExternalLink className="w-4 h-4 text-mist-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
+                    </a>
+                  ))}
+                </div>
+              </div>
             </div>
-
-            {/* 清爽列表布局 */}
-            <div className="divide-y divide-white/5">
-              {news.slice(0, 8).map((item, index) => (
-                <a
-                  key={index}
-                  href={item.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex items-start gap-4 py-4 first:pt-0 last:pb-0 hover:bg-white/[0.02] -mx-2 px-2 rounded-lg transition-colors"
-                >
-                  <span className="text-sm text-mist-600 font-mono w-6 shrink-0 pt-0.5">{String(index + 1).padStart(2, '0')}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-mist-200 font-medium mb-2 line-clamp-2 group-hover:text-white transition-colors leading-relaxed">
-                      {item.title}
-                    </p>
-                    <div className="flex items-center gap-3 text-xs text-mist-500">
-                      <span className="truncate max-w-[120px]">{item.site}</span>
-                      <span className="text-mist-700">·</span>
-                      <span>{formatDate(item.publishedDate)}</span>
-                    </div>
-                  </div>
-                  <ExternalLink className="w-4 h-4 text-mist-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
-                </a>
-              ))}
-            </div>
-          </section>
+          </CollapsibleSection>
         )}
 
         {/* 免责声明 */}

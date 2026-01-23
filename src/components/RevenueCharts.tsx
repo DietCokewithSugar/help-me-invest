@@ -7,9 +7,11 @@ import type { IncomeStatement } from '@/types';
 interface Props {
   incomeStatements: IncomeStatement[];
   incomeStatementsQuarter?: IncomeStatement[];
+  theme?: 'dark' | 'light';
 }
 
-export default function RevenueCharts({ incomeStatements, incomeStatementsQuarter }: Props) {
+export default function RevenueCharts({ incomeStatements, incomeStatementsQuarter, theme = 'dark' }: Props) {
+  const isLight = theme === 'light';
   const [period, setPeriod] = useState<'annual' | 'quarter'>('annual');
   const activeStatements = period === 'quarter' && incomeStatementsQuarter?.length
     ? incomeStatementsQuarter
@@ -23,6 +25,19 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
     );
   }
 
+  // 颜色定义
+  const TEXT_PRIMARY = isLight ? '#1e293b' : '#e2e8f0';
+  const TEXT_SECONDARY = isLight ? '#475569' : '#94a3b8';
+  const TEXT_MUTED = isLight ? '#64748b' : '#64748b';
+  const BORDER_COLOR = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+  const AXIS_LINE_COLOR = isLight ? '#e2e8f0' : '#334155';
+  const SPLIT_LINE_COLOR = isLight ? '#f1f5f9' : '#1e293b';
+  const TOOLTIP_BG = isLight ? '#ffffff' : '#121212';
+  const ACCENT_COLOR = isLight ? '#0d9488' : '#14b8a6';
+
+  // 成本结构分类配色 (Muted Industrial) - Consistent with CLAUDE.md
+  const CATEGORICAL_COLORS = ['#94655a', '#7a8494', '#947a5a', '#5a9472'];
+
   const years = activeStatements.map(i => {
     if (period === 'quarter') return `${i.fiscalYear} ${i.period}`;
     return i.date?.split('-')[0] || '';
@@ -30,7 +45,6 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
   const revenues = activeStatements.map(i => (i.revenue || 0) / 1e9).reverse();
   const netIncomes = activeStatements.map(i => (i.netIncome || 0) / 1e9).reverse();
   const grossProfits = activeStatements.map(i => (i.grossProfit || 0) / 1e9).reverse();
-  // 计算毛利率 (毛利润 / 营收 * 100%)
   const grossProfitMargins = activeStatements.map(i => {
     const revenue = i.revenue || 0;
     const grossProfit = i.grossProfit || 0;
@@ -42,20 +56,20 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
-      backgroundColor: '#121212',
-      borderColor: 'rgba(255, 255, 255, 0.1)',
+      backgroundColor: TOOLTIP_BG,
+      borderColor: BORDER_COLOR,
       borderWidth: 1,
       padding: [8, 12],
-      textStyle: { color: '#e2e8f0', fontFamily: 'JetBrains Mono, monospace', fontSize: 12 },
+      textStyle: { color: TEXT_PRIMARY, fontFamily: 'JetBrains Mono, monospace', fontSize: 12 },
       axisPointer: {
         type: 'line',
         lineStyle: {
-          color: 'rgba(255, 255, 255, 0.2)',
+          color: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255, 255, 255, 0.2)',
           type: 'dashed'
         }
       },
       formatter: (params: any) => {
-        let result = `<div style="font-weight: 500; margin-bottom: 4px; color: #94a3b8; font-size: 11px;">${params[0].axisValue}</div>`;
+        let result = `<div style="font-weight: 500; margin-bottom: 4px; color: ${TEXT_SECONDARY}; font-size: 11px;">${params[0].axisValue}</div>`;
         result += '<table style="width:100%; border-collapse: collapse;">';
         params.forEach((p: any) => {
           const isMargin = p.seriesName === '毛利率';
@@ -63,9 +77,9 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
           result += `<tr>
             <td style="padding: 2px 8px 2px 0; display: flex; align-items: center;">
               <span style="width: 6px; height: 6px; background: ${p.color}; margin-right: 6px; display: inline-block;"></span>
-              <span style="color: #cbd5e1; font-size: 12px;">${p.seriesName}</span>
+              <span style="color: ${TEXT_SECONDARY}; font-size: 12px;">${p.seriesName}</span>
             </td>
-            <td style="padding: 2px 0 2px 8px; text-align: right; color: #fff; font-weight: 500;">${valueStr}</td>
+            <td style="padding: 2px 0 2px 8px; text-align: right; color: ${TEXT_PRIMARY}; font-weight: 500;">${valueStr}</td>
           </tr>`;
         });
         result += '</table>';
@@ -74,7 +88,7 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
     },
     legend: {
       data: ['营收', '毛利润', '净利润', '毛利率'],
-      textStyle: { color: '#94a3b8', fontSize: 12 },
+      textStyle: { color: TEXT_SECONDARY, fontSize: 12 },
       top: 0,
       itemGap: 24,
     },
@@ -88,13 +102,13 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
     xAxis: {
       type: 'category',
       data: years,
-      axisLine: { lineStyle: { color: '#334155' } },
+      axisLine: { lineStyle: { color: AXIS_LINE_COLOR } },
       axisLabel: {
-        color: '#94a3b8',
+        color: TEXT_SECONDARY,
         fontSize: 10,
         fontFamily: 'JetBrains Mono, monospace',
       },
-      axisTick: { show: true, lineStyle: { color: '#334155' } },
+      axisTick: { show: true, lineStyle: { color: AXIS_LINE_COLOR } },
     },
     yAxis: [
       {
@@ -102,16 +116,16 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
         name: '',
         axisLine: { show: false },
         axisLabel: {
-          color: '#64748b',
+          color: TEXT_MUTED,
           fontSize: 10,
           fontFamily: 'JetBrains Mono, monospace',
           formatter: (value: number) => `${value}`,
         },
         splitLine: {
           lineStyle: {
-            color: '#1e293b',
+            color: SPLIT_LINE_COLOR,
             type: 'dashed',
-            opacity: 0.5
+            opacity: isLight ? 0.8 : 0.5
           }
         },
       },
@@ -136,7 +150,7 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
         data: revenues,
         barWidth: '20%',
         itemStyle: {
-          color: '#2dd4bf', // Teal 400
+          color: isLight ? '#0d9488' : '#2dd4bf', // Teal 600 vs Teal 400
           borderRadius: 0
         },
       },
@@ -147,7 +161,7 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
         data: grossProfits,
         barWidth: '20%',
         itemStyle: {
-          color: '#94a3b8', // Slate 400
+          color: isLight ? '#94a3b8' : '#94a3b8', // Slate 400
           borderRadius: 0
         },
       },
@@ -158,7 +172,7 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
         data: netIncomes,
         barWidth: '20%',
         itemStyle: {
-          color: '#10b981', // Emerald 500
+          color: isLight ? '#059669' : '#10b981', // Emerald 600 vs Emerald 500
           borderRadius: 0
         },
       },
@@ -167,14 +181,14 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
         type: 'line',
         yAxisIndex: 1,
         data: grossProfitMargins,
-        smooth: false, // Sharp lines
+        smooth: false,
         symbol: 'none',
         lineStyle: {
-          color: '#f43f5e', // Rose 500 (distinct from others)
+          color: isLight ? '#dc2626' : '#f43f5e', // Red 600 vs Rose 500
           width: 1.5,
         },
         itemStyle: {
-          color: '#f43f5e',
+          color: isLight ? '#dc2626' : '#f43f5e',
         },
       },
     ],
@@ -193,16 +207,16 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'item',
-      backgroundColor: 'rgba(15, 15, 35, 0.95)',
-      borderColor: 'rgba(20, 184, 166, 0.3)',
+      backgroundColor: TOOLTIP_BG,
+      borderColor: BORDER_COLOR,
       borderWidth: 1,
-      textStyle: { color: '#f8fafc' },
+      textStyle: { color: TEXT_PRIMARY },
       formatter: (params: any) => {
         const value = params.value / 1e9;
-        return `<div style="font-weight: 600;">${params.name}</div>
+        return `<div style="font-weight: 600; color: ${TEXT_PRIMARY};">${params.name}</div>
                 <div style="margin-top: 4px;">
-                  <span style="color: #14b8a6; font-size: 16px; font-weight: 600;">$${value.toFixed(2)}B</span>
-                  <span style="color: #64748b; margin-left: 8px;">(${params.percent}%)</span>
+                  <span style="color: ${ACCENT_COLOR}; font-size: 16px; font-weight: 600;">$${value.toFixed(2)}B</span>
+                  <span style="color: ${TEXT_MUTED}; margin-left: 8px;">(${params.percent}%)</span>
                 </div>`;
       },
     },
@@ -224,24 +238,24 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
         return name;
       },
       textStyle: {
-        color: '#e2e8f0',
+        color: TEXT_PRIMARY,
         fontSize: 13,
         fontWeight: 500,
         rich: {
           name: {
-            color: '#e2e8f0',
+            color: TEXT_PRIMARY,
             fontSize: 13,
             fontWeight: 500,
             lineHeight: 20,
           },
           value: {
-            color: '#14b8a6',
+            color: ACCENT_COLOR,
             fontSize: 12,
             fontFamily: 'JetBrains Mono, monospace',
             fontWeight: 600,
           },
           percent: {
-            color: '#64748b',
+            color: TEXT_MUTED,
             fontSize: 11,
           },
         },
@@ -255,26 +269,19 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
         avoidLabelOverlap: true,
         itemStyle: {
           borderRadius: 8,
-          borderColor: '#1a1a2e',
+          borderColor: isLight ? '#ffffff' : '#121212',
           borderWidth: 3,
         },
-        label: {
-          show: false,
-        },
-        labelLine: {
-          show: false,
-        },
+        label: { show: false },
+        labelLine: { show: false },
         emphasis: {
-          label: {
-            show: false,
-          },
+          label: { show: false },
           scaleSize: 8,
         },
         data: pieData.map((d, i) => ({
           ...d,
           itemStyle: {
-            // 低饱和度配色：暗红、蓝灰、琥珀灰、暗绿
-            color: ['#94655a', '#7a8494', '#947a5a', '#5a9472'][i],
+            color: CATEGORICAL_COLORS[i % CATEGORICAL_COLORS.length],
           },
         })),
       },
@@ -288,7 +295,7 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
           <button
             onClick={() => setPeriod('annual')}
             className={`px-3 py-1 text-xs font-mono rounded-sm transition-all ${period === 'annual'
-              ? 'bg-glacier-500 text-obsidian font-bold'
+              ? 'bg-glacier-500 text-white'
               : 'text-mist-500 hover:text-mist-200'
               }`}
           >
@@ -297,7 +304,7 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
           <button
             onClick={() => setPeriod('quarter')}
             className={`px-3 py-1 text-xs font-mono rounded-sm transition-all ${period === 'quarter'
-              ? 'bg-glacier-500 text-obsidian font-bold'
+              ? 'bg-glacier-500 text-white'
               : 'text-mist-500 hover:text-mist-200'
               }`}
           >

@@ -545,6 +545,53 @@ body {
   color: var(--text-primary);
 }
 
+/* Light mode: Mist color overrides */
+[data-theme="light"] .text-mist-50,
+[data-theme="light"] .text-mist-100 {
+  color: var(--text-heading) !important;
+}
+
+[data-theme="light"] .text-mist-200,
+[data-theme="light"] .text-mist-300 {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="light"] .text-mist-400,
+[data-theme="light"] .text-mist-500 {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="light"] .text-mist-600,
+[data-theme="light"] .text-mist-700 {
+  color: var(--text-muted) !important;
+}
+
+/* Light mode: General text visibility fixes */
+[data-theme="light"] h1, 
+[data-theme="light"] h2, 
+[data-theme="light"] h3, 
+[data-theme="light"] h4 {
+  color: var(--text-heading) !important;
+}
+
+/* Specifically for AnalysisCard and CollapsibleSection titles that use .text-white */
+[data-theme="light"] .text-white:not(.gemini-btn-primary *) {
+  color: var(--text-heading) !important;
+}
+
+/* Light mode: Background overrides */
+[data-theme="light"] .bg-midnight\/30 {
+  background-color: rgba(0, 0, 0, 0.03) !important;
+}
+
+[data-theme="light"] .bg-white\/5 {
+  background-color: rgba(0, 0, 0, 0.03) !important;
+}
+
+[data-theme="light"] .bg-white\/10 {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}
+
 /* Light mode: Transition for smooth theme change */
 [data-theme="light"] *,
 [data-theme="light"] *::before,

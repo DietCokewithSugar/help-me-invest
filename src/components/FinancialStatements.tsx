@@ -12,6 +12,7 @@ interface Props {
   incomeStatementsQuarter?: IncomeStatement[];
   balanceSheetsQuarter?: BalanceSheet[];
   cashFlowStatementsQuarter?: CashFlowStatement[];
+  theme?: 'dark' | 'light';
 }
 
 type TabType = 'income' | 'balance' | 'cashflow';
@@ -22,8 +23,10 @@ export default function FinancialStatements({
   cashFlowStatements,
   incomeStatementsQuarter,
   balanceSheetsQuarter,
-  cashFlowStatementsQuarter
+  cashFlowStatementsQuarter,
+  theme = 'dark'
 }: Props) {
+  const isLight = theme === 'light';
   const [period, setPeriod] = useState<'annual' | 'quarter'>('annual');
   const [activeTab, setActiveTab] = useState<TabType>('income');
   const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart');
@@ -49,6 +52,15 @@ export default function FinancialStatements({
 
   // ==================== 利润表图表 ====================
   const renderIncomeChart = () => {
+    // 颜色定义
+    const TEXT_PRIMARY = isLight ? '#1e293b' : '#e2e8f0';
+    const TEXT_SECONDARY = isLight ? '#475569' : '#94a3b8';
+    const TEXT_MUTED = isLight ? '#64748b' : '#64748b';
+    const BORDER_COLOR = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+    const AXIS_LINE_COLOR = isLight ? '#e2e8f0' : '#334155';
+    const SPLIT_LINE_COLOR = isLight ? '#f1f5f9' : '#1e293b';
+    const TOOLTIP_BG = isLight ? '#ffffff' : '#121212';
+
     const years = activeIncome.map(i => {
       if (period === 'quarter') return `${i.fiscalYear} ${i.period}`;
       return i.date?.split('-')[0] || '';
@@ -62,28 +74,28 @@ export default function FinancialStatements({
       backgroundColor: 'transparent',
       tooltip: {
         trigger: 'axis',
-        backgroundColor: '#121212',
-        borderColor: 'rgba(255, 255, 255, 0.1)',
+        backgroundColor: TOOLTIP_BG,
+        borderColor: BORDER_COLOR,
         borderWidth: 1,
         padding: [8, 12],
-        textStyle: { color: '#e2e8f0', fontFamily: 'JetBrains Mono, monospace', fontSize: 12 },
+        textStyle: { color: TEXT_PRIMARY, fontFamily: 'JetBrains Mono, monospace', fontSize: 12 },
         axisPointer: {
           type: 'line',
           lineStyle: {
-            color: 'rgba(255, 255, 255, 0.2)',
+            color: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255, 255, 255, 0.2)',
             type: 'dashed'
           }
         },
         formatter: (params: any) => {
-          let result = `<div style="font-weight: 500; margin-bottom: 4px; color: #94a3b8; font-size: 11px;">${params[0].axisValue}</div>`;
+          let result = `<div style="font-weight: 500; margin-bottom: 4px; color: ${TEXT_SECONDARY}; font-size: 11px;">${params[0].axisValue}</div>`;
           result += '<table style="width:100%; border-collapse: collapse;">';
           params.forEach((p: any) => {
             result += `<tr>
               <td style="padding: 2px 8px 2px 0; display: flex; align-items: center;">
                 <span style="width: 6px; height: 6px; background: ${p.color}; margin-right: 6px; display: inline-block;"></span>
-                <span style="color: #cbd5e1; font-size: 12px;">${p.seriesName}</span>
+                <span style="color: ${TEXT_SECONDARY}; font-size: 12px;">${p.seriesName}</span>
               </td>
-              <td style="padding: 2px 0 2px 8px; text-align: right; color: #fff; font-weight: 500;">$${p.value.toFixed(2)}B</td>
+              <td style="padding: 2px 0 2px 8px; text-align: right; color: ${TEXT_PRIMARY}; font-weight: 500;">$${p.value.toFixed(2)}B</td>
             </tr>`;
           });
           result += '</table>';
@@ -92,7 +104,7 @@ export default function FinancialStatements({
       },
       legend: {
         data: ['营收', '毛利润', '营业利润', '净利润'],
-        textStyle: { color: '#94a3b8', fontSize: 12 },
+        textStyle: { color: TEXT_SECONDARY, fontSize: 12 },
         top: 0,
         itemGap: 24,
       },
@@ -100,17 +112,17 @@ export default function FinancialStatements({
       xAxis: {
         type: 'category',
         data: years,
-        axisLine: { lineStyle: { color: '#334155' } },
-        axisLabel: { color: '#94a3b8', fontSize: 12, fontFamily: 'JetBrains Mono, monospace' },
-        axisTick: { show: true, lineStyle: { color: '#334155' } },
+        axisLine: { lineStyle: { color: AXIS_LINE_COLOR } },
+        axisLabel: { color: TEXT_SECONDARY, fontSize: 12, fontFamily: 'JetBrains Mono, monospace' },
+        axisTick: { show: true, lineStyle: { color: AXIS_LINE_COLOR } },
       },
       yAxis: {
         type: 'value',
         name: '',
-        nameTextStyle: { color: '#64748b', fontSize: 11, padding: [0, 0, 8, 0] },
+        nameTextStyle: { color: TEXT_MUTED, fontSize: 11, padding: [0, 0, 8, 0] },
         axisLine: { show: false },
-        axisLabel: { color: '#64748b', fontSize: 11, formatter: (v: number) => `$${v}B` },
-        splitLine: { lineStyle: { color: '#1e293b', type: 'dashed', opacity: 0.5 } },
+        axisLabel: { color: TEXT_MUTED, fontSize: 11, formatter: (v: number) => `$${v}B` },
+        splitLine: { lineStyle: { color: SPLIT_LINE_COLOR, type: 'dashed', opacity: isLight ? 0.8 : 0.5 } },
       },
       series: [
         {
@@ -118,32 +130,32 @@ export default function FinancialStatements({
           type: 'bar',
           data: revenues,
           barWidth: '20%',
-          itemStyle: { color: '#2dd4bf', borderRadius: 0 },
-          label: { show: true, position: 'top', color: '#94a3b8', fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `$${params.value.toFixed(1)}B` },
+          itemStyle: { color: isLight ? '#0d9488' : '#2dd4bf', borderRadius: 0 },
+          label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `$${params.value.toFixed(1)}B` },
         },
         {
           name: '毛利润',
           type: 'bar',
           data: grossProfits,
           barWidth: '20%',
-          itemStyle: { color: '#94a3b8', borderRadius: 0 },
-          label: { show: true, position: 'top', color: '#94a3b8', fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `$${params.value.toFixed(1)}B` },
+          itemStyle: { color: isLight ? '#94a3b8' : '#94a3b8', borderRadius: 0 },
+          label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `$${params.value.toFixed(1)}B` },
         },
         {
           name: '营业利润',
           type: 'bar',
           data: operatingIncomes,
           barWidth: '20%',
-          itemStyle: { color: '#fbbf24', borderRadius: 0 }, // Amber 400
-          label: { show: true, position: 'top', color: '#94a3b8', fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `$${params.value.toFixed(1)}B` },
+          itemStyle: { color: isLight ? '#d97706' : '#fbbf24', borderRadius: 0 }, // Amber 600 vs Amber 400
+          label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `$${params.value.toFixed(1)}B` },
         },
         {
           name: '净利润',
           type: 'bar',
           data: netIncomes,
           barWidth: '20%',
-          itemStyle: { color: '#10b981', borderRadius: 0 },
-          label: { show: true, position: 'top', color: '#94a3b8', fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `$${params.value.toFixed(1)}B` },
+          itemStyle: { color: isLight ? '#059669' : '#10b981', borderRadius: 0 },
+          label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `$${params.value.toFixed(1)}B` },
         },
       ],
     };
@@ -163,25 +175,33 @@ export default function FinancialStatements({
     const totalDebt = activeBalance.map(b => (b.totalDebt || 0) / 1e9).reverse();
     const cash = activeBalance.map(b => (b.cashAndCashEquivalents || 0) / 1e9).reverse();
 
+    const TEXT_PRIMARY = isLight ? '#1e293b' : '#e2e8f0';
+    const TEXT_SECONDARY = isLight ? '#475569' : '#94a3b8';
+    const TEXT_MUTED = isLight ? '#64748b' : '#64748b';
+    const BORDER_COLOR = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+    const AXIS_LINE_COLOR = isLight ? '#e2e8f0' : '#334155';
+    const SPLIT_LINE_COLOR = isLight ? '#f1f5f9' : '#1e293b';
+    const TOOLTIP_BG = isLight ? '#ffffff' : '#121212';
+
     const option = {
       backgroundColor: 'transparent',
       tooltip: {
         trigger: 'axis',
-        backgroundColor: '#121212',
-        borderColor: 'rgba(255, 255, 255, 0.1)',
+        backgroundColor: TOOLTIP_BG,
+        borderColor: BORDER_COLOR,
         borderWidth: 1,
         padding: [8, 12],
-        textStyle: { color: '#e2e8f0', fontFamily: 'JetBrains Mono, monospace', fontSize: 12 },
+        textStyle: { color: TEXT_PRIMARY, fontFamily: 'JetBrains Mono, monospace', fontSize: 12 },
         formatter: (params: any) => {
-          let result = `<div style="font-weight: 500; margin-bottom: 4px; color: #94a3b8; font-size: 11px;">${params[0].axisValue}</div>`;
+          let result = `<div style="font-weight: 500; margin-bottom: 4px; color: ${TEXT_SECONDARY}; font-size: 11px;">${params[0].axisValue}</div>`;
           result += '<table style="width:100%; border-collapse: collapse;">';
           params.forEach((p: any) => {
             result += `<tr>
               <td style="padding: 2px 8px 2px 0; display: flex; align-items: center;">
                 <span style="width: 6px; height: 6px; background: ${p.color}; margin-right: 6px; display: inline-block; border-radius: 50%;"></span>
-                <span style="color: #cbd5e1; font-size: 12px;">${p.seriesName}</span>
+                <span style="color: ${TEXT_SECONDARY}; font-size: 12px;">${p.seriesName}</span>
               </td>
-              <td style="padding: 2px 0 2px 8px; text-align: right; color: #fff; font-weight: 500;">$${p.value.toFixed(2)}B</td>
+              <td style="padding: 2px 0 2px 8px; text-align: right; color: ${TEXT_PRIMARY}; font-weight: 500;">$${p.value.toFixed(2)}B</td>
             </tr>`;
           });
           result += '</table>';
@@ -190,7 +210,7 @@ export default function FinancialStatements({
       },
       legend: {
         data: ['总资产', '总负债', '股东权益', '总债务', '现金'],
-        textStyle: { color: '#94a3b8', fontSize: 12 },
+        textStyle: { color: TEXT_SECONDARY, fontSize: 12 },
         top: 0,
         itemGap: 20,
       },
@@ -198,24 +218,24 @@ export default function FinancialStatements({
       xAxis: {
         type: 'category',
         data: years,
-        axisLine: { lineStyle: { color: '#334155' } },
-        axisLabel: { color: '#94a3b8', fontSize: 12, fontFamily: 'JetBrains Mono, monospace' },
-        axisTick: { show: true, lineStyle: { color: '#334155' } },
+        axisLine: { lineStyle: { color: AXIS_LINE_COLOR } },
+        axisLabel: { color: TEXT_SECONDARY, fontSize: 12, fontFamily: 'JetBrains Mono, monospace' },
+        axisTick: { show: true, lineStyle: { color: AXIS_LINE_COLOR } },
       },
       yAxis: {
         type: 'value',
         name: '',
-        nameTextStyle: { color: '#64748b', fontSize: 11, padding: [0, 0, 8, 0] },
+        nameTextStyle: { color: TEXT_MUTED, fontSize: 11, padding: [0, 0, 8, 0] },
         axisLine: { show: false },
-        axisLabel: { color: '#64748b', fontSize: 11, formatter: (v: number) => `$${v}B` },
-        splitLine: { lineStyle: { color: '#1e293b', type: 'dashed', opacity: 0.5 } },
+        axisLabel: { color: TEXT_MUTED, fontSize: 11, formatter: (v: number) => `$${v}B` },
+        splitLine: { lineStyle: { color: SPLIT_LINE_COLOR, type: 'dashed', opacity: isLight ? 0.8 : 0.5 } },
       },
       series: [
-        { name: '总资产', type: 'line', data: totalAssets, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#64748b' }, symbol: 'none', label: { show: true, position: 'top', color: '#64748b', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
-        { name: '总负债', type: 'line', data: totalLiabilities, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#b91c1c' }, symbol: 'none', label: { show: true, position: 'bottom', color: '#b91c1c', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
-        { name: '股东权益', type: 'line', data: totalEquity, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#10b981' }, symbol: 'none', label: { show: true, position: 'top', color: '#10b981', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
-        { name: '总债务', type: 'line', data: totalDebt, smooth: false, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: '#fbbf24' }, symbol: 'none', label: { show: true, position: 'bottom', color: '#fbbf24', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
-        { name: '现金', type: 'line', data: cash, smooth: false, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: '#94a3b8' }, symbol: 'none', label: { show: true, position: 'top', color: '#94a3b8', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
+        { name: '总资产', type: 'line', data: totalAssets, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: isLight ? '#64748b' : '#64748b' }, symbol: 'none', label: { show: true, position: 'top', color: TEXT_MUTED, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
+        { name: '总负债', type: 'line', data: totalLiabilities, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: isLight ? '#dc2626' : '#b91c1c' }, symbol: 'none', label: { show: true, position: 'bottom', color: isLight ? '#dc2626' : '#b91c1c', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
+        { name: '股东权益', type: 'line', data: totalEquity, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: isLight ? '#059669' : '#10b981' }, symbol: 'none', label: { show: true, position: 'top', color: isLight ? '#059669' : '#10b981', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
+        { name: '总债务', type: 'line', data: totalDebt, smooth: false, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: isLight ? '#d97706' : '#fbbf24' }, symbol: 'none', label: { show: true, position: 'bottom', color: isLight ? '#d97706' : '#fbbf24', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
+        { name: '现金', type: 'line', data: cash, smooth: false, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: TEXT_SECONDARY }, symbol: 'none', label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
       ],
     };
 
@@ -234,25 +254,33 @@ export default function FinancialStatements({
     const freeCF = activeCashFlow.map(c => (c.freeCashFlow || 0) / 1e9).reverse();
     const capex = activeCashFlow.map(c => (c.capitalExpenditure || 0) / 1e9).reverse();
 
+    const TEXT_PRIMARY = isLight ? '#1e293b' : '#e2e8f0';
+    const TEXT_SECONDARY = isLight ? '#475569' : '#94a3b8';
+    const TEXT_MUTED = isLight ? '#64748b' : '#64748b';
+    const BORDER_COLOR = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+    const AXIS_LINE_COLOR = isLight ? '#e2e8f0' : '#334155';
+    const SPLIT_LINE_COLOR = isLight ? '#f1f5f9' : '#1e293b';
+    const TOOLTIP_BG = isLight ? '#ffffff' : '#121212';
+
     const option = {
       backgroundColor: 'transparent',
       tooltip: {
         trigger: 'axis',
-        backgroundColor: '#121212',
-        borderColor: 'rgba(255, 255, 255, 0.1)',
+        backgroundColor: TOOLTIP_BG,
+        borderColor: BORDER_COLOR,
         borderWidth: 1,
         padding: [8, 12],
-        textStyle: { color: '#e2e8f0', fontFamily: 'JetBrains Mono, monospace', fontSize: 12 },
+        textStyle: { color: TEXT_PRIMARY, fontFamily: 'JetBrains Mono, monospace', fontSize: 12 },
         formatter: (params: any) => {
-          let result = `<div style="font-weight: 500; margin-bottom: 4px; color: #94a3b8; font-size: 11px;">${params[0].axisValue}</div>`;
+          let result = `<div style="font-weight: 500; margin-bottom: 4px; color: ${TEXT_SECONDARY}; font-size: 11px;">${params[0].axisValue}</div>`;
           result += '<table style="width:100%; border-collapse: collapse;">';
           params.forEach((p: any) => {
             result += `<tr>
               <td style="padding: 2px 8px 2px 0; display: flex; align-items: center;">
                 <span style="width: 6px; height: 6px; background: ${p.color}; margin-right: 6px; display: inline-block;"></span>
-                <span style="color: #cbd5e1; font-size: 12px;">${p.seriesName}</span>
+                <span style="color: ${TEXT_SECONDARY}; font-size: 12px;">${p.seriesName}</span>
               </td>
-              <td style="padding: 2px 0 2px 8px; text-align: right; color: #fff; font-weight: 500;">$${p.value.toFixed(2)}B</td>
+              <td style="padding: 2px 0 2px 8px; text-align: right; color: ${TEXT_PRIMARY}; font-weight: 500;">$${p.value.toFixed(2)}B</td>
             </tr>`;
           });
           result += '</table>';
@@ -261,7 +289,7 @@ export default function FinancialStatements({
       },
       legend: {
         data: ['经营现金流', '投资现金流', '融资现金流', '自由现金流', '资本开支'],
-        textStyle: { color: '#94a3b8', fontSize: 12 },
+        textStyle: { color: TEXT_SECONDARY, fontSize: 12 },
         top: 0,
         itemGap: 16,
       },
@@ -269,24 +297,24 @@ export default function FinancialStatements({
       xAxis: {
         type: 'category',
         data: years,
-        axisLine: { lineStyle: { color: '#334155' } },
-        axisLabel: { color: '#94a3b8', fontSize: 12, fontFamily: 'JetBrains Mono, monospace' },
-        axisTick: { show: true, lineStyle: { color: '#334155' } },
+        axisLine: { lineStyle: { color: AXIS_LINE_COLOR } },
+        axisLabel: { color: TEXT_SECONDARY, fontSize: 12, fontFamily: 'JetBrains Mono, monospace' },
+        axisTick: { show: true, lineStyle: { color: AXIS_LINE_COLOR } },
       },
       yAxis: {
         type: 'value',
         name: '',
-        nameTextStyle: { color: '#64748b', fontSize: 11, padding: [0, 0, 8, 0] },
+        nameTextStyle: { color: TEXT_MUTED, fontSize: 11, padding: [0, 0, 8, 0] },
         axisLine: { show: false },
-        axisLabel: { color: '#64748b', fontSize: 11, formatter: (v: number) => `$${v}B` },
-        splitLine: { lineStyle: { color: '#1e293b', type: 'dashed', opacity: 0.5 } },
+        axisLabel: { color: TEXT_MUTED, fontSize: 11, formatter: (v: number) => `$${v}B` },
+        splitLine: { lineStyle: { color: SPLIT_LINE_COLOR, type: 'dashed', opacity: isLight ? 0.8 : 0.5 } },
       },
       series: [
-        { name: '经营现金流', type: 'bar', data: operatingCF, barWidth: '18%', itemStyle: { color: '#10b981', borderRadius: 0 }, label: { show: true, position: 'top', color: '#94a3b8', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
-        { name: '投资现金流', type: 'bar', data: investingCF, barWidth: '18%', itemStyle: { color: '#f43f5e', borderRadius: 0 }, label: { show: true, position: 'bottom', color: '#94a3b8', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
-        { name: '融资现金流', type: 'bar', data: financingCF, barWidth: '18%', itemStyle: { color: '#fbbf24', borderRadius: 0 }, label: { show: true, position: 'bottom', color: '#94a3b8', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
-        { name: '自由现金流', type: 'line', data: freeCF, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#2dd4bf' }, symbol: 'none', label: { show: true, position: 'top', color: '#2dd4bf', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
-        { name: '资本开支', type: 'line', data: capex, smooth: false, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: '#94a3b8' }, symbol: 'none', label: { show: true, position: 'bottom', color: '#94a3b8', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
+        { name: '经营现金流', type: 'bar', data: operatingCF, barWidth: '18%', itemStyle: { color: isLight ? '#059669' : '#10b981', borderRadius: 0 }, label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
+        { name: '投资现金流', type: 'bar', data: investingCF, barWidth: '18%', itemStyle: { color: isLight ? '#dc2626' : '#f43f5e', borderRadius: 0 }, label: { show: true, position: 'bottom', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
+        { name: '融资现金流', type: 'bar', data: financingCF, barWidth: '18%', itemStyle: { color: isLight ? '#d97706' : '#fbbf24', borderRadius: 0 }, label: { show: true, position: 'bottom', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
+        { name: '自由现金流', type: 'line', data: freeCF, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: isLight ? '#0d9488' : '#2dd4bf' }, symbol: 'none', label: { show: true, position: 'top', color: isLight ? '#0d9488' : '#2dd4bf', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
+        { name: '资本开支', type: 'line', data: capex, smooth: false, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: TEXT_SECONDARY }, symbol: 'none', label: { show: true, position: 'bottom', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `$${p.value.toFixed(0)}B` } },
       ],
     };
 
@@ -324,7 +352,7 @@ export default function FinancialStatements({
             <tr key={row.key} className="border-b border-white/5 hover:bg-white/5 transition-colors">
               <td className="py-3 px-4 text-slate-300 whitespace-nowrap">{row.label}</td>
               {activeIncome.map((s: any, i) => (
-                <td key={i} className="text-right py-3 px-4 font-mono text-white whitespace-nowrap">
+                <td key={i} className={`text-right py-3 px-4 font-mono whitespace-nowrap ${isLight ? 'text-slate-900' : 'text-white'}`}>
                   {row.key === 'epsdiluted' ? `$${s[row.key]?.toFixed(2) || 'N/A'}` : `$${formatNumber(s[row.key])}`}
                 </td>
               ))}
@@ -374,8 +402,8 @@ export default function FinancialStatements({
               }`}>
               <td className="py-3 px-4 text-slate-300 whitespace-nowrap">{row.label}</td>
               {activeBalance.map((s: any, i) => (
-                <td key={i} className={`text-right py-3 px-4 font-mono ${s[row.key] < 0 ? 'text-red-400' : 'text-white'
-                  } whitespace-nowrap`}>
+                <td key={i} className={`text-right py-3 px-4 font-mono whitespace-nowrap ${s[row.key] < 0 ? (isLight ? 'text-red-600' : 'text-red-400') : (isLight ? 'text-slate-900' : 'text-white')
+                  }`}>
                   ${formatNumber(s[row.key])}
                 </td>
               ))}
@@ -421,8 +449,8 @@ export default function FinancialStatements({
               }`}>
               <td className="py-3 px-4 text-slate-300 whitespace-nowrap">{row.label}</td>
               {activeCashFlow.map((s: any, i) => (
-                <td key={i} className={`text-right py-3 px-4 font-mono ${s[row.key] < 0 ? 'text-red-400' : 'text-white'
-                  } whitespace-nowrap`}>
+                <td key={i} className={`text-right py-3 px-4 font-mono whitespace-nowrap ${s[row.key] < 0 ? (isLight ? 'text-red-600' : 'text-red-400') : (isLight ? 'text-slate-900' : 'text-white')
+                  }`}>
                   ${formatNumber(s[row.key])}
                 </td>
               ))}

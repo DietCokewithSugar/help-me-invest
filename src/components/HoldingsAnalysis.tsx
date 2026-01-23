@@ -11,11 +11,13 @@ import type { InstitutionalHolder, InsiderTrading } from '@/types';
 interface Props {
   institutionalHolders: InstitutionalHolder[];
   insiderTrading: InsiderTrading[];
+  theme?: 'dark' | 'light';
 }
 
 type TabType = 'institutional' | 'insider';
 
-export default function HoldingsAnalysis({ institutionalHolders, insiderTrading }: Props) {
+export default function HoldingsAnalysis({ institutionalHolders, insiderTrading, theme = 'dark' }: Props) {
+  const isLight = theme === 'light';
   const [activeTab, setActiveTab] = useState<TabType>('institutional');
 
   const formatNumber = (num: number | undefined | null) => {
@@ -93,14 +95,15 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
               backgroundColor: 'transparent',
               tooltip: {
                 trigger: 'item',
-                backgroundColor: 'rgba(15, 15, 35, 0.95)',
-                borderColor: 'rgba(20, 184, 166, 0.3)',
-                textStyle: { color: '#f8fafc' },
+                backgroundColor: isLight ? '#ffffff' : '#121212',
+                borderColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)',
+                borderWidth: 1,
+                textStyle: { color: isLight ? '#1e293b' : '#f8fafc' },
                 formatter: (params: any) => {
-                  return `<div style="font-weight: 600;">${params.name}</div>
+                  return `<div style="font-weight: 600; color: ${isLight ? '#1e293b' : '#f8fafc'};">${params.name}</div>
                           <div style="margin-top: 4px;">
-                            <span style="color: #14b8a6; font-weight: 600;">${formatNumber(params.value)} 股</span>
-                            <span style="color: #64748b; margin-left: 8px;">(${params.percent}%)</span>
+                            <span style="color: ${isLight ? '#0d9488' : '#14b8a6'}; font-weight: 600;">${formatNumber(params.value)} 股</span>
+                            <span style="color: ${isLight ? '#64748b' : '#64748b'}; margin-left: 8px;">(${params.percent}%)</span>
                           </div>`;
                 },
               },
@@ -112,13 +115,13 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
                   avoidLabelOverlap: true,
                   itemStyle: {
                     borderRadius: 8,
-                    borderColor: '#1a1a2e',
+                    borderColor: isLight ? '#ffffff' : '#1a1a2e',
                     borderWidth: 2,
                   },
                   label: {
                     show: true,
                     position: 'outside',
-                    color: '#94a3b8',
+                    color: isLight ? '#475569' : '#94a3b8',
                     fontSize: 10,
                     formatter: (params: any) => {
                       return params.name.length > 15
@@ -127,10 +130,10 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
                     },
                   },
                   labelLine: {
-                    lineStyle: { color: '#475569' },
+                    lineStyle: { color: isLight ? '#cbd5e1' : '#475569' },
                   },
                   emphasis: {
-                    label: { show: true, fontSize: 12, fontWeight: 'bold', color: '#f8fafc' },
+                    label: { show: true, fontSize: 12, fontWeight: 'bold', color: isLight ? '#1e293b' : '#f8fafc' },
                     scaleSize: 8,
                   },
                   data: pieData.map((d, i) => ({
@@ -172,7 +175,9 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
                   </td>
                   <td className="text-right py-3 px-4 font-mono text-white whitespace-nowrap">{formatNumber(h.shares)}</td>
                   <td className="text-right py-3 px-4 font-mono text-aurora-400 whitespace-nowrap">${formatNumber(h.value)}</td>
-                  <td className={`text-right py-3 px-4 font-mono whitespace-nowrap ${h.change > 0 ? 'text-green-400' : h.change < 0 ? 'text-red-400' : 'text-slate-400'
+                  <td className={`text-right py-3 px-4 font-mono whitespace-nowrap ${h.change > 0 ? (isLight ? 'text-emerald-600' : 'text-green-400') :
+                      h.change < 0 ? (isLight ? 'text-red-600' : 'text-red-400') :
+                        'text-slate-400'
                     }`}>
                     <div className="flex items-center justify-end gap-1">
                       {h.change > 0 ? (
@@ -255,7 +260,7 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
           <div className={`rounded-lg p-4 text-center ${totalBuyValue > totalSellValue ? 'bg-green-500/10' : 'bg-red-500/10'
             }`}>
             <p className="text-sm text-slate-400 mb-1">净买入金额</p>
-            <p className={`text-2xl font-bold font-mono ${totalBuyValue > totalSellValue ? 'text-green-400' : 'text-red-400'
+            <p className={`font-bold font-mono ${totalBuyValue > totalSellValue ? (isLight ? 'text-emerald-600' : 'text-green-400') : (isLight ? 'text-red-600' : 'text-red-400')
               } whitespace-nowrap text-xl md:text-2xl`}>
               ${formatNumber(totalBuyValue - totalSellValue)}
             </p>
@@ -271,29 +276,30 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
                 backgroundColor: 'transparent',
                 tooltip: {
                   trigger: 'axis',
-                  backgroundColor: 'rgba(15, 15, 35, 0.95)',
-                  borderColor: 'rgba(20, 184, 166, 0.3)',
-                  textStyle: { color: '#f8fafc' },
+                  backgroundColor: isLight ? '#ffffff' : '#121212',
+                  borderColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)',
+                  borderWidth: 1,
+                  textStyle: { color: isLight ? '#1e293b' : '#f8fafc' },
                 },
                 legend: {
                   data: ['买入', '卖出'],
-                  textStyle: { color: '#94a3b8' },
+                  textStyle: { color: isLight ? '#475569' : '#94a3b8' },
                   top: 0,
                 },
                 grid: { left: '3%', right: '4%', bottom: '3%', top: '50px', containLabel: true },
                 xAxis: {
                   type: 'category',
                   data: months,
-                  axisLine: { lineStyle: { color: '#334155' } },
-                  axisLabel: { color: '#94a3b8', rotate: 45 },
+                  axisLine: { lineStyle: { color: isLight ? '#e2e8f0' : '#334155' } },
+                  axisLabel: { color: isLight ? '#475569' : '#94a3b8', rotate: 45 },
                 },
                 yAxis: {
                   type: 'value',
                   name: '金额 (百万美元)',
-                  nameTextStyle: { color: '#64748b' },
+                  nameTextStyle: { color: isLight ? '#64748b' : '#64748b' },
                   axisLine: { show: false },
-                  axisLabel: { color: '#64748b', formatter: (v: number) => `$${v.toFixed(1)}M` },
-                  splitLine: { lineStyle: { color: '#1e293b', type: 'dashed' } },
+                  axisLabel: { color: isLight ? '#64748b' : '#64748b', formatter: (v: number) => `$${v.toFixed(1)}M` },
+                  splitLine: { lineStyle: { color: isLight ? '#f1f5f9' : '#1e293b', type: 'dashed' } },
                 },
                 series: [
                   {
@@ -301,14 +307,14 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
                     type: 'bar',
                     stack: 'total',
                     data: buyValues,
-                    itemStyle: { color: '#22c55e', borderRadius: [4, 4, 0, 0] },
+                    itemStyle: { color: isLight ? '#059669' : '#22c55e', borderRadius: [4, 4, 0, 0] },
                   },
                   {
                     name: '卖出',
                     type: 'bar',
                     stack: 'total',
                     data: sellValues.map(v => -v),
-                    itemStyle: { color: '#ef4444', borderRadius: [0, 0, 4, 4] },
+                    itemStyle: { color: isLight ? '#dc2626' : '#ef4444', borderRadius: [0, 0, 4, 4] },
                   },
                 ],
               }}
@@ -348,7 +354,7 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
                       {t.typeOfOwner}
                     </td>
                     <td className="text-center py-3 px-4">
-                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${isBuy ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${isBuy ? (isLight ? 'bg-emerald-100 text-emerald-700' : 'bg-green-500/20 text-green-400') : (isLight ? 'bg-red-100 text-red-700' : 'bg-red-500/20 text-red-400')
                         }`}>
                         {isBuy ? (
                           <>
@@ -367,7 +373,7 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
                     <td className="text-right py-3 px-4 font-mono text-slate-400 whitespace-nowrap">
                       ${t.price?.toFixed(2) || 'N/A'}
                     </td>
-                    <td className={`text-right py-3 px-4 font-mono font-semibold whitespace-nowrap ${isBuy ? 'text-green-400' : 'text-red-400'
+                    <td className={`text-right py-3 px-4 font-mono font-semibold whitespace-nowrap ${isBuy ? (isLight ? 'text-emerald-600' : 'text-green-400') : (isLight ? 'text-red-600' : 'text-red-400')
                       }`}>
                       ${formatNumber(value)}
                     </td>
@@ -407,10 +413,10 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
             onClick={() => setActiveTab(tab.key)}
             disabled={tab.count === 0}
             className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all text-sm font-medium ${activeTab === tab.key
-                ? 'bg-cyan-500/10 text-cyan-500 border border-cyan-500/20'
-                : tab.count === 0
-                  ? 'text-mist-600 cursor-not-allowed'
-                  : 'text-mist-400 hover:text-white hover:bg-white/5'
+              ? 'bg-cyan-500/10 text-cyan-500 border border-cyan-500/20'
+              : tab.count === 0
+                ? 'text-mist-600 cursor-not-allowed'
+                : 'text-mist-400 hover:text-white hover:bg-white/5'
               }`}
           >
             {tab.icon}
@@ -423,7 +429,7 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading 
       </div>
 
       {/* 内容区域 */}
-      <div className="bg-black/20 rounded-md p-4 border border-white/10">
+      <div className="bg-white/5 rounded-md p-4 border border-white/10">
         {activeTab === 'institutional' && renderInstitutionalHolders()}
         {activeTab === 'insider' && renderInsiderTrading()}
       </div>
