@@ -13,12 +13,12 @@ interface Props {
 const scoreDescriptions: Record<string, { title: string; description: string; interpretation?: string }> = {
   altmanZScore: {
     title: '奥特曼 Z-Score',
-    description: '预测未来2年破产概率的经典模型。',
+    description: 'Z-Score 模型用于预测破产风险。分数越高，破产风险越低。通常 > 3.0 为健康，< 1.8 为危险。',
     interpretation: '< 1.8: 危险 | 1.8-3.0: 预警 | > 3.0: 健康',
   },
   piotroskiScore: {
     title: '皮奥特罗斯基 F-Score',
-    description: '衡量财务状况改善程度的评分(0-9分)。',
+    description: '衡量公司财务状况是否在改善（包括盈利、杠杆、运营效率）。8-9 分通常被认为是极好的。',
     interpretation: '0-2: 较差 | 3-6: 一般 | 7-9: 优秀',
   },
   workingCapital: {
@@ -116,7 +116,10 @@ export default function FinancialScoresDisplay({ financialScores, theme = 'dark'
       {/* 核心评分卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Altman Z-Score */}
-        <div className="bg-white/5 border border-white/10 rounded-md p-5 group hover:border-white/20 transition-colors">
+        <div
+          className="bg-white/5 border border-white/10 rounded-md p-5 group hover:border-white/20 transition-colors cursor-pointer relative"
+          onClick={() => setHoveredMetric(hoveredMetric === 'altmanZScore' ? null : 'altmanZScore')}
+        >
           <div className="flex justify-between items-start mb-4">
             <div className="flex items-center gap-2">
               <Shield className="w-4 h-4 text-mist-400" />
@@ -126,6 +129,14 @@ export default function FinancialScoresDisplay({ financialScores, theme = 'dark'
               {zInfo.label}
             </span>
           </div>
+
+          {/* Tooltip/Reminder */}
+          {hoveredMetric === 'altmanZScore' && (
+            <div className="absolute left-0 bottom-full mb-2 w-full p-3 bg-surface border border-white/10 rounded-sm shadow-xl z-20">
+              <h4 className="text-white text-xs font-bold mb-1">{scoreDescriptions.altmanZScore.title}</h4>
+              <p className="text-mist-400 text-xs leading-relaxed">{scoreDescriptions.altmanZScore.description}</p>
+            </div>
+          )}
 
           <div className="mb-4">
             <div className="flex items-baseline gap-2 mb-2">
@@ -149,13 +160,20 @@ export default function FinancialScoresDisplay({ financialScores, theme = 'dark'
             </div>
           </div>
 
-          <p className="text-xs text-mist-500 leading-relaxed">
-            {scoreDescriptions.altmanZScore.interpretation}
+          <p className="text-xs text-mist-500 leading-relaxed group-hover:text-mist-400 transition-colors">
+            {zScore >= 3.0
+              ? `当前 Z-Score 远超 3.0。这说明公司财务状况健康，破产风险极低。`
+              : zScore >= 1.8
+                ? `当前 Z-Score 处于 1.8-3.0 预警区间。这说明公司财务状况一般，破产风险处于预警状态。`
+                : `当前 Z-Score 低于 1.8。这说明公司财务状况危险，破产风险较高。`}
           </p>
         </div>
 
         {/* Piotroski F-Score */}
-        <div className="bg-white/5 border border-white/10 rounded-md p-5 group hover:border-white/20 transition-colors">
+        <div
+          className="bg-white/5 border border-white/10 rounded-md p-5 group hover:border-white/20 transition-colors cursor-pointer relative"
+          onClick={() => setHoveredMetric(hoveredMetric === 'piotroskiScore' ? null : 'piotroskiScore')}
+        >
           <div className="flex justify-between items-start mb-4">
             <div className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-mist-400" />
@@ -165,6 +183,14 @@ export default function FinancialScoresDisplay({ financialScores, theme = 'dark'
               {fInfo.label}
             </span>
           </div>
+
+          {/* Tooltip/Reminder */}
+          {hoveredMetric === 'piotroskiScore' && (
+            <div className="absolute left-0 bottom-full mb-2 w-full p-3 bg-surface border border-white/10 rounded-sm shadow-xl z-20">
+              <h4 className="text-white text-xs font-bold mb-1">{scoreDescriptions.piotroskiScore.title}</h4>
+              <p className="text-mist-400 text-xs leading-relaxed">{scoreDescriptions.piotroskiScore.description}</p>
+            </div>
+          )}
 
           <div className="mb-4">
             <div className="flex items-baseline gap-2 mb-2">
@@ -187,8 +213,8 @@ export default function FinancialScoresDisplay({ financialScores, theme = 'dark'
             </div>
           </div>
 
-          <p className="text-xs text-mist-500 leading-relaxed">
-            {scoreDescriptions.piotroskiScore.interpretation}
+          <p className="text-xs text-mist-500 leading-relaxed group-hover:text-mist-400 transition-colors">
+            {scoreDescriptions.piotroskiScore.description}
           </p>
         </div>
       </div>
