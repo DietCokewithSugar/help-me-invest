@@ -14,6 +14,8 @@ import {
     QrCode,
     Type,
     Sparkles,
+    Sun,
+    Moon,
 } from 'lucide-react';
 
 // ==================== Types ====================
@@ -21,6 +23,7 @@ interface ExportSettings {
     fontSize: 'sm' | 'md' | 'lg';
     showQRCode: boolean;
     quality: 1 | 2 | 3;
+    theme: 'dark' | 'light';
 }
 
 interface ShareExportModalProps {
@@ -65,6 +68,42 @@ const fontSizeConfig = {
     lg: { label: 'L', value: '18px', lineHeight: '1.8' },
 };
 
+// ==================== Theme Config ====================
+const themeConfig = {
+    dark: {
+        wrapper: 'linear-gradient(135deg, #0f0f12 0%, #1a1a22 50%, #0f0f12 100%)',
+        glow: 'radial-gradient(ellipse at 30% 20%, rgba(20, 184, 166, 0.15) 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, rgba(59, 130, 246, 0.1) 0%, transparent 50%)',
+        card: 'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 100%)',
+        cardBorder: 'rgba(255,255,255,0.1)',
+        headerBorder: 'rgba(255,255,255,0.08)',
+        title: '#ffffff',
+        subtitle: 'rgba(255,255,255,0.5)',
+        content: 'rgba(255,255,255,0.85)',
+        footerBorder: 'rgba(255,255,255,0.08)',
+        footerText: 'rgba(255,255,255,0.4)',
+        qrBg: 'white',
+        qrIcon: '#0a0a0b',
+        watermark: 'rgba(255,255,255,0.3)',
+        exportBg: '#0a0a0f',
+    },
+    light: {
+        wrapper: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)',
+        glow: 'radial-gradient(ellipse at 30% 20%, rgba(20, 184, 166, 0.1) 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, rgba(59, 130, 246, 0.08) 0%, transparent 50%)',
+        card: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%)',
+        cardBorder: 'rgba(0,0,0,0.08)',
+        headerBorder: 'rgba(0,0,0,0.06)',
+        title: '#1e293b',
+        subtitle: 'rgba(30,41,59,0.6)',
+        content: '#334155',
+        footerBorder: 'rgba(0,0,0,0.06)',
+        footerText: 'rgba(30,41,59,0.5)',
+        qrBg: '#1e293b',
+        qrIcon: '#ffffff',
+        watermark: 'rgba(30,41,59,0.4)',
+        exportBg: '#f8fafc',
+    },
+};
+
 // ==================== Export Card Component ====================
 const ExportCard = React.forwardRef<
     HTMLDivElement,
@@ -77,6 +116,7 @@ const ExportCard = React.forwardRef<
     }
 >(({ title, contentHtml, settings, companyName, symbol }, ref) => {
     const fontSize = fontSizeConfig[settings.fontSize];
+    const theme = themeConfig[settings.theme];
 
     return (
         <div
@@ -84,7 +124,7 @@ const ExportCard = React.forwardRef<
             className="export-card-wrapper"
             style={{
                 padding: '24px',
-                background: 'linear-gradient(135deg, #0f0f12 0%, #1a1a22 50%, #0f0f12 100%)',
+                background: theme.wrapper,
                 minWidth: '400px',
                 maxWidth: '600px',
             }}
@@ -94,7 +134,7 @@ const ExportCard = React.forwardRef<
                 style={{
                     position: 'absolute',
                     inset: '-50px',
-                    background: 'radial-gradient(ellipse at 30% 20%, rgba(20, 184, 166, 0.15) 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, rgba(59, 130, 246, 0.1) 0%, transparent 50%)',
+                    background: theme.glow,
                     pointerEvents: 'none',
                     zIndex: 0,
                 }}
@@ -106,11 +146,12 @@ const ExportCard = React.forwardRef<
                 style={{
                     position: 'relative',
                     zIndex: 1,
-                    background: 'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 100%)',
-                    border: '1px solid rgba(255,255,255,0.1)',
+                    background: theme.card,
+                    border: `1px solid ${theme.cardBorder}`,
                     borderRadius: '12px',
                     padding: '24px',
                     backdropFilter: 'blur(20px)',
+                    boxShadow: settings.theme === 'light' ? '0 4px 24px rgba(0,0,0,0.08)' : 'none',
                 }}
             >
                 {/* Header */}
@@ -121,7 +162,7 @@ const ExportCard = React.forwardRef<
                         gap: '12px',
                         marginBottom: '20px',
                         paddingBottom: '16px',
-                        borderBottom: '1px solid rgba(255,255,255,0.08)',
+                        borderBottom: `1px solid ${theme.headerBorder}`,
                     }}
                 >
                     <div
@@ -142,7 +183,7 @@ const ExportCard = React.forwardRef<
                             style={{
                                 fontSize: '18px',
                                 fontWeight: 600,
-                                color: '#ffffff',
+                                color: theme.title,
                                 margin: 0,
                                 fontFamily: '"Noto Serif SC", "Songti SC", "STSong", serif',
                             }}
@@ -153,7 +194,7 @@ const ExportCard = React.forwardRef<
                             <p
                                 style={{
                                     fontSize: '12px',
-                                    color: 'rgba(255,255,255,0.5)',
+                                    color: theme.subtitle,
                                     margin: '4px 0 0 0',
                                     fontFamily: '"JetBrains Mono", monospace',
                                 }}
@@ -166,11 +207,11 @@ const ExportCard = React.forwardRef<
 
                 {/* Content */}
                 <div
-                    className="export-content prose prose-invert"
+                    className={`export-content prose ${settings.theme === 'dark' ? 'prose-invert' : ''}`}
                     style={{
                         fontSize: fontSize.value,
                         lineHeight: fontSize.lineHeight,
-                        color: 'rgba(255,255,255,0.85)',
+                        color: theme.content,
                         fontFamily: '"Noto Serif SC", "Songti SC", "STSong", serif',
                     }}
                     dangerouslySetInnerHTML={{ __html: contentHtml }}
@@ -182,7 +223,7 @@ const ExportCard = React.forwardRef<
                         style={{
                             marginTop: '24px',
                             paddingTop: '16px',
-                            borderTop: '1px solid rgba(255,255,255,0.08)',
+                            borderTop: `1px solid ${theme.footerBorder}`,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
@@ -192,7 +233,7 @@ const ExportCard = React.forwardRef<
                             <span
                                 style={{
                                     fontSize: '11px',
-                                    color: 'rgba(255,255,255,0.4)',
+                                    color: theme.footerText,
                                     fontFamily: '"JetBrains Mono", monospace',
                                     textTransform: 'uppercase',
                                     letterSpacing: '0.05em',
@@ -205,14 +246,14 @@ const ExportCard = React.forwardRef<
                             style={{
                                 width: '48px',
                                 height: '48px',
-                                background: 'white',
+                                background: theme.qrBg,
                                 borderRadius: '6px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                             }}
                         >
-                            <QrCode style={{ width: '32px', height: '32px', color: '#0a0a0b' }} />
+                            <QrCode style={{ width: '32px', height: '32px', color: theme.qrIcon }} />
                         </div>
                     </div>
                 )}
@@ -224,7 +265,7 @@ const ExportCard = React.forwardRef<
                     marginTop: '12px',
                     textAlign: 'center',
                     fontSize: '10px',
-                    color: 'rgba(255,255,255,0.3)',
+                    color: theme.watermark,
                     fontFamily: '"JetBrains Mono", monospace',
                 }}
             >
@@ -252,6 +293,7 @@ export default function ShareExportModal({
         fontSize: 'md',
         showQRCode: true,
         quality: 2,
+        theme: 'dark',
     });
     const [supportsShare] = useState(() =>
         typeof navigator !== 'undefined' &&
@@ -275,7 +317,7 @@ export default function ShareExportModal({
             const dataUrl = await toPng(cardRef.current, {
                 quality: 1,
                 pixelRatio: settings.quality,
-                backgroundColor: '#0a0a0f',
+                backgroundColor: themeConfig[settings.theme].exportBg,
                 cacheBust: true,
                 style: {
                     transform: 'none',
@@ -303,7 +345,7 @@ export default function ShareExportModal({
             const dataUrl = await toPng(cardRef.current, {
                 quality: 1,
                 pixelRatio: settings.quality,
-                backgroundColor: '#0a0a0f',
+                backgroundColor: themeConfig[settings.theme].exportBg,
                 cacheBust: true,
             });
 
@@ -448,8 +490,8 @@ export default function ShareExportModal({
                                                 key={size}
                                                 onClick={() => setSettings((s) => ({ ...s, fontSize: size }))}
                                                 className={`px-3 py-1 text-xs font-medium rounded transition-all ${settings.fontSize === size
-                                                        ? 'bg-glacier-500 text-white'
-                                                        : 'text-mist-400 hover:text-white'
+                                                    ? 'bg-glacier-500 text-white'
+                                                    : 'text-mist-400 hover:text-white'
                                                     }`}
                                             >
                                                 {fontSizeConfig[size].label}
@@ -462,8 +504,8 @@ export default function ShareExportModal({
                                 <button
                                     onClick={() => setSettings((s) => ({ ...s, showQRCode: !s.showQRCode }))}
                                     className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs transition-all ${settings.showQRCode
-                                            ? 'bg-glacier-500/20 text-glacier-400 border border-glacier-500/30'
-                                            : 'bg-white/5 text-mist-400 border border-white/10 hover:border-white/20'
+                                        ? 'bg-glacier-500/20 text-glacier-400 border border-glacier-500/30'
+                                        : 'bg-white/5 text-mist-400 border border-white/10 hover:border-white/20'
                                         }`}
                                 >
                                     <QrCode className="w-3.5 h-3.5" />
@@ -479,8 +521,8 @@ export default function ShareExportModal({
                                                 key={q}
                                                 onClick={() => setSettings((s) => ({ ...s, quality: q }))}
                                                 className={`px-2 py-1 text-xs font-medium rounded transition-all ${settings.quality === q
-                                                        ? 'bg-glacier-500 text-white'
-                                                        : 'text-mist-400 hover:text-white'
+                                                    ? 'bg-glacier-500 text-white'
+                                                    : 'text-mist-400 hover:text-white'
                                                     }`}
                                             >
                                                 {q}x
@@ -488,6 +530,22 @@ export default function ShareExportModal({
                                         ))}
                                     </div>
                                 </div>
+
+                                {/* Theme Toggle */}
+                                <button
+                                    onClick={() => setSettings((s) => ({ ...s, theme: s.theme === 'dark' ? 'light' : 'dark' }))}
+                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs transition-all ${settings.theme === 'light'
+                                            ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                            : 'bg-white/5 text-mist-400 border border-white/10 hover:border-white/20'
+                                        }`}
+                                >
+                                    {settings.theme === 'dark' ? (
+                                        <Moon className="w-3.5 h-3.5" />
+                                    ) : (
+                                        <Sun className="w-3.5 h-3.5" />
+                                    )}
+                                    {settings.theme === 'dark' ? '深色' : '浅色'}
+                                </button>
                             </div>
 
                             {/* Status Messages */}
