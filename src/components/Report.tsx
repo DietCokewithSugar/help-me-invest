@@ -1098,6 +1098,7 @@ export default function Report({
         contentHtml={shareModalState.contentHtml}
         companyName={profile.companyName}
         symbol={profile.symbol}
+        theme={theme}
       />
     </div>
   );

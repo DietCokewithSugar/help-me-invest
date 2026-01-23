@@ -33,6 +33,7 @@ interface ShareExportModalProps {
     contentHtml: string;
     companyName?: string;
     symbol?: string;
+    theme?: 'dark' | 'light';
 }
 
 // ==================== Animation Variants ====================
@@ -285,6 +286,7 @@ export default function ShareExportModal({
     contentHtml,
     companyName,
     symbol,
+    theme = 'dark',
 }: ShareExportModalProps) {
     const cardRef = useRef<HTMLDivElement>(null);
     const [status, setStatus] = useState<ExportStatus>('idle');
@@ -301,13 +303,14 @@ export default function ShareExportModal({
         typeof navigator.canShare === 'function'
     );
 
-    // Reset status when modal opens
+    // Reset status and theme when modal opens
     useEffect(() => {
         if (isOpen) {
             setStatus('idle');
             setErrorMessage('');
+            setSettings(s => ({ ...s, theme }));
         }
-    }, [isOpen]);
+    }, [isOpen, theme]);
 
     // Generate image blob
     const generateImage = useCallback(async (): Promise<Blob | null> => {
@@ -535,8 +538,8 @@ export default function ShareExportModal({
                                 <button
                                     onClick={() => setSettings((s) => ({ ...s, theme: s.theme === 'dark' ? 'light' : 'dark' }))}
                                     className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs transition-all ${settings.theme === 'light'
-                                            ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                                            : 'bg-white/5 text-mist-400 border border-white/10 hover:border-white/20'
+                                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                        : 'bg-white/5 text-mist-400 border border-white/10 hover:border-white/20'
                                         }`}
                                 >
                                     {settings.theme === 'dark' ? (
