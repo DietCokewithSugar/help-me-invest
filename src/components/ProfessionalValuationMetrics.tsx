@@ -217,9 +217,12 @@ export default function ProfessionalValuationMetrics({
 
     return (
       <div
-        className="relative flex justify-between items-center py-1.5 group cursor-help"
-        onMouseEnter={() => metricKey && setHoveredMetric(metricKey)}
-        onMouseLeave={() => setHoveredMetric(null)}
+        className="relative flex justify-between items-center py-1.5 group cursor-pointer"
+        onClick={(e) => {
+          if (metricKey) {
+            setHoveredMetric(hoveredMetric === metricKey ? null : metricKey);
+          }
+        }}
       >
         <span className="text-mist-400 text-sm group-hover:text-mist-300 transition-colors">
           {label}
@@ -230,7 +233,7 @@ export default function ProfessionalValuationMetrics({
 
         {/* Tooltip */}
         {showTooltip && (
-          <div className="absolute z-50 bottom-full right-0 mb-2 w-72 max-w-[calc(100vw-2rem)] p-4 bg-midnight border border-white/20 rounded-lg shadow-xl text-xs text-mist-200 leading-relaxed pointer-events-none">
+          <div className="absolute z-50 bottom-full right-0 mb-2 w-72 max-w-[calc(100vw-2rem)] p-4 bg-surface border border-white/20 rounded-lg shadow-xl text-xs text-mist-200 leading-relaxed">
             <div className="flex items-start gap-2 mb-2">
               <Info className="w-4 h-4 text-glacier-400 shrink-0 mt-0.5" />
               <div>

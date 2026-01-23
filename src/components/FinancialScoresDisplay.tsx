@@ -88,16 +88,19 @@ export default function FinancialScoresDisplay({ financialScores }: Props) {
 
     return (
       <div
-        className="group relative flex justify-between items-center py-2 border-b border-white/5 last:border-0 hover:bg-white/5 px-2 -mx-2 rounded-sm transition-colors cursor-help"
-        onMouseEnter={() => metricKey && setHoveredMetric(metricKey)}
-        onMouseLeave={() => setHoveredMetric(null)}
+        className="group relative flex justify-between items-center py-2 border-b border-white/5 last:border-0 hover:bg-white/5 px-2 -mx-2 rounded-sm transition-colors cursor-pointer"
+        onClick={() => {
+          if (metricKey) {
+            setHoveredMetric(hoveredMetric === metricKey ? null : metricKey);
+          }
+        }}
       >
         <span className="text-mist-400 text-sm font-medium">{label}</span>
         <span className={`font-mono text-sm ${highlightColor || 'text-mist-200'}`}>{value}</span>
 
         {/* Tooltip */}
         {desc && hoveredMetric === metricKey && (
-          <div className="absolute z-50 bottom-full right-0 mb-2 w-64 p-3 bg-[#1a1a1a] border border-white/10 rounded-sm shadow-xl pointer-events-none">
+          <div className="absolute z-50 bottom-full right-0 mb-2 w-64 p-3 bg-surface border border-white/10 rounded-sm shadow-xl">
             <h4 className="text-white text-xs font-bold mb-1">{desc.title}</h4>
             <p className="text-mist-400 text-xs leading-relaxed">{desc.description}</p>
           </div>

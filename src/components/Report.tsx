@@ -628,7 +628,7 @@ export default function Report({
 
               {aiAnalysis && (
                 <>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 gap-6">
                     <AnalysisCard icon={Building2} title="企业概况" gradient="from-glacier-600 to-glacier-700">
                       <ReactMarkdown>{aiAnalysis.companyOverview}</ReactMarkdown>
                     </AnalysisCard>
@@ -675,7 +675,7 @@ export default function Report({
                         <span className="gemini-badge text-xs">AI + Google Search</span>
                       </div>
                     </div>
-                    <div className="prose prose-gemini max-w-none prose-p:text-mist-300 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-300 prose-a:text-glacier-500 prose-a:no-underline hover:prose-a:underline">
+                    <div className="prose prose-gemini max-w-none prose-p:text-mist-300 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-300 prose-a:text-glacier-500 prose-a:no-underline hover:prose-a:underline text-sm">
                       <ReactMarkdown>{aiAnalysis.recentDevelopments}</ReactMarkdown>
                     </div>
                   </div>
@@ -714,7 +714,7 @@ export default function Report({
                       </div>
                       <h3 className="text-2xl font-bold text-white">投资建议总结</h3>
                     </div>
-                    <div className="prose prose-gemini prose-lg max-w-none prose-p:text-mist-200 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-200">
+                    <div className="prose prose-gemini max-w-none prose-p:text-mist-200 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-200 text-base">
                       <ReactMarkdown>{aiAnalysis.investmentConclusion}</ReactMarkdown>
                     </div>
                   </div>
