@@ -215,18 +215,17 @@ export default function ProfessionalValuationMetrics({
     highlightColor?: string;
   }) => {
     const desc = metricKey ? metricDescriptions[metricKey] : null;
-    const showTooltip = desc && hoveredMetric === metricKey;
 
     return (
       <div
-        className="relative flex justify-between items-center py-1.5 group cursor-pointer"
-        onClick={(e) => {
+        className="group relative flex justify-between items-center py-2 border-b border-white/5 last:border-0 hover:bg-white/5 px-2 -mx-2 rounded-sm transition-colors cursor-pointer"
+        onClick={() => {
           if (metricKey) {
             setHoveredMetric(hoveredMetric === metricKey ? null : metricKey);
           }
         }}
       >
-        <span className="text-mist-400 text-sm group-hover:text-mist-300 transition-colors">
+        <span className="text-mist-400 text-sm font-medium group-hover:text-mist-300 transition-colors">
           {label}
         </span>
         <span className={`font-mono text-sm font-medium ${highlight ? highlightColor : 'text-white'}`}>
@@ -234,24 +233,18 @@ export default function ProfessionalValuationMetrics({
         </span>
 
         {/* Tooltip */}
-        {showTooltip && (
-          <div className="absolute z-50 bottom-full right-0 mb-2 w-72 max-w-[calc(100vw-2rem)] p-4 bg-surface border border-white/20 rounded-lg shadow-xl text-xs text-mist-200 leading-relaxed">
-            <div className="flex items-start gap-2 mb-2">
-              <Info className="w-4 h-4 text-glacier-400 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold text-white mb-1">{desc.title}</p>
-                <p className="text-mist-300">{desc.description}</p>
-              </div>
-            </div>
+        {desc && hoveredMetric === metricKey && (
+          <div className="absolute z-50 bottom-full right-0 mb-2 w-64 p-3 bg-surface border border-white/10 rounded-sm shadow-xl">
+            <h4 className="text-white text-xs font-bold mb-1">{desc.title}</h4>
+            <p className="text-mist-400 text-xs leading-relaxed">{desc.description}</p>
             {desc.insight && (
               <div className="mt-2 pt-2 border-t border-white/10">
-                <div className="flex items-start gap-2">
-                  <Zap className="w-3 h-3 text-amber-400 shrink-0 mt-0.5" />
-                  <p className="text-amber-200/80">{desc.insight}</p>
-                </div>
+                <p className="text-amber-200/80 text-[10px] leading-tight flex items-start gap-1">
+                  <Zap className="w-3 h-3 shrink-0 mt-0.5" />
+                  {desc.insight}
+                </p>
               </div>
             )}
-            <div className="absolute bottom-0 right-4 translate-y-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white/20" />
           </div>
         )}
       </div>

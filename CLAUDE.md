@@ -54,3 +54,13 @@ Used for pie charts and multi-series charts:
 3. **Chart Adaptation**: Data visualizations must detect the current theme and adjust background, tooltip, and label colors accordingly.
 4. **No Gradients**: Avoid background gradients; use solid fills or subtle 1px borders for definition.
 5. **Transition**: All theme-related changes should have `transition: background-color 0.2s, color 0.2s`.
+
+## Interactive Data Rows (Hint UI/UX)
+Used in report modules like "Calculation Factor Details", "Financial Indicators", and "Capital & Return".
+- **Interaction**: Rows must be clickable and have a hover state for visual feedback.
+- **Hover State**: Use `hover:bg-white/5 px-2 -mx-2 rounded-sm transition-colors` on the row container.
+- **Tooltip/Hint**: 
+    - Implementation: Use a non-transparent overlay (e.g., `bg-surface` or `bg-obsidian`) with a 1px border (`border-white/10`).
+    - Position: Typically `bottom-full right-0 mb-2` or `absolute` near the clicked item.
+    - Visibility: Controlled by local state (e.g., `hoveredMetric`).
+- **Typography**: Label uses `text-mist-400`, value uses `font-mono`.
