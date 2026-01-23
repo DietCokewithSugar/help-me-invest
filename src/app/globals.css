@@ -24,8 +24,9 @@
   --glass-border: rgba(255, 255, 255, 0.06);
   --gradient-text-from: #14b8a6;
   --gradient-text-to: #3b82f6;
-  --bg-pattern: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
-  --bg-pattern-size: 24px 24px;
+  --bg-pattern: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  --bg-pattern-size: 32px 32px;
 }
 
 /* Light mode */
