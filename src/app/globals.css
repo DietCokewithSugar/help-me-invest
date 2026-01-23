@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Serif+SC:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -420,7 +420,7 @@ body {
 }
 
 /* Light mode: divide-white color */
-[data-theme="light"] .divide-white\/5 > :not([hidden]) ~ :not([hidden]) {
+[data-theme="light"] .divide-white\/5> :not([hidden])~ :not([hidden]) {
   border-color: var(--border-color) !important;
 }
 
@@ -567,9 +567,9 @@ body {
 }
 
 /* Light mode: General text visibility fixes */
-[data-theme="light"] h1, 
-[data-theme="light"] h2, 
-[data-theme="light"] h3, 
+[data-theme="light"] h1,
+[data-theme="light"] h2,
+[data-theme="light"] h3,
 [data-theme="light"] h4 {
   color: var(--text-heading) !important;
 }

@@ -10,7 +10,8 @@ import {
   FileText,
   ExternalLink,
   Info,
-  RefreshCw
+  RefreshCw,
+  Share2,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import SankeyChart from './SankeyChart';
@@ -21,6 +22,7 @@ import ProfessionalValuationMetrics from './ProfessionalValuationMetrics';
 import EventCalendar from './EventCalendar';
 import HoldingsAnalysis from './HoldingsAnalysis';
 import ExportModal from './ExportModal';
+import ShareExportModal from './ShareExportModal';
 import type { ReportData, MarketType } from '@/types';
 import { getMarketConfig } from '@/lib/markets';
 import { buildSankeyData } from '@/lib/sankey-utils';
@@ -116,20 +118,41 @@ function AnalysisCard({
   icon: Icon,
   title,
   gradient,
-  children
+  children,
+  onShare,
 }: {
   icon: any;
   title: string;
   gradient: string; // Keep interface but ignore gradient in implementation
   children: React.ReactNode;
+  onShare?: (title: string, contentElement: HTMLDivElement) => void;
 }) {
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const handleShare = () => {
+    if (onShare && contentRef.current) {
+      onShare(title, contentRef.current);
+    }
+  };
+
   return (
-    <div className="bg-white/5 border border-white/10 p-6 rounded-md hover:border-white/20 transition-colors">
-      <div className="flex items-center gap-3 mb-4 border-b border-white/5 pb-3">
-        <Icon className="w-4 h-4 text-glacier-500" />
-        <h3 className="text-base font-medium text-white uppercase tracking-wider">{title}</h3>
+    <div className="bg-white/5 border border-white/10 p-6 rounded-md hover:border-white/20 transition-colors relative group">
+      <div className="flex items-center justify-between gap-3 mb-4 border-b border-white/5 pb-3">
+        <div className="flex items-center gap-3">
+          <Icon className="w-4 h-4 text-glacier-500" />
+          <h3 className="text-base font-medium text-white uppercase tracking-wider">{title}</h3>
+        </div>
+        {onShare && (
+          <button
+            onClick={handleShare}
+            className="w-7 h-7 rounded-md bg-white/5 flex items-center justify-center text-mist-500 hover:text-white hover:bg-white/10 transition-all opacity-0 group-hover:opacity-100"
+            title="分享此模块"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
-      <div className="prose prose-gemini max-w-none prose-p:text-mist-300 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-300 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 text-sm">
+      <div ref={contentRef} className="prose prose-gemini max-w-none prose-p:text-mist-300 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-300 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 text-sm">
         {children}
       </div>
     </div>
@@ -147,6 +170,7 @@ function CollapsibleSection({
   onToggle,
   children,
   sectionNumber,
+  onShare,
 }: {
   id: string;
   icon: any;
@@ -157,14 +181,24 @@ function CollapsibleSection({
   onToggle: () => void;
   children: React.ReactNode;
   sectionNumber?: string;
+  onShare?: (title: string, contentElement: HTMLDivElement) => void;
 }) {
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const handleShare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onShare && contentRef.current) {
+      onShare(title, contentRef.current);
+    }
+  };
+
   return (
     <section id={id} className="scroll-mt-28">
-      <button
-        className="w-full flex items-center justify-between mb-4 group"
-        onClick={onToggle}
-      >
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between mb-4 group">
+        <button
+          className="flex-1 flex items-center gap-3"
+          onClick={onToggle}
+        >
           {/* 编号 */}
           {sectionNumber && (
             <span className="text-xl font-light text-mist-600 font-mono hidden md:block w-8 border-r border-white/10 mr-2">{sectionNumber}</span>
@@ -178,17 +212,31 @@ function CollapsibleSection({
               {subtitle && <p className="text-xs text-mist-500 font-mono">{subtitle}</p>}
             </div>
           </div>
-        </div>
-        <div className="w-8 h-8 rounded-sm bg-white/5 flex items-center justify-center border border-white/10 group-hover:bg-white/10 transition-colors">
-          {expanded ? (
-            <ChevronUp className="w-4 h-4 text-mist-400 group-hover:text-white" />
-          ) : (
-            <ChevronDown className="w-4 h-4 text-mist-400 group-hover:text-white" />
+        </button>
+        <div className="flex items-center gap-2">
+          {onShare && (
+            <button
+              onClick={handleShare}
+              className="w-8 h-8 rounded-sm bg-white/5 flex items-center justify-center border border-white/10 hover:bg-white/10 transition-colors text-mist-400 hover:text-white"
+              title="分享此模块"
+            >
+              <Share2 className="w-4 h-4" />
+            </button>
           )}
+          <button
+            onClick={onToggle}
+            className="w-8 h-8 rounded-sm bg-white/5 flex items-center justify-center border border-white/10 group-hover:bg-white/10 transition-colors"
+          >
+            {expanded ? (
+              <ChevronUp className="w-4 h-4 text-mist-400 group-hover:text-white" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-mist-400 group-hover:text-white" />
+            )}
+          </button>
         </div>
-      </button>
+      </div>
 
-      <div className={`transition-all duration-300 ease-out ${expanded ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
+      <div ref={contentRef} className={`transition-all duration-300 ease-out ${expanded ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
         {children}
       </div>
     </section>
@@ -280,6 +328,26 @@ export default function Report({
   });
   // 桑基图年份选择状态（0 表示最新年份）
   const [sankeyYearIndex, setSankeyYearIndex] = useState(0);
+
+  // 分享模块状态
+  const [shareModalState, setShareModalState] = useState<{
+    isOpen: boolean;
+    title: string;
+    contentHtml: string;
+  }>({
+    isOpen: false,
+    title: '',
+    contentHtml: '',
+  });
+
+  // 处理分享模块
+  const handleShareModule = useCallback((title: string, contentElement: HTMLDivElement) => {
+    setShareModalState({
+      isOpen: true,
+      title,
+      contentHtml: contentElement.innerHTML,
+    });
+  }, []);
 
   const {
     profile,
@@ -621,6 +689,7 @@ export default function Report({
             expanded={expandedSections.aiAnalysis}
             onToggle={() => toggleSection('aiAnalysis')}
             sectionNumber={getSectionNumber('aiAnalysis')}
+            onShare={handleShareModule}
           >
             <div className="space-y-6 animate-fade-in">
               {aiError && (
@@ -632,19 +701,19 @@ export default function Report({
               {aiAnalysis && (
                 <>
                   <div className="grid grid-cols-1 gap-6">
-                    <AnalysisCard icon={Building2} title="企业概况" gradient="from-glacier-600 to-glacier-700">
+                    <AnalysisCard icon={Building2} title="企业概况" gradient="from-glacier-600 to-glacier-700" onShare={handleShareModule}>
                       <ReactMarkdown>{aiAnalysis.companyOverview}</ReactMarkdown>
                     </AnalysisCard>
 
-                    <AnalysisCard icon={TrendingUp} title="行业分析" gradient="from-glacier-500 to-gemini-blue">
+                    <AnalysisCard icon={TrendingUp} title="行业分析" gradient="from-glacier-500 to-gemini-blue" onShare={handleShareModule}>
                       <ReactMarkdown>{aiAnalysis.industryAnalysis}</ReactMarkdown>
                     </AnalysisCard>
 
-                    <AnalysisCard icon={AlertTriangle} title="行业痛点与障碍" gradient="from-slate-500 to-slate-600">
+                    <AnalysisCard icon={AlertTriangle} title="行业痛点与障碍" gradient="from-slate-500 to-slate-600" onShare={handleShareModule}>
                       <ReactMarkdown>{aiAnalysis.industryPainPoints}</ReactMarkdown>
                     </AnalysisCard>
 
-                    <AnalysisCard icon={Users} title="竞争格局" gradient="from-slate-600 to-glacier-700">
+                    <AnalysisCard icon={Users} title="竞争格局" gradient="from-slate-600 to-glacier-700" onShare={handleShareModule}>
                       <ReactMarkdown>{aiAnalysis.competitors}</ReactMarkdown>
                       {peers && peers.length > 0 && (
                         <div className="flex flex-wrap gap-2 pt-4 mt-4 border-t border-white/5">
@@ -658,11 +727,11 @@ export default function Report({
                       )}
                     </AnalysisCard>
 
-                    <AnalysisCard icon={Target} title="竞争优势" gradient="from-glacier-600 to-gemini-blue">
+                    <AnalysisCard icon={Target} title="竞争优势" gradient="from-glacier-600 to-gemini-blue" onShare={handleShareModule}>
                       <ReactMarkdown>{aiAnalysis.competitiveAdvantage}</ReactMarkdown>
                     </AnalysisCard>
 
-                    <AnalysisCard icon={Shield} title="核心护城河" gradient="from-gemini-blue to-glacier-600">
+                    <AnalysisCard icon={Shield} title="核心护城河" gradient="from-gemini-blue to-glacier-600" onShare={handleShareModule}>
                       <ReactMarkdown>{aiAnalysis.moat}</ReactMarkdown>
                     </AnalysisCard>
                   </div>
@@ -686,7 +755,7 @@ export default function Report({
               )}
 
               {earningsCallSummary && (
-                <AnalysisCard icon={FileText} title="财报电话会议精要" gradient="from-glacier-600 to-glacier-700">
+                <AnalysisCard icon={FileText} title="财报电话会议精要" gradient="from-glacier-600 to-glacier-700" onShare={handleShareModule}>
                   <ReactMarkdown>{earningsCallSummary}</ReactMarkdown>
                   {transcriptText && (
                     <div className="not-prose mt-4 space-y-3">
@@ -738,6 +807,7 @@ export default function Report({
             expanded={expandedSections.financialStatements}
             onToggle={() => toggleSection('financialStatements')}
             sectionNumber={getSectionNumber('financialStatements')}
+            onShare={handleShareModule}
           >
             <div className="space-y-6 animate-fade-in">
               {/* 桑基图和营收图表 */}
@@ -816,6 +886,7 @@ export default function Report({
             expanded={expandedSections.valuation}
             onToggle={() => toggleSection('valuation')}
             sectionNumber={getSectionNumber('valuation')}
+            onShare={handleShareModule}
           >
             <div className="animate-fade-in">
               <ProfessionalValuationMetrics
@@ -842,6 +913,7 @@ export default function Report({
             expanded={expandedSections.events}
             onToggle={() => toggleSection('events')}
             sectionNumber={getSectionNumber('events')}
+            onShare={handleShareModule}
           >
             <div className="animate-fade-in">
               <EventCalendar
@@ -865,6 +937,7 @@ export default function Report({
             expanded={expandedSections.holdings}
             onToggle={() => toggleSection('holdings')}
             sectionNumber={getSectionNumber('holdings')}
+            onShare={handleShareModule}
           >
             <div className="animate-fade-in">
               <HoldingsAnalysis
@@ -904,6 +977,7 @@ export default function Report({
             expanded={expandedSections.news}
             onToggle={() => toggleSection('news')}
             sectionNumber={getSectionNumber('news')}
+            onShare={handleShareModule}
           >
             <div className="animate-fade-in">
               <div className="bg-white/5 border border-white/10 p-6 md:p-8 rounded-md">
@@ -988,6 +1062,16 @@ export default function Report({
         onClose={() => setIsExportModalOpen(false)}
         targetRef={reportRef}
         fileName={`${profile.symbol}_投资研究报告`}
+      />
+
+      {/* 分享模块模态框 */}
+      <ShareExportModal
+        isOpen={shareModalState.isOpen}
+        onClose={() => setShareModalState(s => ({ ...s, isOpen: false }))}
+        title={shareModalState.title}
+        contentHtml={shareModalState.contentHtml}
+        companyName={profile.companyName}
+        symbol={profile.symbol}
       />
     </div>
   );
