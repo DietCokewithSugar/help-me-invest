@@ -149,7 +149,7 @@ function StockSparkline({ data, showLabel = true }: { data: any[], showLabel?: b
 
     return (
         <div className="flex flex-col items-center">
-            <ReactECharts option={option} style={{ height: '40px', width: '80px' }} />
+            <ReactECharts option={option} style={{ height: '50px', width: '120px' }} />
             {showLabel && <span className="text-[8px] text-mist-600 mt-0.5">1M</span>}
         </div>
     );
@@ -314,12 +314,12 @@ function PositionGroup({
                                         })()}
 
                                         <div className="flex items-end justify-between mt-auto">
-                                            <div className="w-full max-w-[100px]">
-                                                <StockSparkline data={data?.history || []} />
-                                            </div>
                                             <div className="flex items-center gap-1 text-xs text-glacier-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <span>AI 报告</span>
                                                 <ExternalLinkIcon size={10} />
+                                            </div>
+                                            <div className="w-full max-w-[140px]">
+                                                <StockSparkline data={data?.history || []} />
                                             </div>
                                         </div>
                                     </Link>

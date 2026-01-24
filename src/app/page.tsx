@@ -158,6 +158,8 @@ function HomeContent() {
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const [showContactModal, setShowContactModal] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [retryCount, setRetryCount] = useState(0);
+  const [isRetryable, setIsRetryable] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestContainerRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
@@ -491,9 +493,29 @@ function HomeContent() {
       }
     };
 
+    // Fetch with timeout helper (90s timeout to account for server-side retries)
+    const fetchWithTimeout = async (url: string, options: RequestInit, timeoutMs = 90000) => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const response = await fetch(url, {
+          ...options,
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        return response;
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          throw new Error('请求超时，服务器响应时间过长。请检查网络连接后重试。');
+        }
+        throw error;
+      }
+    };
+
     try {
-      // 1. Fetch Basic FMP Data
-      const response = await fetch('/api/fmp', {
+      // 1. Fetch Basic FMP Data (with 90s timeout)
+      const response = await fetchWithTimeout('/api/fmp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -501,16 +523,22 @@ function HomeContent() {
           market: marketForAnalyze,
           period: 'annual'
         }),
-      });
+      }, 90000);
       const data = await parseJsonResponse(response);
 
       if (!response.ok) {
         const errorMsg = data?.error || '分析失败，请稍后重试';
+        const retryable = data?.retryable ?? true;
+        setIsRetryable(retryable);
         if (errorMsg.includes('找不到') || errorMsg.includes('not found') || errorMsg.includes('无效')) {
           recordSearchToDb(formattedSymbol, undefined, true);
+          setIsRetryable(false); // Invalid symbol is not retryable
         }
         throw new Error(errorMsg);
       }
+      // Reset retry count on success
+      setRetryCount(0);
+      setIsRetryable(false);
 
       recordSearchToDb(formattedSymbol, data?.profile?.companyName);
 
@@ -611,7 +639,12 @@ function HomeContent() {
 
     } catch (err: any) {
       console.error(err);
-      setError(err.message || '网络错误，请检查连接后重试');
+      setRetryCount(prev => prev + 1);
+      const baseError = err.message || '网络错误，请检查连接后重试';
+      // Add VPN suggestion after 3+ failures
+      const vpnHint = retryCount >= 2 ? '\n\n提示：如果您在中国大陆，可能需要使用 VPN 才能访问 FMP API。' : '';
+      setError(baseError + vpnHint);
+      setIsRetryable(true);
       setLoading(false);
     }
   };
@@ -840,12 +873,25 @@ function HomeContent() {
                 {/* 错误提示 */}
                 {error && (
                   <motion.div
-                    className="mb-6 p-4 rounded-xl bg-red-500/5 border border-red-500/10 flex items-center gap-3"
+                    className="mb-6 p-4 rounded-xl bg-red-500/5 border border-red-500/10"
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                   >
-                    <div className="w-1.5 h-1.5 bg-red-400 rounded-full" />
-                    <span className="text-red-400/80 text-sm">{error}</span>
+                    <div className="flex items-start gap-3">
+                      <div className="w-1.5 h-1.5 bg-red-400 rounded-full mt-2 shrink-0" />
+                      <div className="flex-1">
+                        <span className="text-red-400/80 text-sm whitespace-pre-line">{error}</span>
+                        {isRetryable && (
+                          <button
+                            onClick={handleAnalyze}
+                            disabled={loading}
+                            className="mt-3 px-4 py-2 text-sm font-medium rounded-lg bg-glacier-500/20 text-glacier-400 hover:bg-glacier-500/30 transition-colors disabled:opacity-50"
+                          >
+                            {retryCount > 0 ? `重试 (${retryCount})` : '重试'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </motion.div>
                 )}
 

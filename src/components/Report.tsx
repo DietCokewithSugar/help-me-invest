@@ -12,6 +12,16 @@ import {
   Info,
   RefreshCw,
   Share2,
+  Tag,
+  Zap,
+  Crown,
+  Flame,
+  TrendingDown,
+  Activity,
+  Sun,
+  SunDim,
+  UserX,
+  Warehouse,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import SankeyChart from './SankeyChart';
@@ -334,6 +344,219 @@ function StatCard({
   );
 }
 
+// 五维度评估系统 - 级别类型
+type DimensionLevel = 'green' | 'orange' | 'red' | 'blue';
+
+// 五维度评估标签
+interface DimensionTag {
+  dimension: string;        // 维度名称（中文）
+  dimensionKey: string;     // 维度键（英文）
+  level: DimensionLevel;    // 级别（颜色）
+  label: string;            // 标签文字
+  icon: any;                // 图标
+}
+
+// 四色样式配置
+const LEVEL_STYLES: Record<DimensionLevel, { bg: string; border: string; text: string; iconColor: string }> = {
+  'green': {
+    bg: 'bg-emerald-500/15',
+    border: 'border-emerald-500/30',
+    text: 'text-emerald-400',
+    iconColor: 'text-emerald-500',
+  },
+  'orange': {
+    bg: 'bg-orange-500/15',
+    border: 'border-orange-500/30',
+    text: 'text-orange-400',
+    iconColor: 'text-orange-500',
+  },
+  'red': {
+    bg: 'bg-red-500/15',
+    border: 'border-red-500/30',
+    text: 'text-red-400',
+    iconColor: 'text-red-500',
+  },
+  'blue': {
+    bg: 'bg-blue-500/15',
+    border: 'border-blue-500/30',
+    text: 'text-blue-400',
+    iconColor: 'text-blue-500',
+  },
+};
+
+// 单个维度标签组件
+function DimensionBadge({ tag }: { tag: DimensionTag }) {
+  const style = LEVEL_STYLES[tag.level];
+  const Icon = tag.icon;
+
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-[10px] text-mist-600 font-mono uppercase tracking-wider">{tag.dimension}</span>
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border ${style.bg} ${style.border} ${style.text} transition-all hover:scale-105`}>
+        <Icon className={`w-3 h-3 ${style.iconColor}`} />
+        {tag.label}
+      </span>
+    </div>
+  );
+}
+
+// 生成五维度评估标签
+function generateDimensionTags(
+  aiAnalysis: any,
+  profile: any,
+  financialGrowth: any[]
+): DimensionTag[] {
+  const tags: DimensionTag[] = [];
+  const marketCap = profile.marketCap || profile.mktCap || 0;
+  const industry = (profile.industry || '').toLowerCase();
+  const sector = (profile.sector || '').toLowerCase();
+
+  // 获取财务增长数据
+  const latestGrowth = financialGrowth && financialGrowth.length > 0 ? financialGrowth[0] : null;
+  const revenueGrowth = latestGrowth?.revenueGrowth ?? 0;
+  const netIncomeGrowth = latestGrowth?.netIncomeGrowth ?? 0;
+
+  // AI 分析文本
+  const aiText = aiAnalysis ?
+    ((aiAnalysis.moat || '') + (aiAnalysis.competitiveAdvantage || '') + (aiAnalysis.industryAnalysis || '')).toLowerCase() : '';
+
+  // ============== 1. 行业前景 ==============
+  const sunriseIndustries = ['semiconductor', 'ai', 'artificial intelligence', '半导体', '人工智能', 'electric vehicles', '新能源', 'biotechnology', '生物医药', 'cloud computing', '云计算', 'renewable energy', '光伏', '储能'];
+  const sunsetIndustries = ['coal', '煤炭', 'traditional media', '纸媒', 'tobacco', '烟草'];
+  const policySupported = ['芯片', 'chip', '国产替代', '战略新兴', 'national strategy', '国家战略', '政策扶持', 'government support'];
+
+  const isSunrise = sunriseIndustries.some(k => industry.includes(k) || sector.includes(k) || aiText.includes(k));
+  const isSunset = sunsetIndustries.some(k => industry.includes(k) || sector.includes(k) || aiText.includes(k));
+  const isPolicySupported = policySupported.some(k => aiText.includes(k));
+
+  if (isPolicySupported) {
+    tags.push({ dimension: '行业前景', dimensionKey: 'industryOutlook', level: 'blue', label: '政策扶持', icon: Shield });
+  } else if (isSunrise) {
+    tags.push({ dimension: '行业前景', dimensionKey: 'industryOutlook', level: 'green', label: '朝阳行业', icon: Sun });
+  } else if (isSunset) {
+    tags.push({ dimension: '行业前景', dimensionKey: 'industryOutlook', level: 'red', label: '夕阳行业', icon: SunDim });
+  } else {
+    tags.push({ dimension: '行业前景', dimensionKey: 'industryOutlook', level: 'orange', label: '成熟行业', icon: Building2 });
+  }
+
+  // ============== 2. 行业地位 ==============
+  const monopolyKeywords = ['垄断', 'monopoly', '寡头', 'oligopoly', '独家', 'exclusive'];
+  const leaderKeywords = ['龙头', '领导者', 'leader', 'market leader', 'industry leader', '第一', 'no.1', '#1', '领先'];
+  const secondTierKeywords = ['主要参与者', 'major player', '竞争者', 'competitor', '前列'];
+
+  const isMonopoly = monopolyKeywords.some(k => aiText.includes(k));
+  const isLeader = leaderKeywords.some(k => aiText.includes(k));
+  const isSecondTier = secondTierKeywords.some(k => aiText.includes(k));
+
+  if (isMonopoly) {
+    tags.push({ dimension: '行业地位', dimensionKey: 'industryPosition', level: 'blue', label: '行业垄断', icon: Shield });
+  } else if (isLeader) {
+    tags.push({ dimension: '行业地位', dimensionKey: 'industryPosition', level: 'green', label: '行业龙头', icon: Crown });
+  } else if (isSecondTier) {
+    tags.push({ dimension: '行业地位', dimensionKey: 'industryPosition', level: 'orange', label: '第二梯队', icon: Users2 });
+  } else {
+    tags.push({ dimension: '行业地位', dimensionKey: 'industryPosition', level: 'red', label: '边缘玩家', icon: UserX });
+  }
+
+  // ============== 3. 经营情况 ==============
+  const restructuringKeywords = ['重组', 'restructuring', '业务转型', 'transformation', '并购中', 'merger'];
+  const isRestructuring = restructuringKeywords.some(k => aiText.includes(k));
+
+  if (isRestructuring) {
+    tags.push({ dimension: '经营情况', dimensionKey: 'operations', level: 'blue', label: '转型中', icon: RefreshCw });
+  } else if (revenueGrowth > 0.10 && netIncomeGrowth > 0.15) {
+    tags.push({ dimension: '经营情况', dimensionKey: 'operations', level: 'green', label: '经营优秀', icon: TrendingUp });
+  } else if (revenueGrowth < 0 || netIncomeGrowth < -0.10) {
+    tags.push({ dimension: '经营情况', dimensionKey: 'operations', level: 'red', label: '经营困难', icon: TrendingDown });
+  } else {
+    tags.push({ dimension: '经营情况', dimensionKey: 'operations', level: 'orange', label: '经营平稳', icon: Activity });
+  }
+
+  // ============== 4. 发展势头（重点：小型优质企业最好，巨无霸应该低）==============
+  // 市值阈值（美元）
+  const GIANT_THRESHOLD = 500e9;      // 5000亿美元，巨无霸
+  const LARGE_THRESHOLD = 50e9;       // 500亿美元，大型
+  const SMALL_THRESHOLD = 10e9;       // 100亿美元，小型
+
+  if (marketCap >= GIANT_THRESHOLD) {
+    // 万亿巨头，体量太大难以翻倍
+    tags.push({ dimension: '发展势头', dimensionKey: 'growthMomentum', level: 'blue', label: '巨无霸', icon: Building2 });
+  } else if (marketCap < LARGE_THRESHOLD && revenueGrowth > 0.20 && netIncomeGrowth > 0.25) {
+    // 小型且高增长，最有翻倍潜力
+    tags.push({ dimension: '发展势头', dimensionKey: 'growthMomentum', level: 'green', label: '高速成长', icon: Zap });
+  } else if (revenueGrowth < 0.05 || netIncomeGrowth < 0) {
+    tags.push({ dimension: '发展势头', dimensionKey: 'growthMomentum', level: 'red', label: '增长乏力', icon: TrendingDown });
+  } else {
+    tags.push({ dimension: '发展势头', dimensionKey: 'growthMomentum', level: 'orange', label: '稳健增长', icon: TrendingUp });
+  }
+
+  // ============== 5. 目前体量 ==============
+  // 市值分级（美元）
+  const TRILLION_THRESHOLD = 1e12;    // 万亿美元
+  const LARGE_CAP = 100e9;            // 千亿美元
+  const MID_CAP = 10e9;               // 百亿美元
+
+  if (marketCap >= TRILLION_THRESHOLD) {
+    tags.push({ dimension: '目前体量', dimensionKey: 'scale', level: 'blue', label: '万亿巨头', icon: Crown });
+  } else if (marketCap >= LARGE_CAP) {
+    tags.push({ dimension: '目前体量', dimensionKey: 'scale', level: 'green', label: '大型企业', icon: Building2 });
+  } else if (marketCap >= MID_CAP) {
+    tags.push({ dimension: '目前体量', dimensionKey: 'scale', level: 'orange', label: '中型企业', icon: Building2 });
+  } else {
+    tags.push({ dimension: '目前体量', dimensionKey: 'scale', level: 'red', label: '小型企业', icon: Warehouse });
+  }
+
+  return tags;
+}
+
+// 五维度评估标签展示组件
+function CompanyTags({
+  aiAnalysis,
+  profile,
+  financialGrowth,
+  news,
+  isLoading
+}: {
+  aiAnalysis: any;
+  profile: any;
+  financialGrowth: any[];
+  news: any[];
+  isLoading?: boolean;
+}) {
+  const tags = useMemo(() => {
+    return generateDimensionTags(aiAnalysis, profile, financialGrowth);
+  }, [aiAnalysis, profile, financialGrowth]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 mt-4">
+        <div className="flex items-center gap-2 text-xs text-mist-500">
+          <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+          <span>AI 正在分析企业特征...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (tags.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mt-4">
+      <div className="flex items-center gap-1 mb-3">
+        <Tag className="w-3 h-3 text-mist-600" />
+        <span className="text-xs text-mist-600 font-mono uppercase tracking-wider">五维度评估</span>
+      </div>
+      <div className="flex flex-wrap items-start gap-4">
+        {tags.map((tag, index) => (
+          <DimensionBadge key={`${tag.dimensionKey}-${index}`} tag={tag} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Report({
   data,
   onReset,
@@ -632,7 +855,7 @@ export default function Report({
               </div>
 
               {/* 公司信息 */}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-mist-500 text-xs mb-6 font-mono uppercase tracking-wider">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-mist-500 text-xs mb-4 font-mono uppercase tracking-wider">
                 <span className="flex items-center gap-1.5">
                   <Building2 className="w-3 h-3" />
                   {profile.sector || 'N/A'}
@@ -646,37 +869,44 @@ export default function Report({
                 </span>
               </div>
 
-              {/* 统计数据 */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard
-                  icon={DollarSign}
-                  label="市值"
-                  value={`${currencySymbol}${formatNumber(marketCap)}`}
-                  gradient="none"
-                />
-                <StatCard
-                  icon={TrendingUp}
-                  label="股价"
-                  value={`${currencySymbol}${profile.price?.toFixed(2) || 'N/A'}`}
-                  subValue={{
-                    text: `${priceChange >= 0 ? '+' : ''}${priceChangePercent}`,
-                    positive: priceChange >= 0
-                  }}
-                  gradient="none"
-                />
-                <StatCard
-                  icon={Users2}
-                  label="员工数"
-                  value={profile.fullTimeEmployees ? parseInt(profile.fullTimeEmployees).toLocaleString() : 'N/A'}
-                  gradient="none"
-                />
-                <StatCard
-                  icon={Calendar}
-                  label="IPO 日期"
-                  value={profile.ipoDate || 'N/A'}
-                  gradient="none"
-                />
+              {/* 基础数据 - 紧凑内联样式 */}
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm py-3 px-4 bg-white/[0.03] rounded-lg border border-white/5">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-3.5 h-3.5 text-mist-600" />
+                  <span className="text-mist-500 text-xs">市值</span>
+                  <span className="font-mono font-medium text-white">{currencySymbol}{formatNumber(marketCap)}</span>
+                </div>
+                <span className="text-mist-700">·</span>
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-3.5 h-3.5 text-mist-600" />
+                  <span className="text-mist-500 text-xs">股价</span>
+                  <span className="font-mono font-medium text-white">{currencySymbol}{profile.price?.toFixed(2) || 'N/A'}</span>
+                  <span className={`text-xs font-mono px-1.5 py-0.5 rounded ${priceChange >= 0 ? 'text-growth bg-growth/10' : 'text-decay bg-decay/10'}`}>
+                    {priceChange >= 0 ? '+' : ''}{priceChangePercent}
+                  </span>
+                </div>
+                <span className="text-mist-700 hidden sm:inline">·</span>
+                <div className="flex items-center gap-2">
+                  <Users2 className="w-3.5 h-3.5 text-mist-600" />
+                  <span className="text-mist-500 text-xs">员工</span>
+                  <span className="font-mono font-medium text-white">{profile.fullTimeEmployees ? parseInt(profile.fullTimeEmployees).toLocaleString() : 'N/A'}</span>
+                </div>
+                <span className="text-mist-700 hidden md:inline">·</span>
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-3.5 h-3.5 text-mist-600" />
+                  <span className="text-mist-500 text-xs">IPO</span>
+                  <span className="font-mono font-medium text-white">{profile.ipoDate || 'N/A'}</span>
+                </div>
               </div>
+
+              {/* 智能标签 */}
+              <CompanyTags
+                aiAnalysis={aiAnalysis}
+                profile={profile}
+                financialGrowth={financialGrowth}
+                news={news}
+                isLoading={aiLoading && !aiAnalysis}
+              />
             </div>
           </div>
         </header>

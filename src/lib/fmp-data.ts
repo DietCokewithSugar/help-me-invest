@@ -38,12 +38,15 @@ export async function fetchFmpReportData(
   const features = config.supportedFeatures;
 
   // 根据市场支持的功能，决定调用哪些 API
-  // 所有市场都支持的基础数据
+  // 所有市场都支持的基础数据 - 添加 catch 处理以避免单个 API 失败影响整体
   const basePromises = [
-    fmp.getProfile(upperSymbol),
+    fmp.getProfile(upperSymbol).catch((e) => {
+      console.error('Profile API error:', e?.message || e);
+      return []; // profile 失败会导致后面报错，但至少不会中断 Promise.all
+    }),
     features.quote ? fmp.getQuote(upperSymbol).catch(() => []) : Promise.resolve([]),
-    features.peers ? fmp.getPeers(upperSymbol) : Promise.resolve([]),
-    features.news ? fmp.getNews(upperSymbol, 15) : Promise.resolve([]),
+    features.peers ? fmp.getPeers(upperSymbol).catch(() => []) : Promise.resolve([]),
+    features.news ? fmp.getNews(upperSymbol, 15).catch(() => []) : Promise.resolve([]),
   ];
 
   // 财务报表数据 (年度)
