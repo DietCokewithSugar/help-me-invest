@@ -1,21 +1,15 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactECharts from 'echarts-for-react';
 import {
     TrendingUpIcon,
-    BarChart3Icon,
     ArrowRightIcon,
-    Globe2Icon,
-    SearchIcon,
-    ClockIcon,
     LogoIcon,
-    XIcon,
     SunIcon,
     MoonIcon,
-    MessageCircleIcon
 } from '@/components/Icons';
 import {
     ChevronLeft as ChevronLeftIcon,
@@ -23,20 +17,114 @@ import {
     List as ListIcon,
     ArrowUp as ArrowUpIcon,
     ArrowDown as ArrowDownIcon,
-    ExternalLink as ExternalLinkIcon
+    ExternalLink as ExternalLinkIcon,
+    ChevronDown as ChevronDownIcon,
+    ChevronRight as ChevronRightIcon,
 } from 'lucide-react';
-import { PORTFOLIOS, Portfolio, TrackedCompany } from '@/lib/portfolios';
+import {
+    PORTFOLIOS,
+    PORTFOLIO_CATEGORIES,
+    POSITION_SIZE_CONFIG,
+    Portfolio,
+    PortfolioCategory,
+    PositionSize,
+    getPositionSize,
+    TrackedCompany,
+    renderStars,
+    getSharedHolders
+} from '@/lib/portfolios';
 
-// 迷你 K 线图组件 (Sparkline)
-function StockSparkline({ data, color }: { data: any[], color: string }) {
-    if (!data || data.length === 0) return <div className="h-12 w-24 bg-white/5 animate-pulse rounded" />;
+// 按分类分组投资组合
+const groupedPortfolios = (Object.keys(PORTFOLIO_CATEGORIES) as PortfolioCategory[]).map(category => ({
+    category,
+    ...PORTFOLIO_CATEGORIES[category],
+    portfolios: PORTFOLIOS.filter(p => p.category === category)
+})).filter(group => group.portfolios.length > 0);
 
-    const prices = data.map(d => d.close).reverse();
-    const dates = data.map(d => d.date).reverse();
+// 格式化数字（百万）
+function formatMillions(value: number | undefined): string {
+    if (!value) return '-';
+    if (value >= 1000) {
+        return `$${(value / 1000).toFixed(1)}B`;
+    }
+    return `$${value.toFixed(0)}M`;
+}
+
+// 格式化持股数量
+function formatShares(shares: number | undefined): string {
+    if (!shares) return '-';
+    if (shares >= 1000000000) {
+        return `${(shares / 1000000000).toFixed(2)}B`;
+    }
+    if (shares >= 1000000) {
+        return `${(shares / 1000000).toFixed(1)}M`;
+    }
+    if (shares >= 1000) {
+        return `${(shares / 1000).toFixed(0)}K`;
+    }
+    return shares.toLocaleString();
+}
+
+// 按仓位大小分组股票
+function groupStocksBySize(stocks: TrackedCompany[]): Record<PositionSize, TrackedCompany[]> {
+    const groups: Record<PositionSize, TrackedCompany[]> = {
+        large: [],
+        medium: [],
+        small: []
+    };
+
+    stocks.forEach(stock => {
+        const size = getPositionSize(stock.portfolioPercent);
+        groups[size].push(stock);
+    });
+
+    // 每组内按占比排序
+    Object.keys(groups).forEach(key => {
+        groups[key as PositionSize].sort((a, b) =>
+            (b.portfolioPercent || 0) - (a.portfolioPercent || 0)
+        );
+    });
+
+    return groups;
+}
+
+// 迷你趋势图组件 (Sparkline) - 显示最近一个月趋势
+function StockSparkline({ data, showLabel = true }: { data: any[], showLabel?: boolean }) {
+    // 如果没有数据，显示占位符
+    if (!data || data.length === 0) {
+        return (
+            <div className="flex flex-col items-center">
+                <div className="h-10 w-24 bg-white/5 rounded flex items-center justify-center text-mist-600 text-[8px]">暂无趋势</div>
+                {showLabel && <span className="text-[8px] text-mist-600 mt-0.5">1M</span>}
+            </div>
+        );
+    }
+
+    // 提取价格数据，过滤掉无效值
+    const prices = data.map(d => d?.close).filter(p => p !== undefined && p !== null).reverse();
+
+    // 如果价格数据不足，显示占位符
+    if (prices.length < 2) {
+        return (
+            <div className="flex flex-col items-center">
+                <div className="h-10 w-24 bg-white/5 rounded flex items-center justify-center text-mist-600 text-[8px]">数据不足</div>
+                {showLabel && <span className="text-[8px] text-mist-600 mt-0.5">1M</span>}
+            </div>
+        );
+    }
+
+    // 计算一个月内的趋势：对比首尾价格
+    const firstPrice = prices[0] || 0;
+    const lastPrice = prices[prices.length - 1] || 0;
+    const changePercent = firstPrice > 0 ? ((lastPrice - firstPrice) / firstPrice) * 100 : 0;
+    const isUpward = changePercent > 0;
+
+    // 中国股市惯例：涨为红色，跌为绿色
+    const trendColor = isUpward ? '#ef4444' : '#10b981';
 
     const option = {
-        grid: { left: 0, right: 0, top: 4, bottom: 4 },
-        xAxis: { type: 'category', data: dates, show: false },
+        grid: { left: 0, right: 0, top: 2, bottom: 2 },
+        xAxis: { type: 'category', show: false },
         yAxis: { type: 'value', show: false, min: 'dataMin', max: 'dataMax' },
         series: [
             {
@@ -44,14 +132,14 @@ function StockSparkline({ data, color }: { data: any[], color: string }) {
                 type: 'line',
                 smooth: true,
                 symbol: 'none',
-                lineStyle: { color, width: 2 },
+                lineStyle: { color: trendColor, width: 1.5 },
                 areaStyle: {
                     color: {
                         type: 'linear',
                         x: 0, y: 0, x2: 0, y2: 1,
                         colorStops: [
-                            { offset: 0, color: color + '44' },
-                            { offset: 1, color: color + '00' }
+                            { offset: 0, color: trendColor + '44' },
+                            { offset: 1, color: trendColor + '00' }
                         ]
                     }
                 }
@@ -59,7 +147,255 @@ function StockSparkline({ data, color }: { data: any[], color: string }) {
         ]
     };
 
-    return <ReactECharts option={option} style={{ height: '48px', width: '100px' }} />;
+    return (
+        <div className="flex flex-col items-center">
+            <ReactECharts option={option} style={{ height: '40px', width: '80px' }} />
+            {showLabel && <span className="text-[8px] text-mist-600 mt-0.5">1M</span>}
+        </div>
+    );
+}
+
+// 计算一个月涨跌幅
+function calcMonthlyChange(historyData: any[]): number {
+    if (!historyData || historyData.length < 2) return 0;
+    const prices = historyData.map(d => d?.close).filter(p => p !== undefined && p !== null).reverse();
+    if (prices.length < 2) return 0;
+    const firstPrice = prices[0];
+    const lastPrice = prices[prices.length - 1];
+    return firstPrice > 0 ? ((lastPrice - firstPrice) / firstPrice) * 100 : 0;
+}
+
+// 仓位分组组件
+function PositionGroup({
+    size,
+    stocks,
+    stockData,
+    viewMode,
+    defaultExpanded = true,
+    isRecommendation = false,
+    portfolioId = ''
+}: {
+    size: PositionSize;
+    stocks: TrackedCompany[];
+    stockData: Record<string, any>;
+    viewMode: 'grid' | 'list';
+    defaultExpanded?: boolean;
+    isRecommendation?: boolean;
+    portfolioId?: string;
+}) {
+    const [expanded, setExpanded] = useState(defaultExpanded);
+    const config = POSITION_SIZE_CONFIG[size];
+
+    if (stocks.length === 0) return null;
+
+    // 推荐评级对应的显示名称
+    const recommendationLabels: Record<PositionSize, string> = {
+        large: '⭐⭐⭐⭐⭐ 强烈推荐',
+        medium: '⭐⭐⭐⭐ 推荐',
+        small: '⭐⭐⭐ 一般推荐'
+    };
+
+    const displayName = isRecommendation ? recommendationLabels[size] : config.name;
+
+    return (
+        <div className="space-y-3">
+            {/* 分组标题 */}
+            <button
+                onClick={() => setExpanded(!expanded)}
+                className="w-full flex items-center gap-3 py-2 text-left group"
+            >
+                {!isRecommendation && (
+                    <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: config.color }}
+                    />
+                )}
+                <span className="text-sm font-medium theme-text-heading">{displayName}</span>
+                <span className="text-xs text-mist-500">({stocks.length} 只)</span>
+                <div className="flex-1" />
+                {expanded ? (
+                    <ChevronDownIcon size={16} className="text-mist-500 group-hover:text-glacier-500 transition-colors" />
+                ) : (
+                    <ChevronRightIcon size={16} className="text-mist-500 group-hover:text-glacier-500 transition-colors" />
+                )}
+            </button>
+
+            {/* 股票列表 */}
+            <AnimatePresence>
+                {expanded && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 gap-3" : "space-y-2"}
+                    >
+                        {stocks.map((stock) => {
+                            const data = stockData[stock.symbol];
+                            const price = data?.quote?.price || 0;
+                            const change = data?.quote?.changesPercentage || 0;
+                            const isPositive = change >= 0;
+                            const brandColor = isPositive ? '#10b981' : '#ef4444';
+
+                            if (viewMode === 'grid') {
+                                return (
+                                    <Link
+                                        href={`/?symbol=${stock.symbol}`}
+                                        key={stock.symbol}
+                                        className="group relative flex flex-col p-4 rounded-xl bg-white/5 border border-white/10 hover:border-glacier-500/50 hover:bg-white/[0.07] transition-all overflow-hidden"
+                                    >
+                                        <div className="flex items-start justify-between mb-2">
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="font-mono text-xs font-semibold tracking-widest theme-text-heading">{stock.symbol}</span>
+                                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-mist-500 border border-white/10">{stock.market}</span>
+                                                </div>
+                                                <h3 className="text-base font-medium text-mist-200 group-hover:text-glacier-500 transition-colors">{stock.name}</h3>
+                                            </div>
+                                            <div className="text-right flex flex-col items-end">
+                                                <span className="text-lg font-mono font-medium theme-text-heading">${price.toFixed(2)}</span>
+                                                {(() => {
+                                                    const monthChange = calcMonthlyChange(data?.history || []);
+                                                    const isMonthPositive = monthChange >= 0;
+                                                    return (
+                                                        <div className={`flex items-center gap-1 text-xs font-medium ${isMonthPositive ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                                            {isMonthPositive ? <ArrowUpIcon size={10} /> : <ArrowDownIcon size={10} />}
+                                                            <span>{isMonthPositive ? '+' : ''}{monthChange.toFixed(2)}%</span>
+                                                            <span className="text-mist-600 text-[9px]">月</span>
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </div>
+                                        </div>
+
+                                        {/* 持仓详情 / 推荐评级 */}
+                                        <div className="flex items-center gap-3 mb-2 text-xs">
+                                            {isRecommendation && stock.rating ? (
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-mist-600">评级</span>
+                                                    <span className="text-amber-400">{renderStars(stock.rating)}</span>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    {stock.portfolioPercent && (
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="text-mist-600">占比</span>
+                                                            <span className="font-mono font-medium" style={{ color: config.color }}>{stock.portfolioPercent.toFixed(1)}%</span>
+                                                        </div>
+                                                    )}
+                                                    {stock.shares && (
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="text-mist-600">持股</span>
+                                                            <span className="font-mono text-mist-300">{formatShares(stock.shares)}</span>
+                                                        </div>
+                                                    )}
+                                                    {stock.marketValue && (
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="text-mist-600">市值</span>
+                                                            <span className="font-mono text-mist-300">{formatMillions(stock.marketValue)}</span>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
+                                        </div>
+
+                                        {/* 共同持仓者 */}
+                                        {!isRecommendation && portfolioId && (() => {
+                                            const sharedHolders = getSharedHolders(stock.symbol, portfolioId);
+                                            if (sharedHolders.length === 0) return null;
+                                            return (
+                                                <div className="flex items-center gap-1 mb-2 text-[10px]">
+                                                    <span className="text-mist-600">🤝</span>
+                                                    <span className="text-glacier-400" title={sharedHolders.map(h => h.authorCn).join(', ')}>
+                                                        +{sharedHolders.length} 位投资人也持有
+                                                    </span>
+                                                </div>
+                                            );
+                                        })()}
+
+                                        <div className="flex items-end justify-between mt-auto">
+                                            <div className="w-full max-w-[100px]">
+                                                <StockSparkline data={data?.history || []} />
+                                            </div>
+                                            <div className="flex items-center gap-1 text-xs text-glacier-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <span>AI 报告</span>
+                                                <ExternalLinkIcon size={10} />
+                                            </div>
+                                        </div>
+                                    </Link>
+                                );
+                            } else {
+                                return (
+                                    <Link
+                                        href={`/?symbol=${stock.symbol}`}
+                                        key={stock.symbol}
+                                        className="group flex items-center p-3 rounded-lg bg-white/5 border border-white/10 hover:border-glacier-500/50 hover:bg-white/[0.07] transition-all"
+                                    >
+                                        <div className="w-32 flex flex-col">
+                                            <span className="font-mono text-xs text-mist-500 flex items-center gap-1">
+                                                {stock.symbol}
+                                                <span className="scale-75 origin-left text-[9px] px-1 rounded bg-white/5">{stock.market}</span>
+                                            </span>
+                                            <span className="text-sm font-medium theme-text-heading truncate">{stock.name}</span>
+                                        </div>
+
+                                        {/* 持仓占比 / 推荐评级 */}
+                                        <div className="w-24 text-center">
+                                            {isRecommendation && stock.rating ? (
+                                                <span className="text-amber-400 text-xs">{renderStars(stock.rating)}</span>
+                                            ) : stock.portfolioPercent ? (
+                                                <span className="font-mono text-xs font-medium" style={{ color: config.color }}>{stock.portfolioPercent.toFixed(1)}%</span>
+                                            ) : null}
+                                        </div>
+
+                                        {/* 共同持仓者指示 */}
+                                        <div className="w-16 text-center">
+                                            {!isRecommendation && portfolioId && (() => {
+                                                const sharedHolders = getSharedHolders(stock.symbol, portfolioId);
+                                                if (sharedHolders.length === 0) return null;
+                                                return (
+                                                    <span
+                                                        className="text-[10px] px-1.5 py-0.5 rounded-full bg-glacier-500/20 text-glacier-400"
+                                                        title={sharedHolders.map(h => h.authorCn).join(', ')}
+                                                    >
+                                                        +{sharedHolders.length}🤝
+                                                    </span>
+                                                );
+                                            })()}
+                                        </div>
+
+                                        <div className="flex-1 px-3 flex justify-center">
+                                            <div className="w-20">
+                                                <StockSparkline data={data?.history || []} />
+                                            </div>
+                                        </div>
+
+                                        <div className="w-28 text-right flex flex-col">
+                                            <span className="text-sm font-mono font-medium theme-text-heading">${price.toFixed(2)}</span>
+                                            {(() => {
+                                                const monthChange = calcMonthlyChange(data?.history || []);
+                                                const isMonthPositive = monthChange >= 0;
+                                                return (
+                                                    <span className={`text-[10px] font-bold flex items-center justify-end gap-0.5 ${isMonthPositive ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                                        {isMonthPositive ? '+' : ''}{monthChange.toFixed(2)}%
+                                                        <span className="text-mist-600">月</span>
+                                                    </span>
+                                                );
+                                            })()}
+                                        </div>
+
+                                        <div className="ml-3 p-1.5 rounded-lg bg-white/5 text-mist-500 group-hover:text-glacier-500 group-hover:bg-glacier-500/10 transition-all">
+                                            <ArrowRightIcon size={14} />
+                                        </div>
+                                    </Link>
+                                );
+                            }
+                        })}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
 }
 
 export default function TrackingPage() {
@@ -112,6 +448,9 @@ export default function TrackingPage() {
 
         fetchStockData();
     }, [selectedPortfolio]);
+
+    // 按仓位大小分组股票
+    const groupedStocks = groupStocksBySize(selectedPortfolio.stocks);
 
     return (
         <main className="min-h-screen selection:bg-glacier-500/30 transition-colors duration-300">
@@ -166,51 +505,120 @@ export default function TrackingPage() {
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
                 <div className="flex flex-col lg:flex-row gap-8">
-                    {/* Sidebar - Portfolio Selection */}
+                    {/* Sidebar - Portfolio Selection (按分类分组) */}
                     <aside className="w-full lg:w-72 shrink-0">
                         <div className="sticky top-24 space-y-6">
-                            <div>
-                                <h2 className="text-xs font-semibold text-mist-500 uppercase tracking-wider mb-4 px-2">投资组合</h2>
-                                <div className="space-y-1">
-                                    {PORTFOLIOS.map((portfolio) => (
-                                        <button
-                                            key={portfolio.id}
-                                            onClick={() => setSelectedPortfolio(portfolio)}
-                                            className={`w-full text-left px-4 py-3 rounded-xl transition-all flex flex-col gap-1 ${selectedPortfolio.id === portfolio.id
-                                                ? 'bg-glacier-500/10 border border-glacier-500/20 text-glacier-400'
-                                                : 'hover:bg-white/5 border border-transparent text-mist-400 hover:text-mist-200'
-                                                }`}
-                                        >
-                                            <span className="font-medium text-sm">{portfolio.name}</span>
-                                            <span className="text-xs opacity-60 truncate">{portfolio.author}</span>
-                                        </button>
-                                    ))}
+                            {groupedPortfolios.map((group) => (
+                                <div key={group.category}>
+                                    <h2 className="text-xs font-semibold text-mist-500 uppercase tracking-wider mb-3 px-2 flex items-center gap-2">
+                                        <span>{group.icon}</span>
+                                        <span>{group.name}</span>
+                                    </h2>
+                                    <div className="space-y-1">
+                                        {group.portfolios.map((portfolio) => (
+                                            <button
+                                                key={portfolio.id}
+                                                onClick={() => setSelectedPortfolio(portfolio)}
+                                                className={`w-full text-left px-4 py-3 rounded-xl transition-all flex flex-col gap-1 ${selectedPortfolio.id === portfolio.id
+                                                    ? 'bg-glacier-500/10 border border-glacier-500/20 text-glacier-400'
+                                                    : 'hover:bg-white/5 border border-transparent text-mist-400 hover:text-mist-200'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <span className="font-medium text-sm">{portfolio.nameCn}</span>
+                                                    {portfolio.aum && (
+                                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-glacier-500/20 text-glacier-400">
+                                                            {portfolio.aum}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <span className="text-xs opacity-60 truncate">{portfolio.authorCn}</span>
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
+                            ))}
 
                             <div className="p-5 rounded-2xl bg-gradient-to-br from-arctic-800 to-arctic-950 border border-white/5 shadow-lg">
                                 <h3 className="text-sm font-medium mb-2 flex items-center gap-2 theme-text-heading">
                                     <LogoIcon size={16} />
-                                    <span>关于追踪</span>
+                                    <span>{selectedPortfolio.category === 'recommendation' ? '推荐评级说明' : '仓位分类说明'}</span>
                                 </h3>
-                                <p className="text-xs text-mist-500 leading-relaxed">
-                                    通过实时追踪大咖持仓，结合智投 AI 深度分析，助您发现潜藏的投资机会。跨越市场疆界，AI 为您实时解码。
-                                </p>
+                                {selectedPortfolio.category === 'recommendation' ? (
+                                    <div className="space-y-2 text-xs text-mist-500">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-amber-400">⭐⭐⭐⭐⭐</span>
+                                            <span>强烈推荐</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-amber-400">⭐⭐⭐⭐☆</span>
+                                            <span>推荐</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-amber-400">⭐⭐⭐☆☆</span>
+                                            <span>一般推荐</span>
+                                        </div>
+                                        <p className="text-[10px] text-mist-600 mt-2 pt-2 border-t border-white/5">
+                                            ⚠️ 评级为模拟数据，仅供参考
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2 text-xs text-mist-500">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: POSITION_SIZE_CONFIG.large.color }} />
+                                            <span>大仓位：≥ 5%</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: POSITION_SIZE_CONFIG.medium.color }} />
+                                            <span>中仓位：2% - 5%</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: POSITION_SIZE_CONFIG.small.color }} />
+                                            <span>小仓位：&lt; 2%</span>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </aside>
 
-                    {/* Main Content - Stock List */}
+                    {/* Main Content - Stock List (按仓位分组) */}
                     <div className="flex-1 space-y-6">
                         <div className="flex flex-col gap-2">
-                            <h2 className="text-2xl font-light tracking-tight theme-text-heading">{selectedPortfolio.name}</h2>
+                            <div className="flex items-center gap-3">
+                                <span className="text-2xl">{PORTFOLIO_CATEGORIES[selectedPortfolio.category].icon}</span>
+                                <div>
+                                    <h2 className="text-2xl font-light tracking-tight theme-text-heading">{selectedPortfolio.nameCn}</h2>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className="text-sm text-mist-400">{selectedPortfolio.authorCn}</span>
+                                        {selectedPortfolio.aum && (
+                                            <span className="text-xs px-2 py-0.5 rounded-full bg-gradient-to-r from-glacier-500/20 to-gemini-blue/20 text-glacier-400 border border-glacier-500/30">
+                                                💰 {selectedPortfolio.aum}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
                             <p className="text-mist-500 text-sm max-w-2xl">{selectedPortfolio.description}</p>
+                            <div className="flex items-center gap-4 text-xs text-mist-600">
+                                {selectedPortfolio.stocks[0]?.lastUpdated && (
+                                    <span>📅 持仓数据更新于 {selectedPortfolio.stocks[0].lastUpdated}</span>
+                                )}
+                                <span>📊 共 {selectedPortfolio.stocks.length} 只股票</span>
+                            </div>
                         </div>
 
                         {loading ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {[1, 2, 3, 4, 5].map(i => (
-                                    <div key={i} className="h-32 bg-white/5 animate-pulse rounded-2xl border border-white/5" />
+                            <div className="space-y-6">
+                                {[1, 2, 3].map(i => (
+                                    <div key={i} className="space-y-3">
+                                        <div className="h-6 w-32 bg-white/5 animate-pulse rounded" />
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            {[1, 2].map(j => (
+                                                <div key={j} className="h-32 bg-white/5 animate-pulse rounded-xl border border-white/5" />
+                                            ))}
+                                        </div>
+                                    </div>
                                 ))}
                             </div>
                         ) : (
@@ -221,88 +629,68 @@ export default function TrackingPage() {
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: -10 }}
                                     transition={{ duration: 0.2 }}
-                                    className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 gap-4" : "space-y-3"}
+                                    className="space-y-6"
                                 >
-                                    {selectedPortfolio.stocks.map((stock) => {
-                                        const data = stockData[stock.symbol];
-                                        const price = data?.quote?.price || 0;
-                                        const change = data?.quote?.changesPercentage || 0;
-                                        const isPositive = change >= 0;
-                                        const brandColor = isPositive ? '#10b981' : '#ef4444';
-
-                                        if (viewMode === 'grid') {
-                                            return (
-                                                <Link
-                                                    href={`/?symbol=${stock.symbol}`}
-                                                    key={stock.symbol}
-                                                    className="group relative flex flex-col p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-glacier-500/50 hover:bg-white/[0.07] transition-all overflow-hidden"
-                                                >
-                                                    <div className="flex items-start justify-between mb-4">
-                                                        <div>
-                                                            <div className="flex items-center gap-2 mb-1">
-                                                                <span className="font-mono text-sm font-semibold tracking-widest theme-text-heading">{stock.symbol}</span>
-                                                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-mist-500 border border-white/10">{stock.market}</span>
-                                                            </div>
-                                                            <h3 className="text-lg font-medium text-mist-200 group-hover:text-glacier-500 transition-colors">{stock.name}</h3>
-                                                        </div>
-                                                        <div className="text-right flex flex-col items-end">
-                                                            <span className="text-xl font-mono font-medium theme-text-heading">${price.toFixed(2)}</span>
-                                                            <div className={`flex items-center gap-1 text-xs font-medium mt-1 ${isPositive ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                                                {isPositive ? <ArrowUpIcon size={12} /> : <ArrowDownIcon size={12} />}
-                                                                <span>{isPositive ? '+' : ''}{change.toFixed(2)}%</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="flex items-end justify-between mt-auto">
-                                                        <div className="w-full max-w-[120px]">
-                                                            <StockSparkline data={data?.history || []} color={brandColor} />
-                                                        </div>
-                                                        <div className="flex items-center gap-1.5 text-xs text-glacier-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <span>查看 AI 报告</span>
-                                                            <ExternalLinkIcon size={12} />
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Decorative blur */}
-                                                    <div className={`absolute -right-4 -bottom-4 w-24 h-24 rounded-full blur-3xl opacity-0 group-hover:opacity-10 transition-opacity bg-${isPositive ? 'emerald' : 'rose'}-500/20`} />
-                                                </Link>
-                                            );
-                                        } else {
-                                            return (
-                                                <Link
-                                                    href={`/?symbol=${stock.symbol}`}
-                                                    key={stock.symbol}
-                                                    className="group flex items-center p-4 rounded-xl bg-white/5 border border-white/10 hover:border-glacier-500/50 hover:bg-white/[0.07] transition-all"
-                                                >
-                                                    <div className="w-32 flex flex-col">
-                                                        <span className="font-mono text-xs text-mist-500 flex items-center gap-1">
-                                                            {stock.symbol}
-                                                            <span className="scale-75 origin-left text-[9px] px-1 rounded bg-white/5">{stock.market}</span>
-                                                        </span>
-                                                        <span className="text-sm font-medium theme-text-heading truncate">{stock.name}</span>
-                                                    </div>
-
-                                                    <div className="flex-1 px-4 flex justify-center">
-                                                        <div className="w-24">
-                                                            <StockSparkline data={data?.history || []} color={brandColor} />
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="w-32 text-right flex flex-col">
-                                                        <span className="text-sm font-mono font-medium theme-text-heading">${price.toFixed(2)}</span>
-                                                        <span className={`text-[10px] font-bold ${isPositive ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                                            {isPositive ? '+' : ''}{change.toFixed(2)}%
-                                                        </span>
-                                                    </div>
-
-                                                    <div className="ml-4 p-2 rounded-lg bg-white/5 text-mist-500 group-hover:text-glacier-500 group-hover:bg-glacier-500/10 transition-all">
-                                                        <ArrowRightIcon size={16} />
-                                                    </div>
-                                                </Link>
-                                            );
-                                        }
-                                    })}
+                                    {selectedPortfolio.category === 'recommendation' ? (
+                                        // 投资建议类：按评级分组显示
+                                        <>
+                                            <PositionGroup
+                                                size="large"
+                                                stocks={selectedPortfolio.stocks.filter((s: TrackedCompany) => s.rating === 5)}
+                                                stockData={stockData}
+                                                viewMode={viewMode}
+                                                defaultExpanded={true}
+                                                isRecommendation={true}
+                                            />
+                                            <PositionGroup
+                                                size="medium"
+                                                stocks={selectedPortfolio.stocks.filter((s: TrackedCompany) => s.rating === 4)}
+                                                stockData={stockData}
+                                                viewMode={viewMode}
+                                                defaultExpanded={true}
+                                                isRecommendation={true}
+                                            />
+                                            <PositionGroup
+                                                size="small"
+                                                stocks={selectedPortfolio.stocks.filter((s: TrackedCompany) => s.rating && s.rating <= 3)}
+                                                stockData={stockData}
+                                                viewMode={viewMode}
+                                                defaultExpanded={true}
+                                                isRecommendation={true}
+                                            />
+                                        </>
+                                    ) : (
+                                        // 其他类别：按仓位大小分组显示
+                                        <>
+                                            {/* 大仓位 */}
+                                            <PositionGroup
+                                                size="large"
+                                                stocks={groupedStocks.large}
+                                                stockData={stockData}
+                                                viewMode={viewMode}
+                                                defaultExpanded={true}
+                                                portfolioId={selectedPortfolio.id}
+                                            />
+                                            {/* 中仓位 */}
+                                            <PositionGroup
+                                                size="medium"
+                                                stocks={groupedStocks.medium}
+                                                stockData={stockData}
+                                                viewMode={viewMode}
+                                                defaultExpanded={true}
+                                                portfolioId={selectedPortfolio.id}
+                                            />
+                                            {/* 小仓位 */}
+                                            <PositionGroup
+                                                size="small"
+                                                stocks={groupedStocks.small}
+                                                stockData={stockData}
+                                                viewMode={viewMode}
+                                                defaultExpanded={false}
+                                                portfolioId={selectedPortfolio.id}
+                                            />
+                                        </>
+                                    )}
                                 </motion.div>
                             </AnimatePresence>
                         )}

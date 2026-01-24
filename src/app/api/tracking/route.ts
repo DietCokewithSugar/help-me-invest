@@ -22,10 +22,20 @@ export async function POST(request: NextRequest) {
         const results = await Promise.all(
             symbols.map(async (symbol) => {
                 try {
-                    const [quote, history] = await Promise.all([
+                    const [quote, historyData] = await Promise.all([
                         fmp.getQuote(symbol),
-                        fmp.getHistoricalPrice(symbol, undefined, undefined).then(res => (res as any).historical?.slice(0, 30) || [])
+                        // 获取一个月的历史数据用于趋势图
+                        fmp.getHistoricalPrice(symbol, undefined, undefined)
                     ]);
+
+                    // Debug: 打印历史数据格式
+                    if (historyData && symbol === 'AAPL') {
+                        console.log('Historical data sample for AAPL:', JSON.stringify(historyData).substring(0, 500));
+                    }
+
+                    // FMP stable API 直接返回数组，取前30条（最近一个月）
+                    const history = Array.isArray(historyData) ? historyData.slice(0, 30) :
+                        (historyData as any)?.historical?.slice(0, 30) || [];
 
                     return {
                         symbol,
