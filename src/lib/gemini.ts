@@ -619,4 +619,44 @@ ${transcriptText}
     // 使用 lite 模型：财报摘要是结构化提取任务，lite 模型足够
     return this.generateStream(prompt, 'lite');
   }
+
+  // 10. 智能划词解释
+  async explainText(text: string): Promise<string> {
+    const prompt = `
+你是一个专业的金融助手，擅长用最通俗易懂的语言解释复杂的金融概念。
+用户选中了一段文本（可能是专业术语、公司名、或者一段话），请给出一个简单直接的解释。
+
+要求：
+1. **通俗易懂**：假设用户是金融小白，不要堆砌专业术语。如果必须用，请顺便解释。
+2. **简洁**：控制在 100-150 字以内。
+3. **中文回答**。
+4. **格式**：Markdown 格式，关键概念加粗。
+
+用户选中的文本：
+"${text}"
+
+解释：
+`;
+
+    try {
+      // 使用 lite 模型：解释词汇是简单任务，速度优先
+      const model = this.getModel('lite', {
+        temperature: 0.5,
+        topP: 0.9,
+        maxOutputTokens: 1024,
+      });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      return response.text();
+    } catch (error: any) {
+      console.error('Explain text error:', error?.message || error);
+      // 如果是网络错误，抛出更友好的错误信息
+      if (error?.message?.includes('fetch failed') ||
+        error?.message?.includes('ECONNRESET') ||
+        error?.message?.includes('network')) {
+        throw new Error('网络连接失败，请检查网络后重试');
+      }
+      throw error;
+    }
+  }
 }
