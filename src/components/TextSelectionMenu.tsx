@@ -160,39 +160,17 @@ export default function TextSelectionMenu() {
             {/* Trigger Button */}
             <AnimatePresence>
                 {showButton && !showPopover && (
-                    isMobile ? (
-                        // Mobile: Fixed Bottom Button
-                        <motion.button
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 20 }}
-                            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-2 px-6 py-3 bg-surface border border-slate-200 dark:border-white/10 rounded-full shadow-xl"
-                            onClick={handleExplain}
-                        >
-                            <MessageSquare size={16} className="text-teal-600 dark:text-glacier-500" />
-                            <span className="font-medium text-sm theme-text-primary">AI 解读</span>
-                        </motion.button>
-                    ) : (
-                        // Desktop: Floating Tooltip
-                        <motion.button
-                            ref={buttonRef}
-                            initial={{ opacity: 0, scale: 0.9, y: 5 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 5 }}
-                            transition={{ duration: 0.1 }}
-                            style={{
-                                position: 'absolute',
-                                top: buttonTop,
-                                left: buttonLeft,
-                                zIndex: 9999,
-                            }}
-                            onClick={handleExplain}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-surface dark:bg-surface border border-slate-200 dark:border-white/10 rounded-md shadow-lg hover:bg-slate-50 dark:hover:bg-white/5 transition-all cursor-pointer text-xs font-medium theme-text-primary"
-                        >
-                            <MessageSquare size={13} className="text-teal-600 dark:text-glacier-500" />
-                            <span>AI 解读</span>
-                        </motion.button>
-                    )
+                    <motion.button
+                        ref={buttonRef}
+                        initial={{ opacity: 0, y: 20, x: "-50%" }}
+                        animate={{ opacity: 1, y: 0, x: "-50%" }}
+                        exit={{ opacity: 0, y: 20, x: "-50%" }}
+                        className="fixed bottom-6 left-1/2 z-[9999] flex items-center gap-2 px-6 py-3 bg-surface border border-slate-200 dark:border-white/10 rounded-full shadow-xl hover:scale-105 transition-transform cursor-pointer"
+                        onClick={handleExplain}
+                    >
+                        <MessageSquare size={16} className="text-teal-600 dark:text-glacier-500" />
+                        <span className="font-medium text-sm theme-text-primary whitespace-nowrap">AI 解读</span>
+                    </motion.button>
                 )}
             </AnimatePresence>
 
