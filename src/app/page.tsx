@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, Suspense, lazy, useCallback } from 'react';
+import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -25,6 +26,7 @@ import {
   XIcon,
   SunIcon,
   MoonIcon,
+  WeChatIcon,
 } from '@/components/Icons';
 
 // 懒加载组件
@@ -688,24 +690,29 @@ function HomeContent() {
               </div>
 
               {/* 右侧操作区 */}
-              <div className="flex items-center gap-3">
-                {/* 联系我们 */}
-                <button
-                  onClick={() => setShowContactModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer"
-                >
-                  <MessageCircleIcon size={16} className="text-glacier-500" />
-                  <span className="text-sm text-mist-300">联系我们</span>
-                </button>
-
+              <div className="flex items-center gap-2">
                 {/* 追踪功能入口 */}
                 <Link
                   href="/tracking"
-                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer"
+                  className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer"
+                  title="追踪"
                 >
-                  <TrendingUpIcon size={16} className="text-glacier-500" />
-                  <span className="text-sm text-mist-300">追踪</span>
+                  <TrendingUpIcon size={18} className="text-glacier-500" />
                 </Link>
+
+                {/* 联系我们 - 微信图标 */}
+                <button
+                  onClick={() => setShowContactModal(true)}
+                  className="relative flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer overflow-hidden"
+                  title="联系我们"
+                >
+                  <Image
+                    src="/images/wechat-logo.png"
+                    alt="微信"
+                    fill
+                    className="object-cover"
+                  />
+                </button>
 
                 {/* 主题切换 */}
                 <button

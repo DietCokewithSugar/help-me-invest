@@ -258,3 +258,13 @@ export function MoonIcon({ size = 24, ...props }: IconProps) {
   );
 }
 
+// 微信图标
+export function WeChatIcon({ size = 24, ...props }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M12 2C6.477 2 2 5.582 2 10c0 1.956.883 3.743 2.378 5.101L3 19l4.5-1.5c1.332.946 2.87 1.5 4.5 1.5 5.523 0 10-3.582 10-8s-4.477-8-10-8z" />
+      <circle cx="8.5" cy="8.5" r="1" fill="currentColor" />
+      <circle cx="15.5" cy="8.5" r="1" fill="currentColor" />
+    </svg>
+  );
+}
