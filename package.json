@@ -15,6 +15,7 @@
     "@supabase/supabase-js": "^2.90.1",
     "@tailwindcss/typography": "^0.5.19",
     "@types/three": "^0.182.0",
+    "@vercel/analytics": "^1.6.1",
     "echarts": "^5.5.0",
     "echarts-for-react": "^3.0.2",
     "framer-motion": "^12.26.2",
