@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { IncomeStatement } from '@/types';
+import { useUnitMode } from '@/lib/UnitModeContext';
 
 interface Props {
   incomeStatements: IncomeStatement[];
@@ -13,6 +14,8 @@ interface Props {
 export default function RevenueCharts({ incomeStatements, incomeStatementsQuarter, theme = 'dark' }: Props) {
   const isLight = theme === 'light';
   const [period, setPeriod] = useState<'annual' | 'quarter'>('annual');
+  const { unitMode } = useUnitMode();
+
   const activeStatements = period === 'quarter' && incomeStatementsQuarter?.length
     ? incomeStatementsQuarter
     : incomeStatements;
@@ -24,6 +27,11 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
       </div>
     );
   }
+
+  // Dynamic scale based on unit mode
+  const chartScale = unitMode === 'zh' ? 1e8 : 1e9;
+  const chartUnit = unitMode === 'zh' ? '亿' : 'B';
+  const currencyPrefix = unitMode === 'zh' ? '¥' : '$';
 
   // 颜色定义
   const TEXT_PRIMARY = isLight ? '#1e293b' : '#e2e8f0';
@@ -42,9 +50,9 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
     if (period === 'quarter') return `${i.fiscalYear} ${i.period}`;
     return i.date?.split('-')[0] || '';
   }).reverse();
-  const revenues = activeStatements.map(i => (i.revenue || 0) / 1e9).reverse();
-  const netIncomes = activeStatements.map(i => (i.netIncome || 0) / 1e9).reverse();
-  const grossProfits = activeStatements.map(i => (i.grossProfit || 0) / 1e9).reverse();
+  const revenues = activeStatements.map(i => (i.revenue || 0) / chartScale).reverse();
+  const netIncomes = activeStatements.map(i => (i.netIncome || 0) / chartScale).reverse();
+  const grossProfits = activeStatements.map(i => (i.grossProfit || 0) / chartScale).reverse();
   const grossProfitMargins = activeStatements.map(i => {
     const revenue = i.revenue || 0;
     const grossProfit = i.grossProfit || 0;
@@ -73,7 +81,7 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
         result += '<table style="width:100%; border-collapse: collapse;">';
         params.forEach((p: any) => {
           const isMargin = p.seriesName === '毛利率';
-          const valueStr = isMargin ? `${p.value.toFixed(1)}%` : `$${p.value.toFixed(2)}B`;
+          const valueStr = isMargin ? `${p.value.toFixed(1)}%` : `${currencyPrefix}${p.value.toFixed(2)}${chartUnit}`;
           result += `<tr>
             <td style="padding: 2px 8px 2px 0; display: flex; align-items: center;">
               <span style="width: 6px; height: 6px; background: ${p.color}; margin-right: 6px; display: inline-block;"></span>
@@ -212,10 +220,10 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
       borderWidth: 1,
       textStyle: { color: TEXT_PRIMARY },
       formatter: (params: any) => {
-        const value = params.value / 1e9;
+        const value = params.value / chartScale;
         return `<div style="font-weight: 600; color: ${TEXT_PRIMARY};">${params.name}</div>
                 <div style="margin-top: 4px;">
-                  <span style="color: ${ACCENT_COLOR}; font-size: 16px; font-weight: 600;">$${value.toFixed(2)}B</span>
+                  <span style="color: ${ACCENT_COLOR}; font-size: 16px; font-weight: 600;">${currencyPrefix}${value.toFixed(2)}${chartUnit}</span>
                   <span style="color: ${TEXT_MUTED}; margin-left: 8px;">(${params.percent}%)</span>
                 </div>`;
       },
@@ -230,10 +238,10 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
       formatter: (name: string) => {
         const item = pieData.find(d => d.name === name);
         if (item) {
-          const value = item.value / 1e9;
+          const value = item.value / chartScale;
           const total = pieData.reduce((sum, d) => sum + d.value, 0);
           const percent = ((item.value / total) * 100).toFixed(1);
-          return `{name|${name}}\n{value|$${value.toFixed(1)}B} {percent|(${percent}%)}`;
+          return `{name|${name}}\n{value|${currencyPrefix}${value.toFixed(1)}${chartUnit}} {percent|(${percent}%)}`;
         }
         return name;
       },
@@ -324,7 +332,7 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
         </div>
         <div className="bg-white/5 rounded-sm p-4 border border-white/10">
           <h4 className="text-xs font-mono font-medium text-mist-500 mb-4 uppercase tracking-wider">
-            成本结构 ({(pieData[0]?.value / 1e9).toFixed(1)}B+)
+            成本结构 ({currencyPrefix}{(pieData[0]?.value / chartScale).toFixed(1)}{chartUnit}+)
           </h4>
           <ReactECharts
             option={pieOption}

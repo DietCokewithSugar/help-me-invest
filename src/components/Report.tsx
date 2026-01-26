@@ -36,6 +36,9 @@ import ShareExportModal from './ShareExportModal';
 import type { ReportData, MarketType } from '@/types';
 import { getMarketConfig } from '@/lib/markets';
 import { buildSankeyData } from '@/lib/sankey-utils';
+import { useUnitMode } from '@/lib/UnitModeContext';
+import { formatNumber as formatNumberUtil } from '@/lib/format-number';
+import UnitModeToggle from './UnitModeToggle';
 
 // 市场标识徽章 - 极简设计，无 emoji，直角
 const MarketBadge = ({ market }: { market: MarketType }) => {
@@ -665,12 +668,12 @@ export default function Report({
     }));
   };
 
+  // Use unit mode from context
+  const { unitMode } = useUnitMode();
+
   const formatNumber = (num: number) => {
     if (!num) return 'N/A';
-    if (num >= 1e12) return (num / 1e12).toFixed(2) + 'T';
-    if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
-    if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
-    return num.toLocaleString();
+    return formatNumberUtil(num, unitMode);
   };
 
   const formatDate = (dateStr: string) => {
@@ -805,6 +808,9 @@ export default function Report({
               专业版
             </button>
           </div>
+
+          {/* 单位切换 */}
+          <UnitModeToggle />
 
           {/* 快捷导航 */}
           <div className="hidden lg:flex items-center gap-1 p-1 rounded bg-white/5 border border-white/5">

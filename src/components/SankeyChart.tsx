@@ -2,6 +2,7 @@
 
 import ReactECharts from 'echarts-for-react';
 import type { SankeyData } from '@/types';
+import { useUnitMode } from '@/lib/UnitModeContext';
 
 interface SankeyProps {
   data: SankeyData;
@@ -10,8 +11,16 @@ interface SankeyProps {
 
 export default function SankeyChart({ data, theme = 'dark' }: SankeyProps) {
   const isLight = theme === 'light';
+  const { unitMode } = useUnitMode();
 
   const formatValue = (value: number) => {
+    if (unitMode === 'zh') {
+      // Chinese units: 亿, 万
+      if (Math.abs(value) >= 1e8) return `¥${(value / 1e8).toFixed(1)}亿`;
+      if (Math.abs(value) >= 1e4) return `¥${(value / 1e4).toFixed(1)}万`;
+      return `¥${value.toLocaleString()}`;
+    }
+    // English units
     if (value >= 1e9) return `$${(value / 1e9).toFixed(1)}B`;
     if (value >= 1e6) return `$${(value / 1e6).toFixed(1)}M`;
     return `$${value.toLocaleString()}`;

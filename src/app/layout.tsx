@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Analytics } from '@vercel/analytics/next';
 import TextSelectionMenu from '@/components/TextSelectionMenu';
+import { UnitModeProvider } from '@/lib/UnitModeContext';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -32,11 +33,13 @@ export default function RootLayout({
         <meta name="theme-color" content="#0A0A0B" />
       </head>
       <body className="antialiased">
-        <div className="relative z-10">
-          {children}
-        </div>
-        <Analytics />
-        <TextSelectionMenu />
+        <UnitModeProvider>
+          <div className="relative z-10">
+            {children}
+          </div>
+          <Analytics />
+          <TextSelectionMenu />
+        </UnitModeProvider>
       </body>
     </html>
   );
