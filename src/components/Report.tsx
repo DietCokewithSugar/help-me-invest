@@ -120,6 +120,7 @@ interface ReportProps {
   aiError?: string;
   onRegenerate?: () => Promise<void>;
   theme?: 'dark' | 'light';
+  isModalView?: boolean;
 }
 
 // 分析卡片组件
@@ -345,42 +346,42 @@ function StatCard({
 }
 
 // 五维度评估系统 - 级别类型
-type DimensionLevel = 'green' | 'orange' | 'red' | 'blue';
+type DimensionLevel = 'good' | 'neutral' | 'bad' | 'special';
 
 // 五维度评估标签
 interface DimensionTag {
   dimension: string;        // 维度名称（中文）
   dimensionKey: string;     // 维度键（英文）
-  level: DimensionLevel;    // 级别（颜色）
+  level: DimensionLevel;    // 级别
   label: string;            // 标签文字
   icon: any;                // 图标
 }
 
-// 四色样式配置
+// 极简黑白高级感样式配置
 const LEVEL_STYLES: Record<DimensionLevel, { bg: string; border: string; text: string; iconColor: string }> = {
-  'green': {
-    bg: 'bg-emerald-500/15',
-    border: 'border-emerald-500/30',
-    text: 'text-emerald-400',
-    iconColor: 'text-emerald-500',
+  'good': {
+    bg: 'bg-white',
+    border: 'border-transparent',
+    text: 'text-black',
+    iconColor: 'text-black',
   },
-  'orange': {
-    bg: 'bg-orange-500/15',
-    border: 'border-orange-500/30',
-    text: 'text-orange-400',
-    iconColor: 'text-orange-500',
+  'neutral': {
+    bg: 'bg-white/10',
+    border: 'border-white/20',
+    text: 'text-mist-200',
+    iconColor: 'text-mist-400',
   },
-  'red': {
-    bg: 'bg-red-500/15',
-    border: 'border-red-500/30',
-    text: 'text-red-400',
-    iconColor: 'text-red-500',
+  'bad': {
+    bg: 'bg-transparent',
+    border: 'border-white/10',
+    text: 'text-mist-500 line-through decoration-mist-700',
+    iconColor: 'text-mist-600',
   },
-  'blue': {
-    bg: 'bg-blue-500/15',
-    border: 'border-blue-500/30',
-    text: 'text-blue-400',
-    iconColor: 'text-blue-500',
+  'special': {
+    bg: 'bg-white',
+    border: 'border-transparent',
+    text: 'text-black',
+    iconColor: 'text-black',
   },
 };
 
@@ -390,12 +391,12 @@ function DimensionBadge({ tag }: { tag: DimensionTag }) {
   const Icon = tag.icon;
 
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-[10px] text-mist-600 font-mono uppercase tracking-wider">{tag.dimension}</span>
-      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border ${style.bg} ${style.border} ${style.text} transition-all hover:scale-105`}>
-        <Icon className={`w-3 h-3 ${style.iconColor}`} />
-        {tag.label}
-      </span>
+    <div className="flex flex-col gap-1.5">
+      <span className="text-[10px] text-mist-500 font-mono uppercase tracking-widest">{tag.dimension}</span>
+      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-sm text-xs font-medium border transition-all ${style.bg} ${style.border} ${style.text}`}>
+        <Icon className={`w-3.5 h-3.5 ${style.iconColor}`} />
+        <span className="tracking-wide">{tag.label}</span>
+      </div>
     </div>
   );
 }
@@ -430,13 +431,13 @@ function generateDimensionTags(
   const isPolicySupported = policySupported.some(k => aiText.includes(k));
 
   if (isPolicySupported) {
-    tags.push({ dimension: '行业前景', dimensionKey: 'industryOutlook', level: 'blue', label: '政策扶持', icon: Shield });
+    tags.push({ dimension: '行业前景', dimensionKey: 'industryOutlook', level: 'special', label: '政策扶持', icon: Shield });
   } else if (isSunrise) {
-    tags.push({ dimension: '行业前景', dimensionKey: 'industryOutlook', level: 'green', label: '朝阳行业', icon: Sun });
+    tags.push({ dimension: '行业前景', dimensionKey: 'industryOutlook', level: 'good', label: '朝阳行业', icon: Sun });
   } else if (isSunset) {
-    tags.push({ dimension: '行业前景', dimensionKey: 'industryOutlook', level: 'red', label: '夕阳行业', icon: SunDim });
+    tags.push({ dimension: '行业前景', dimensionKey: 'industryOutlook', level: 'bad', label: '夕阳行业', icon: SunDim });
   } else {
-    tags.push({ dimension: '行业前景', dimensionKey: 'industryOutlook', level: 'orange', label: '成熟行业', icon: Building2 });
+    tags.push({ dimension: '行业前景', dimensionKey: 'industryOutlook', level: 'neutral', label: '成熟行业', icon: Building2 });
   }
 
   // ============== 2. 行业地位 ==============
@@ -449,13 +450,13 @@ function generateDimensionTags(
   const isSecondTier = secondTierKeywords.some(k => aiText.includes(k));
 
   if (isMonopoly) {
-    tags.push({ dimension: '行业地位', dimensionKey: 'industryPosition', level: 'blue', label: '行业垄断', icon: Shield });
+    tags.push({ dimension: '行业地位', dimensionKey: 'industryPosition', level: 'special', label: '行业垄断', icon: Shield });
   } else if (isLeader) {
-    tags.push({ dimension: '行业地位', dimensionKey: 'industryPosition', level: 'green', label: '行业龙头', icon: Crown });
+    tags.push({ dimension: '行业地位', dimensionKey: 'industryPosition', level: 'good', label: '行业龙头', icon: Crown });
   } else if (isSecondTier) {
-    tags.push({ dimension: '行业地位', dimensionKey: 'industryPosition', level: 'orange', label: '第二梯队', icon: Users2 });
+    tags.push({ dimension: '行业地位', dimensionKey: 'industryPosition', level: 'neutral', label: '第二梯队', icon: Users2 });
   } else {
-    tags.push({ dimension: '行业地位', dimensionKey: 'industryPosition', level: 'red', label: '边缘玩家', icon: UserX });
+    tags.push({ dimension: '行业地位', dimensionKey: 'industryPosition', level: 'bad', label: '边缘玩家', icon: UserX });
   }
 
   // ============== 3. 经营情况 ==============
@@ -463,13 +464,13 @@ function generateDimensionTags(
   const isRestructuring = restructuringKeywords.some(k => aiText.includes(k));
 
   if (isRestructuring) {
-    tags.push({ dimension: '经营情况', dimensionKey: 'operations', level: 'blue', label: '转型中', icon: RefreshCw });
+    tags.push({ dimension: '经营情况', dimensionKey: 'operations', level: 'special', label: '转型中', icon: RefreshCw });
   } else if (revenueGrowth > 0.10 && netIncomeGrowth > 0.15) {
-    tags.push({ dimension: '经营情况', dimensionKey: 'operations', level: 'green', label: '经营优秀', icon: TrendingUp });
+    tags.push({ dimension: '经营情况', dimensionKey: 'operations', level: 'good', label: '经营优秀', icon: TrendingUp });
   } else if (revenueGrowth < 0 || netIncomeGrowth < -0.10) {
-    tags.push({ dimension: '经营情况', dimensionKey: 'operations', level: 'red', label: '经营困难', icon: TrendingDown });
+    tags.push({ dimension: '经营情况', dimensionKey: 'operations', level: 'bad', label: '经营困难', icon: TrendingDown });
   } else {
-    tags.push({ dimension: '经营情况', dimensionKey: 'operations', level: 'orange', label: '经营平稳', icon: Activity });
+    tags.push({ dimension: '经营情况', dimensionKey: 'operations', level: 'neutral', label: '经营平稳', icon: Activity });
   }
 
   // ============== 4. 发展势头（重点：小型优质企业最好，巨无霸应该低）==============
@@ -480,14 +481,14 @@ function generateDimensionTags(
 
   if (marketCap >= GIANT_THRESHOLD) {
     // 万亿巨头，体量太大难以翻倍
-    tags.push({ dimension: '发展势头', dimensionKey: 'growthMomentum', level: 'blue', label: '巨无霸', icon: Building2 });
+    tags.push({ dimension: '发展势头', dimensionKey: 'growthMomentum', level: 'special', label: '巨无霸', icon: Building2 });
   } else if (marketCap < LARGE_THRESHOLD && revenueGrowth > 0.20 && netIncomeGrowth > 0.25) {
     // 小型且高增长，最有翻倍潜力
-    tags.push({ dimension: '发展势头', dimensionKey: 'growthMomentum', level: 'green', label: '高速成长', icon: Zap });
+    tags.push({ dimension: '发展势头', dimensionKey: 'growthMomentum', level: 'good', label: '高速成长', icon: Zap });
   } else if (revenueGrowth < 0.05 || netIncomeGrowth < 0) {
-    tags.push({ dimension: '发展势头', dimensionKey: 'growthMomentum', level: 'red', label: '增长乏力', icon: TrendingDown });
+    tags.push({ dimension: '发展势头', dimensionKey: 'growthMomentum', level: 'bad', label: '增长乏力', icon: TrendingDown });
   } else {
-    tags.push({ dimension: '发展势头', dimensionKey: 'growthMomentum', level: 'orange', label: '稳健增长', icon: TrendingUp });
+    tags.push({ dimension: '发展势头', dimensionKey: 'growthMomentum', level: 'neutral', label: '稳健增长', icon: TrendingUp });
   }
 
   // ============== 5. 目前体量 ==============
@@ -497,13 +498,13 @@ function generateDimensionTags(
   const MID_CAP = 10e9;               // 百亿美元
 
   if (marketCap >= TRILLION_THRESHOLD) {
-    tags.push({ dimension: '目前体量', dimensionKey: 'scale', level: 'blue', label: '万亿巨头', icon: Crown });
+    tags.push({ dimension: '目前体量', dimensionKey: 'scale', level: 'special', label: '万亿巨头', icon: Crown });
   } else if (marketCap >= LARGE_CAP) {
-    tags.push({ dimension: '目前体量', dimensionKey: 'scale', level: 'green', label: '大型企业', icon: Building2 });
+    tags.push({ dimension: '目前体量', dimensionKey: 'scale', level: 'good', label: '大型企业', icon: Building2 });
   } else if (marketCap >= MID_CAP) {
-    tags.push({ dimension: '目前体量', dimensionKey: 'scale', level: 'orange', label: '中型企业', icon: Building2 });
+    tags.push({ dimension: '目前体量', dimensionKey: 'scale', level: 'neutral', label: '中型企业', icon: Building2 });
   } else {
-    tags.push({ dimension: '目前体量', dimensionKey: 'scale', level: 'red', label: '小型企业', icon: Warehouse });
+    tags.push({ dimension: '目前体量', dimensionKey: 'scale', level: 'bad', label: '小型企业', icon: Warehouse });
   }
 
   return tags;
@@ -543,12 +544,8 @@ function CompanyTags({
   }
 
   return (
-    <div className="mt-4">
-      <div className="flex items-center gap-1 mb-3">
-        <Tag className="w-3 h-3 text-mist-600" />
-        <span className="text-xs text-mist-600 font-mono uppercase tracking-wider">五维度评估</span>
-      </div>
-      <div className="flex flex-wrap items-start gap-4">
+    <div className="mt-6 border-t border-white/5 pt-6">
+      <div className="flex flex-wrap items-start gap-6">
         {tags.map((tag, index) => (
           <DimensionBadge key={`${tag.dimensionKey}-${index}`} tag={tag} />
         ))}
@@ -564,6 +561,7 @@ export default function Report({
   aiError = '',
   onRegenerate,
   theme = 'dark',
+  isModalView = false,
 }: ReportProps) {
   const reportRef = useRef<HTMLDivElement>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -773,13 +771,17 @@ export default function Report({
 
       {/* 操作栏 */}
       <div className="flex items-center justify-between mb-8 animate-fade-in-up">
-        <button
-          onClick={onReset}
-          className="gemini-btn gemini-btn-secondary flex items-center gap-2"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          返回搜索
-        </button>
+        {!isModalView ? (
+          <button
+            onClick={onReset}
+            className="gemini-btn gemini-btn-secondary flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            返回搜索
+          </button>
+        ) : (
+          <div /> /* Placeholder to keep layout alignment if needed, or just let justify-between handle it */
+        )}
 
         <div className="flex items-center gap-3">
           {/* 版本切换 */}

@@ -20,7 +20,13 @@ import {
     ExternalLink as ExternalLinkIcon,
     ChevronDown as ChevronDownIcon,
     ChevronRight as ChevronRightIcon,
+    Calendar as CalendarIcon,
+    PieChart as PieChartIcon,
+    Users as UsersIcon,
+    AlertTriangle as AlertTriangleIcon,
+    Coins as CoinsIcon,
 } from 'lucide-react';
+import ReportModal from '@/components/ReportModal';
 import {
     PORTFOLIOS,
     PORTFOLIO_CATEGORIES,
@@ -173,7 +179,8 @@ function PositionGroup({
     viewMode,
     defaultExpanded = true,
     isRecommendation = false,
-    portfolioId = ''
+    portfolioId = '',
+    onSelectCompany
 }: {
     size: PositionSize;
     stocks: TrackedCompany[];
@@ -182,6 +189,7 @@ function PositionGroup({
     defaultExpanded?: boolean;
     isRecommendation?: boolean;
     portfolioId?: string;
+    onSelectCompany: (company: TrackedCompany) => void;
 }) {
     const [expanded, setExpanded] = useState(defaultExpanded);
     const config = POSITION_SIZE_CONFIG[size];
@@ -190,9 +198,9 @@ function PositionGroup({
 
     // 推荐评级对应的显示名称
     const recommendationLabels: Record<PositionSize, string> = {
-        large: '⭐⭐⭐⭐⭐ 强烈推荐',
-        medium: '⭐⭐⭐⭐ 推荐',
-        small: '⭐⭐⭐ 一般推荐'
+        large: '强烈推荐',
+        medium: '推荐',
+        small: '一般推荐'
     };
 
     const displayName = isRecommendation ? recommendationLabels[size] : config.name;
@@ -239,15 +247,14 @@ function PositionGroup({
 
                             if (viewMode === 'grid') {
                                 return (
-                                    <Link
-                                        href={`/?symbol=${stock.symbol}`}
+                                    <div
+                                        onClick={() => onSelectCompany(stock)}
                                         key={stock.symbol}
-                                        className="group relative flex flex-col p-4 rounded-xl bg-white/5 border border-white/10 hover:border-glacier-500/50 hover:bg-white/[0.07] transition-all overflow-hidden"
+                                        className="group relative flex flex-col p-4 rounded-xl bg-white/5 border border-white/10 hover:border-glacier-500/50 hover:bg-white/[0.07] transition-all overflow-hidden cursor-pointer"
                                     >
                                         <div className="flex items-start justify-between mb-2">
                                             <div>
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <span className="font-mono text-xs font-semibold tracking-widest theme-text-heading">{stock.symbol}</span>
                                                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-mist-500 border border-white/10">{stock.market}</span>
                                                 </div>
                                                 <h3 className="text-base font-medium text-mist-200 group-hover:text-glacier-500 transition-colors">{stock.name}</h3>
@@ -273,7 +280,7 @@ function PositionGroup({
                                             {isRecommendation && stock.rating ? (
                                                 <div className="flex items-center gap-1">
                                                     <span className="text-mist-600">评级</span>
-                                                    <span className="text-amber-400">{renderStars(stock.rating)}</span>
+                                                    <span className="text-amber-400 font-mono">{renderStars(stock.rating)}</span>
                                                 </div>
                                             ) : (
                                                 <>
@@ -305,7 +312,7 @@ function PositionGroup({
                                             if (sharedHolders.length === 0) return null;
                                             return (
                                                 <div className="flex items-center gap-1 mb-2 text-[10px]">
-                                                    <span className="text-mist-600">🤝</span>
+                                                    <UsersIcon size={10} className="text-mist-600" />
                                                     <span className="text-glacier-400" title={sharedHolders.map(h => h.authorCn).join(', ')}>
                                                         +{sharedHolders.length} 位投资人也持有
                                                     </span>
@@ -322,18 +329,18 @@ function PositionGroup({
                                                 <StockSparkline data={data?.history || []} />
                                             </div>
                                         </div>
-                                    </Link>
+                                    </div>
                                 );
                             } else {
+
                                 return (
-                                    <Link
-                                        href={`/?symbol=${stock.symbol}`}
+                                    <div
+                                        onClick={() => onSelectCompany(stock)}
                                         key={stock.symbol}
-                                        className="group flex items-center p-3 rounded-lg bg-white/5 border border-white/10 hover:border-glacier-500/50 hover:bg-white/[0.07] transition-all"
+                                        className="group flex items-center p-3 rounded-lg bg-white/5 border border-white/10 hover:border-glacier-500/50 hover:bg-white/[0.07] transition-all cursor-pointer"
                                     >
                                         <div className="w-32 flex flex-col">
                                             <span className="font-mono text-xs text-mist-500 flex items-center gap-1">
-                                                {stock.symbol}
                                                 <span className="scale-75 origin-left text-[9px] px-1 rounded bg-white/5">{stock.market}</span>
                                             </span>
                                             <span className="text-sm font-medium theme-text-heading truncate">{stock.name}</span>
@@ -342,7 +349,7 @@ function PositionGroup({
                                         {/* 持仓占比 / 推荐评级 */}
                                         <div className="w-24 text-center">
                                             {isRecommendation && stock.rating ? (
-                                                <span className="text-amber-400 text-xs">{renderStars(stock.rating)}</span>
+                                                <span className="text-amber-400 text-xs font-mono">{renderStars(stock.rating)}</span>
                                             ) : stock.portfolioPercent ? (
                                                 <span className="font-mono text-xs font-medium" style={{ color: config.color }}>{stock.portfolioPercent.toFixed(1)}%</span>
                                             ) : null}
@@ -355,10 +362,10 @@ function PositionGroup({
                                                 if (sharedHolders.length === 0) return null;
                                                 return (
                                                     <span
-                                                        className="text-[10px] px-1.5 py-0.5 rounded-full bg-glacier-500/20 text-glacier-400"
+                                                        className="text-[10px] px-1.5 py-0.5 rounded-full bg-glacier-500/20 text-glacier-400 flex items-center justify-center gap-0.5"
                                                         title={sharedHolders.map(h => h.authorCn).join(', ')}
                                                     >
-                                                        +{sharedHolders.length}🤝
+                                                        +{sharedHolders.length} <UsersIcon size={8} />
                                                     </span>
                                                 );
                                             })()}
@@ -387,7 +394,7 @@ function PositionGroup({
                                         <div className="ml-3 p-1.5 rounded-lg bg-white/5 text-mist-500 group-hover:text-glacier-500 group-hover:bg-glacier-500/10 transition-all">
                                             <ArrowRightIcon size={14} />
                                         </div>
-                                    </Link>
+                                    </div>
                                 );
                             }
                         })}
@@ -404,6 +411,13 @@ export default function TrackingPage() {
     const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+    const [selectedCompany, setSelectedCompany] = useState<TrackedCompany | null>(null);
+    const [reportModalOpen, setReportModalOpen] = useState(false);
+
+    const handleSelectCompany = (company: TrackedCompany) => {
+        setSelectedCompany(company);
+        setReportModalOpen(true);
+    };
 
     // 初始化主题
     useEffect(() => {
@@ -547,19 +561,19 @@ export default function TrackingPage() {
                                 {selectedPortfolio.category === 'recommendation' ? (
                                     <div className="space-y-2 text-xs text-mist-500">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-amber-400">⭐⭐⭐⭐⭐</span>
+                                            <span className="text-amber-400">5/5</span>
                                             <span>强烈推荐</span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <span className="text-amber-400">⭐⭐⭐⭐☆</span>
+                                            <span className="text-amber-400">4/5</span>
                                             <span>推荐</span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <span className="text-amber-400">⭐⭐⭐☆☆</span>
+                                            <span className="text-amber-400">3/5</span>
                                             <span>一般推荐</span>
                                         </div>
-                                        <p className="text-[10px] text-mist-600 mt-2 pt-2 border-t border-white/5">
-                                            ⚠️ 评级为模拟数据，仅供参考
+                                        <p className="text-[10px] text-mist-600 mt-2 pt-2 border-t border-white/5 flex items-center gap-1">
+                                            <AlertTriangleIcon size={10} /> 评级为模拟数据，仅供参考
                                         </p>
                                     </div>
                                 ) : (
@@ -592,8 +606,8 @@ export default function TrackingPage() {
                                     <div className="flex items-center gap-2 mt-1">
                                         <span className="text-sm text-mist-400">{selectedPortfolio.authorCn}</span>
                                         {selectedPortfolio.aum && (
-                                            <span className="text-xs px-2 py-0.5 rounded-full bg-gradient-to-r from-glacier-500/20 to-gemini-blue/20 text-glacier-400 border border-glacier-500/30">
-                                                💰 {selectedPortfolio.aum}
+                                            <span className="text-xs px-2 py-0.5 rounded-full bg-gradient-to-r from-glacier-500/20 to-gemini-blue/20 text-glacier-400 border border-glacier-500/30 flex items-center gap-1">
+                                                <CoinsIcon size={10} /> {selectedPortfolio.aum}
                                             </span>
                                         )}
                                     </div>
@@ -602,9 +616,9 @@ export default function TrackingPage() {
                             <p className="text-mist-500 text-sm max-w-2xl">{selectedPortfolio.description}</p>
                             <div className="flex items-center gap-4 text-xs text-mist-600">
                                 {selectedPortfolio.stocks[0]?.lastUpdated && (
-                                    <span>📅 持仓数据更新于 {selectedPortfolio.stocks[0].lastUpdated}</span>
+                                    <span className="flex items-center gap-1"><CalendarIcon size={12} /> 持仓数据更新于 {selectedPortfolio.stocks[0].lastUpdated}</span>
                                 )}
-                                <span>📊 共 {selectedPortfolio.stocks.length} 只股票</span>
+                                <span className="flex items-center gap-1"><PieChartIcon size={12} /> 共 {selectedPortfolio.stocks.length} 只股票</span>
                             </div>
                         </div>
 
@@ -641,6 +655,7 @@ export default function TrackingPage() {
                                                 viewMode={viewMode}
                                                 defaultExpanded={true}
                                                 isRecommendation={true}
+                                                onSelectCompany={handleSelectCompany}
                                             />
                                             <PositionGroup
                                                 size="medium"
@@ -649,6 +664,7 @@ export default function TrackingPage() {
                                                 viewMode={viewMode}
                                                 defaultExpanded={true}
                                                 isRecommendation={true}
+                                                onSelectCompany={handleSelectCompany}
                                             />
                                             <PositionGroup
                                                 size="small"
@@ -657,6 +673,7 @@ export default function TrackingPage() {
                                                 viewMode={viewMode}
                                                 defaultExpanded={true}
                                                 isRecommendation={true}
+                                                onSelectCompany={handleSelectCompany}
                                             />
                                         </>
                                     ) : (
@@ -670,6 +687,7 @@ export default function TrackingPage() {
                                                 viewMode={viewMode}
                                                 defaultExpanded={true}
                                                 portfolioId={selectedPortfolio.id}
+                                                onSelectCompany={handleSelectCompany}
                                             />
                                             {/* 中仓位 */}
                                             <PositionGroup
@@ -679,6 +697,7 @@ export default function TrackingPage() {
                                                 viewMode={viewMode}
                                                 defaultExpanded={true}
                                                 portfolioId={selectedPortfolio.id}
+                                                onSelectCompany={handleSelectCompany}
                                             />
                                             {/* 小仓位 */}
                                             <PositionGroup
@@ -688,6 +707,7 @@ export default function TrackingPage() {
                                                 viewMode={viewMode}
                                                 defaultExpanded={false}
                                                 portfolioId={selectedPortfolio.id}
+                                                onSelectCompany={handleSelectCompany}
                                             />
                                         </>
                                     )}
@@ -697,6 +717,19 @@ export default function TrackingPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Report Modal */}
+            {selectedCompany && (
+                <div className="report-modal-wrapper">
+                    <ReportModal
+                        isOpen={reportModalOpen}
+                        onClose={() => setReportModalOpen(false)}
+                        symbol={selectedCompany.symbol}
+                        market={selectedCompany.market}
+                        companyName={selectedCompany.name}
+                    />
+                </div>
+            )}
         </main>
     );
 }

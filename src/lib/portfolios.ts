@@ -2,10 +2,10 @@
 export type PortfolioCategory = 'legendary' | 'politician' | 'hedge_fund' | 'recommendation';
 
 export const PORTFOLIO_CATEGORIES: Record<PortfolioCategory, { name: string; icon: string }> = {
-    legendary: { name: '传奇投资人', icon: '🏆' },
-    politician: { name: '政客持仓', icon: '🏛️' },
-    hedge_fund: { name: '对冲基金', icon: '📈' },
-    recommendation: { name: '投资建议', icon: '📋' },
+    legendary: { name: '传奇投资人', icon: '' },
+    politician: { name: '政客持仓', icon: '' },
+    hedge_fund: { name: '对冲基金', icon: '' },
+    recommendation: { name: '投资建议', icon: '' },
 };
 
 // 仓位大小分类
@@ -36,9 +36,9 @@ export interface TrackedCompany {
     rating?: 1 | 2 | 3 | 4 | 5;  // 推荐评级 (仅用于投资建议类)
 }
 
-// 生成星级显示
+// 生成评级显示
 export function renderStars(rating: number): string {
-    return '⭐'.repeat(rating) + '☆'.repeat(5 - rating);
+    return `${rating}/5`;
 }
 
 // 获取持有同一股票的其他投资人
