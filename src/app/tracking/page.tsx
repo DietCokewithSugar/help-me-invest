@@ -250,88 +250,62 @@ function PositionGroup({
                                     <div
                                         onClick={() => onSelectCompany(stock)}
                                         key={stock.symbol}
-                                        className="group relative flex flex-col p-4 rounded-xl bg-white/5 border border-white/10 hover:border-glacier-500/50 hover:bg-white/[0.07] transition-all overflow-hidden cursor-pointer"
+                                        className="group relative flex items-center p-3 rounded-xl bg-white/5 border border-white/10 hover:border-glacier-500/50 hover:bg-white/[0.07] transition-all overflow-hidden cursor-pointer gap-4"
                                     >
-                                        <div className="flex items-start justify-between mb-2">
-                                            <div>
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-mist-500 border border-white/10">{stock.market}</span>
-                                                </div>
-                                                <h3 className="text-base font-medium text-mist-200 group-hover:text-glacier-500 transition-colors">{stock.name}</h3>
+                                        {/* Column 1: Name & Basic Info */}
+                                        <div className="flex-1 min-w-0 flex flex-col gap-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[9px] px-1 py-0.5 rounded bg-white/5 text-mist-500 border border-white/10">{stock.market}</span>
+                                                <h3 className="text-sm font-medium text-mist-200 group-hover:text-glacier-500 transition-colors truncate">{stock.name}</h3>
                                             </div>
-                                            <div className="text-right flex flex-col items-end">
-                                                <span className="text-lg font-mono font-medium theme-text-heading">${price.toFixed(2)}</span>
-                                                {(() => {
-                                                    const monthChange = calcMonthlyChange(data?.history || []);
-                                                    const isMonthPositive = monthChange >= 0;
-                                                    return (
-                                                        <div className={`flex items-center gap-1 text-xs font-medium ${isMonthPositive ? 'text-rose-500' : 'text-emerald-500'}`}>
-                                                            {isMonthPositive ? <ArrowUpIcon size={10} /> : <ArrowDownIcon size={10} />}
-                                                            <span>{isMonthPositive ? '+' : ''}{monthChange.toFixed(2)}%</span>
-                                                            <span className="text-mist-600 text-[9px]">月</span>
-                                                        </div>
-                                                    );
-                                                })()}
-                                            </div>
-                                        </div>
 
-                                        {/* 持仓详情 / 推荐评级 */}
-                                        <div className="flex items-center gap-3 mb-2 text-xs">
-                                            {isRecommendation && stock.rating ? (
-                                                <div className="flex items-center gap-1">
-                                                    <span className="text-mist-600">评级</span>
+                                            <div className="flex items-center gap-2 text-[10px]">
+                                                {isRecommendation && stock.rating ? (
                                                     <span className="text-amber-400 font-mono">{renderStars(stock.rating)}</span>
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    {stock.portfolioPercent && (
-                                                        <div className="flex items-center gap-1">
-                                                            <span className="text-mist-600">占比</span>
+                                                ) : (
+                                                    <>
+                                                        {stock.portfolioPercent && (
                                                             <span className="font-mono font-medium" style={{ color: config.color }}>{stock.portfolioPercent.toFixed(1)}%</span>
-                                                        </div>
-                                                    )}
-                                                    {stock.shares && (
-                                                        <div className="flex items-center gap-1">
-                                                            <span className="text-mist-600">持股</span>
-                                                            <span className="font-mono text-mist-300">{formatShares(stock.shares)}</span>
-                                                        </div>
-                                                    )}
-                                                    {stock.marketValue && (
-                                                        <div className="flex items-center gap-1">
-                                                            <span className="text-mist-600">市值</span>
-                                                            <span className="font-mono text-mist-300">{formatMillions(stock.marketValue)}</span>
-                                                        </div>
-                                                    )}
-                                                </>
-                                            )}
+                                                        )}
+                                                        {!isRecommendation && portfolioId && (() => {
+                                                            const sharedHolders = getSharedHolders(stock.symbol, portfolioId);
+                                                            if (sharedHolders.length === 0) return null;
+                                                            return (
+                                                                <div className="flex items-center gap-0.5 text-glacier-400/80">
+                                                                    <UsersIcon size={8} />
+                                                                    <span>+{sharedHolders.length}</span>
+                                                                </div>
+                                                            );
+                                                        })()}
+                                                    </>
+                                                )}
+                                            </div>
                                         </div>
 
-                                        {/* 共同持仓者 */}
-                                        {!isRecommendation && portfolioId && (() => {
-                                            const sharedHolders = getSharedHolders(stock.symbol, portfolioId);
-                                            if (sharedHolders.length === 0) return null;
-                                            return (
-                                                <div className="flex items-center gap-1 mb-2 text-[10px]">
-                                                    <UsersIcon size={10} className="text-mist-600" />
-                                                    <span className="text-glacier-400" title={sharedHolders.map(h => h.authorCn).join(', ')}>
-                                                        +{sharedHolders.length} 位投资人也持有
-                                                    </span>
-                                                </div>
-                                            );
-                                        })()}
+                                        {/* Column 2: Sparkline (K-line) */}
+                                        <div className="w-24 shrink-0 flex justify-center">
+                                            <StockSparkline data={data?.history || []} showLabel={false} />
+                                        </div>
 
-                                        <div className="flex items-end justify-between mt-auto">
-                                            <div className="flex items-center gap-1 text-xs text-glacier-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <span>AI 报告</span>
-                                                <ExternalLinkIcon size={10} />
-                                            </div>
-                                            <div className="w-full max-w-[140px]">
-                                                <StockSparkline data={data?.history || []} />
-                                            </div>
+                                        {/* Column 3: Price & Change */}
+                                        <div className="w-24 shrink-0 text-right flex flex-col justify-center">
+                                            <span className="text-sm font-mono font-medium theme-text-heading">${price.toFixed(2)}</span>
+                                            {(() => {
+                                                const monthChange = calcMonthlyChange(data?.history || []);
+                                                const isMonthPositive = monthChange >= 0;
+                                                return (
+                                                    <div className={`flex items-center justify-end gap-0.5 text-[10px] font-bold ${isMonthPositive ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                                        {isMonthPositive ? <ArrowUpIcon size={8} /> : <ArrowDownIcon size={8} />}
+                                                        <span>{isMonthPositive ? '+' : ''}{monthChange.toFixed(2)}%</span>
+                                                        <span className="text-mist-600 text-[8px] font-medium">1M</span>
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
                                     </div>
                                 );
-                            } else {
+                            }
+                            else {
 
                                 return (
                                     <div
