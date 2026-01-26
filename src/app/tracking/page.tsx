@@ -526,73 +526,31 @@ export default function TrackingPage() {
                                     </div>
                                 </div>
                             ))}
-
-                            <div className="p-5 rounded-2xl bg-gradient-to-br from-arctic-800 to-arctic-950 border border-white/5 shadow-lg">
-                                <h3 className="text-sm font-medium mb-2 flex items-center gap-2 theme-text-heading">
-                                    <LogoIcon size={16} />
-                                    <span>{selectedPortfolio.category === 'recommendation' ? '推荐评级说明' : '仓位分类说明'}</span>
-                                </h3>
-                                {selectedPortfolio.category === 'recommendation' ? (
-                                    <div className="space-y-2 text-xs text-mist-500">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-amber-400">5/5</span>
-                                            <span>强烈推荐</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-amber-400">4/5</span>
-                                            <span>推荐</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-amber-400">3/5</span>
-                                            <span>一般推荐</span>
-                                        </div>
-                                        <p className="text-[10px] text-mist-600 mt-2 pt-2 border-t border-white/5 flex items-center gap-1">
-                                            <AlertTriangleIcon size={10} /> 评级为模拟数据，仅供参考
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-2 text-xs text-mist-500">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: POSITION_SIZE_CONFIG.large.color }} />
-                                            <span>大仓位：≥ 5%</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: POSITION_SIZE_CONFIG.medium.color }} />
-                                            <span>中仓位：2% - 5%</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: POSITION_SIZE_CONFIG.small.color }} />
-                                            <span>小仓位：&lt; 2%</span>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
                         </div>
                     </aside>
 
                     {/* Main Content - Stock List (按仓位分组) */}
                     <div className="flex-1 space-y-6">
-                        <div className="flex flex-col gap-2">
-                            <div className="flex items-center gap-3">
-                                <span className="text-2xl">{PORTFOLIO_CATEGORIES[selectedPortfolio.category].icon}</span>
-                                <div>
-                                    <h2 className="text-2xl font-light tracking-tight theme-text-heading">{selectedPortfolio.nameCn}</h2>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <span className="text-sm text-mist-400">{selectedPortfolio.authorCn}</span>
-                                        {selectedPortfolio.aum && (
-                                            <span className="text-xs px-2 py-0.5 rounded-full bg-gradient-to-r from-glacier-500/20 to-gemini-blue/20 text-glacier-400 border border-glacier-500/30 flex items-center gap-1">
-                                                <CoinsIcon size={10} /> {selectedPortfolio.aum}
-                                            </span>
-                                        )}
-                                    </div>
+                        <div className="flex flex-col gap-3">
+                            <div>
+                                <h2 className="text-3xl font-light tracking-tight theme-text-heading mb-1">{selectedPortfolio.nameCn}</h2>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-sm text-mist-400">{selectedPortfolio.authorCn}</span>
+                                    {selectedPortfolio.aum && (
+                                        <span className="text-xs px-2 py-0.5 rounded-full bg-glacier-500/10 text-glacier-400 border border-glacier-500/20 flex items-center gap-1">
+                                            <CoinsIcon size={10} /> {selectedPortfolio.aum}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
-                            <p className="text-mist-500 text-sm max-w-2xl">{selectedPortfolio.description}</p>
+
+                            <p className="text-mist-500 text-sm max-w-3xl leading-relaxed">{selectedPortfolio.description}</p>
+
                             <div className="flex items-center gap-4 text-xs text-mist-600">
                                 {selectedPortfolio.stocks[0]?.lastUpdated && (
-                                    <span className="flex items-center gap-1"><CalendarIcon size={12} /> 持仓数据更新于 {selectedPortfolio.stocks[0].lastUpdated}</span>
+                                    <span className="flex items-center gap-1.5"><CalendarIcon size={12} /> 持仓数据更新于 {selectedPortfolio.stocks[0].lastUpdated}</span>
                                 )}
-                                <span className="flex items-center gap-1"><PieChartIcon size={12} /> 共 {selectedPortfolio.stocks.length} 只股票</span>
+                                <span className="flex items-center gap-1.5"><PieChartIcon size={12} /> 共 {selectedPortfolio.stocks.length} 只股票</span>
                             </div>
                         </div>
 
