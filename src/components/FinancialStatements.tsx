@@ -45,10 +45,10 @@ export default function FinancialStatements({
   const getChartUnit = () => unitMode === 'zh' ? '亿' : 'B';
   const getChartScale = () => unitMode === 'zh' ? 1e8 : 1e9;
 
-  const tabs: { key: TabType; label: string; icon: React.ReactNode }[] = [
-    { key: 'income', label: '利润表', icon: <TrendingUp className="w-4 h-4" /> },
-    { key: 'balance', label: '资产负债表', icon: <Wallet className="w-4 h-4" /> },
-    { key: 'cashflow', label: '现金流量表', icon: <ArrowRightLeft className="w-4 h-4" /> },
+  const tabs: { key: TabType; label: string }[] = [
+    { key: 'income', label: '利润表' },
+    { key: 'balance', label: '资产负债表' },
+    { key: 'cashflow', label: '现金流量表' },
   ];
 
   const activeIncome = period === 'quarter' && incomeStatementsQuarter?.length ? incomeStatementsQuarter : incomeStatements;
@@ -556,7 +556,6 @@ export default function FinancialStatements({
               : 'text-mist-500 hover:text-mist-300 hover:bg-white/5'
               }`}
           >
-            {tab.icon}
             {tab.label}
           </button>
         ))}

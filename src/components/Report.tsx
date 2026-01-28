@@ -126,20 +126,15 @@ interface ReportProps {
   isModalView?: boolean;
 }
 
-// 分析卡片组件
 // 分析卡片组件 - 扁平化设计
 function AnalysisCard({
-  icon: Icon,
   title,
-  gradient,
   children,
   onShare,
   collapsible = true,
   defaultExpanded = true,
 }: {
-  icon: any;
   title: string;
-  gradient: string; // Keep interface but ignore gradient in implementation
   children: React.ReactNode;
   onShare?: (title: string, contentElement: HTMLDivElement) => void;
   collapsible?: boolean;
@@ -161,10 +156,7 @@ function AnalysisCard({
         className={`flex items-center justify-between gap-3 border-b border-white/5 pb-3 ${collapsible ? 'cursor-pointer' : ''}`}
         onClick={() => collapsible && setIsExpanded(!isExpanded)}
       >
-        <div className="flex items-center gap-3">
-          <Icon className="w-4 h-4 text-glacier-500" />
-          <h3 className="text-base font-medium text-white uppercase tracking-wider">{title}</h3>
-        </div>
+        <h3 className="text-sm font-medium text-white uppercase tracking-wider">{title}</h3>
         <div className="flex items-center gap-2">
           {onShare && (
             <button
@@ -206,10 +198,8 @@ function AnalysisCard({
 // 可折叠区块 - 扁平化设计
 function CollapsibleSection({
   id,
-  icon: Icon,
   title,
   subtitle,
-  gradient,
   expanded,
   onToggle,
   children,
@@ -217,10 +207,8 @@ function CollapsibleSection({
   onShare,
 }: {
   id: string;
-  icon: any;
   title: string;
   subtitle?: string;
-  gradient: string;
   expanded: boolean;
   onToggle: () => void;
   children: React.ReactNode;
@@ -247,14 +235,9 @@ function CollapsibleSection({
           {sectionNumber && (
             <span className="text-xl font-light text-mist-600 font-mono hidden md:block w-8 border-r border-white/10 mr-2">{sectionNumber}</span>
           )}
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-sm bg-white/5 flex items-center justify-center border border-white/10 group-hover:bg-white/10 transition-colors">
-              <Icon className="w-4 h-4 text-mist-300 group-hover:text-white" />
-            </div>
-            <div className="text-left">
-              <h2 className="text-lg font-medium text-white uppercase tracking-wide group-hover:text-glacier-500 transition-colors">{title}</h2>
-              {subtitle && <p className="text-xs text-mist-500 font-mono">{subtitle}</p>}
-            </div>
+          <div className="text-left">
+            <h2 className="text-lg font-medium text-white uppercase tracking-wide group-hover:text-glacier-500 transition-colors">{title}</h2>
+            {subtitle && <p className="text-xs text-mist-500 font-mono">{subtitle}</p>}
           </div>
         </button>
         <div className="flex items-center gap-2">
@@ -391,13 +374,11 @@ const LEVEL_STYLES: Record<DimensionLevel, { bg: string; border: string; text: s
 // 单个维度标签组件
 function DimensionBadge({ tag }: { tag: DimensionTag }) {
   const style = LEVEL_STYLES[tag.level];
-  const Icon = tag.icon;
 
   return (
     <div className="flex flex-col gap-1.5">
       <span className="text-[10px] text-mist-500 font-mono uppercase tracking-widest">{tag.dimension}</span>
-      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-sm text-xs font-medium border transition-all ${style.bg} ${style.border} ${style.text}`}>
-        <Icon className={`w-3.5 h-3.5 ${style.iconColor}`} />
+      <div className={`inline-flex items-center px-3 py-1.5 rounded-sm text-xs font-medium border transition-all ${style.bg} ${style.border} ${style.text}`}>
         <span className="tracking-wide">{tag.label}</span>
       </div>
     </div>
@@ -747,7 +728,7 @@ export default function Report({
 
   // 快捷导航 - 根据版本和市场类型和数据可用性显示
   const baseSections = [
-    ...(showAiSectionInVersion ? [{ id: 'aiAnalysis', label: 'AI 分析', icon: Sparkles }] : []),
+    ...(showAiSectionInVersion ? [{ id: 'aiAnalysis', label: '智投分析', icon: Sparkles }] : []),
     ...(showFinancialStatementsInVersion ? [{ id: 'financialStatements', label: '财务报表', icon: FileSpreadsheet }] : []),
     ...(showValuationSection ? [{ id: 'valuation', label: '估值指标', icon: Calculator }] : []),
     ...(hasEventsData ? [{ id: 'events', label: '事件日历', icon: Calendar }] : []),
@@ -788,50 +769,20 @@ export default function Report({
 
         <div className="flex items-center gap-3">
           {/* 版本切换 */}
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-surface/80 backdrop-blur-xl border border-white/5">
-            <button
-              onClick={() => setReportVersion('standard')}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${reportVersion === 'standard'
-                ? 'bg-glacier-500 text-white'
-                : 'text-mist-400 hover:text-white'
-                }`}
-            >
-              普通版
-            </button>
-            <button
-              onClick={() => setReportVersion('professional')}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${reportVersion === 'professional'
-                ? 'bg-glacier-500 text-white'
-                : 'text-mist-400 hover:text-white'
-                }`}
-            >
-              专业版
-            </button>
-          </div>
+          <button
+            onClick={() => setReportVersion(reportVersion === 'standard' ? 'professional' : 'standard')}
+            className="gemini-btn gemini-btn-secondary flex items-center gap-2"
+          >
+            <span>{reportVersion === 'standard' ? '切换到专业版' : '切换到普通版'}</span>
+            <RefreshCw className="w-4 h-4" />
+          </button>
 
           {/* 单位切换 */}
           <UnitModeToggle />
 
-          {/* 快捷导航 */}
-          <div className="hidden lg:flex items-center gap-1 p-1 rounded bg-white/5 border border-white/5">
-            {sections.map((section) => (
-              <button
-                key={section.id}
-                onClick={() => {
-                  const element = document.getElementById(section.id);
-                  element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }}
-                className="flex items-center gap-2 px-3 py-1.5 text-xs text-mist-400 hover:text-white hover:bg-white/5 rounded-sm transition-all"
-              >
-                <section.icon className="w-3 h-3" />
-                <span>{section.label}</span>
-              </button>
-            ))}
-          </div>
-
           <motion.button
             onClick={() => setIsExportModalOpen(true)}
-            className="gemini-btn gemini-btn-primary flex items-center gap-2"
+            className="gemini-btn gemini-btn-secondary flex items-center gap-2"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
@@ -951,9 +902,7 @@ export default function Report({
         {showAiSectionInVersion && (
           <CollapsibleSection
             id="aiAnalysis"
-            icon={Sparkles}
-            title="AI 智能分析"
-            gradient="from-glacier-500 to-glacier-600"
+            title="智投综合分析"
             expanded={expandedSections.aiAnalysis}
             onToggle={() => toggleSection('aiAnalysis')}
             sectionNumber={getSectionNumber('aiAnalysis')}
@@ -969,19 +918,19 @@ export default function Report({
               {aiAnalysis && (
                 <>
                   <div className="grid grid-cols-1 gap-6">
-                    <AnalysisCard icon={Building2} title="企业概况" gradient="from-glacier-600 to-glacier-700" onShare={handleShareModule}>
+                    <AnalysisCard title="企业概况" onShare={handleShareModule}>
                       <ReactMarkdown>{aiAnalysis.companyOverview}</ReactMarkdown>
                     </AnalysisCard>
 
-                    <AnalysisCard icon={TrendingUp} title="行业分析" gradient="from-glacier-500 to-gemini-blue" onShare={handleShareModule}>
+                    <AnalysisCard title="行业分析" onShare={handleShareModule}>
                       <ReactMarkdown>{aiAnalysis.industryAnalysis}</ReactMarkdown>
                     </AnalysisCard>
 
-                    <AnalysisCard icon={AlertTriangle} title="行业痛点与障碍" gradient="from-slate-500 to-slate-600" onShare={handleShareModule}>
+                    <AnalysisCard title="行业痛点与障碍" onShare={handleShareModule}>
                       <ReactMarkdown>{aiAnalysis.industryPainPoints}</ReactMarkdown>
                     </AnalysisCard>
 
-                    <AnalysisCard icon={Users} title="竞争格局" gradient="from-slate-600 to-glacier-700" onShare={handleShareModule}>
+                    <AnalysisCard title="竞争格局" onShare={handleShareModule}>
                       <ReactMarkdown>{aiAnalysis.competitors}</ReactMarkdown>
                       {peers && peers.length > 0 && (
                         <div className="flex flex-wrap gap-2 pt-4 mt-4 border-t border-white/5">
@@ -995,20 +944,18 @@ export default function Report({
                       )}
                     </AnalysisCard>
 
-                    <AnalysisCard icon={Target} title="竞争优势" gradient="from-glacier-600 to-gemini-blue" onShare={handleShareModule}>
+                    <AnalysisCard title="竞争优势" onShare={handleShareModule}>
                       <ReactMarkdown>{aiAnalysis.competitiveAdvantage}</ReactMarkdown>
                     </AnalysisCard>
 
-                    <AnalysisCard icon={Shield} title="核心护城河" gradient="from-gemini-blue to-glacier-600" onShare={handleShareModule}>
+                    <AnalysisCard title="核心护城河" onShare={handleShareModule}>
                       <ReactMarkdown>{aiAnalysis.moat}</ReactMarkdown>
                     </AnalysisCard>
                   </div>
 
                   {/* 最新动态 */}
                   <AnalysisCard
-                    icon={Sparkles}
                     title="最新发展动态"
-                    gradient="none"
                     onShare={handleShareModule}
                   >
                     <div className="prose prose-gemini max-w-none prose-p:text-mist-300 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-300 prose-a:text-glacier-500 prose-a:no-underline hover:prose-a:underline text-sm">
@@ -1019,7 +966,7 @@ export default function Report({
               )}
 
               {earningsCallSummary && (
-                <AnalysisCard icon={FileText} title="财报电话会议精要" gradient="from-glacier-600 to-glacier-700" onShare={handleShareModule}>
+                <AnalysisCard title="财报电话会议精要" onShare={handleShareModule}>
                   <ReactMarkdown>{earningsCallSummary}</ReactMarkdown>
                   {transcriptText && (
                     <div className="not-prose mt-4 space-y-3">
@@ -1046,12 +993,10 @@ export default function Report({
 
               {aiAnalysis && (
                 <AnalysisCard
-                  icon={Sparkles}
                   title="投资建议总结"
-                  gradient="none"
                   onShare={handleShareModule}
                 >
-                  <div className="prose prose-gemini max-w-none prose-p:text-mist-200 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-200 text-base">
+                  <div className="prose prose-gemini max-w-none prose-p:text-mist-200 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-200 text-sm">
                     <ReactMarkdown>{aiAnalysis.investmentConclusion}</ReactMarkdown>
                   </div>
                 </AnalysisCard>
@@ -1064,10 +1009,8 @@ export default function Report({
         {showFinancialStatementsInVersion && (
           <CollapsibleSection
             id="financialStatements"
-            icon={FileSpreadsheet}
             title="财务数据"
             subtitle="基于近5年财务报表数据"
-            gradient="from-slate-500 to-slate-600"
             expanded={expandedSections.financialStatements}
             onToggle={() => toggleSection('financialStatements')}
             sectionNumber={getSectionNumber('financialStatements')}
@@ -1076,24 +1019,11 @@ export default function Report({
             <div className="space-y-6 animate-fade-in">
               {/* 桑基图和营收图表 */}
               <div className="bg-white/5 border border-white/10 p-6 md:p-8 rounded-md">
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="w-10 h-10 rounded-md bg-slate-500/10 flex items-center justify-center border border-slate-500/20">
-                    <TrendingUp className="w-5 h-5 text-slate-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-white">财务数据可视化</h3>
-                    <p className="text-sm text-mist-500 mt-0.5">直观展示营收结构与财务趋势</p>
-                  </div>
-                </div>
-
                 {/* 桑基图 */}
                 {currentSankeyData && currentSankeyData.links && currentSankeyData.links.length > 0 && (
                   <div className="mb-10">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 bg-gemini-blue rounded-full" />
-                        <h4 className="text-base font-medium text-mist-200">营收流向分析（桑基图）</h4>
-                      </div>
+                      <h4 className="text-sm font-medium text-mist-300">营收流向分析（桑基图）</h4>
                       {availableYears.length > 1 && (
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs text-mist-500 whitespace-nowrap">选择年份：</span>
@@ -1144,9 +1074,7 @@ export default function Report({
         {showValuationSection && (
           <CollapsibleSection
             id="valuation"
-            icon={Calculator}
             title="估值与指标"
-            gradient="from-glacier-600 to-gemini-blue"
             expanded={expandedSections.valuation}
             onToggle={() => toggleSection('valuation')}
             sectionNumber={getSectionNumber('valuation')}
@@ -1170,10 +1098,8 @@ export default function Report({
         {hasEventsData && (
           <CollapsibleSection
             id="events"
-            icon={Calendar}
             title="事件日历"
             subtitle="财报 · 分红 · 拆股"
-            gradient="from-slate-600 to-slate-700"
             expanded={expandedSections.events}
             onToggle={() => toggleSection('events')}
             sectionNumber={getSectionNumber('events')}
@@ -1194,10 +1120,8 @@ export default function Report({
         {hasHoldingsData && (
           <CollapsibleSection
             id="holdings"
-            icon={Briefcase}
             title="持仓分析"
             subtitle="机构持仓 · 内幕交易"
-            gradient="from-glacier-700 to-slate-600"
             expanded={expandedSections.holdings}
             onToggle={() => toggleSection('holdings')}
             sectionNumber={getSectionNumber('holdings')}
@@ -1235,9 +1159,7 @@ export default function Report({
         {showNewsInVersion && (
           <CollapsibleSection
             id="news"
-            icon={Newspaper}
             title="相关新闻资讯"
-            gradient="from-slate-600 to-slate-700"
             expanded={expandedSections.news}
             onToggle={() => toggleSection('news')}
             sectionNumber={getSectionNumber('news')}
@@ -1310,12 +1232,9 @@ export default function Report({
             </div>
           )}
 
-          <p className="text-xs text-mist-500 max-w-2xl mx-auto leading-relaxed mb-4">
-            ⚠️ 免责声明：本报告由 AI 自动生成，仅供参考，不构成任何投资建议。投资有风险，入市需谨慎。
+          <p className="text-xs text-mist-400 max-w-2xl mx-auto leading-relaxed font-sans">
+            免责声明：本报告由 AI 自动生成，仅供参考，不构成任何投资建议。投资有风险，入市需谨慎。
             报告中的分析基于公开数据和 AI 推理，可能存在偏差或不准确之处，请结合专业投资顾问意见进行决策。
-          </p>
-          <p className="text-xs text-mist-600">
-            数据来源：Financial Modeling Prep (Premium) | AI 分析：Google Gemini 3 Flash
           </p>
         </footer>
       </div>

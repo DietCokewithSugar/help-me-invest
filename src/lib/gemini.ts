@@ -17,15 +17,15 @@ type ModelTier = 'lite' | 'standard' | 'search';
 
 const MODEL_CONFIG: Record<ModelTier, { model: string; description: string }> = {
   lite: {
-    model: 'gemini-2.5-flash-lite',
+    model: 'gemini-2.5-flash',
     description: '轻量快速模型，适合简单任务',
   },
   standard: {
-    model: 'gemini-2.5-flash-lite',
+    model: 'gemini-2.5-flash',
     description: '标准模型，适合复杂推理',
   },
   search: {
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3-flash',
     description: '搜索模型，支持 Google Search Grounding',
   },
 };
