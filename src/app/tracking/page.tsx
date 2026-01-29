@@ -546,6 +546,24 @@ export default function TrackingPage() {
 
                             <p className="text-mist-500 text-sm max-w-3xl leading-relaxed">{selectedPortfolio.description}</p>
 
+                            {/* 近期核心策略 & 最新动向 */}
+                            {(selectedPortfolio.recentStrategy || selectedPortfolio.recentMoves) && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-4xl">
+                                    {selectedPortfolio.recentStrategy && (
+                                        <div className="p-3 rounded-lg bg-white/5 border border-white/10">
+                                            <span className="text-xs font-medium text-mist-300 block mb-2">近期核心策略</span>
+                                            <p className="text-xs text-mist-400 leading-relaxed">{selectedPortfolio.recentStrategy}</p>
+                                        </div>
+                                    )}
+                                    {selectedPortfolio.recentMoves && (
+                                        <div className="p-3 rounded-lg bg-white/5 border border-white/10">
+                                            <span className="text-xs font-medium text-mist-300 block mb-2">最新动向</span>
+                                            <p className="text-xs text-mist-400 leading-relaxed">{selectedPortfolio.recentMoves}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             <div className="flex items-center gap-4 text-xs text-mist-600">
                                 {selectedPortfolio.stocks[0]?.lastUpdated && (
                                     <span className="flex items-center gap-1.5"><CalendarIcon size={12} /> 持仓数据更新于 {selectedPortfolio.stocks[0].lastUpdated}</span>

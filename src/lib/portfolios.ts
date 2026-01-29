@@ -74,6 +74,8 @@ export interface Portfolio {
     aum?: string;             // 管理资产规模
     category: PortfolioCategory;
     stocks: TrackedCompany[];
+    recentStrategy?: string;  // 近期核心策略
+    recentMoves?: string;     // 最新动向
 }
 
 export const PORTFOLIOS: Portfolio[] = [
@@ -135,6 +137,30 @@ export const PORTFOLIOS: Portfolio[] = [
             { symbol: 'ARMK', name: '爱玛客 (Aramark)', market: 'US', portfolioPercent: 1.24, lastUpdated: '2025-09-30' },
             { symbol: 'DIS', name: '迪士尼 (Disney)', market: 'US', portfolioPercent: 1.07, lastUpdated: '2025-09-30' },
             { symbol: 'SPY', name: 'SPDR S&P 500 ETF', market: 'US', portfolioPercent: 0.93, lastUpdated: '2025-09-30' },
+        ],
+    },
+    {
+        id: 'nancy-pelosi',
+        name: 'Nancy Pelosi Trading',
+        nameCn: '南希·佩洛西最新持仓 (Nancy Pelosi Trading)',
+        description: '美国国会众议员南希·佩洛西及其丈夫的投资组合。该组合以精准押注科技股期权（LEAPS Call Options）闻名，风格激进。',
+        author: 'Nancy Pelosi',
+        authorCn: '南希·佩洛西 (Nancy Pelosi)',
+        aum: '>$2.7亿美元 (预估净值)',
+        category: 'politician',
+        recentStrategy: '"落袋为安，但不想离场"（Stock Replacement Strategy）：大举卖出数千万美元科技股正股（如苹果、英伟达），同时买入远期看涨期权。这意味着：① 通过卖正股锁定巨额利润变现；② 用少量权利金继续享受未来上涨收益；③ 降低本金风险，以小博大。',
+        recentMoves: '2025年底至2026年初，正从单纯持股转向更多利用深实值看涨期权做多 AI 巨头（如英伟达、谷歌），同时布局 AI 算力所需的电力能源板块（如 Vistra）。新建仓迪士尼期权，清仓 PayPal。整体风格从纯科技股多头转向"利润落袋+期权杠杆"的攻守兼备策略。',
+        stocks: [
+            { symbol: 'NVDA', name: '英伟达 (NVIDIA)', market: 'US', portfolioPercent: 25.0, lastUpdated: '2026-01-16' },
+            { symbol: 'MSFT', name: '微软 (Microsoft)', market: 'US', portfolioPercent: 18.0, lastUpdated: '2025-07-30' },
+            { symbol: 'AAPL', name: '苹果 (Apple)', market: 'US', portfolioPercent: 15.0, lastUpdated: '2025-12-30' },
+            { symbol: 'GOOGL', name: 'Alphabet (谷歌-A)', market: 'US', portfolioPercent: 10.0, lastUpdated: '2026-01-14' },
+            { symbol: 'AMZN', name: '亚马逊 (Amazon)', market: 'US', portfolioPercent: 8.0, lastUpdated: '2025-12-30' },
+            { symbol: 'AVGO', name: '博通 (Broadcom)', market: 'US', portfolioPercent: 5.0, lastUpdated: '2025-07-09' },
+            { symbol: 'PANW', name: '派拓网络 (Palo Alto Networks)', market: 'US', portfolioPercent: 4.0, lastUpdated: '2025-01-17' },
+            { symbol: 'VST', name: '瑞致达 (Vistra Corp)', market: 'US', portfolioPercent: 3.0, lastUpdated: '2025-01-14' },
+            { symbol: 'DIS', name: '迪士尼 (Disney)', market: 'US', portfolioPercent: 2.0, lastUpdated: '2025-12-30' },
+            { symbol: 'TEM', name: 'Tempus AI', market: 'US', portfolioPercent: 1.0, lastUpdated: '2025-01-14' },
         ],
     },
 ];
