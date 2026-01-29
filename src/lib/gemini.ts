@@ -25,7 +25,7 @@ const MODEL_CONFIG: Record<ModelTier, { model: string; description: string }> = 
     description: '标准模型，适合复杂推理',
   },
   search: {
-    model: 'gemini-3-flash',
+    model: 'gemini-3-flash-preview',
     description: '搜索模型，支持 Google Search Grounding',
   },
 };
