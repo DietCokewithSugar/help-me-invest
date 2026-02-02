@@ -13,6 +13,61 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
+ * 创建一个预置首值的迭代器
+ */
+function createPrependedIterator(
+    firstValue: string | undefined,
+    iterator: AsyncGenerator<string, void, unknown>
+): AsyncGenerator<string, void, unknown> {
+    let yieldedFirst = false;
+    return {
+        async next() {
+            if (!yieldedFirst && firstValue !== undefined) {
+                yieldedFirst = true;
+                return { value: firstValue, done: false as const };
+            }
+            return iterator.next();
+        },
+        async return(value?: unknown) {
+            return iterator.return?.(value) ?? { value: undefined, done: true as const };
+        },
+        async throw(e?: unknown) {
+            return iterator.throw?.(e) ?? { value: undefined, done: true as const };
+        },
+        [Symbol.asyncIterator]() {
+            return this;
+        },
+    };
+}
+
+/**
+ * 创建一个错误迭代器
+ */
+function createErrorIterator(errorMessage: string): AsyncGenerator<string, void, unknown> {
+    let done = false;
+    return {
+        async next() {
+            if (done) {
+                return { value: undefined, done: true as const };
+            }
+            done = true;
+            return { value: errorMessage, done: false as const };
+        },
+        async return() {
+            done = true;
+            return { value: undefined, done: true as const };
+        },
+        async throw() {
+            done = true;
+            return { value: undefined, done: true as const };
+        },
+        [Symbol.asyncIterator]() {
+            return this;
+        },
+    };
+}
+
+/**
  * 带重试的流迭代器获取
  */
 async function getStreamWithRetry(
@@ -27,15 +82,9 @@ async function getStreamWithRetry(
             // 尝试获取第一个值来验证流是否正常工作
             const firstResult = await iterator.next();
             
-            // 创建一个新的迭代器，包含已获取的第一个值
-            async function* prependedIterator(): AsyncGenerator<string, void, unknown> {
-                if (!firstResult.done && firstResult.value) {
-                    yield firstResult.value;
-                }
-                yield* iterator;
-            }
-            
-            return prependedIterator();
+            // 返回包含已获取首值的迭代器
+            const firstValue = !firstResult.done ? firstResult.value : undefined;
+            return createPrependedIterator(firstValue, iterator);
         } catch (error: any) {
             lastError = error;
             console.warn(`[${label}] 第 ${attempt}/${MAX_RETRIES} 次尝试失败:`, error?.message || error);
@@ -50,10 +99,7 @@ async function getStreamWithRetry(
 
     // 所有重试失败，返回一个错误迭代器
     console.error(`[${label}] 所有 ${MAX_RETRIES} 次重试均失败`);
-    async function* errorIterator(): AsyncGenerator<string, void, unknown> {
-        yield `生成失败，请稍后重试。错误: ${lastError?.message || '未知错误'}`;
-    }
-    return errorIterator();
+    return createErrorIterator(`生成失败，请稍后重试。错误: ${lastError?.message || '未知错误'}`);
 }
 
 function iteratorToStream(iterator: AsyncGenerator<string, void, unknown>) {
