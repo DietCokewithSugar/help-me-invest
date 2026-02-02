@@ -620,7 +620,146 @@ ${transcriptText}
     return this.generateStream(prompt, 'lite');
   }
 
-  // 10. 智能划词解释
+  // 10. 专业版报告分析（使用 Gemini 3 Flash + Google Search）
+  async streamProAnalysis(
+    companyData: any,
+    incomeStatements: any[],
+    keyMetrics: any[],
+    financialRatios: any[],
+    financialGrowth: any[],
+    market: MarketType
+  ): Promise<AsyncGenerator<string, void, unknown>> {
+    const marketName = MARKET_NAMES[market] || '美股';
+    
+    // 准备财务数据摘要
+    const latestIncome = incomeStatements?.[0] || {};
+    const latestMetrics = keyMetrics?.[0] || {};
+    const latestRatios = financialRatios?.[0] || {};
+    const latestGrowth = financialGrowth?.[0] || {};
+    
+    // 营收增长趋势
+    const revenueGrowthData = incomeStatements?.slice(0, 5).map((stmt: any) => ({
+      year: stmt.calendarYear || stmt.date?.split('-')[0],
+      revenue: stmt.revenue,
+      netIncome: stmt.netIncome,
+      grossProfitRatio: stmt.grossProfitRatio,
+      netIncomeRatio: stmt.netIncomeRatio,
+    })) || [];
+
+    const model = this.getModel('search', {
+      temperature: 0.7,
+      topP: 0.95,
+      maxOutputTokens: 8192,
+      tools: [{ googleSearch: {} }] as any,
+    });
+
+    const today = new Date().toISOString().slice(0, 10);
+    
+    const prompt = `你是一位顶级投资分析师，精通价值投资和行业研究。请根据以下数据和最新市场信息，为投资者撰写一份专业的投资分析报告。
+
+## 公司基本信息
+- 公司名称：${companyData.companyName}
+- 股票代码：${companyData.symbol}
+- 市场：${marketName}
+- 行业：${companyData.industry || 'N/A'}
+- 板块：${companyData.sector || 'N/A'}
+- 当前股价：${companyData.price || 'N/A'}
+- 市值：${companyData.marketCap || companyData.mktCap || 'N/A'}
+
+## 关键财务指标
+- PE 比率：${latestMetrics.peRatio || latestRatios.priceEarningsRatio || 'N/A'}
+- PB 比率：${latestMetrics.pbRatio || latestRatios.priceToBookRatio || 'N/A'}
+- PS 比率：${latestMetrics.priceToSalesRatio || latestRatios.priceToSalesRatio || 'N/A'}
+- EV/EBITDA：${latestMetrics.enterpriseValueOverEBITDA || 'N/A'}
+- ROE：${latestRatios.returnOnEquity || latestMetrics.roe || 'N/A'}
+- ROA：${latestRatios.returnOnAssets || 'N/A'}
+- 毛利率：${latestRatios.grossProfitMargin || latestIncome.grossProfitRatio || 'N/A'}
+- 净利率：${latestRatios.netProfitMargin || latestIncome.netIncomeRatio || 'N/A'}
+- 营收增长率：${latestGrowth.revenueGrowth || 'N/A'}
+- 净利润增长率：${latestGrowth.netIncomeGrowth || 'N/A'}
+
+## 近年营收与利润趋势
+${JSON.stringify(revenueGrowthData, null, 2)}
+
+## 分析要求
+
+请基于以上财务数据，并通过联网搜索获取该公司和行业的最新信息，按照以下结构撰写分析报告。今天日期为 ${today}。
+
+### 输出结构（必须严格遵循）：
+
+## 一、行业前景评估
+
+1. **行业增长性判断**：该公司所处的 ${companyData.industry || companyData.sector} 行业是否属于高增长的"好行业"？
+   - 分析行业的市场规模和增长率
+   - 评估行业的发展阶段（导入期/成长期/成熟期/衰退期）
+   - 判断行业未来3-5年的增长潜力
+   - 搜索最新的行业研究报告和趋势数据
+
+2. **政策与宏观环境**：
+   - 相关产业政策是否利好该行业？
+   - 宏观经济环境对该行业的影响
+
+**结论**：[给出明确判断：高增长行业/稳定成熟行业/衰退行业]
+
+## 二、竞争地位与护城河
+
+1. **市场地位分析**：
+   - 该公司在行业中的市场份额排名
+   - 是否拥有垄断或寡头地位？
+   - 与主要竞争对手的对比优势
+
+2. **护城河深度评估**：
+   - **品牌护城河**：品牌知名度和客户忠诚度如何？
+   - **网络效应**：是否存在用户增长带来的价值增益？
+   - **转换成本**：客户更换供应商的成本高吗？
+   - **成本优势**：是否有规模效应或独特的成本结构？
+   - **无形资产**：专利、许可证、特许经营权等
+
+**结论**：[护城河评级：宽广/中等/狭窄/无]
+
+## 三、估值与买入时机分析
+
+1. **估值判断**：
+   - 基于 PE、PB、PS、EV/EBITDA 等指标，与行业平均和历史水平对比
+   - 当前股价相对于内在价值是被高估还是低估？
+   - 参考 DCF 估值或可比公司估值法
+
+2. **买入时机判断**：
+   - 结合最新财报和市场动态，现在是否是好的买入时机？
+   - 近期是否有可能影响股价的催化剂或风险事件？
+
+**结论**：
+- 估值水平：[便宜/合理/偏贵/昂贵]
+- 买入建议：[强烈推荐买入/可以买入/持有观望/建议回避]
+
+## 四、综合投资建议
+
+请综合以上分析，给出最终的投资建议，包括：
+- 核心投资逻辑（1-2句话）
+- 主要机会点
+- 主要风险点
+- 建议操作策略
+
+---
+
+**格式要求**：
+- 使用中文回答
+- 使用 Markdown 格式，重要结论和关键数据请**加粗**
+- 每个部分的结论要明确、直接，不要模棱两可
+- 引用的数据要标注来源（如"根据最新财报..."、"行业研究显示..."）
+- 全文约 800-1200 字`;
+
+    const result = await model.generateContentStream(prompt);
+    
+    async function* streamIterator() {
+      for await (const chunk of result.stream) {
+        yield chunk.text();
+      }
+    }
+    return streamIterator();
+  }
+
+  // 11. 智能划词解释
   async explainText(text: string): Promise<string> {
     const prompt = `
 你是一个专业的金融助手，擅长用最通俗易懂的语言解释复杂的金融概念。

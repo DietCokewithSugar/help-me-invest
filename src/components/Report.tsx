@@ -557,6 +557,7 @@ export default function Report({
     aiAnalysis: true,
     financialStatements: true,
     valuation: true,
+    proAnalysis: true,  // 专业版分析区块
     events: false,
     holdings: false,
     news: true,
@@ -604,6 +605,7 @@ export default function Report({
     peers,
     news,
     aiAnalysis,
+    proAiAnalysis,  // 专业版 AI 分析
     earningsTranscripts = [],
     earningsCallSummary = '',
     sankeyData: initialSankeyData,
@@ -730,6 +732,7 @@ export default function Report({
   const baseSections = [
     ...(showAiSectionInVersion ? [{ id: 'aiAnalysis', label: '智投分析', icon: Sparkles }] : []),
     ...(showFinancialStatementsInVersion ? [{ id: 'financialStatements', label: '财务报表', icon: FileSpreadsheet }] : []),
+    ...(showValuationSection ? [{ id: 'proAnalysis', label: '专业分析', icon: Sparkles }] : []),  // 专业版分析
     ...(showValuationSection ? [{ id: 'valuation', label: '估值指标', icon: Calculator }] : []),
     ...(hasEventsData ? [{ id: 'events', label: '事件日历', icon: Calendar }] : []),
     ...(hasHoldingsData ? [{ id: 'holdings', label: '持仓分析', icon: Briefcase }] : []),
@@ -1066,6 +1069,64 @@ export default function Report({
                 cashFlowStatementsQuarter={data.cashFlowStatementsQuarter}
                 theme={theme}
               />
+            </div>
+          </CollapsibleSection>
+        )}
+
+        {/* ==================== 专业版 AI 分析 ==================== */}
+        {showValuationSection && (
+          <CollapsibleSection
+            id="proAnalysis"
+            title="专业投资分析"
+            subtitle="行业前景 · 护城河 · 估值判断"
+            expanded={expandedSections.proAnalysis}
+            onToggle={() => toggleSection('proAnalysis')}
+            sectionNumber={getSectionNumber('proAnalysis')}
+            onShare={handleShareModule}
+          >
+            <div className="space-y-6 animate-fade-in">
+              {/* 加载中状态 */}
+              {aiLoading && !proAiAnalysis?.proAnalysis && (
+                <div className="bg-white/5 border border-white/10 p-4 border-l-2 border-l-glacier-500 animate-fade-in rounded-sm">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-4 h-4 border-2 border-white/10 border-t-glacier-500 rounded-full animate-spin" />
+                    <h3 className="text-sm font-medium text-white font-mono uppercase tracking-wider">专业分析生成中...</h3>
+                  </div>
+                  <div className="space-y-2 mb-4 pl-7">
+                    <div className="flex items-center gap-3 text-xs font-mono">
+                      <div className="w-1 h-1 rounded-full bg-glacier-500" />
+                      <span className="text-mist-300">正在联网搜索行业数据</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs font-mono">
+                      <div className="w-1 h-1 rounded-full bg-glacier-500 animate-pulse" />
+                      <span className="text-mist-400">分析行业前景与竞争格局...</span>
+                    </div>
+                  </div>
+                  <div className="h-0.5 bg-white/10 w-full">
+                    <div className="h-full w-1/2 bg-glacier-500 animate-pulse" />
+                  </div>
+                </div>
+              )}
+
+              {/* 专业分析内容 */}
+              {proAiAnalysis?.proAnalysis && (
+                <AnalysisCard
+                  title="行业前景、护城河与估值分析"
+                  onShare={handleShareModule}
+                  collapsible={false}
+                >
+                  <div className="prose prose-gemini max-w-none prose-p:text-mist-300 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-300 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-h2:text-glacier-400 prose-h2:text-base prose-h2:font-medium prose-h2:mt-6 prose-h2:mb-3 prose-h3:text-mist-200 prose-h3:text-sm prose-h3:font-medium prose-h3:mt-4 prose-h3:mb-2 text-sm">
+                    <ReactMarkdown>{proAiAnalysis.proAnalysis}</ReactMarkdown>
+                  </div>
+                </AnalysisCard>
+              )}
+
+              {/* 无数据提示 */}
+              {!aiLoading && !proAiAnalysis?.proAnalysis && (
+                <div className="bg-white/5 border border-white/10 p-6 rounded-sm text-center">
+                  <p className="text-mist-500 text-sm">专业分析尚未生成，请稍候...</p>
+                </div>
+              )}
             </div>
           </CollapsibleSection>
         )}

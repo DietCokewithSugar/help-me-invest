@@ -433,6 +433,17 @@ function HomeContent() {
             return { ...prev, earningsCallSummary: text };
           }
 
+          // For Pro AI Analysis fields
+          if (section === 'proAnalysis') {
+            return {
+              ...prev,
+              proAiAnalysis: {
+                ...(prev.proAiAnalysis || {} as any),
+                proAnalysis: text,
+              } as any,
+            };
+          }
+
           // For AI Analysis fields
           return {
             ...prev,
@@ -557,6 +568,9 @@ function HomeContent() {
           recentDevelopments: '',
           investmentConclusion: '',
         },
+        proAiAnalysis: {
+          proAnalysis: '',  // 专业版分析
+        },
         earningsCallSummary: '',
       });
 
@@ -637,6 +651,17 @@ function HomeContent() {
         data: companyData,
         market,
         prevContext: context
+      });
+
+      // 4. 专业版分析（使用 Gemini 3 Flash + Google Search 联网搜索）
+      // 并行启动，不阻塞普通版报告
+      streamSection('proAnalysis', {
+        data: companyData,
+        market,
+        incomeStatements: data.incomeStatements || [],
+        keyMetrics: data.keyMetrics || [],
+        financialRatios: data.financialRatios || [],
+        financialGrowth: data.financialGrowth || [],
       });
 
     } catch (err: any) {

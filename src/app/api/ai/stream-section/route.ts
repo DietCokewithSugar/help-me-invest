@@ -21,7 +21,7 @@ function iteratorToStream(iterator: AsyncGenerator<string, void, unknown>) {
 
 export async function POST(request: NextRequest) {
     try {
-        const { section, data, market, prevContext } = await request.json();
+        const { section, data, market, prevContext, incomeStatements, keyMetrics, financialRatios, financialGrowth } = await request.json();
         const googleApiKey = process.env.GOOGLE_API_KEY;
 
         if (!googleApiKey) {
@@ -70,6 +70,17 @@ export async function POST(request: NextRequest) {
                     return NextResponse.json({ error: 'Context required for conclusion' }, { status: 400 });
                 }
                 streamIterator = await client.streamInvestmentConclusion(data, prevContext, marketType);
+                break;
+            case 'proAnalysis':
+                // 专业版报告分析（使用 Gemini 3 Flash + Google Search）
+                streamIterator = await client.streamProAnalysis(
+                    data,
+                    incomeStatements || [],
+                    keyMetrics || [],
+                    financialRatios || [],
+                    financialGrowth || [],
+                    marketType
+                );
                 break;
             default:
                 return NextResponse.json({ error: 'Invalid section' }, { status: 400 });

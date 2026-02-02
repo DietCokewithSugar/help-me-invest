@@ -475,6 +475,11 @@ export interface AIAnalysis {
   investmentConclusion: string;
 }
 
+// 专业版 AI 分析结构
+export interface ProAIAnalysis {
+  proAnalysis: string;  // 专业版综合分析（行业前景、垄断地位、护城河、估值判断）
+}
+
 export interface SankeyData {
   nodes: { name: string }[];
   links: { source: string; target: string; value: number }[];
@@ -519,6 +524,7 @@ export interface ReportData {
   news: StockNews[];
   earningsTranscripts?: any[];
   aiAnalysis?: AIAnalysis;
+  proAiAnalysis?: ProAIAnalysis;  // 专业版 AI 分析
   earningsCallSummary?: string;
   searchResults?: string;
   sankeyData: SankeyData;
