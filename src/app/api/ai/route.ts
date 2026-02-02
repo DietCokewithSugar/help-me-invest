@@ -2,34 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GeminiClient } from '@/lib/gemini';
 import type { MarketType } from '@/lib/markets';
 import { getCachedReport, saveReport, type AIReportRecord } from '@/lib/supabase';
+import { withRetryAndTimeout } from '@/lib/api-utils';
 
-export const maxDuration = 30;
-
-const withTimeout = async <T>(
-  promise: Promise<T>,
-  ms: number,
-  fallback: T,
-  label: string
-): Promise<T> => {
-  let timeoutId: NodeJS.Timeout | null = null;
-  return new Promise<T>((resolve) => {
-    timeoutId = setTimeout(() => {
-      console.warn(`AI timeout: ${label}`);
-      resolve(fallback);
-    }, ms);
-
-    promise
-      .then((result) => {
-        if (timeoutId) clearTimeout(timeoutId);
-        resolve(result);
-      })
-      .catch((error) => {
-        if (timeoutId) clearTimeout(timeoutId);
-        console.error(`AI error: ${label}`, error?.message || error);
-        resolve(fallback);
-      });
-  });
-};
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
@@ -75,20 +50,17 @@ export async function POST(request: NextRequest) {
       investmentConclusion: '请结合其他信息进行综合判断。',
     };
 
-    const aiAnalysisPromise = withTimeout(
-      gemini.analyzeCompany(
+    const aiAnalysisRaw = await withRetryAndTimeout(
+      () => gemini.analyzeCompany(
         profile,
         incomeStatements || [],
         peers || [],
         earningsTranscripts && earningsTranscripts.length > 0 ? earningsTranscripts[0] : null,
         marketType
       ),
-      20000,
-      '',
-      'analyzeCompany'
+      { maxRetries: 3, retryDelayMs: 1000, timeoutMs: 25000, label: 'analyzeCompany' },
+      ''
     );
-
-    const aiAnalysisRaw = await aiAnalysisPromise;
 
     let aiAnalysis;
     let parseSuccess = false;

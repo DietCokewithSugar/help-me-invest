@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GeminiClient } from '@/lib/gemini';
+import { withRetryAndTimeout } from '@/lib/api-utils';
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
     try {
@@ -21,7 +22,11 @@ export async function POST(request: NextRequest) {
         // 限制文本长度，防止滥用
         const limitedText = text.trim().slice(0, 1000);
 
-        const explanation = await gemini.explainText(limitedText);
+        const explanation = await withRetryAndTimeout(
+            () => gemini.explainText(limitedText),
+            { maxRetries: 3, retryDelayMs: 1000, timeoutMs: 15000, label: 'explainText' },
+            ''
+        );
 
         return NextResponse.json({
             explanation,

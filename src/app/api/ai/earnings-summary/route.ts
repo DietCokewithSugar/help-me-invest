@@ -1,33 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GeminiClient } from '@/lib/gemini';
+import { withRetryAndTimeout } from '@/lib/api-utils';
 
-export const maxDuration = 15;
-
-const withTimeout = async <T>(
-  promise: Promise<T>,
-  ms: number,
-  fallback: T,
-  label: string
-): Promise<T> => {
-  let timeoutId: NodeJS.Timeout | null = null;
-  return new Promise<T>((resolve) => {
-    timeoutId = setTimeout(() => {
-      console.warn(`AI timeout: ${label}`);
-      resolve(fallback);
-    }, ms);
-
-    promise
-      .then((result) => {
-        if (timeoutId) clearTimeout(timeoutId);
-        resolve(result);
-      })
-      .catch((error) => {
-        if (timeoutId) clearTimeout(timeoutId);
-        console.error(`AI error: ${label}`, error?.message || error);
-        resolve(fallback);
-      });
-  });
-};
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,11 +18,10 @@ export async function POST(request: NextRequest) {
     }
 
     const gemini = new GeminiClient(googleApiKey);
-    const earningsCallSummary = await withTimeout(
-      gemini.summarizeEarningsCall(transcriptText, companyName, symbol.toUpperCase()),
-      12000,
-      '',
-      'summarizeEarningsCall'
+    const earningsCallSummary = await withRetryAndTimeout(
+      () => gemini.summarizeEarningsCall(transcriptText, companyName, symbol.toUpperCase()),
+      { maxRetries: 3, retryDelayMs: 1000, timeoutMs: 15000, label: 'summarizeEarningsCall' },
+      ''
     );
 
     return NextResponse.json({ earningsCallSummary });

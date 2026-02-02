@@ -1,19 +1,75 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GeminiClient } from '@/lib/gemini';
-import type { MarketType } from '@/types'; // Ensure correct import path for types if needed, or use string
+import type { MarketType } from '@/types';
 
-export const runtime = 'edge'; // Optional: Use edge if supported, but Node.js is fine too. Let's stick to default/nodejs if strict timeout is needed, but streaming supports edge well.
-// Actually standard Node runtime is safer for now unless configured otherwise.
-export const maxDuration = 120; // Allow longer timeout for streaming (Pro model with thinking needs more time)
+export const runtime = 'edge';
+export const maxDuration = 180; // Pro 计划允许更长超时
+
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 1500;
+
+function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * 带重试的流迭代器获取
+ */
+async function getStreamWithRetry(
+    getIterator: () => Promise<AsyncGenerator<string, void, unknown>>,
+    label: string
+): Promise<AsyncGenerator<string, void, unknown>> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+            const iterator = await getIterator();
+            // 尝试获取第一个值来验证流是否正常工作
+            const firstResult = await iterator.next();
+            
+            // 创建一个新的迭代器，包含已获取的第一个值
+            async function* prependedIterator(): AsyncGenerator<string, void, unknown> {
+                if (!firstResult.done && firstResult.value) {
+                    yield firstResult.value;
+                }
+                yield* iterator;
+            }
+            
+            return prependedIterator();
+        } catch (error: any) {
+            lastError = error;
+            console.warn(`[${label}] 第 ${attempt}/${MAX_RETRIES} 次尝试失败:`, error?.message || error);
+
+            if (attempt < MAX_RETRIES) {
+                const delay = RETRY_DELAY_MS * Math.pow(2, attempt - 1);
+                console.log(`[${label}] 等待 ${delay}ms 后重试...`);
+                await sleep(delay);
+            }
+        }
+    }
+
+    // 所有重试失败，返回一个错误迭代器
+    console.error(`[${label}] 所有 ${MAX_RETRIES} 次重试均失败`);
+    async function* errorIterator(): AsyncGenerator<string, void, unknown> {
+        yield `生成失败，请稍后重试。错误: ${lastError?.message || '未知错误'}`;
+    }
+    return errorIterator();
+}
 
 function iteratorToStream(iterator: AsyncGenerator<string, void, unknown>) {
     return new ReadableStream({
         async pull(controller) {
-            const { value, done } = await iterator.next();
-            if (done) {
+            try {
+                const { value, done } = await iterator.next();
+                if (done) {
+                    controller.close();
+                } else {
+                    controller.enqueue(new TextEncoder().encode(value));
+                }
+            } catch (error: any) {
+                console.error('Stream error:', error);
+                controller.enqueue(new TextEncoder().encode(`\n\n[流式传输错误: ${error?.message || '未知错误'}]`));
                 controller.close();
-            } else {
-                controller.enqueue(new TextEncoder().encode(value));
             }
         },
     });
@@ -54,92 +110,129 @@ export async function POST(request: NextRequest) {
 
         switch (section) {
             case 'companyOverview':
-                streamIterator = await client.streamCompanyOverview(data, marketType);
+                streamIterator = await getStreamWithRetry(
+                    () => client.streamCompanyOverview(data, marketType),
+                    'companyOverview'
+                );
                 break;
             case 'industryAnalysis':
-                streamIterator = await client.streamIndustryAnalysis(data, marketType);
+                streamIterator = await getStreamWithRetry(
+                    () => client.streamIndustryAnalysis(data, marketType),
+                    'industryAnalysis'
+                );
                 break;
             case 'industryPainPoints':
-                streamIterator = await client.streamIndustryPainPoints(data, marketType);
+                streamIterator = await getStreamWithRetry(
+                    () => client.streamIndustryPainPoints(data, marketType),
+                    'industryPainPoints'
+                );
                 break;
             case 'competitors':
-                streamIterator = await client.streamCompetitors(data, data.peers || [], marketType);
+                streamIterator = await getStreamWithRetry(
+                    () => client.streamCompetitors(data, data.peers || [], marketType),
+                    'competitors'
+                );
                 break;
             case 'competitiveAdvantage':
-                streamIterator = await client.streamCompetitiveAdvantage(data, marketType);
+                streamIterator = await getStreamWithRetry(
+                    () => client.streamCompetitiveAdvantage(data, marketType),
+                    'competitiveAdvantage'
+                );
                 break;
             case 'moat':
-                streamIterator = await client.streamMoat(data, marketType);
+                streamIterator = await getStreamWithRetry(
+                    () => client.streamMoat(data, marketType),
+                    'moat'
+                );
                 break;
             case 'recentDevelopments':
-                streamIterator = await client.streamRecentDevelopments(data.companyName, data.symbol, marketType);
+                streamIterator = await getStreamWithRetry(
+                    () => client.streamRecentDevelopments(data.companyName, data.symbol, marketType),
+                    'recentDevelopments'
+                );
                 break;
             case 'earningsCallSummary':
-                // For earnings call, data might be passed differently, or we assume transcript is in data.
-                // Based on original usage: client.summarizeEarningsCall(transcriptText, companyName, symbol)
-                // So we expect data to have `transcript` property.
                 if (!data.transcript) {
-                    // Fallback or empty if no transcript. But API called implies we have it.
                     return NextResponse.json({ error: 'Transcript missing' }, { status: 400 });
                 }
-                streamIterator = await client.streamEarningsCallSummary(data.transcript, data.companyName, data.symbol);
+                streamIterator = await getStreamWithRetry(
+                    () => client.streamEarningsCallSummary(data.transcript, data.companyName, data.symbol),
+                    'earningsCallSummary'
+                );
                 break;
             case 'investmentConclusion':
                 if (!prevContext) {
                     return NextResponse.json({ error: 'Context required for conclusion' }, { status: 400 });
                 }
-                streamIterator = await client.streamInvestmentConclusion(data, prevContext, marketType);
+                streamIterator = await getStreamWithRetry(
+                    () => client.streamInvestmentConclusion(data, prevContext, marketType),
+                    'investmentConclusion'
+                );
                 break;
             // ============ 专业版报告 - 7个独立的并发请求 ============
             case 'proBusinessModel':
-                // 专业版 - 生意模式分析
-                streamIterator = await client.streamProBusinessModel(data, marketType);
+                streamIterator = await getStreamWithRetry(
+                    () => client.streamProBusinessModel(data, marketType),
+                    'proBusinessModel'
+                );
                 break;
             case 'proOperatingModel':
-                // 专业版 - 运营模式分析
-                streamIterator = await client.streamProOperatingModel(data, marketType);
+                streamIterator = await getStreamWithRetry(
+                    () => client.streamProOperatingModel(data, marketType),
+                    'proOperatingModel'
+                );
                 break;
             case 'proIndustryOutlook':
-                // 专业版 - 行业前景评估
-                streamIterator = await client.streamProIndustryOutlook(data, marketType);
+                streamIterator = await getStreamWithRetry(
+                    () => client.streamProIndustryOutlook(data, marketType),
+                    'proIndustryOutlook'
+                );
                 break;
             case 'proMoatAnalysis':
-                // 专业版 - 竞争地位与护城河
-                streamIterator = await client.streamProMoatAnalysis(
-                    data,
-                    data.profitabilityData || {},
-                    data.capitalReturnData || {},
-                    marketType
+                streamIterator = await getStreamWithRetry(
+                    () => client.streamProMoatAnalysis(
+                        data,
+                        data.profitabilityData || {},
+                        data.capitalReturnData || {},
+                        marketType
+                    ),
+                    'proMoatAnalysis'
                 );
                 break;
             case 'proFinancialHealth':
-                // 专业版 - 财务健康与经营质量
-                streamIterator = await client.streamProFinancialHealth(
-                    data,
-                    data.annualFinancials || [],
-                    data.quarterlyFinancials || [],
-                    data.profitabilityData || {},
-                    data.debtData || {},
-                    data.healthScores || {},
-                    marketType
+                streamIterator = await getStreamWithRetry(
+                    () => client.streamProFinancialHealth(
+                        data,
+                        data.annualFinancials || [],
+                        data.quarterlyFinancials || [],
+                        data.profitabilityData || {},
+                        data.debtData || {},
+                        data.healthScores || {},
+                        marketType
+                    ),
+                    'proFinancialHealth'
                 );
                 break;
             case 'proValuation':
-                // 专业版 - 估值与买入时机
-                streamIterator = await client.streamProValuation(
-                    data,
-                    data.valuationData || {},
-                    data.growthData || {},
-                    data.quarterlyFinancials || [],
-                    marketType
+                streamIterator = await getStreamWithRetry(
+                    () => client.streamProValuation(
+                        data,
+                        data.valuationData || {},
+                        data.growthData || {},
+                        data.quarterlyFinancials || [],
+                        marketType
+                    ),
+                    'proValuation'
                 );
                 break;
             case 'proInvestmentConclusion':
-                // 专业版 - 综合投资建议（需要前6个章节内容）
                 if (!prevContext) {
                     return NextResponse.json({ error: 'Context required for pro conclusion' }, { status: 400 });
                 }
-                streamIterator = await client.streamProInvestmentConclusion(data, prevContext, marketType);
+                streamIterator = await getStreamWithRetry(
+                    () => client.streamProInvestmentConclusion(data, prevContext, marketType),
+                    'proInvestmentConclusion'
+                );
                 break;
             default:
                 return NextResponse.json({ error: 'Invalid section' }, { status: 400 });

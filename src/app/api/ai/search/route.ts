@@ -1,34 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GeminiClient } from '@/lib/gemini';
 import type { MarketType } from '@/lib/markets';
+import { withRetryAndTimeout } from '@/lib/api-utils';
 
-export const maxDuration = 15;
-
-const withTimeout = async <T>(
-  promise: Promise<T>,
-  ms: number,
-  fallback: T,
-  label: string
-): Promise<T> => {
-  let timeoutId: NodeJS.Timeout | null = null;
-  return new Promise<T>((resolve) => {
-    timeoutId = setTimeout(() => {
-      console.warn(`AI timeout: ${label}`);
-      resolve(fallback);
-    }, ms);
-
-    promise
-      .then((result) => {
-        if (timeoutId) clearTimeout(timeoutId);
-        resolve(result);
-      })
-      .catch((error) => {
-        if (timeoutId) clearTimeout(timeoutId);
-        console.error(`AI error: ${label}`, error?.message || error);
-        resolve(fallback);
-      });
-  });
-};
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,20 +22,18 @@ export async function POST(request: NextRequest) {
     const marketType = (market as MarketType) || 'US';
     const isNonUS = marketType !== 'US';
 
-    const searchResults = await withTimeout(
-      gemini.searchAndAnalyze(companyName, symbol.toUpperCase(), marketType),
-      12000,
-      '',
-      'searchAndAnalyze'
+    const searchResults = await withRetryAndTimeout(
+      () => gemini.searchAndAnalyze(companyName, symbol.toUpperCase(), marketType),
+      { maxRetries: 3, retryDelayMs: 1000, timeoutMs: 15000, label: 'searchAndAnalyze' },
+      ''
     );
 
     let supplementary = { competitors: '', recentNews: '', analystViews: '' };
     if (isNonUS) {
-      supplementary = await withTimeout(
-        gemini.searchCompanyDetails(companyName, symbol.toUpperCase(), marketType),
-        8000,
-        supplementary,
-        'searchCompanyDetails'
+      supplementary = await withRetryAndTimeout(
+        () => gemini.searchCompanyDetails(companyName, symbol.toUpperCase(), marketType),
+        { maxRetries: 3, retryDelayMs: 1000, timeoutMs: 10000, label: 'searchCompanyDetails' },
+        supplementary
       );
     }
 
