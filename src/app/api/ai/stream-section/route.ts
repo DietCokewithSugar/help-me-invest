@@ -12,59 +12,26 @@ function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+type StreamIterator = AsyncGenerator<string, void, unknown>;
+
 /**
  * 创建一个预置首值的迭代器
  */
-function createPrependedIterator(
+async function* createPrependedIterator(
     firstValue: string | undefined,
-    iterator: AsyncGenerator<string, void, unknown>
-): AsyncGenerator<string, void, unknown> {
-    let yieldedFirst = false;
-    return {
-        async next() {
-            if (!yieldedFirst && firstValue !== undefined) {
-                yieldedFirst = true;
-                return { value: firstValue, done: false as const };
-            }
-            return iterator.next();
-        },
-        async return(value?: unknown) {
-            return iterator.return?.(value) ?? { value: undefined, done: true as const };
-        },
-        async throw(e?: unknown) {
-            return iterator.throw?.(e) ?? { value: undefined, done: true as const };
-        },
-        [Symbol.asyncIterator]() {
-            return this;
-        },
-    };
+    iterator: StreamIterator
+): StreamIterator {
+    if (firstValue !== undefined) {
+        yield firstValue;
+    }
+    yield* iterator;
 }
 
 /**
  * 创建一个错误迭代器
  */
-function createErrorIterator(errorMessage: string): AsyncGenerator<string, void, unknown> {
-    let done = false;
-    return {
-        async next() {
-            if (done) {
-                return { value: undefined, done: true as const };
-            }
-            done = true;
-            return { value: errorMessage, done: false as const };
-        },
-        async return() {
-            done = true;
-            return { value: undefined, done: true as const };
-        },
-        async throw() {
-            done = true;
-            return { value: undefined, done: true as const };
-        },
-        [Symbol.asyncIterator]() {
-            return this;
-        },
-    };
+async function* createErrorIterator(errorMessage: string): StreamIterator {
+    yield errorMessage;
 }
 
 /**
