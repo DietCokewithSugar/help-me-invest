@@ -23,7 +23,53 @@ import {
   UserX,
   Warehouse,
 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { Components } from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+
+// 专业版报告的 Markdown 表格组件配置
+const proMarkdownComponents: Components = {
+  table: ({ children }) => (
+    <div className="overflow-x-auto my-4">
+      <table className="w-full text-sm border-collapse">
+        {children}
+      </table>
+    </div>
+  ),
+  thead: ({ children }) => (
+    <thead className="bg-white/5 border-b border-white/10">
+      {children}
+    </thead>
+  ),
+  tbody: ({ children }) => (
+    <tbody className="divide-y divide-white/5">
+      {children}
+    </tbody>
+  ),
+  tr: ({ children }) => (
+    <tr className="hover:bg-white/5 transition-colors">
+      {children}
+    </tr>
+  ),
+  th: ({ children }) => (
+    <th className="px-3 py-2 text-left text-mist-300 font-medium text-xs uppercase tracking-wider whitespace-nowrap">
+      {children}
+    </th>
+  ),
+  td: ({ children }) => (
+    <td className="px-3 py-2 text-mist-200 font-mono text-xs whitespace-nowrap">
+      {children}
+    </td>
+  ),
+};
+
+// 专业版报告的 Markdown 渲染组件
+const ProMarkdown = ({ children }: { children: string }) => (
+  <div className="prose prose-gemini max-w-none prose-p:text-mist-300 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-300 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-h2:text-glacier-400 prose-h2:text-base prose-h2:font-medium prose-h2:mt-6 prose-h2:mb-3 prose-h3:text-mist-200 prose-h3:text-sm prose-h3:font-medium prose-h3:mt-4 prose-h3:mb-2 text-sm">
+    <ReactMarkdown remarkPlugins={[remarkGfm]} components={proMarkdownComponents}>
+      {children}
+    </ReactMarkdown>
+  </div>
+);
 import SankeyChart from './SankeyChart';
 import RevenueCharts from './RevenueCharts';
 import FinancialStatements from './FinancialStatements';
@@ -1073,60 +1119,101 @@ export default function Report({
           </CollapsibleSection>
         )}
 
-        {/* ==================== 专业版 AI 分析 ==================== */}
+        {/* ==================== 专业版 AI 分析（7个独立模块） ==================== */}
         {showValuationSection && (
           <CollapsibleSection
             id="proAnalysis"
             title="专业投资分析"
-            subtitle="行业前景 · 护城河 · 估值判断"
+            subtitle="生意模式 · 运营模式 · 行业前景 · 护城河 · 财务健康 · 估值判断"
             expanded={expandedSections.proAnalysis}
             onToggle={() => toggleSection('proAnalysis')}
             sectionNumber={getSectionNumber('proAnalysis')}
             onShare={handleShareModule}
           >
             <div className="space-y-6 animate-fade-in">
-              {/* 加载中状态 */}
-              {aiLoading && !proAiAnalysis?.proAnalysis && (
-                <div className="bg-white/5 border border-white/10 p-4 border-l-2 border-l-glacier-500 animate-fade-in rounded-sm">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-4 h-4 border-2 border-white/10 border-t-glacier-500 rounded-full animate-spin" />
-                    <h3 className="text-sm font-medium text-white font-mono uppercase tracking-wider">专业分析生成中...</h3>
+              {/* 1. 生意模式分析 */}
+              <AnalysisCard title="一、生意模式分析" onShare={handleShareModule}>
+                {proAiAnalysis?.proBusinessModel ? (
+                  <ProMarkdown>{proAiAnalysis.proBusinessModel}</ProMarkdown>
+                ) : (
+                  <div className="flex items-center gap-2 text-mist-500 text-sm">
+                    <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                    <span>正在分析生意模式...</span>
                   </div>
-                  <div className="space-y-2 mb-4 pl-7">
-                    <div className="flex items-center gap-3 text-xs font-mono">
-                      <div className="w-1 h-1 rounded-full bg-glacier-500" />
-                      <span className="text-mist-300">正在联网搜索行业数据</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-xs font-mono">
-                      <div className="w-1 h-1 rounded-full bg-glacier-500 animate-pulse" />
-                      <span className="text-mist-400">分析行业前景与竞争格局...</span>
-                    </div>
-                  </div>
-                  <div className="h-0.5 bg-white/10 w-full">
-                    <div className="h-full w-1/2 bg-glacier-500 animate-pulse" />
-                  </div>
-                </div>
-              )}
+                )}
+              </AnalysisCard>
 
-              {/* 专业分析内容 */}
-              {proAiAnalysis?.proAnalysis && (
-                <AnalysisCard
-                  title="行业前景、护城河与估值分析"
-                  onShare={handleShareModule}
-                  collapsible={false}
-                >
-                  <div className="prose prose-gemini max-w-none prose-p:text-mist-300 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-300 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-h2:text-glacier-400 prose-h2:text-base prose-h2:font-medium prose-h2:mt-6 prose-h2:mb-3 prose-h3:text-mist-200 prose-h3:text-sm prose-h3:font-medium prose-h3:mt-4 prose-h3:mb-2 text-sm">
-                    <ReactMarkdown>{proAiAnalysis.proAnalysis}</ReactMarkdown>
+              {/* 2. 运营模式分析 */}
+              <AnalysisCard title="二、运营模式分析" onShare={handleShareModule}>
+                {proAiAnalysis?.proOperatingModel ? (
+                  <ProMarkdown>{proAiAnalysis.proOperatingModel}</ProMarkdown>
+                ) : (
+                  <div className="flex items-center gap-2 text-mist-500 text-sm">
+                    <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                    <span>正在分析运营模式...</span>
                   </div>
-                </AnalysisCard>
-              )}
+                )}
+              </AnalysisCard>
 
-              {/* 无数据提示 */}
-              {!aiLoading && !proAiAnalysis?.proAnalysis && (
-                <div className="bg-white/5 border border-white/10 p-6 rounded-sm text-center">
-                  <p className="text-mist-500 text-sm">专业分析尚未生成，请稍候...</p>
-                </div>
-              )}
+              {/* 3. 行业前景评估 */}
+              <AnalysisCard title="三、行业前景评估" onShare={handleShareModule}>
+                {proAiAnalysis?.proIndustryOutlook ? (
+                  <ProMarkdown>{proAiAnalysis.proIndustryOutlook}</ProMarkdown>
+                ) : (
+                  <div className="flex items-center gap-2 text-mist-500 text-sm">
+                    <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                    <span>正在评估行业前景...</span>
+                  </div>
+                )}
+              </AnalysisCard>
+
+              {/* 4. 竞争地位与护城河 */}
+              <AnalysisCard title="四、竞争地位与护城河" onShare={handleShareModule}>
+                {proAiAnalysis?.proMoatAnalysis ? (
+                  <ProMarkdown>{proAiAnalysis.proMoatAnalysis}</ProMarkdown>
+                ) : (
+                  <div className="flex items-center gap-2 text-mist-500 text-sm">
+                    <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                    <span>正在分析护城河...</span>
+                  </div>
+                )}
+              </AnalysisCard>
+
+              {/* 5. 财务健康与经营质量 */}
+              <AnalysisCard title="五、财务健康与经营质量" onShare={handleShareModule}>
+                {proAiAnalysis?.proFinancialHealth ? (
+                  <ProMarkdown>{proAiAnalysis.proFinancialHealth}</ProMarkdown>
+                ) : (
+                  <div className="flex items-center gap-2 text-mist-500 text-sm">
+                    <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                    <span>正在分析财务健康...</span>
+                  </div>
+                )}
+              </AnalysisCard>
+
+              {/* 6. 估值与买入时机 */}
+              <AnalysisCard title="六、估值与买入时机" onShare={handleShareModule}>
+                {proAiAnalysis?.proValuation ? (
+                  <ProMarkdown>{proAiAnalysis.proValuation}</ProMarkdown>
+                ) : (
+                  <div className="flex items-center gap-2 text-mist-500 text-sm">
+                    <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                    <span>正在分析估值...</span>
+                  </div>
+                )}
+              </AnalysisCard>
+
+              {/* 7. 综合投资建议 */}
+              <AnalysisCard title="七、综合投资建议" onShare={handleShareModule} collapsible={false}>
+                {proAiAnalysis?.proInvestmentConclusion ? (
+                  <ProMarkdown>{proAiAnalysis.proInvestmentConclusion}</ProMarkdown>
+                ) : (
+                  <div className="flex items-center gap-2 text-mist-500 text-sm">
+                    <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                    <span>正在生成综合投资建议（等待前6个分析完成）...</span>
+                  </div>
+                )}
+              </AnalysisCard>
             </div>
           </CollapsibleSection>
         )}

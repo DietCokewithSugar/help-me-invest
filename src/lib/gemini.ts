@@ -639,7 +639,493 @@ ${transcriptText}
     return this.generateStream(prompt, 'lite');
   }
 
-  // 10. 专业版报告分析（使用 Gemini 3 Pro Preview + Thinking + Google Search）
+  // ============================================================================
+  // 专业版报告分析 - 拆分为 7 个独立的并发请求
+  // 使用 Gemini 3 Pro Preview + Thinking + Google Search
+  // ============================================================================
+
+  // 专业版通用的模型配置
+  private getProModel() {
+    return this.genAI.getGenerativeModel({
+      model: 'gemini-3-pro-preview',
+      tools: [{ googleSearch: {} }] as any,
+      generationConfig: {
+        temperature: 0.7,
+        topP: 0.95,
+        maxOutputTokens: 4096,
+        thinkingConfig: {
+          thinkingLevel: 'high',
+        },
+      } as any,
+    });
+  }
+
+  // 10.1 专业版 - 生意模式分析
+  async streamProBusinessModel(
+    companyData: any,
+    market: MarketType
+  ): Promise<AsyncGenerator<string, void, unknown>> {
+    const marketName = MARKET_NAMES[market] || '美股';
+    const model = this.getProModel();
+    const today = new Date().toISOString().slice(0, 10);
+
+    const prompt = `分析 ${companyData.companyName} (${companyData.symbol}) 的生意模式。
+
+公司基本信息：
+- 公司名称：${companyData.companyName}
+- 股票代码：${companyData.symbol}
+- 市场：${marketName}
+- 行业：${companyData.industry || 'N/A'}
+- 板块：${companyData.sector || 'N/A'}
+
+今天日期：${today}
+
+**输出要求**：
+- 使用中文，Markdown 格式，关键信息加粗
+- **禁止任何开场白、问候语、自我介绍**，直接输出报告内容
+- **禁止使用任何 emoji 表情符号**
+- 如有必要，可使用 Markdown 表格呈现数据对比（如业务板块收入占比）
+
+## 生意模式分析
+
+### 1. 主营业务与核心产品
+- 公司的主营业务是什么？核心产品/服务有哪些？
+- 各业务板块的收入占比如何？（可用表格呈现）
+- 核心产品的市场定位和竞争力
+
+### 2. 市场与客户
+- 目标市场是什么？（B2B/B2C/政府/混合）
+- 主要客户群体是谁？客户集中度如何？
+- 地理区域分布：主要收入来自哪些国家/地区？
+
+### 3. 所属行业的发展脉络
+- 该行业的发展历史和演变过程
+- 行业现状：市场规模、竞争格局、主要玩家
+- 行业前景：未来3-5年的发展趋势和增长驱动力
+
+字数控制在 400-600 字。`;
+
+    const result = await model.generateContentStream(prompt);
+    async function* streamIterator() {
+      for await (const chunk of result.stream) {
+        const text = chunk.text();
+        if (text) yield text;
+      }
+    }
+    return streamIterator();
+  }
+
+  // 10.2 专业版 - 运营模式分析
+  async streamProOperatingModel(
+    companyData: any,
+    market: MarketType
+  ): Promise<AsyncGenerator<string, void, unknown>> {
+    const marketName = MARKET_NAMES[market] || '美股';
+    const model = this.getProModel();
+    const today = new Date().toISOString().slice(0, 10);
+
+    const prompt = `分析 ${companyData.companyName} (${companyData.symbol}) 的运营模式和赚钱逻辑。
+
+公司基本信息：
+- 公司名称：${companyData.companyName}
+- 股票代码：${companyData.symbol}
+- 市场：${marketName}
+- 行业：${companyData.industry || 'N/A'}
+
+今天日期：${today}
+
+**输出要求**：
+- 使用中文，Markdown 格式，关键信息加粗
+- **禁止任何开场白、问候语、自我介绍**，直接输出报告内容
+- **禁止使用任何 emoji 表情符号**
+- 如有必要，可使用 Markdown 表格呈现数据
+
+## 运营模式分析
+
+### 1. 盈利模式
+- 公司主要靠什么赚钱？核心盈利来源是什么？
+- 是一次性销售、订阅收费、佣金抽成、广告收入还是其他模式？
+- 盈利模式的可持续性和可预测性如何？
+
+### 2. 经营节奏与规律
+- 公司的业务是否有周期性或季节性？
+- 产品/服务的更新迭代频率如何？（如苹果每年发新手机）
+- 是否存在稳定的复购或续约模式？
+
+### 3. 为什么能赚钱？
+- 公司的核心竞争优势是什么？为什么客户选择它而不是竞争对手？
+- 是靠低成本、差异化、技术壁垒、品牌溢价还是网络效应？
+- 这种优势是否可持续？有无被颠覆的风险？
+
+字数控制在 400-600 字。`;
+
+    const result = await model.generateContentStream(prompt);
+    async function* streamIterator() {
+      for await (const chunk of result.stream) {
+        const text = chunk.text();
+        if (text) yield text;
+      }
+    }
+    return streamIterator();
+  }
+
+  // 10.3 专业版 - 行业前景评估
+  async streamProIndustryOutlook(
+    companyData: any,
+    market: MarketType
+  ): Promise<AsyncGenerator<string, void, unknown>> {
+    const marketName = MARKET_NAMES[market] || '美股';
+    const model = this.getProModel();
+    const today = new Date().toISOString().slice(0, 10);
+
+    const prompt = `分析 ${companyData.companyName} (${companyData.symbol}) 所处行业的前景。
+
+公司基本信息：
+- 公司名称：${companyData.companyName}
+- 股票代码：${companyData.symbol}
+- 市场：${marketName}
+- 行业：${companyData.industry || 'N/A'}
+- 板块：${companyData.sector || 'N/A'}
+
+今天日期：${today}
+
+**输出要求**：
+- 使用中文，Markdown 格式，关键信息加粗
+- **禁止任何开场白、问候语、自我介绍**，直接输出报告内容
+- **禁止使用任何 emoji 表情符号**
+- 如有必要，可使用 Markdown 表格呈现行业数据对比
+
+## 行业前景评估
+
+### 1. 行业增长性判断
+- 该行业是否属于高增长的"好行业"？
+- 分析行业的市场规模和增长率（搜索最新行业数据）
+- 评估行业的发展阶段（导入期/成长期/成熟期/衰退期）
+- 判断行业未来3-5年的增长潜力
+
+### 2. 政策与宏观环境
+- 相关产业政策是否利好该行业？
+- 宏观经济环境对该行业的影响
+- 技术变革对行业的影响
+
+**行业结论**：[高增长行业 / 稳定成熟行业 / 衰退行业]
+
+字数控制在 300-500 字。`;
+
+    const result = await model.generateContentStream(prompt);
+    async function* streamIterator() {
+      for await (const chunk of result.stream) {
+        const text = chunk.text();
+        if (text) yield text;
+      }
+    }
+    return streamIterator();
+  }
+
+  // 10.4 专业版 - 竞争地位与护城河
+  async streamProMoatAnalysis(
+    companyData: any,
+    profitabilityData: any,
+    capitalReturnData: any,
+    market: MarketType
+  ): Promise<AsyncGenerator<string, void, unknown>> {
+    const marketName = MARKET_NAMES[market] || '美股';
+    const model = this.getProModel();
+    const today = new Date().toISOString().slice(0, 10);
+
+    const prompt = `分析 ${companyData.companyName} (${companyData.symbol}) 的竞争地位和护城河。
+
+公司基本信息：
+- 公司名称：${companyData.companyName}
+- 股票代码：${companyData.symbol}
+- 市场：${marketName}
+- 行业：${companyData.industry || 'N/A'}
+
+关键财务指标：
+- 毛利率：${profitabilityData?.grossProfitMargin || 'N/A'}
+- 净利率：${profitabilityData?.netProfitMargin || 'N/A'}
+- ROE：${profitabilityData?.roe || 'N/A'}
+- ROIC：${profitabilityData?.roic || 'N/A'}
+- 研发占比：${capitalReturnData?.rdToRevenue || 'N/A'}
+- 收益质量：${profitabilityData?.incomeQuality || 'N/A'}
+
+今天日期：${today}
+
+**输出要求**：
+- 使用中文，Markdown 格式，关键信息加粗
+- **禁止任何开场白、问候语、自我介绍**，直接输出报告内容
+- **禁止使用任何 emoji 表情符号**
+- 可使用 Markdown 表格对比该公司与竞争对手的关键指标
+
+## 竞争地位与护城河
+
+### 1. 市场地位分析
+- 该公司在行业中的市场份额和地位排名
+- 是否拥有垄断或寡头地位？
+- 与主要竞争对手的规模、盈利能力对比（建议用表格呈现）
+
+### 2. 护城河深度评估
+结合财务数据分析：
+- **品牌护城河**：毛利率是否显著高于同行？
+- **规模效应**：营收规模和利润率趋势如何？
+- **研发壁垒**：研发占比是否形成技术护城河？
+- **网络效应**：是否存在用户增长带来的价值增益？
+- **转换成本**：客户更换供应商的成本高吗？
+
+**护城河评级**：[宽广 / 中等 / 狭窄 / 无]
+
+字数控制在 300-500 字。`;
+
+    const result = await model.generateContentStream(prompt);
+    async function* streamIterator() {
+      for await (const chunk of result.stream) {
+        const text = chunk.text();
+        if (text) yield text;
+      }
+    }
+    return streamIterator();
+  }
+
+  // 10.5 专业版 - 财务健康与经营质量
+  async streamProFinancialHealth(
+    companyData: any,
+    annualFinancials: any[],
+    quarterlyFinancials: any[],
+    profitabilityData: any,
+    debtData: any,
+    healthScores: any,
+    market: MarketType
+  ): Promise<AsyncGenerator<string, void, unknown>> {
+    const marketName = MARKET_NAMES[market] || '美股';
+    const model = this.getProModel();
+
+    const prompt = `分析 ${companyData.companyName} (${companyData.symbol}) 的财务健康状况。
+
+公司基本信息：
+- 公司名称：${companyData.companyName}
+- 股票代码：${companyData.symbol}
+- 市场：${marketName}
+
+近5年年度财务数据：
+${JSON.stringify(annualFinancials, null, 2)}
+
+近5个季度财务数据：
+${JSON.stringify(quarterlyFinancials, null, 2)}
+
+盈利能力指标：
+- 毛利率：${profitabilityData?.grossProfitMargin || 'N/A'}
+- 净利率：${profitabilityData?.netProfitMargin || 'N/A'}
+- ROE：${profitabilityData?.roe || 'N/A'}
+- ROIC：${profitabilityData?.roic || 'N/A'}
+- 收益质量：${profitabilityData?.incomeQuality || 'N/A'}
+
+负债情况：
+- 营运资金：${debtData?.workingCapital || 'N/A'}
+- 总负债：${debtData?.totalLiabilities || 'N/A'}
+- 债务股权比：${debtData?.debtToEquity || 'N/A'}
+- 流动比率：${debtData?.currentRatio || 'N/A'}
+
+财务健康评分：
+- Altman Z-Score：${healthScores?.altmanZScore || 'N/A'}
+- Piotroski F-Score：${healthScores?.piotroskiScore || 'N/A'}
+
+**输出要求**：
+- 使用中文，Markdown 格式，关键信息加粗
+- **禁止任何开场白、问候语、自我介绍**，直接输出报告内容
+- **禁止使用任何 emoji 表情符号**
+- **建议使用表格**呈现关键财务指标趋势（年度/季度对比）
+
+## 财务健康与经营质量
+
+### 1. 盈利能力趋势
+- 对比年度和季度数据，毛利率和净利率是改善还是恶化？
+- 盈利能力的稳定性如何？
+- （建议用表格展示近5年/季度关键指标变化）
+
+### 2. 资产负债表健康度
+- Altman Z-Score 和 Piotroski F-Score 说明什么？
+- 债务水平是否合理？偿债能力如何？
+
+### 3. 现金流质量
+- 自由现金流是否健康？收益质量如何？
+- 经营现金流能否覆盖资本支出？
+
+### 4. 资本配置效率
+- ROIC 是否超过资本成本（通常 8-10%）？
+- 资本使用效率如何？
+
+**财务健康评级**：[优秀 / 良好 / 一般 / 较差]
+
+字数控制在 400-600 字。`;
+
+    const result = await model.generateContentStream(prompt);
+    async function* streamIterator() {
+      for await (const chunk of result.stream) {
+        const text = chunk.text();
+        if (text) yield text;
+      }
+    }
+    return streamIterator();
+  }
+
+  // 10.6 专业版 - 估值与买入时机
+  async streamProValuation(
+    companyData: any,
+    valuationData: any,
+    growthData: any,
+    quarterlyFinancials: any[],
+    market: MarketType
+  ): Promise<AsyncGenerator<string, void, unknown>> {
+    const marketName = MARKET_NAMES[market] || '美股';
+    const model = this.getProModel();
+    const today = new Date().toISOString().slice(0, 10);
+
+    const prompt = `分析 ${companyData.companyName} (${companyData.symbol}) 的估值水平和买入时机。
+
+公司基本信息：
+- 公司名称：${companyData.companyName}
+- 股票代码：${companyData.symbol}
+- 市场：${marketName}
+- 当前股价：${companyData.price || 'N/A'}
+- 市值：${companyData.marketCap || companyData.mktCap || 'N/A'}
+
+估值指标：
+- PE 比率：${valuationData?.peRatio || 'N/A'}
+- PB 比率：${valuationData?.pbRatio || 'N/A'}
+- PS 比率：${valuationData?.psRatio || 'N/A'}
+- EV/EBITDA：${valuationData?.evToEbitda || 'N/A'}
+- 格雷厄姆数字：${valuationData?.grahamNumber || 'N/A'}
+- 盈利收益率：${valuationData?.earningsYield || 'N/A'}
+- 自由现金流收益率：${valuationData?.freeCashFlowYield || 'N/A'}
+
+增长数据：
+- 营收增长率：${growthData?.revenueGrowth || 'N/A'}
+- 净利润增长率：${growthData?.netIncomeGrowth || 'N/A'}
+- 3年营收复合增长率：${growthData?.threeYRevenueGrowth || 'N/A'}
+- 5年营收复合增长率：${growthData?.fiveYRevenueGrowth || 'N/A'}
+
+近5个季度趋势：
+${JSON.stringify(quarterlyFinancials, null, 2)}
+
+今天日期：${today}
+
+**输出要求**：
+- 使用中文，Markdown 格式，关键信息加粗
+- **禁止任何开场白、问候语、自我介绍**，直接输出报告内容
+- **禁止使用任何 emoji 表情符号**
+- **建议使用表格**对比该公司与行业平均估值
+
+## 估值与买入时机
+
+### 1. 估值判断
+- PE、PB、EV/EBITDA 与行业平均和历史水平对比（搜索行业平均估值，建议用表格呈现）
+- 格雷厄姆数字 vs 当前股价，是否被低估？
+- 盈利收益率是否有吸引力？（与无风险利率对比）
+
+### 2. 买入时机判断
+- 结合季度数据趋势，业绩是在改善还是恶化？
+- 近期是否有可能影响股价的催化剂或风险事件？（搜索最新新闻）
+- 当前是否是好的买入时机？
+
+**估值结论**：
+- 估值水平：[便宜 / 合理 / 偏贵 / 昂贵]
+- 股价 vs 内在价值：[低估 / 合理 / 高估]
+
+字数控制在 400-600 字。`;
+
+    const result = await model.generateContentStream(prompt);
+    async function* streamIterator() {
+      for await (const chunk of result.stream) {
+        const text = chunk.text();
+        if (text) yield text;
+      }
+    }
+    return streamIterator();
+  }
+
+  // 10.7 专业版 - 综合投资建议（需要前6个章节的内容）
+  async streamProInvestmentConclusion(
+    companyData: any,
+    prevContext: string,
+    market: MarketType
+  ): Promise<AsyncGenerator<string, void, unknown>> {
+    const marketName = MARKET_NAMES[market] || '美股';
+    const model = this.genAI.getGenerativeModel({
+      model: 'gemini-3-pro-preview',
+      generationConfig: {
+        temperature: 0.7,
+        topP: 0.95,
+        maxOutputTokens: 6144,
+        thinkingConfig: {
+          thinkingLevel: 'high',
+        },
+      } as any,
+    });
+
+    const prompt = `根据以下关于 ${companyData.companyName} (${companyData.symbol}) 的完整研究报告，撰写综合投资建议。
+
+公司基本信息：
+- 公司名称：${companyData.companyName}
+- 股票代码：${companyData.symbol}
+- 市场：${marketName}
+- 当前股价：${companyData.price || 'N/A'}
+
+已有分析内容：
+${prevContext}
+
+**输出要求**：
+- 使用中文，Markdown 格式，关键信息加粗
+- **禁止任何开场白、问候语、自我介绍**，直接输出报告内容
+- **禁止使用任何 emoji 表情符号**
+- 可使用表格汇总投资评级
+
+## 综合投资建议
+
+### 核心投资逻辑
+用 2-3 句话总结为什么应该或不应该投资这家公司。
+
+### 主要机会点
+详细列出 3-5 个投资这家公司的主要机会和理由：
+1. ...
+2. ...
+3. ...
+
+### 主要风险点
+详细列出 3-5 个投资这家公司需要注意的主要风险：
+1. ...
+2. ...
+3. ...
+
+### 投资评级汇总
+（建议用表格呈现）
+- **行业评级**：[高增长行业 / 稳定成熟行业 / 衰退行业]
+- **护城河评级**：[宽广 / 中等 / 狭窄 / 无]
+- **财务健康评级**：[优秀 / 良好 / 一般 / 较差]
+- **估值水平**：[便宜 / 合理 / 偏贵 / 昂贵]
+
+### 买入建议
+[强烈推荐买入 / 可以买入 / 持有观望 / 建议回避]
+
+### 建议操作策略
+详细的操作建议，如：
+- 仓位控制建议
+- 分批建仓策略
+- 止损止盈点位
+- 需要关注的时间节点或事件
+
+字数控制在 500-800 字。`;
+
+    const result = await model.generateContentStream(prompt);
+    async function* streamIterator() {
+      for await (const chunk of result.stream) {
+        const text = chunk.text();
+        if (text) yield text;
+      }
+    }
+    return streamIterator();
+  }
+
+  // 保留旧方法的兼容性（可选，后续可删除）
   async streamProAnalysis(
     companyData: any,
     incomeStatements: any[],

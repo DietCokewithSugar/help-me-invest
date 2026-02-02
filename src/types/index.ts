@@ -475,9 +475,15 @@ export interface AIAnalysis {
   investmentConclusion: string;
 }
 
-// 专业版 AI 分析结构
+// 专业版 AI 分析结构（拆分为7个独立模块）
 export interface ProAIAnalysis {
-  proAnalysis: string;  // 专业版综合分析（行业前景、垄断地位、护城河、估值判断）
+  proBusinessModel: string;        // 生意模式分析
+  proOperatingModel: string;       // 运营模式分析
+  proIndustryOutlook: string;      // 行业前景评估
+  proMoatAnalysis: string;         // 竞争地位与护城河
+  proFinancialHealth: string;      // 财务健康与经营质量
+  proValuation: string;            // 估值与买入时机
+  proInvestmentConclusion: string; // 综合投资建议
 }
 
 export interface SankeyData {

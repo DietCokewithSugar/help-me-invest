@@ -90,24 +90,56 @@ export async function POST(request: NextRequest) {
                 }
                 streamIterator = await client.streamInvestmentConclusion(data, prevContext, marketType);
                 break;
-            case 'proAnalysis':
-                // 专业版报告分析（使用 Gemini 3 Pro Preview + Thinking + Google Search）
-                streamIterator = await client.streamProAnalysis(
+            // ============ 专业版报告 - 7个独立的并发请求 ============
+            case 'proBusinessModel':
+                // 专业版 - 生意模式分析
+                streamIterator = await client.streamProBusinessModel(data, marketType);
+                break;
+            case 'proOperatingModel':
+                // 专业版 - 运营模式分析
+                streamIterator = await client.streamProOperatingModel(data, marketType);
+                break;
+            case 'proIndustryOutlook':
+                // 专业版 - 行业前景评估
+                streamIterator = await client.streamProIndustryOutlook(data, marketType);
+                break;
+            case 'proMoatAnalysis':
+                // 专业版 - 竞争地位与护城河
+                streamIterator = await client.streamProMoatAnalysis(
                     data,
-                    incomeStatements || [],
-                    incomeStatementsQuarter || [],
-                    balanceSheets || [],
-                    balanceSheetsQuarter || [],
-                    cashFlowStatements || [],
-                    cashFlowStatementsQuarter || [],
-                    keyMetrics || [],
-                    keyMetricsTTM || [],
-                    financialRatios || [],
-                    financialRatiosTTM || [],
-                    financialGrowth || [],
-                    financialScores || null,
+                    data.profitabilityData || {},
+                    data.capitalReturnData || {},
                     marketType
                 );
+                break;
+            case 'proFinancialHealth':
+                // 专业版 - 财务健康与经营质量
+                streamIterator = await client.streamProFinancialHealth(
+                    data,
+                    data.annualFinancials || [],
+                    data.quarterlyFinancials || [],
+                    data.profitabilityData || {},
+                    data.debtData || {},
+                    data.healthScores || {},
+                    marketType
+                );
+                break;
+            case 'proValuation':
+                // 专业版 - 估值与买入时机
+                streamIterator = await client.streamProValuation(
+                    data,
+                    data.valuationData || {},
+                    data.growthData || {},
+                    data.quarterlyFinancials || [],
+                    marketType
+                );
+                break;
+            case 'proInvestmentConclusion':
+                // 专业版 - 综合投资建议（需要前6个章节内容）
+                if (!prevContext) {
+                    return NextResponse.json({ error: 'Context required for pro conclusion' }, { status: 400 });
+                }
+                streamIterator = await client.streamProInvestmentConclusion(data, prevContext, marketType);
                 break;
             default:
                 return NextResponse.json({ error: 'Invalid section' }, { status: 400 });
