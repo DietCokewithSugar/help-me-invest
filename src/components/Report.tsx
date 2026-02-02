@@ -728,6 +728,8 @@ export default function Report({
   const showAiLoading = aiLoading;
   const showAiSection =
     !aiLoading && (!!aiError || !!aiAnalysis || !!earningsCallSummary);
+  // 普通版 AI 分析区域是否可见（加载中或有内容时都显示）
+  const showAiSectionArea = reportVersion === 'standard' && (aiLoading || showAiSection);
 
   // 兼容新旧 API 格式
   const marketCap = profile.marketCap || profile.mktCap || 0;
@@ -920,7 +922,7 @@ export default function Report({
         </header>
 
         {/* ==================== AI 生成中提示（仅普通版） ==================== */}
-        {showAiLoading && showAiSectionInVersion && (
+        {showAiLoading && showAiSectionArea && (
           <div className="bg-white/5 border border-white/10 p-4 border-l-2 border-l-glacier-500 animate-fade-in rounded-sm">
             {/* 标题区域 */}
             <div className="flex items-center gap-3 mb-4">

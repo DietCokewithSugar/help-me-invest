@@ -461,6 +461,7 @@ ${JSON.stringify(companyData, null, 2)}
 请分析 ${companyData.companyName} (${companyData.symbol}) 所处的行业。
 
 要求：
+- **禁止任何开场白、问候语、自我介绍**，直接输出报告内容
 - 分析行业规模、增长趋势、技术演进方向。
 - 字数控制在 300-400 字。
 - 使用中文。
