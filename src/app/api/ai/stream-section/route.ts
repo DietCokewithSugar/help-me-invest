@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GeminiClient } from '@/lib/gemini';
 import type { MarketType } from '@/types';
 
-export const runtime = 'edge';
-export const maxDuration = 180; // Pro 计划允许更长超时
+// 使用 Node.js Runtime（不使用 Edge），Pro 计划最大超时 300 秒
+export const maxDuration = 300;
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1500;
