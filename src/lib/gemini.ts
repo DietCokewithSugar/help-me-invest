@@ -13,7 +13,8 @@ const MARKET_NAMES: Record<MarketType, string> = {
 // - lite: 简单任务，速度优先（股票联想、财报摘要）
 // - standard: 复杂推理任务（公司深度分析）
 // - search: 需要 Google Search Grounding 的任务（联网新闻）
-type ModelTier = 'lite' | 'standard' | 'search';
+// - pro: 专业版深度分析，使用 Gemini 3 Pro 带思考能力
+type ModelTier = 'lite' | 'standard' | 'search' | 'pro';
 
 const MODEL_CONFIG: Record<ModelTier, { model: string; description: string }> = {
   lite: {
@@ -27,6 +28,10 @@ const MODEL_CONFIG: Record<ModelTier, { model: string; description: string }> = 
   search: {
     model: 'gemini-3-flash-preview',
     description: '搜索模型，支持 Google Search Grounding',
+  },
+  pro: {
+    model: 'gemini-3-pro-preview',
+    description: '专业模型，支持深度思考和 Google Search Grounding',
   },
 };
 
@@ -45,6 +50,10 @@ export class GeminiClient {
       topP?: number;
       maxOutputTokens?: number;
       tools?: any[];
+      thinkingConfig?: {
+        thinkingLevel?: 'low' | 'medium' | 'high';
+        includeThoughts?: boolean;
+      };
     }
   ) {
     const modelName = MODEL_CONFIG[tier].model;
@@ -55,7 +64,8 @@ export class GeminiClient {
         temperature: config?.temperature ?? 0.7,
         topP: config?.topP ?? 0.95,
         maxOutputTokens: config?.maxOutputTokens ?? 8192,
-      },
+        ...(config?.thinkingConfig ? { thinkingConfig: config.thinkingConfig } : {}),
+      } as any,
     });
   }
 
@@ -546,24 +556,33 @@ ${JSON.stringify(companyData, null, 2)}
     return streamIterator();
   }
 
-  // 8. 投资建议总结 (需要前面所有模块的汇总)
+  // 8. 投资分析总结 (需要前面所有模块的汇总，不给出购买建议)
   async streamInvestmentConclusion(
     companyData: any,
     context: string,
     market: MarketType
   ): Promise<AsyncGenerator<string, void, unknown>> {
     const prompt = `
-你是一位首席投资官。请根据以下关于 ${companyData.companyName} (${companyData.symbol}) 的研究报告内容，撰写一份“投资建议总结”。
+你是一位专业的投资研究分析师。请根据以下关于 ${companyData.companyName} (${companyData.symbol}) 的研究报告内容，撰写一份“投资建议总结”。
 
 已有报告内容：
 ${context}
 
 要求：
-- 综合上述信息，给出最终的投资判断逻辑。
-- 明确机遇与风险。
-- 字数 200-300 字。
-- 使用中文。
-- 格式：Markdown，核心建议及风险点加粗。
+- **不要给出任何买入、卖出或持有的投资建议**
+- **不要推荐是否购买该股票**
+- 只客观分析该公司的**核心优势**和**主要弊端/风险**
+- 帮助投资者全面了解这家公司，让他们自行做出判断
+- 字数 200-300 字
+- 使用中文
+- 格式：Markdown，核心优势和主要风险点加粗
+
+输出结构：
+**核心优势**：
+- ...
+
+**主要弊端/风险**：
+- ...
 `;
     return this.generateStream(prompt, 'standard');
   }
@@ -620,42 +639,176 @@ ${transcriptText}
     return this.generateStream(prompt, 'lite');
   }
 
-  // 10. 专业版报告分析（使用 Gemini 3 Flash + Google Search）
+  // 10. 专业版报告分析（使用 Gemini 3 Pro Preview + Thinking + Google Search）
   async streamProAnalysis(
     companyData: any,
     incomeStatements: any[],
+    incomeStatementsQuarter: any[],
+    balanceSheets: any[],
+    balanceSheetsQuarter: any[],
+    cashFlowStatements: any[],
+    cashFlowStatementsQuarter: any[],
     keyMetrics: any[],
+    keyMetricsTTM: any[],
     financialRatios: any[],
+    financialRatiosTTM: any[],
     financialGrowth: any[],
+    financialScores: any,
     market: MarketType
   ): Promise<AsyncGenerator<string, void, unknown>> {
     const marketName = MARKET_NAMES[market] || '美股';
     
-    // 准备财务数据摘要
+    // 准备最新财务数据
     const latestIncome = incomeStatements?.[0] || {};
+    const latestBalance = balanceSheets?.[0] || {};
+    const latestCashFlow = cashFlowStatements?.[0] || {};
     const latestMetrics = keyMetrics?.[0] || {};
+    const latestMetricsTTM = keyMetricsTTM?.[0] || {};
     const latestRatios = financialRatios?.[0] || {};
+    const latestRatiosTTM = financialRatiosTTM?.[0] || {};
     const latestGrowth = financialGrowth?.[0] || {};
     
-    // 营收增长趋势
-    const revenueGrowthData = incomeStatements?.slice(0, 5).map((stmt: any) => ({
-      year: stmt.calendarYear || stmt.date?.split('-')[0],
-      revenue: stmt.revenue,
-      netIncome: stmt.netIncome,
-      grossProfitRatio: stmt.grossProfitRatio,
-      netIncomeRatio: stmt.netIncomeRatio,
-    })) || [];
+    // ============ 近5年年度财务数据 ============
+    const annualFinancials = incomeStatements?.slice(0, 5).map((stmt: any, idx: number) => {
+      const balance = balanceSheets?.[idx] || {};
+      const cashFlow = cashFlowStatements?.[idx] || {};
+      const metrics = keyMetrics?.[idx] || {};
+      const ratios = financialRatios?.[idx] || {};
+      return {
+        period: stmt.calendarYear || stmt.date?.split('-')[0] || `Y${idx + 1}`,
+        revenue: stmt.revenue,
+        netIncome: stmt.netIncome,
+        grossProfit: stmt.grossProfit,
+        operatingIncome: stmt.operatingIncome,
+        ebitda: stmt.ebitda,
+        grossProfitMargin: ratios.grossProfitMargin || stmt.grossProfitRatio,
+        netProfitMargin: ratios.netProfitMargin || stmt.netIncomeRatio,
+        totalAssets: balance.totalAssets,
+        totalLiabilities: balance.totalLiabilities,
+        totalEquity: balance.totalStockholdersEquity,
+        freeCashFlow: cashFlow.freeCashFlow,
+        roe: ratios.returnOnEquity || metrics.roe,
+      };
+    }) || [];
 
-    const model = this.getModel('search', {
-      temperature: 0.7,
-      topP: 0.95,
-      maxOutputTokens: 8192,
+    // ============ 近5个季度财务数据 ============
+    const quarterlyFinancials = incomeStatementsQuarter?.slice(0, 5).map((stmt: any, idx: number) => {
+      const balance = balanceSheetsQuarter?.[idx] || {};
+      const ratios = financialRatiosTTM?.[0] || {};
+      return {
+        period: stmt.date || `Q${idx + 1}`,
+        revenue: stmt.revenue,
+        netIncome: stmt.netIncome,
+        grossProfit: stmt.grossProfit,
+        operatingIncome: stmt.operatingIncome,
+        grossProfitMargin: stmt.grossProfitRatio,
+        netProfitMargin: stmt.netIncomeRatio,
+        totalAssets: balance.totalAssets,
+        totalLiabilities: balance.totalLiabilities,
+      };
+    }) || [];
+
+    // ============ 资产与资本 ============
+    const assetCapitalData = {
+      totalAssets: latestBalance.totalAssets,
+      marketCap: companyData.marketCap || companyData.mktCap || latestMetrics.marketCap,
+      revenue: latestIncome.revenue,
+      enterpriseValue: latestMetrics.enterpriseValue || latestMetricsTTM?.enterpriseValue,
+    };
+
+    // ============ 盈利能力 ============
+    const profitabilityData = {
+      retainedEarnings: latestBalance.retainedEarnings,
+      ebit: latestIncome.operatingIncome || financialScores?.ebit,
+      grossProfitMargin: latestRatios.grossProfitMargin || latestRatiosTTM?.grossProfitMargin,
+      netProfitMargin: latestRatios.netProfitMargin || latestRatiosTTM?.netProfitMargin,
+      incomeQuality: latestMetrics.incomeQuality || latestMetricsTTM?.incomeQuality,
+      roe: latestRatios.returnOnEquity || latestMetrics.roe,
+      roa: latestRatios.returnOnAssets,
+      roic: latestMetrics.roic || latestMetricsTTM?.roic,
+    };
+
+    // ============ 负债 ============
+    const debtData = {
+      workingCapital: latestMetrics.workingCapital || financialScores?.workingCapital,
+      totalLiabilities: latestBalance.totalLiabilities || financialScores?.totalLiabilities,
+      totalDebt: latestBalance.totalDebt,
+      netDebt: latestBalance.netDebt,
+      debtToEquity: latestRatios.debtEquityRatio || latestMetrics.debtToEquity,
+      debtToAssets: latestMetrics.debtToAssets,
+      currentRatio: latestRatios.currentRatio || latestMetrics.currentRatio,
+      quickRatio: latestRatios.quickRatio,
+    };
+
+    // ============ 估值指标 ============
+    const valuationData = {
+      peRatio: latestMetrics.peRatio || latestRatios.priceEarningsRatio || latestMetricsTTM?.peRatio,
+      pbRatio: latestMetrics.pbRatio || latestRatios.priceToBookRatio || latestMetricsTTM?.pbRatio,
+      psRatio: latestMetrics.priceToSalesRatio || latestRatios.priceToSalesRatio,
+      evToEbitda: latestMetrics.enterpriseValueOverEBITDA || latestMetricsTTM?.enterpriseValueOverEBITDA,
+      grahamNumber: latestMetrics.grahamNumber || latestMetricsTTM?.grahamNumber,
+      enterpriseValue: latestMetrics.enterpriseValue || latestMetricsTTM?.enterpriseValue,
+      earningsYield: latestMetrics.earningsYield || latestMetricsTTM?.earningsYield,
+      freeCashFlowYield: latestMetrics.freeCashFlowYield || latestMetricsTTM?.freeCashFlowYield,
+    };
+
+    // ============ 效率与周期 ============
+    const efficiencyData = {
+      cashConversionCycle: latestRatios.cashConversionCycle,
+      daysOfInventoryOutstanding: latestRatios.daysOfInventoryOutstanding || latestMetrics.daysOfInventoryOnHand,
+      daysOfPayablesOutstanding: latestRatios.daysOfPayablesOutstanding || latestMetrics.daysPayablesOutstanding,
+      daysOfSalesOutstanding: latestRatios.daysOfSalesOutstanding || latestMetrics.daysSalesOutstanding,
+      assetTurnover: latestRatios.assetTurnover,
+      inventoryTurnover: latestMetrics.inventoryTurnover,
+      receivablesTurnover: latestMetrics.receivablesTurnover,
+    };
+
+    // ============ 资本与回报 ============
+    const capitalReturnData = {
+      // 资本结构
+      rdToRevenue: latestMetrics.researchAndDdevelopementToRevenue || latestMetricsTTM?.researchAndDdevelopementToRevenue,
+      capexToRevenue: latestMetrics.capexToRevenue || latestMetricsTTM?.capexToRevenue,
+      stockBasedCompensationToRevenue: latestMetrics.stockBasedCompensationToRevenue || latestMetricsTTM?.stockBasedCompensationToRevenue,
+      // 股东回报
+      dividendYield: latestMetrics.dividendYield || latestRatios.dividendYield || latestMetricsTTM?.dividendYield,
+      payoutRatio: latestMetrics.payoutRatio || latestMetricsTTM?.payoutRatio,
+    };
+
+    // ============ 财务健康评分 ============
+    const healthScores = {
+      altmanZScore: financialScores?.altmanZScore,
+      piotroskiScore: financialScores?.piotroskiScore,
+    };
+
+    // ============ 增长数据 ============
+    const growthData = {
+      revenueGrowth: latestGrowth.revenueGrowth,
+      netIncomeGrowth: latestGrowth.netIncomeGrowth,
+      epsGrowth: latestGrowth.epsgrowth,
+      freeCashFlowGrowth: latestGrowth.freeCashFlowGrowth,
+      threeYRevenueGrowth: latestGrowth.threeYRevenueGrowthPerShare,
+      fiveYRevenueGrowth: latestGrowth.fiveYRevenueGrowthPerShare,
+    };
+
+    // 使用 Gemini 3 Pro Preview 模型，启用思考和联网搜索
+    const model = this.genAI.getGenerativeModel({
+      model: 'gemini-3-pro-preview',
       tools: [{ googleSearch: {} }] as any,
+      generationConfig: {
+        temperature: 0.7,
+        topP: 0.95,
+        maxOutputTokens: 12288,
+        thinkingConfig: {
+          thinkingLevel: 'high',  // 启用高级思考
+        },
+      } as any,
     });
 
     const today = new Date().toISOString().slice(0, 10);
     
-    const prompt = `你是一位顶级投资分析师，精通价值投资和行业研究。请根据以下数据和最新市场信息，为投资者撰写一份专业的投资分析报告。
+    const prompt = `你是一位顶级投资分析师，拥有 CFA 资格，精通价值投资、基本面分析和行业研究。请根据以下详尽的财务数据和最新市场信息，为投资者撰写一份专业深度的投资分析报告。
+
+**重要提示**：请深入思考每一个数据点的含义，结合行业背景进行分析，不要简单罗列数据。
 
 ## 公司基本信息
 - 公司名称：${companyData.companyName}
@@ -664,96 +817,172 @@ ${transcriptText}
 - 行业：${companyData.industry || 'N/A'}
 - 板块：${companyData.sector || 'N/A'}
 - 当前股价：${companyData.price || 'N/A'}
-- 市值：${companyData.marketCap || companyData.mktCap || 'N/A'}
+- 市值：${assetCapitalData.marketCap || 'N/A'}
 
-## 关键财务指标
-- PE 比率：${latestMetrics.peRatio || latestRatios.priceEarningsRatio || 'N/A'}
-- PB 比率：${latestMetrics.pbRatio || latestRatios.priceToBookRatio || 'N/A'}
-- PS 比率：${latestMetrics.priceToSalesRatio || latestRatios.priceToSalesRatio || 'N/A'}
-- EV/EBITDA：${latestMetrics.enterpriseValueOverEBITDA || 'N/A'}
-- ROE：${latestRatios.returnOnEquity || latestMetrics.roe || 'N/A'}
-- ROA：${latestRatios.returnOnAssets || 'N/A'}
-- 毛利率：${latestRatios.grossProfitMargin || latestIncome.grossProfitRatio || 'N/A'}
-- 净利率：${latestRatios.netProfitMargin || latestIncome.netIncomeRatio || 'N/A'}
-- 营收增长率：${latestGrowth.revenueGrowth || 'N/A'}
-- 净利润增长率：${latestGrowth.netIncomeGrowth || 'N/A'}
+## 一、近5年年度财务数据
+${JSON.stringify(annualFinancials, null, 2)}
 
-## 近年营收与利润趋势
-${JSON.stringify(revenueGrowthData, null, 2)}
+## 二、近5个季度财务数据（观察近期趋势）
+${JSON.stringify(quarterlyFinancials, null, 2)}
+
+## 三、资产与资本
+- 总资产：${assetCapitalData.totalAssets || 'N/A'}
+- 市值：${assetCapitalData.marketCap || 'N/A'}
+- 营收：${assetCapitalData.revenue || 'N/A'}
+- 企业价值 (EV)：${assetCapitalData.enterpriseValue || 'N/A'}
+
+## 四、盈利能力
+- 留存收益：${profitabilityData.retainedEarnings || 'N/A'}
+- EBIT（息税前利润）：${profitabilityData.ebit || 'N/A'}
+- 毛利率：${profitabilityData.grossProfitMargin || 'N/A'}
+- 净利率：${profitabilityData.netProfitMargin || 'N/A'}
+- 收益质量：${profitabilityData.incomeQuality || 'N/A'}
+- ROE（净资产收益率）：${profitabilityData.roe || 'N/A'}
+- ROA（总资产收益率）：${profitabilityData.roa || 'N/A'}
+- ROIC（投入资本回报率）：${profitabilityData.roic || 'N/A'}
+
+## 五、负债情况
+- 营运资金：${debtData.workingCapital || 'N/A'}
+- 总负债：${debtData.totalLiabilities || 'N/A'}
+- 总债务：${debtData.totalDebt || 'N/A'}
+- 净债务：${debtData.netDebt || 'N/A'}
+- 债务股权比：${debtData.debtToEquity || 'N/A'}
+- 债务资产比：${debtData.debtToAssets || 'N/A'}
+- 流动比率：${debtData.currentRatio || 'N/A'}
+- 速动比率：${debtData.quickRatio || 'N/A'}
+
+## 六、估值指标
+- PE 比率：${valuationData.peRatio || 'N/A'}
+- PB 比率：${valuationData.pbRatio || 'N/A'}
+- PS 比率：${valuationData.psRatio || 'N/A'}
+- EV/EBITDA：${valuationData.evToEbitda || 'N/A'}
+- 格雷厄姆数字：${valuationData.grahamNumber || 'N/A'}
+- 企业价值 (EV)：${valuationData.enterpriseValue || 'N/A'}
+- 盈利收益率：${valuationData.earningsYield || 'N/A'}
+- 自由现金流收益率：${valuationData.freeCashFlowYield || 'N/A'}
+
+## 七、效率与周期
+- 现金循环周期：${efficiencyData.cashConversionCycle || 'N/A'} 天
+- 库存周转天数：${efficiencyData.daysOfInventoryOutstanding || 'N/A'} 天
+- 应付账款天数：${efficiencyData.daysOfPayablesOutstanding || 'N/A'} 天
+- 应收账款天数：${efficiencyData.daysOfSalesOutstanding || 'N/A'} 天
+- 总资产周转率：${efficiencyData.assetTurnover || 'N/A'}
+- 库存周转率：${efficiencyData.inventoryTurnover || 'N/A'}
+
+## 八、资本与回报
+**资本结构**：
+- 研发占比：${capitalReturnData.rdToRevenue || 'N/A'}
+- 资本开支占比：${capitalReturnData.capexToRevenue || 'N/A'}
+- 股权激励占比：${capitalReturnData.stockBasedCompensationToRevenue || 'N/A'}
+
+**股东回报**：
+- 股息率：${capitalReturnData.dividendYield || 'N/A'}
+- 派息率：${capitalReturnData.payoutRatio || 'N/A'}
+
+## 九、财务健康评分
+- Altman Z-Score（破产风险）：${healthScores.altmanZScore || 'N/A'}
+- Piotroski F-Score（财务改善）：${healthScores.piotroskiScore || 'N/A'}
+
+## 十、增长指标
+- 营收增长率：${growthData.revenueGrowth || 'N/A'}
+- 净利润增长率：${growthData.netIncomeGrowth || 'N/A'}
+- EPS 增长率：${growthData.epsGrowth || 'N/A'}
+- 自由现金流增长率：${growthData.freeCashFlowGrowth || 'N/A'}
+- 3年营收复合增长率：${growthData.threeYRevenueGrowth || 'N/A'}
+- 5年营收复合增长率：${growthData.fiveYRevenueGrowth || 'N/A'}
+
+---
 
 ## 分析要求
 
-请基于以上财务数据，并通过联网搜索获取该公司和行业的最新信息，按照以下结构撰写分析报告。今天日期为 ${today}。
+请基于以上详尽的财务数据，并通过联网搜索获取该公司和行业的最新信息，按照以下结构撰写深度分析报告。今天日期为 ${today}。
 
 ### 输出结构（必须严格遵循）：
 
 ## 一、行业前景评估
 
 1. **行业增长性判断**：该公司所处的 ${companyData.industry || companyData.sector} 行业是否属于高增长的"好行业"？
-   - 分析行业的市场规模和增长率
+   - 分析行业的市场规模和增长率（搜索最新行业数据）
    - 评估行业的发展阶段（导入期/成长期/成熟期/衰退期）
    - 判断行业未来3-5年的增长潜力
-   - 搜索最新的行业研究报告和趋势数据
 
 2. **政策与宏观环境**：
    - 相关产业政策是否利好该行业？
    - 宏观经济环境对该行业的影响
 
-**结论**：[给出明确判断：高增长行业/稳定成熟行业/衰退行业]
+**行业结论**：[高增长行业  / 稳定成熟行业  / 衰退行业 ]
 
 ## 二、竞争地位与护城河
 
 1. **市场地位分析**：
-   - 该公司在行业中的市场份额排名
+   - 根据财务数据推断该公司在行业中的规模和地位
    - 是否拥有垄断或寡头地位？
-   - 与主要竞争对手的对比优势
+   - 与主要竞争对手的对比（搜索竞争格局信息）
 
-2. **护城河深度评估**：
-   - **品牌护城河**：品牌知名度和客户忠诚度如何？
-   - **网络效应**：是否存在用户增长带来的价值增益？
-   - **转换成本**：客户更换供应商的成本高吗？
-   - **成本优势**：是否有规模效应或独特的成本结构？
-   - **无形资产**：专利、许可证、特许经营权等
+2. **护城河深度评估**（结合财务数据分析）：
+   - **品牌护城河**：毛利率 ${profitabilityData.grossProfitMargin} 是否显著高于同行？
+   - **规模效应**：营收 ${assetCapitalData.revenue} 和利润率趋势如何？
+   - **研发壁垒**：研发占比 ${capitalReturnData.rdToRevenue} 是否形成技术护城河？
+   - **客户粘性**：收益质量 ${profitabilityData.incomeQuality} 和现金流稳定性如何？
 
-**结论**：[护城河评级：宽广/中等/狭窄/无]
+**护城河评级**：[宽广  / 中等  / 狭窄  / 无]
 
-## 三、估值与买入时机分析
+## 三、财务健康与经营质量分析
 
-1. **估值判断**：
-   - 基于 PE、PB、PS、EV/EBITDA 等指标，与行业平均和历史水平对比
-   - 当前股价相对于内在价值是被高估还是低估？
-   - 参考 DCF 估值或可比公司估值法
+请结合以上数据深入分析：
+1. **盈利能力趋势**：对比年度和季度数据，毛利率和净利率是改善还是恶化？
+2. **资产负债表健康度**：Altman Z-Score ${healthScores.altmanZScore}，Piotroski F-Score ${healthScores.piotroskiScore} 说明什么？
+3. **现金流质量**：自由现金流是否健康？收益质量如何？
+4. **资本配置效率**：ROIC ${profitabilityData.roic} 是否超过资本成本？
+
+**财务健康评级**：[优秀 / 良好 / 一般 / 较差]
+
+## 四、估值与买入时机分析
+
+1. **估值判断**（结合多个估值指标）：
+   - PE ${valuationData.peRatio}、PB ${valuationData.pbRatio}、EV/EBITDA ${valuationData.evToEbitda} 与行业和历史对比
+   - 格雷厄姆数字 ${valuationData.grahamNumber} vs 当前股价 ${companyData.price}
+   - 盈利收益率 ${valuationData.earningsYield} 是否有吸引力？
 
 2. **买入时机判断**：
-   - 结合最新财报和市场动态，现在是否是好的买入时机？
-   - 近期是否有可能影响股价的催化剂或风险事件？
+   - 结合季度数据趋势，业绩是在改善还是恶化？
+   - 近期是否有可能影响股价的催化剂或风险事件？（搜索最新新闻）
 
-**结论**：
-- 估值水平：[便宜/合理/偏贵/昂贵]
-- 买入建议：[强烈推荐买入/可以买入/持有观望/建议回避]
+**估值结论**：
+- 估值水平：[便宜  / 合理  / 偏贵  / 昂贵 ]
+- 股价 vs 内在价值：[低估 / 合理 / 高估]
 
-## 四、综合投资建议
+## 五、综合投资建议
 
-请综合以上分析，给出最终的投资建议，包括：
-- 核心投资逻辑（1-2句话）
-- 主要机会点
-- 主要风险点
-- 建议操作策略
+**核心投资逻辑**：（1-2句话总结）
+
+**机会点**：
+- ...
+
+**风险点**：
+- ...
+
+**买入建议**：[强烈推荐买入 / 可以买入  / 持有观望  / 建议回避 ]
+
+**建议操作策略**：（如分批建仓、等待回调等）
 
 ---
 
 **格式要求**：
 - 使用中文回答
 - 使用 Markdown 格式，重要结论和关键数据请**加粗**
-- 每个部分的结论要明确、直接，不要模棱两可
-- 引用的数据要标注来源（如"根据最新财报..."、"行业研究显示..."）
-- 全文约 800-1200 字`;
+- 每个部分的结论要明确、直接，给出清晰的评级
+- 引用搜索到的信息时标注来源
+- 全文约 1200-1800 字，深入分析而非简单罗列`;
 
     const result = await model.generateContentStream(prompt);
     
     async function* streamIterator() {
       for await (const chunk of result.stream) {
-        yield chunk.text();
+        const text = chunk.text();
+        if (text) {
+          yield text;
+        }
       }
     }
     return streamIterator();

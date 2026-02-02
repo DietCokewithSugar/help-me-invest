@@ -4,7 +4,7 @@ import type { MarketType } from '@/types'; // Ensure correct import path for typ
 
 export const runtime = 'edge'; // Optional: Use edge if supported, but Node.js is fine too. Let's stick to default/nodejs if strict timeout is needed, but streaming supports edge well.
 // Actually standard Node runtime is safer for now unless configured otherwise.
-export const maxDuration = 60; // Allow longer timeout for streaming
+export const maxDuration = 120; // Allow longer timeout for streaming (Pro model with thinking needs more time)
 
 function iteratorToStream(iterator: AsyncGenerator<string, void, unknown>) {
     return new ReadableStream({
@@ -21,7 +21,26 @@ function iteratorToStream(iterator: AsyncGenerator<string, void, unknown>) {
 
 export async function POST(request: NextRequest) {
     try {
-        const { section, data, market, prevContext, incomeStatements, keyMetrics, financialRatios, financialGrowth } = await request.json();
+        const { 
+            section, 
+            data, 
+            market, 
+            prevContext, 
+            // 年度财务数据
+            incomeStatements, 
+            balanceSheets,
+            cashFlowStatements,
+            keyMetrics, 
+            keyMetricsTTM,
+            financialRatios, 
+            financialRatiosTTM,
+            financialGrowth,
+            financialScores,
+            // 季度财务数据
+            incomeStatementsQuarter,
+            balanceSheetsQuarter,
+            cashFlowStatementsQuarter,
+        } = await request.json();
         const googleApiKey = process.env.GOOGLE_API_KEY;
 
         if (!googleApiKey) {
@@ -72,13 +91,21 @@ export async function POST(request: NextRequest) {
                 streamIterator = await client.streamInvestmentConclusion(data, prevContext, marketType);
                 break;
             case 'proAnalysis':
-                // 专业版报告分析（使用 Gemini 3 Flash + Google Search）
+                // 专业版报告分析（使用 Gemini 3 Pro Preview + Thinking + Google Search）
                 streamIterator = await client.streamProAnalysis(
                     data,
                     incomeStatements || [],
+                    incomeStatementsQuarter || [],
+                    balanceSheets || [],
+                    balanceSheetsQuarter || [],
+                    cashFlowStatements || [],
+                    cashFlowStatementsQuarter || [],
                     keyMetrics || [],
+                    keyMetricsTTM || [],
                     financialRatios || [],
+                    financialRatiosTTM || [],
                     financialGrowth || [],
+                    financialScores || null,
                     marketType
                 );
                 break;

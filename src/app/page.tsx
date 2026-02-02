@@ -611,6 +611,27 @@ function HomeContent() {
       // So payload should be { data: { companyName, symbol } }
       tasks.push(streamSection('recentDevelopments', { data: { companyName: companyData.companyName, symbol: formattedSymbol }, market }));
 
+      // 专业版分析（使用 Gemini 3 Pro Preview + Thinking + Google Search）
+      // 与普通版并发启动，不阻塞
+      streamSection('proAnalysis', {
+        data: companyData,
+        market,
+        // 年度财务数据
+        incomeStatements: data.incomeStatements || [],
+        balanceSheets: data.balanceSheets || [],
+        cashFlowStatements: data.cashFlowStatements || [],
+        keyMetrics: data.keyMetrics || [],
+        keyMetricsTTM: data.keyMetricsTTM || [],
+        financialRatios: data.financialRatios || [],
+        financialRatiosTTM: data.financialRatiosTTM || [],
+        financialGrowth: data.financialGrowth || [],
+        financialScores: data.financialScores || null,
+        // 季度财务数据
+        incomeStatementsQuarter: data.incomeStatementsQuarter || [],
+        balanceSheetsQuarter: data.balanceSheetsQuarter || [],
+        cashFlowStatementsQuarter: data.cashFlowStatementsQuarter || [],
+      });
+
       // Earnings Call Summary (if US and transcript exists)
       // Check earningsTranscripts
       const transcript = data.earningsTranscripts?.[0];
@@ -651,17 +672,6 @@ function HomeContent() {
         data: companyData,
         market,
         prevContext: context
-      });
-
-      // 4. 专业版分析（使用 Gemini 3 Flash + Google Search 联网搜索）
-      // 并行启动，不阻塞普通版报告
-      streamSection('proAnalysis', {
-        data: companyData,
-        market,
-        incomeStatements: data.incomeStatements || [],
-        keyMetrics: data.keyMetrics || [],
-        financialRatios: data.financialRatios || [],
-        financialGrowth: data.financialGrowth || [],
       });
 
     } catch (err: any) {
