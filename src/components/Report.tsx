@@ -728,6 +728,8 @@ export default function Report({
   const showAiLoading = aiLoading;
   const showAiSection =
     !aiLoading && (!!aiError || !!aiAnalysis || !!earningsCallSummary);
+  // 普通版 AI 分析区域是否可见（加载中或有内容时都显示）
+  const showAiSectionArea = reportVersion === 'standard' && (aiLoading || showAiSection);
 
   // 兼容新旧 API 格式
   const marketCap = profile.marketCap || profile.mktCap || 0;
@@ -941,7 +943,7 @@ export default function Report({
         </header>
 
         {/* ==================== AI 生成中提示（仅普通版） ==================== */}
-        {showAiLoading && showAiSectionInVersion && (
+        {showAiLoading && showAiSectionArea && (
           <div className="bg-white/5 border border-white/10 p-4 border-l-2 border-l-glacier-500 animate-fade-in rounded-sm">
             {/* 标题区域 */}
             <div className="flex items-center gap-3 mb-4">
@@ -969,7 +971,7 @@ export default function Report({
         )}
 
         {/* ==================== AI 分析内容（仅普通版） ==================== */}
-        {showAiSectionInVersion && (
+        {showAiSectionArea && (
           <CollapsibleSection
             id="aiAnalysis"
             title="智投综合分析"
@@ -985,22 +987,47 @@ export default function Report({
                 </div>
               )}
 
-              {aiAnalysis && (
-                <>
-                  <div className="grid grid-cols-1 gap-6">
-                    <AnalysisCard title="企业概况" onShare={handleShareModule}>
-                      <ReactMarkdown>{aiAnalysis.companyOverview}</ReactMarkdown>
-                    </AnalysisCard>
+              <div className="grid grid-cols-1 gap-6">
+                {/* 企业概况 */}
+                <AnalysisCard title="企业概况" onShare={handleShareModule}>
+                  {aiAnalysis?.companyOverview ? (
+                    <ReactMarkdown>{aiAnalysis.companyOverview}</ReactMarkdown>
+                  ) : (
+                    <div className="flex items-center gap-2 text-mist-500 text-sm">
+                      <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                      <span>正在分析企业概况...</span>
+                    </div>
+                  )}
+                </AnalysisCard>
 
-                    <AnalysisCard title="行业分析" onShare={handleShareModule}>
-                      <ReactMarkdown>{aiAnalysis.industryAnalysis}</ReactMarkdown>
-                    </AnalysisCard>
+                {/* 行业分析 */}
+                <AnalysisCard title="行业分析" onShare={handleShareModule}>
+                  {aiAnalysis?.industryAnalysis ? (
+                    <ReactMarkdown>{aiAnalysis.industryAnalysis}</ReactMarkdown>
+                  ) : (
+                    <div className="flex items-center gap-2 text-mist-500 text-sm">
+                      <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                      <span>正在分析行业情况...</span>
+                    </div>
+                  )}
+                </AnalysisCard>
 
-                    <AnalysisCard title="行业痛点与障碍" onShare={handleShareModule}>
-                      <ReactMarkdown>{aiAnalysis.industryPainPoints}</ReactMarkdown>
-                    </AnalysisCard>
+                {/* 行业痛点与障碍 */}
+                <AnalysisCard title="行业痛点与障碍" onShare={handleShareModule}>
+                  {aiAnalysis?.industryPainPoints ? (
+                    <ReactMarkdown>{aiAnalysis.industryPainPoints}</ReactMarkdown>
+                  ) : (
+                    <div className="flex items-center gap-2 text-mist-500 text-sm">
+                      <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                      <span>正在分析行业痛点...</span>
+                    </div>
+                  )}
+                </AnalysisCard>
 
-                    <AnalysisCard title="竞争格局" onShare={handleShareModule}>
+                {/* 竞争格局 */}
+                <AnalysisCard title="竞争格局" onShare={handleShareModule}>
+                  {aiAnalysis?.competitors ? (
+                    <>
                       <ReactMarkdown>{aiAnalysis.competitors}</ReactMarkdown>
                       {peers && peers.length > 0 && (
                         <div className="flex flex-wrap gap-2 pt-4 mt-4 border-t border-white/5">
@@ -1012,65 +1039,103 @@ export default function Report({
                           ))}
                         </div>
                       )}
-                    </AnalysisCard>
-
-                    <AnalysisCard title="竞争优势" onShare={handleShareModule}>
-                      <ReactMarkdown>{aiAnalysis.competitiveAdvantage}</ReactMarkdown>
-                    </AnalysisCard>
-
-                    <AnalysisCard title="核心护城河" onShare={handleShareModule}>
-                      <ReactMarkdown>{aiAnalysis.moat}</ReactMarkdown>
-                    </AnalysisCard>
-                  </div>
-
-                  {/* 最新动态 */}
-                  <AnalysisCard
-                    title="最新发展动态"
-                    onShare={handleShareModule}
-                  >
-                    <div className="prose prose-gemini max-w-none prose-p:text-mist-300 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-300 prose-a:text-glacier-500 prose-a:no-underline hover:prose-a:underline text-sm">
-                      <ReactMarkdown>{aiAnalysis.recentDevelopments}</ReactMarkdown>
+                    </>
+                  ) : (
+                    <div className="flex items-center gap-2 text-mist-500 text-sm">
+                      <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                      <span>正在分析竞争格局...</span>
                     </div>
-                  </AnalysisCard>
-                </>
-              )}
+                  )}
+                </AnalysisCard>
 
-              {earningsCallSummary && (
+                {/* 竞争优势 */}
+                <AnalysisCard title="竞争优势" onShare={handleShareModule}>
+                  {aiAnalysis?.competitiveAdvantage ? (
+                    <ReactMarkdown>{aiAnalysis.competitiveAdvantage}</ReactMarkdown>
+                  ) : (
+                    <div className="flex items-center gap-2 text-mist-500 text-sm">
+                      <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                      <span>正在分析竞争优势...</span>
+                    </div>
+                  )}
+                </AnalysisCard>
+
+                {/* 核心护城河 */}
+                <AnalysisCard title="核心护城河" onShare={handleShareModule}>
+                  {aiAnalysis?.moat ? (
+                    <ReactMarkdown>{aiAnalysis.moat}</ReactMarkdown>
+                  ) : (
+                    <div className="flex items-center gap-2 text-mist-500 text-sm">
+                      <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                      <span>正在分析护城河...</span>
+                    </div>
+                  )}
+                </AnalysisCard>
+              </div>
+
+              {/* 最新动态 */}
+              <AnalysisCard title="最新发展动态" onShare={handleShareModule}>
+                {aiAnalysis?.recentDevelopments ? (
+                  <div className="prose prose-gemini max-w-none prose-p:text-mist-300 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-300 prose-a:text-glacier-500 prose-a:no-underline hover:prose-a:underline text-sm">
+                    <ReactMarkdown>{aiAnalysis.recentDevelopments}</ReactMarkdown>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-mist-500 text-sm">
+                    <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                    <span>正在获取最新动态...</span>
+                  </div>
+                )}
+              </AnalysisCard>
+
+              {/* 财报电话会议精要 */}
+              {(earningsCallSummary || aiLoading) && (
                 <AnalysisCard title="财报电话会议精要" onShare={handleShareModule}>
-                  <ReactMarkdown>{earningsCallSummary}</ReactMarkdown>
-                  {transcriptText && (
-                    <div className="not-prose mt-4 space-y-3">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowTranscript((prev) => !prev);
-                        }}
-                        className="gemini-btn gemini-btn-secondary text-sm"
-                      >
-                        {showTranscript ? '收起原文' : '查看原文'}
-                      </button>
-                      {showTranscript && (
-                        <div className="rounded-md border border-white/10 max-md:border-0 bg-black/30 p-4 max-h-[420px] overflow-auto">
-                          <pre className="whitespace-pre-wrap text-xs text-mist-300 leading-relaxed font-mono">
-                            {transcriptText}
-                          </pre>
+                  {earningsCallSummary ? (
+                    <>
+                      <ReactMarkdown>{earningsCallSummary}</ReactMarkdown>
+                      {transcriptText && (
+                        <div className="not-prose mt-4 space-y-3">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowTranscript((prev) => !prev);
+                            }}
+                            className="gemini-btn gemini-btn-secondary text-sm"
+                          >
+                            {showTranscript ? '收起原文' : '查看原文'}
+                          </button>
+                          {showTranscript && (
+                            <div className="rounded-md border border-white/10 max-md:border-0 bg-black/30 p-4 max-h-[420px] overflow-auto">
+                              <pre className="whitespace-pre-wrap text-xs text-mist-300 leading-relaxed font-mono">
+                                {transcriptText}
+                              </pre>
+                            </div>
+                          )}
                         </div>
                       )}
+                    </>
+                  ) : (
+                    <div className="flex items-center gap-2 text-mist-500 text-sm">
+                      <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                      <span>正在分析财报电话会议...</span>
                     </div>
                   )}
                 </AnalysisCard>
               )}
 
-              {aiAnalysis && (
-                <AnalysisCard
-                  title="投资建议总结"
-                  onShare={handleShareModule}
-                >
+              {/* 投资建议总结 */}
+              <AnalysisCard title="投资建议总结" onShare={handleShareModule}>
+                {aiAnalysis?.investmentConclusion ? (
                   <div className="prose prose-gemini max-w-none prose-p:text-mist-200 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-200 text-sm">
                     <ReactMarkdown>{aiAnalysis.investmentConclusion}</ReactMarkdown>
                   </div>
-                </AnalysisCard>
-              )}
+                ) : (
+                  <div className="flex items-center gap-2 text-mist-500 text-sm">
+                    <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                    <span>正在生成投资建议...</span>
+                  </div>
+                )}
+              </AnalysisCard>
             </div>
           </CollapsibleSection>
         )}

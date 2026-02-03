@@ -13,7 +13,7 @@ const MARKET_NAMES: Record<MarketType, string> = {
 // - lite: 简单任务，速度优先（股票联想、财报摘要）
 // - standard: 复杂推理任务（公司深度分析）
 // - search: 需要 Google Search Grounding 的任务（联网新闻）
-// - pro: 专业版深度分析，使用 Gemini 3 Pro 带思考能力
+// - pro: 专业版深度分析，使用 Gemini 3 Flash 带思考能力
 type ModelTier = 'lite' | 'standard' | 'search' | 'pro';
 
 const MODEL_CONFIG: Record<ModelTier, { model: string; description: string }> = {
@@ -30,7 +30,7 @@ const MODEL_CONFIG: Record<ModelTier, { model: string; description: string }> = 
     description: '搜索模型，支持 Google Search Grounding',
   },
   pro: {
-    model: 'gemini-3-pro-preview',
+    model: 'gemini-3-flash-preview',
     description: '专业模型，支持深度思考和 Google Search Grounding',
   },
 };
@@ -461,6 +461,7 @@ ${JSON.stringify(companyData, null, 2)}
 请分析 ${companyData.companyName} (${companyData.symbol}) 所处的行业。
 
 要求：
+- **禁止任何开场白、问候语、自我介绍**，直接输出报告内容
 - 分析行业规模、增长趋势、技术演进方向。
 - 字数控制在 300-400 字。
 - 使用中文。
@@ -641,13 +642,13 @@ ${transcriptText}
 
   // ============================================================================
   // 专业版报告分析 - 拆分为 7 个独立的并发请求
-  // 使用 Gemini 3 Pro Preview + Thinking + Google Search
+  // 使用 Gemini 3 Flash Preview + Thinking + Google Search
   // ============================================================================
 
   // 专业版通用的模型配置
   private getProModel() {
     return this.genAI.getGenerativeModel({
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-3-flash-preview',
       tools: [{ googleSearch: {} }] as any,
       generationConfig: {
         temperature: 0.7,
@@ -1051,7 +1052,7 @@ ${JSON.stringify(quarterlyFinancials, null, 2)}
   ): Promise<AsyncGenerator<string, void, unknown>> {
     const marketName = MARKET_NAMES[market] || '美股';
     const model = this.genAI.getGenerativeModel({
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-3-flash-preview',
       generationConfig: {
         temperature: 0.7,
         topP: 0.95,
@@ -1276,9 +1277,9 @@ ${prevContext}
       fiveYRevenueGrowth: latestGrowth.fiveYRevenueGrowthPerShare,
     };
 
-    // 使用 Gemini 3 Pro Preview 模型，启用思考和联网搜索
+    // 使用 Gemini 3 Flash Preview 模型，启用思考和联网搜索
     const model = this.genAI.getGenerativeModel({
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-3-flash-preview',
       tools: [{ googleSearch: {} }] as any,
       generationConfig: {
         temperature: 0.7,
