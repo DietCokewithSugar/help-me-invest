@@ -317,10 +317,10 @@ export const getAllTimeTrending = unstable_cache(
   }
 );
 
-// ==================== AI 报告缓存 ====================
+// ==================== AI 报告缓存（旧版，保留兼容） ====================
 
 /**
- * AI 报告记录类型
+ * AI 报告记录类型（旧版）
  */
 export interface AIReportRecord {
   id: string;
@@ -341,7 +341,7 @@ export interface AIReportRecord {
 }
 
 /**
- * 获取缓存的AI报告（7天内有效）
+ * 获取缓存的AI报告（7天内有效）- 旧版
  */
 export async function getCachedReport(
   symbol: string,
@@ -383,7 +383,7 @@ export async function getCachedReport(
 }
 
 /**
- * 保存或更新AI报告到数据库
+ * 保存或更新AI报告到数据库 - 旧版
  */
 export async function saveReport(
   symbol: string,
@@ -424,6 +424,268 @@ export async function saveReport(
     return { success: true };
   } catch (error: any) {
     console.error('保存AI报告失败:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// ==================== 报告缓存 v2（新版） ====================
+
+/**
+ * 报告缓存记录类型（新版）
+ * 每个模块单独存储，便于单独更新和查询
+ */
+export interface ReportCacheRecord {
+  id: string;
+  symbol: string;
+  market: string;
+  
+  // 基础版 AI 分析模块
+  company_overview: string | null;
+  industry_analysis: string | null;
+  industry_pain_points: string | null;
+  competitors: string | null;
+  competitive_advantage: string | null;
+  moat: string | null;
+  recent_developments: string | null;
+  investment_conclusion: string | null;
+  
+  // 专业版 AI 分析模块
+  pro_business_model: string | null;
+  pro_operating_model: string | null;
+  pro_industry_outlook: string | null;
+  pro_moat_analysis: string | null;
+  pro_financial_health: string | null;
+  pro_valuation: string | null;
+  pro_investment_conclusion: string | null;
+  
+  // FMP 财务数据（季度更新）
+  sankey_data: any | null;
+  revenue_trend: any | null;
+  cost_structure: any | null;
+  income_statements: any | null;
+  balance_sheets: any | null;
+  cash_flow_statements: any | null;
+  income_statements_quarter: any | null;
+  balance_sheets_quarter: any | null;
+  cash_flow_statements_quarter: any | null;
+  
+  // 专业版估值数据
+  capital_return_data: any | null;
+  
+  // 财报电话会议
+  earnings_call_summary: string | null;
+  
+  // 元数据
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * 模块名称到数据库字段的映射
+ */
+const sectionToColumn: Record<string, keyof ReportCacheRecord> = {
+  // 基础版模块
+  companyOverview: 'company_overview',
+  industryAnalysis: 'industry_analysis',
+  industryPainPoints: 'industry_pain_points',
+  competitors: 'competitors',
+  competitiveAdvantage: 'competitive_advantage',
+  moat: 'moat',
+  recentDevelopments: 'recent_developments',
+  investmentConclusion: 'investment_conclusion',
+  earningsCallSummary: 'earnings_call_summary',
+  // 专业版模块
+  proBusinessModel: 'pro_business_model',
+  proOperatingModel: 'pro_operating_model',
+  proIndustryOutlook: 'pro_industry_outlook',
+  proMoatAnalysis: 'pro_moat_analysis',
+  proFinancialHealth: 'pro_financial_health',
+  proValuation: 'pro_valuation',
+  proInvestmentConclusion: 'pro_investment_conclusion',
+};
+
+/**
+ * 获取缓存的报告（7天内有效）- 新版
+ */
+export async function getCachedReportV2(
+  symbol: string,
+  market: string
+): Promise<ReportCacheRecord | null> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    return null;
+  }
+
+  try {
+    const upperSymbol = symbol.toUpperCase().trim();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const { data, error } = await supabase
+      .from('reports_cache')
+      .select('*')
+      .eq('symbol', upperSymbol)
+      .eq('market', market)
+      .gte('updated_at', sevenDaysAgo.toISOString())
+      .limit(1)
+      .single();
+
+    if (error) {
+      // PGRST116 = no rows found, not an error
+      if (error.code !== 'PGRST116') {
+        console.error('获取缓存报告失败:', error);
+      }
+      return null;
+    }
+
+    return data as ReportCacheRecord;
+  } catch (error) {
+    console.error('获取缓存报告失败:', error);
+    return null;
+  }
+}
+
+/**
+ * 保存单个模块到缓存 - 新版
+ * 用于流式生成时实时保存每个模块
+ */
+export async function saveReportSection(
+  symbol: string,
+  market: string,
+  section: string,
+  content: string
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    return { success: true };
+  }
+
+  const columnName = sectionToColumn[section];
+  if (!columnName) {
+    console.warn(`未知的模块名称: ${section}`);
+    return { success: false, error: `未知的模块名称: ${section}` };
+  }
+
+  try {
+    const upperSymbol = symbol.toUpperCase().trim();
+
+    // 使用 upsert 实现插入或更新
+    const { error } = await supabase
+      .from('reports_cache')
+      .upsert(
+        {
+          symbol: upperSymbol,
+          market,
+          [columnName]: content,
+        },
+        {
+          onConflict: 'symbol,market',
+        }
+      );
+
+    if (error) {
+      console.error(`保存模块 ${section} 失败:`, error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error(`保存模块 ${section} 失败:`, error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * 批量保存 FMP 数据到缓存
+ */
+export async function saveFmpDataToCache(
+  symbol: string,
+  market: string,
+  data: {
+    sankeyData?: any;
+    revenueTrend?: any;
+    costStructure?: any;
+    incomeStatements?: any;
+    balanceSheets?: any;
+    cashFlowStatements?: any;
+    incomeStatementsQuarter?: any;
+    balanceSheetsQuarter?: any;
+    cashFlowStatementsQuarter?: any;
+    capitalReturnData?: any;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    return { success: true };
+  }
+
+  try {
+    const upperSymbol = symbol.toUpperCase().trim();
+
+    const updateData: Record<string, any> = {
+      symbol: upperSymbol,
+      market,
+    };
+
+    // 只添加有值的字段
+    if (data.sankeyData !== undefined) updateData.sankey_data = data.sankeyData;
+    if (data.revenueTrend !== undefined) updateData.revenue_trend = data.revenueTrend;
+    if (data.costStructure !== undefined) updateData.cost_structure = data.costStructure;
+    if (data.incomeStatements !== undefined) updateData.income_statements = data.incomeStatements;
+    if (data.balanceSheets !== undefined) updateData.balance_sheets = data.balanceSheets;
+    if (data.cashFlowStatements !== undefined) updateData.cash_flow_statements = data.cashFlowStatements;
+    if (data.incomeStatementsQuarter !== undefined) updateData.income_statements_quarter = data.incomeStatementsQuarter;
+    if (data.balanceSheetsQuarter !== undefined) updateData.balance_sheets_quarter = data.balanceSheetsQuarter;
+    if (data.cashFlowStatementsQuarter !== undefined) updateData.cash_flow_statements_quarter = data.cashFlowStatementsQuarter;
+    if (data.capitalReturnData !== undefined) updateData.capital_return_data = data.capitalReturnData;
+
+    const { error } = await supabase
+      .from('reports_cache')
+      .upsert(updateData, {
+        onConflict: 'symbol,market',
+      });
+
+    if (error) {
+      console.error('保存 FMP 数据失败:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('保存 FMP 数据失败:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * 删除指定股票的缓存（用于强制重新生成）
+ */
+export async function deleteReportCache(
+  symbol: string,
+  market: string
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = getSupabase();
+  if (!supabase) {
+    return { success: true };
+  }
+
+  try {
+    const upperSymbol = symbol.toUpperCase().trim();
+
+    const { error } = await supabase
+      .from('reports_cache')
+      .delete()
+      .eq('symbol', upperSymbol)
+      .eq('market', market);
+
+    if (error) {
+      console.error('删除缓存失败:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('删除缓存失败:', error);
     return { success: false, error: error.message };
   }
 }

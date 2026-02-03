@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GeminiClient } from '@/lib/gemini';
+import { saveReportSection } from '@/lib/supabase';
 import type { MarketType } from '@/types';
 
 // 使用 Node.js Runtime（不使用 Edge），Pro 计划最大超时 300 秒
@@ -69,6 +70,45 @@ async function getStreamWithRetry(
     return createErrorIterator(`生成失败，请稍后重试。错误: ${lastError?.message || '未知错误'}`);
 }
 
+/**
+ * 将迭代器转换为流，并在完成后保存到缓存
+ */
+function iteratorToStreamWithCache(
+    iterator: AsyncGenerator<string, void, unknown>,
+    saveToCache: boolean,
+    symbol: string,
+    market: string,
+    section: string
+) {
+    let fullContent = '';
+    
+    return new ReadableStream({
+        async pull(controller) {
+            try {
+                const { value, done } = await iterator.next();
+                if (done) {
+                    // 流结束，保存到缓存
+                    if (saveToCache && fullContent.trim().length > 0) {
+                        // 不阻塞流的关闭，异步保存
+                        saveReportSection(symbol, market, section, fullContent).catch(err => {
+                            console.error(`保存模块 ${section} 到缓存失败:`, err);
+                        });
+                    }
+                    controller.close();
+                } else {
+                    fullContent += value;
+                    controller.enqueue(new TextEncoder().encode(value));
+                }
+            } catch (error: any) {
+                console.error('Stream error:', error);
+                controller.enqueue(new TextEncoder().encode(`\n\n[流式传输错误: ${error?.message || '未知错误'}]`));
+                controller.close();
+            }
+        },
+    });
+}
+
+// 保留原始函数用于不需要缓存的场景
 function iteratorToStream(iterator: AsyncGenerator<string, void, unknown>) {
     return new ReadableStream({
         async pull(controller) {
@@ -94,7 +134,10 @@ export async function POST(request: NextRequest) {
             section, 
             data, 
             market, 
-            prevContext, 
+            prevContext,
+            // 用于缓存的参数
+            symbol,
+            saveToCache = true,
             // 年度财务数据
             incomeStatements, 
             balanceSheets,
@@ -251,7 +294,14 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: 'Invalid section' }, { status: 400 });
         }
 
-        const stream = iteratorToStream(streamIterator);
+        // 从 data 中提取 symbol，如果没有直接传递的话
+        const effectiveSymbol = symbol || data?.symbol || '';
+        const effectiveMarket = marketType;
+        
+        // 使用带缓存的流，如果有有效的 symbol
+        const stream = (saveToCache && effectiveSymbol)
+            ? iteratorToStreamWithCache(streamIterator, true, effectiveSymbol, effectiveMarket, section)
+            : iteratorToStream(streamIterator);
 
         return new NextResponse(stream, {
             headers: {

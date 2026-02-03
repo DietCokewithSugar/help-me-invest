@@ -838,6 +838,27 @@ export default function Report({
             <ImageIcon className="w-4 h-4" />
             导出图片
           </motion.button>
+
+          {/* 重新生成按钮 */}
+          {onRegenerate && (
+            <motion.button
+              onClick={async () => {
+                setIsRegenerating(true);
+                try {
+                  await onRegenerate();
+                } finally {
+                  setIsRegenerating(false);
+                }
+              }}
+              disabled={isRegenerating || aiLoading}
+              className="gemini-btn gemini-btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <RefreshCw className={`w-4 h-4 ${isRegenerating ? 'animate-spin' : ''}`} />
+              {isRegenerating ? '生成中...' : '重新生成'}
+            </motion.button>
+          )}
         </div>
       </div>
 

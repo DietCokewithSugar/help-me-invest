@@ -404,13 +404,25 @@ function HomeContent() {
     }
   };
 
+  // 检查缓存
+  const checkCache = async (symbol: string, market: MarketType) => {
+    try {
+      const response = await fetch(`/api/cache?symbol=${encodeURIComponent(symbol)}&market=${market}`);
+      if (!response.ok) return null;
+      return await response.json();
+    } catch (error) {
+      console.error('检查缓存失败:', error);
+      return null;
+    }
+  };
+
   // Streaming helper
-  const streamSection = async (section: string, payload: any) => {
+  const streamSection = async (section: string, payload: any, symbol?: string) => {
     try {
       const response = await fetch('/api/ai/stream-section', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ section, ...payload }),
+        body: JSON.stringify({ section, symbol, ...payload }),
       });
 
       if (!response.body) return '';
@@ -531,6 +543,10 @@ function HomeContent() {
     };
 
     try {
+      // 0. 检查缓存
+      const cachedData = await checkCache(formattedSymbol, marketForAnalyze);
+      const useCachedAI = cachedData?.cached && cachedData?.hasStandardAnalysis;
+
       // 1. Fetch Basic FMP Data (with 90s timeout)
       const response = await fetchWithTimeout('/api/fmp', {
         method: 'POST',
@@ -558,6 +574,28 @@ function HomeContent() {
       setIsRetryable(false);
 
       recordSearchToDb(formattedSymbol, data?.profile?.companyName);
+
+      // 如果有缓存的 AI 分析，直接使用缓存数据
+      if (useCachedAI && cachedData?.data?.aiAnalysis) {
+        console.log('使用缓存的报告数据');
+        setReportData({
+          ...data,
+          aiAnalysis: cachedData.data.aiAnalysis,
+          proAiAnalysis: cachedData.data.proAiAnalysis || {
+            proBusinessModel: '',
+            proOperatingModel: '',
+            proIndustryOutlook: '',
+            proMoatAnalysis: '',
+            proFinancialHealth: '',
+            proValuation: '',
+            proInvestmentConclusion: '',
+          },
+          earningsCallSummary: cachedData.data.earningsCallSummary || '',
+          reportGeneratedAt: cachedData.updatedAt,
+        });
+        setLoading(false);
+        return; // 使用缓存，不需要重新生成
+      }
 
       // Initialize Report Data with empty AI Analysis to trigger UI rendering
       setReportData({
@@ -597,29 +635,25 @@ function HomeContent() {
       const tasks: Promise<string>[] = [];
 
       // Company Overview
-      tasks.push(streamSection('companyOverview', { data: companyData, market }));
+      tasks.push(streamSection('companyOverview', { data: companyData, market }, formattedSymbol));
 
       // Industry Analysis
-      tasks.push(streamSection('industryAnalysis', { data: companyData, market }));
+      tasks.push(streamSection('industryAnalysis', { data: companyData, market }, formattedSymbol));
 
       // Industry Pain Points
-      tasks.push(streamSection('industryPainPoints', { data: companyData, market }));
+      tasks.push(streamSection('industryPainPoints', { data: companyData, market }, formattedSymbol));
 
       // Competitors
-      tasks.push(streamSection('competitors', { data: { ...companyData, peers }, market }));
+      tasks.push(streamSection('competitors', { data: { ...companyData, peers }, market }, formattedSymbol));
 
       // Competitive Advantage
-      tasks.push(streamSection('competitiveAdvantage', { data: companyData, market }));
+      tasks.push(streamSection('competitiveAdvantage', { data: companyData, market }, formattedSymbol));
 
       // Moat
-      tasks.push(streamSection('moat', { data: companyData, market }));
+      tasks.push(streamSection('moat', { data: companyData, market }, formattedSymbol));
 
       // Recent Developments (Search) - passes companyName and symbol
-      // The API expects { data: { companyName, symbol } } for recentDevelopments case? 
-      // Let's check API route. 
-      // API: case 'recentDevelopments': client.streamRecentDevelopments(data.companyName, data.symbol...)
-      // So payload should be { data: { companyName, symbol } }
-      tasks.push(streamSection('recentDevelopments', { data: { companyName: companyData.companyName, symbol: formattedSymbol }, market }));
+      tasks.push(streamSection('recentDevelopments', { data: { companyName: companyData.companyName, symbol: formattedSymbol }, market }, formattedSymbol));
 
       // ============ 专业版分析 - 6个独立并发请求 ============
       // 准备专业版分析所需的数据
@@ -711,31 +745,31 @@ function HomeContent() {
       const proTasks: Promise<string>[] = [];
 
       // 1. 生意模式分析
-      proTasks.push(streamSection('proBusinessModel', { data: companyData, market }));
+      proTasks.push(streamSection('proBusinessModel', { data: companyData, market }, formattedSymbol));
 
       // 2. 运营模式分析
-      proTasks.push(streamSection('proOperatingModel', { data: companyData, market }));
+      proTasks.push(streamSection('proOperatingModel', { data: companyData, market }, formattedSymbol));
 
       // 3. 行业前景评估
-      proTasks.push(streamSection('proIndustryOutlook', { data: companyData, market }));
+      proTasks.push(streamSection('proIndustryOutlook', { data: companyData, market }, formattedSymbol));
 
       // 4. 竞争地位与护城河
       proTasks.push(streamSection('proMoatAnalysis', {
         data: { ...companyData, profitabilityData, capitalReturnData },
         market
-      }));
+      }, formattedSymbol));
 
       // 5. 财务健康与经营质量
       proTasks.push(streamSection('proFinancialHealth', {
         data: { ...companyData, annualFinancials, quarterlyFinancials, profitabilityData, debtData, healthScores },
         market
-      }));
+      }, formattedSymbol));
 
       // 6. 估值与买入时机
       proTasks.push(streamSection('proValuation', {
         data: { ...companyData, valuationData, growthData, quarterlyFinancials },
         market
-      }));
+      }, formattedSymbol));
 
       // 异步处理专业版分析（不阻塞普通版报告）
       Promise.all(proTasks).then((proResults) => {
@@ -763,7 +797,7 @@ ${proResults[5]}
           data: companyData,
           market,
           prevContext: proContext
-        });
+        }, formattedSymbol);
       });
 
       // Earnings Call Summary (if US and transcript exists)
@@ -781,7 +815,7 @@ ${proResults[5]}
               symbol: formattedSymbol
             },
             market
-          });
+          }, formattedSymbol);
         }
       }
 
@@ -806,7 +840,10 @@ ${proResults[5]}
         data: companyData,
         market,
         prevContext: context
-      });
+      }, formattedSymbol);
+
+      // 更新报告生成时间
+      setReportData(prev => prev ? { ...prev, reportGeneratedAt: new Date().toISOString() } : prev);
 
     } catch (err: any) {
       console.error(err);
@@ -1508,40 +1545,29 @@ ${proResults[5]}
             theme={theme}
             onRegenerate={async () => {
               if (!reportData) return;
-              setAiLoading(true);
-              setAiError('');
+              const symbolToRegenerate = reportData.profile.symbol;
+              const marketToRegenerate = reportData.market || 'US';
+              
+              // 先删除缓存
               try {
-                const response = await fetch('/api/ai/regenerate', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    symbol: reportData.profile.symbol,
-                    profile: reportData.profile,
-                    incomeStatements: reportData.incomeStatements,
-                    peers: reportData.peers,
-                    earningsTranscripts: reportData.earningsTranscripts || [],
-                    market: reportData.market,
-                  }),
+                await fetch(`/api/cache?symbol=${encodeURIComponent(symbolToRegenerate)}&market=${marketToRegenerate}`, {
+                  method: 'DELETE',
                 });
-                const data = await response.json();
-                if (!response.ok) {
-                  throw new Error(data?.error || 'AI 报告重新生成失败');
-                }
-                setReportData((prev) =>
-                  prev
-                    ? {
-                      ...prev,
-                      aiAnalysis: data.aiAnalysis,
-                      earningsCallSummary: data.earningsCallSummary,
-                      reportGeneratedAt: data.generatedAt,
-                    }
-                    : prev
-                );
-              } catch (err: any) {
-                setAiError(err.message || 'AI 报告重新生成失败');
-              } finally {
-                setAiLoading(false);
+              } catch (e) {
+                console.error('删除缓存失败:', e);
               }
+              
+              // 设置 symbol 并触发重新分析
+              setSymbol(symbolToRegenerate);
+              setSelectedMarket(marketToRegenerate as MarketType);
+              
+              // 清空当前报告数据，触发重新生成
+              setReportData(null);
+              
+              // 延迟调用 handleAnalyze 确保状态更新
+              setTimeout(() => {
+                handleAnalyze();
+              }, 100);
             }}
           />
         </div>
