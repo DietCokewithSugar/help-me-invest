@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import Report from '@/components/Report';
+import CompanyFilterModal from '@/components/CompanyFilterModal';
 import type { ReportData, MarketType } from '@/types';
 import { MARKET_CONFIGS, detectMarketFromSymbol, formatSymbolForMarket, getMarketConfig } from '@/lib/markets';
 import { getSupabaseClient, isSupabaseClientConfigured } from '@/lib/supabase-client';
@@ -27,7 +28,10 @@ import {
   SunIcon,
   MoonIcon,
   WeChatIcon,
+  FilterIcon,
+  SearchIcon,
 } from '@/components/Icons';
+import Header from '@/components/Header';
 
 // 懒加载组件
 
@@ -162,6 +166,7 @@ function HomeContent() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [retryCount, setRetryCount] = useState(0);
   const [isRetryable, setIsRetryable] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestContainerRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
@@ -874,69 +879,12 @@ ${proResults[5]}
   return (
     <main className="min-h-screen">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50">
-        <div className="mx-4 mt-4">
-          <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 glass-card backdrop-blur-2xl rounded-[20px]">
-            <div className="flex items-center justify-between">
-              {/* Logo */}
-              <div
-                className="flex items-center gap-3 cursor-pointer group"
-                onClick={resetToHome}
-              >
-                <div className="relative">
-                  <div className="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-gradient-to-br from-glacier-500 to-gemini-blue flex items-center justify-center shadow-lg shadow-glacier-500/20 group-hover:shadow-glacier-500/40 transition-shadow">
-                    <LogoIcon size={24} className="text-white" />
-                  </div>
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-glacier-500 to-gemini-blue opacity-40 blur-xl group-hover:opacity-60 transition-opacity" />
-                </div>
-                <div>
-                  <h1 className="text-base md:text-lg font-semibold text-white group-hover:text-glacier-400 transition-colors">智投研究</h1>
-                  <p className="text-xs text-mist-500 hidden sm:block">AI Investment Research</p>
-                </div>
-              </div>
-
-              {/* 右侧操作区 */}
-              <div className="flex items-center gap-2">
-                {/* 追踪功能入口 */}
-                <Link
-                  href="/tracking"
-                  className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer"
-                  title="追踪"
-                >
-                  <TrendingUpIcon size={18} className="text-glacier-500" />
-                </Link>
-
-                {/* 联系我们 - 微信图标 */}
-                <button
-                  onClick={() => setShowContactModal(true)}
-                  className="relative flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer overflow-hidden"
-                  title="联系我们"
-                >
-                  <Image
-                    src="/images/wechat-logo.png"
-                    alt="微信"
-                    fill
-                    className="object-cover"
-                  />
-                </button>
-
-                {/* 主题切换 */}
-                <button
-                  onClick={toggleTheme}
-                  className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer"
-                  title={theme === 'dark' ? '切换到亮色模式' : '切换到深色模式'}
-                >
-                  {theme === 'dark' ? (
-                    <SunIcon size={18} className="text-mist-300" />
-                  ) : (
-                    <MoonIcon size={18} className="text-mist-300" />
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header
+        theme={theme}
+        toggleTheme={toggleTheme}
+        onReset={resetToHome}
+        showContactModal={() => setShowContactModal(true)}
+      />
 
       {/* 首页内容 */}
       {!reportData && (
@@ -1547,7 +1495,7 @@ ${proResults[5]}
               if (!reportData) return;
               const symbolToRegenerate = reportData.profile.symbol;
               const marketToRegenerate = reportData.market || 'US';
-              
+
               // 先删除缓存
               try {
                 await fetch(`/api/cache?symbol=${encodeURIComponent(symbolToRegenerate)}&market=${marketToRegenerate}`, {
@@ -1556,14 +1504,14 @@ ${proResults[5]}
               } catch (e) {
                 console.error('删除缓存失败:', e);
               }
-              
+
               // 设置 symbol 并触发重新分析
               setSymbol(symbolToRegenerate);
               setSelectedMarket(marketToRegenerate as MarketType);
-              
+
               // 清空当前报告数据，触发重新生成
               setReportData(null);
-              
+
               // 延迟调用 handleAnalyze 确保状态更新
               setTimeout(() => {
                 handleAnalyze();
@@ -1620,6 +1568,18 @@ ${proResults[5]}
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Company Filter Modal */}
+      <CompanyFilterModal
+        isOpen={showFilterModal}
+        onClose={() => setShowFilterModal(false)}
+        onSelectCompany={(selectedSymbol) => {
+          setSymbol(selectedSymbol);
+          setShowFilterModal(false);
+          // Trigger analysis after a short delay to ensure state is updated
+          setTimeout(() => handleAnalyze(), 100);
+        }}
+      />
     </main>
   );
 }

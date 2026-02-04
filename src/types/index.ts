@@ -547,3 +547,56 @@ export interface ReportData {
   // 报告生成时间
   reportGeneratedAt?: string;
 }
+
+// ==================== 公司诊断数据 ====================
+
+export interface CompanyDiagnostic {
+  id: number;
+  symbol: string;
+  company_name: string | null;
+
+  // FMP Data
+  market_cap: number | null;
+  sector: string | null;
+  industry: string | null;
+  beta: number | null;
+  price: number | null;
+  last_annual_dividend: number | null;
+  volume: number | null;
+  exchange: string | null;
+  exchange_short_name: string | null;
+  country: string | null;
+  is_etf: boolean | null;
+  is_fund: boolean | null;
+  is_actively_trading: boolean | null;
+
+  // 7 Diagnostic Dimensions
+  strategic_positioning: string | null;
+  market_cap_size: string | null;
+  cyclical_nature: string | null;
+  cash_flow_status: string | null;
+  debt_structure: string | null;
+  external_sensitivity: string | null;
+  profit_model: string | null;
+
+  // AI Analysis Meta
+  ai_reasoning: string | null;
+  sources: string[] | null;
+  processed_at: string | null;
+}
+
+export interface CompanyFilterRequest {
+  strategicPositioning?: string[];
+  marketCapSize?: string[];
+  cyclicalNature?: string[];
+  cashFlowStatus?: string[];
+  debtStructure?: string[];
+  externalSensitivity?: string[];
+  profitModel?: string[];
+  sectors?: string[];
+  industries?: string[];
+  marketCapMin?: number;
+  marketCapMax?: number;
+  page?: number;
+  limit?: number;
+}
