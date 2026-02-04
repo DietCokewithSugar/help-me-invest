@@ -49,7 +49,7 @@ async function getStreamWithRetry(
             const iterator = await getIterator();
             // 尝试获取第一个值来验证流是否正常工作
             const firstResult = await iterator.next();
-            
+
             // 返回包含已获取首值的迭代器
             const firstValue = !firstResult.done ? firstResult.value : undefined;
             return createPrependedIterator(firstValue, iterator);
@@ -81,7 +81,7 @@ function iteratorToStreamWithCache(
     section: string
 ) {
     let fullContent = '';
-    
+
     return new ReadableStream({
         async pull(controller) {
             try {
@@ -89,10 +89,13 @@ function iteratorToStreamWithCache(
                 if (done) {
                     // 流结束，保存到缓存
                     if (saveToCache && fullContent.trim().length > 0) {
-                        // 不阻塞流的关闭，异步保存
-                        saveReportSection(symbol, market, section, fullContent).catch(err => {
+                        // 重要：必须等待保存完成后再关闭流
+                        // 否则 Vercel Serverless Function 会在保存完成前终止
+                        try {
+                            await saveReportSection(symbol, market, section, fullContent);
+                        } catch (err) {
                             console.error(`保存模块 ${section} 到缓存失败:`, err);
-                        });
+                        }
                     }
                     controller.close();
                 } else {
@@ -130,21 +133,21 @@ function iteratorToStream(iterator: AsyncGenerator<string, void, unknown>) {
 
 export async function POST(request: NextRequest) {
     try {
-        const { 
-            section, 
-            data, 
-            market, 
+        const {
+            section,
+            data,
+            market,
             prevContext,
             // 用于缓存的参数
             symbol,
             saveToCache = true,
             // 年度财务数据
-            incomeStatements, 
+            incomeStatements,
             balanceSheets,
             cashFlowStatements,
-            keyMetrics, 
+            keyMetrics,
             keyMetricsTTM,
-            financialRatios, 
+            financialRatios,
             financialRatiosTTM,
             financialGrowth,
             financialScores,
@@ -297,7 +300,7 @@ export async function POST(request: NextRequest) {
         // 从 data 中提取 symbol，如果没有直接传递的话
         const effectiveSymbol = symbol || data?.symbol || '';
         const effectiveMarket = marketType;
-        
+
         // 使用带缓存的流，如果有有效的 symbol
         const stream = (saveToCache && effectiveSymbol)
             ? iteratorToStreamWithCache(streamIterator, true, effectiveSymbol, effectiveMarket, section)
