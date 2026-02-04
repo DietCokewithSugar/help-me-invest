@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -284,6 +285,8 @@ interface MultiSelectDropdownProps {
 function MultiSelectDropdown({ label, options, selected, onChange }: MultiSelectDropdownProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const buttonRef = useRef<HTMLButtonElement>(null);
+    const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
 
     const filteredOptions = options.filter(opt =>
         opt.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -306,11 +309,24 @@ function MultiSelectDropdown({ label, options, selected, onChange }: MultiSelect
         onChange([]);
     };
 
+    const handleOpen = () => {
+        if (buttonRef.current) {
+            const rect = buttonRef.current.getBoundingClientRect();
+            setDropdownPosition({
+                top: rect.bottom + window.scrollY + 4,
+                left: rect.left + window.scrollX,
+                width: rect.width,
+            });
+        }
+        setIsOpen(!isOpen);
+    };
+
     return (
         <div className="relative">
             <button
+                ref={buttonRef}
                 type="button"
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={handleOpen}
                 className="w-full flex items-center justify-between px-3 py-2.5 rounded-sm text-sm bg-white/5 border border-white/10 hover:border-white/20 text-text-primary transition-colors"
             >
                 <span className="truncate">
@@ -324,14 +340,27 @@ function MultiSelectDropdown({ label, options, selected, onChange }: MultiSelect
                 />
             </button>
 
-            <AnimatePresence>
-                {isOpen && (
+            {isOpen && typeof document !== 'undefined' && createPortal(
+                <>
+                    {/* 点击外部关闭 */}
+                    <div
+                        className="fixed inset-0"
+                        style={{ zIndex: 9998 }}
+                        onClick={() => setIsOpen(false)}
+                    />
                     <motion.div
                         initial={{ opacity: 0, y: -4 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -4 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute z-50 top-full left-0 right-0 mt-1 glass-card rounded-sm border border-white/10 shadow-xl max-h-64 overflow-hidden"
+                        className="glass-card rounded-sm border border-white/10 shadow-xl max-h-64 overflow-hidden"
+                        style={{
+                            position: 'absolute',
+                            zIndex: 9999,
+                            top: dropdownPosition.top,
+                            left: dropdownPosition.left,
+                            width: dropdownPosition.width,
+                        }}
                     >
                         {/* 搜索框 */}
                         <div className="p-2 border-b border-white/5">
@@ -392,15 +421,8 @@ function MultiSelectDropdown({ label, options, selected, onChange }: MultiSelect
                             )}
                         </div>
                     </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* 点击外部关闭 */}
-            {isOpen && (
-                <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setIsOpen(false)}
-                />
+                </>,
+                document.body
             )}
         </div>
     );
@@ -598,30 +620,39 @@ export default function CompaniesPage() {
                                         transition={{ duration: 0.2 }}
                                     >
                                         <div className="p-6 pt-6 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-6">
-                                            {Object.entries(DIMENSION_OPTIONS).map(([key, config]) => (
-                                                <div key={key} className="space-y-2">
-                                                    <h4 className="text-[11px] font-bold text-text-muted uppercase tracking-wider">
-                                                        {config.label}
-                                                    </h4>
-                                                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-                                                        {config.options.map((option) => {
-                                                            const isActive = (filters[key as keyof CompanyFilterRequest] as string[])?.includes(option.value);
-                                                            return (
-                                                                <button
-                                                                    key={option.value}
-                                                                    onClick={() => toggleFilter(key as keyof CompanyFilterRequest, option.value)}
-                                                                    className={`px-2 py-1.5 rounded-sm text-xs transition-all border text-center ${isActive
-                                                                        ? 'bg-accent/15 border-accent text-accent shadow-[0_0_8px_rgba(20,184,166,0.1)]'
-                                                                        : 'bg-white/5 border-transparent text-text-muted hover:border-text-muted/30 hover:text-text-secondary hover:bg-white/10'
-                                                                        }`}
-                                                                >
-                                                                    {option.label}
-                                                                </button>
-                                                            );
-                                                        })}
+                                            {Object.entries(DIMENSION_OPTIONS).map(([key, config]) => {
+                                                const isProfitModel = key === 'profitModel';
+                                                return (
+                                                    <div
+                                                        key={key}
+                                                        className={`space-y-2 ${isProfitModel ? 'lg:col-span-2' : ''}`}
+                                                    >
+                                                        <h4 className="text-[11px] font-bold text-text-muted uppercase tracking-wider">
+                                                            {config.label}
+                                                        </h4>
+                                                        <div className={`grid gap-2 ${isProfitModel
+                                                                ? 'grid-cols-2 lg:grid-cols-4'
+                                                                : 'grid-cols-2 lg:grid-cols-3'
+                                                            }`}>
+                                                            {config.options.map((option) => {
+                                                                const isActive = (filters[key as keyof CompanyFilterRequest] as string[])?.includes(option.value);
+                                                                return (
+                                                                    <button
+                                                                        key={option.value}
+                                                                        onClick={() => toggleFilter(key as keyof CompanyFilterRequest, option.value)}
+                                                                        className={`px-2 py-1.5 rounded-sm text-xs transition-all border text-center ${isActive
+                                                                            ? 'bg-accent/15 border-accent text-accent shadow-[0_0_8px_rgba(20,184,166,0.1)]'
+                                                                            : 'bg-white/5 border-transparent text-text-muted hover:border-text-muted/30 hover:text-text-secondary hover:bg-white/10'
+                                                                            }`}
+                                                                    >
+                                                                        {option.label}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
 
                                         {/* 新增筛选条件：市值范围、行业板块、细分行业 */}
