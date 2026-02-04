@@ -75,6 +75,337 @@ const DIMENSION_OPTIONS = {
     },
 };
 
+// 行业板块选项（中英文映射）
+const SECTOR_OPTIONS = [
+    { value: 'Basic Materials', label: '基础材料' },
+    { value: 'Communication Services', label: '通信服务' },
+    { value: 'Consumer Cyclical', label: '可选消费' },
+    { value: 'Consumer Defensive', label: '必需消费' },
+    { value: 'Energy', label: '能源' },
+    { value: 'Financial Services', label: '金融服务' },
+    { value: 'Healthcare', label: '医疗保健' },
+    { value: 'Industrials', label: '工业' },
+    { value: 'Real Estate', label: '房地产' },
+    { value: 'Technology', label: '科技' },
+    { value: 'Utilities', label: '公用事业' },
+];
+
+// 细分行业选项（中英文映射）
+const INDUSTRY_OPTIONS = [
+    // Basic Materials
+    { value: 'Steel', label: '钢铁' },
+    { value: 'Silver', label: '白银' },
+    { value: 'Other Precious Metals', label: '其他贵金属' },
+    { value: 'Gold', label: '黄金' },
+    { value: 'Copper', label: '铜' },
+    { value: 'Aluminum', label: '铝' },
+    { value: 'Paper, Lumber & Forest Products', label: '纸张、木材与林产品' },
+    { value: 'Industrial Materials', label: '工业材料' },
+    { value: 'Construction Materials', label: '建筑材料' },
+    { value: 'Chemicals - Specialty', label: '特种化工' },
+    { value: 'Chemicals', label: '化工' },
+    { value: 'Agricultural Inputs', label: '农业投入品' },
+    // Communication Services
+    { value: 'Telecommunications Services', label: '电信服务' },
+    { value: 'Internet Content & Information', label: '互联网内容与信息' },
+    { value: 'Publishing', label: '出版' },
+    { value: 'Broadcasting', label: '广播' },
+    { value: 'Advertising Agencies', label: '广告代理' },
+    { value: 'Entertainment', label: '娱乐' },
+    // Consumer Cyclical
+    { value: 'Travel Lodging', label: '旅游住宿' },
+    { value: 'Travel Services', label: '旅游服务' },
+    { value: 'Specialty Retail', label: '专业零售' },
+    { value: 'Luxury Goods', label: '奢侈品' },
+    { value: 'Home Improvement', label: '家装建材' },
+    { value: 'Residential Construction', label: '住宅建筑' },
+    { value: 'Department Stores', label: '百货商店' },
+    { value: 'Personal Products & Services', label: '个人产品与服务' },
+    { value: 'Leisure', label: '休闲' },
+    { value: 'Gambling, Resorts & Casinos', label: '博彩、度假与赌场' },
+    { value: 'Furnishings, Fixtures & Appliances', label: '家具、固定装置与电器' },
+    { value: 'Restaurants', label: '餐饮' },
+    { value: 'Auto - Parts', label: '汽车零部件' },
+    { value: 'Auto - Manufacturers', label: '汽车制造商' },
+    { value: 'Auto - Recreational Vehicles', label: '休闲车' },
+    { value: 'Auto - Dealerships', label: '汽车经销商' },
+    { value: 'Apparel - Retail', label: '服装零售' },
+    { value: 'Apparel - Manufacturers', label: '服装制造' },
+    { value: 'Apparel - Footwear & Accessories', label: '鞋类与配饰' },
+    // Consumer Defensive
+    { value: 'Packaging & Containers', label: '包装与容器' },
+    { value: 'Tobacco', label: '烟草' },
+    { value: 'Grocery Stores', label: '杂货店' },
+    { value: 'Discount Stores', label: '折扣店' },
+    { value: 'Household & Personal Products', label: '家居与个人用品' },
+    { value: 'Packaged Foods', label: '包装食品' },
+    { value: 'Food Distribution', label: '食品分销' },
+    { value: 'Food Confectioners', label: '糖果食品' },
+    { value: 'Agricultural Farm Products', label: '农产品' },
+    { value: 'Education & Training Services', label: '教育培训服务' },
+    { value: 'Beverages - Wineries & Distilleries', label: '葡萄酒与蒸馏酒' },
+    { value: 'Beverages - Non-Alcoholic', label: '非酒精饮料' },
+    { value: 'Beverages - Alcoholic', label: '酒精饮料' },
+    // Energy
+    { value: 'Uranium', label: '铀' },
+    { value: 'Solar', label: '太阳能' },
+    { value: 'Oil & Gas Refining & Marketing', label: '油气炼化与营销' },
+    { value: 'Oil & Gas Midstream', label: '油气中游' },
+    { value: 'Oil & Gas Integrated', label: '综合油气' },
+    { value: 'Oil & Gas Exploration & Production', label: '油气勘探与生产' },
+    { value: 'Oil & Gas Equipment & Services', label: '油气设备与服务' },
+    { value: 'Oil & Gas Energy', label: '油气能源' },
+    { value: 'Oil & Gas Drilling', label: '油气钻探' },
+    { value: 'Coal', label: '煤炭' },
+    // Financial Services
+    { value: 'Shell Companies', label: '壳公司' },
+    { value: 'Investment - Banking & Investment Services', label: '投资银行与服务' },
+    { value: 'Insurance - Specialty', label: '专业保险' },
+    { value: 'Insurance - Reinsurance', label: '再保险' },
+    { value: 'Insurance - Property & Casualty', label: '财产与意外保险' },
+    { value: 'Insurance - Life', label: '人寿保险' },
+    { value: 'Insurance - Diversified', label: '多元化保险' },
+    { value: 'Insurance - Brokers', label: '保险经纪' },
+    { value: 'Financial - Mortgages', label: '抵押贷款' },
+    { value: 'Financial - Diversified', label: '多元化金融' },
+    { value: 'Financial - Data & Stock Exchanges', label: '金融数据与证券交易所' },
+    { value: 'Financial - Credit Services', label: '信用服务' },
+    { value: 'Financial - Conglomerates', label: '金融集团' },
+    { value: 'Financial - Capital Markets', label: '资本市场' },
+    { value: 'Banks - Regional', label: '区域银行' },
+    { value: 'Banks - Diversified', label: '多元化银行' },
+    { value: 'Banks', label: '银行' },
+    { value: 'Asset Management', label: '资产管理' },
+    { value: 'Asset Management - Bonds', label: '债券资管' },
+    { value: 'Asset Management - Income', label: '收益型资管' },
+    { value: 'Asset Management - Leveraged', label: '杠杆型资管' },
+    { value: 'Asset Management - Cryptocurrency', label: '加密货币资管' },
+    { value: 'Asset Management - Global', label: '全球资管' },
+    // Healthcare
+    { value: 'Medical - Specialties', label: '医疗专科' },
+    { value: 'Medical - Pharmaceuticals', label: '医药' },
+    { value: 'Medical - Instruments & Supplies', label: '医疗器械与耗材' },
+    { value: 'Medical - Healthcare Plans', label: '医疗保健计划' },
+    { value: 'Medical - Healthcare Information Services', label: '医疗信息服务' },
+    { value: 'Medical - Equipment & Services', label: '医疗设备与服务' },
+    { value: 'Medical - Distribution', label: '医药分销' },
+    { value: 'Medical - Diagnostics & Research', label: '诊断与研究' },
+    { value: 'Medical - Devices', label: '医疗设备' },
+    { value: 'Medical - Care Facilities', label: '医疗护理设施' },
+    { value: 'Drug Manufacturers - Specialty & Generic', label: '特种与仿制药制造商' },
+    { value: 'Drug Manufacturers - General', label: '综合药品制造商' },
+    { value: 'Biotechnology', label: '生物技术' },
+    // Industrials
+    { value: 'Waste Management', label: '废物管理' },
+    { value: 'Trucking', label: '卡车运输' },
+    { value: 'Railroads', label: '铁路' },
+    { value: 'Aerospace & Defense', label: '航空航天与国防' },
+    { value: 'Marine Shipping', label: '海运' },
+    { value: 'Integrated Freight & Logistics', label: '综合货运与物流' },
+    { value: 'Airlines, Airports & Air Services', label: '航空公司、机场与航空服务' },
+    { value: 'General Transportation', label: '综合交通运输' },
+    { value: 'Manufacturing - Tools & Accessories', label: '工具与配件制造' },
+    { value: 'Manufacturing - Textiles', label: '纺织制造' },
+    { value: 'Manufacturing - Miscellaneous', label: '其他制造' },
+    { value: 'Manufacturing - Metal Fabrication', label: '金属制造' },
+    { value: 'Industrial - Distribution', label: '工业分销' },
+    { value: 'Industrial - Specialties', label: '工业专业' },
+    { value: 'Industrial - Pollution & Treatment Controls', label: '污染与治理控制' },
+    { value: 'Environmental Services', label: '环境服务' },
+    { value: 'Industrial - Machinery', label: '工业机械' },
+    { value: 'Industrial - Infrastructure Operations', label: '基础设施运营' },
+    { value: 'Industrial - Capital Goods', label: '工业资本品' },
+    { value: 'Consulting Services', label: '咨询服务' },
+    { value: 'Business Equipment & Supplies', label: '商业设备与用品' },
+    { value: 'Staffing & Employment Services', label: '人力资源服务' },
+    { value: 'Rental & Leasing Services', label: '租赁服务' },
+    { value: 'Engineering & Construction', label: '工程与建筑' },
+    { value: 'Security & Protection Services', label: '安防服务' },
+    { value: 'Specialty Business Services', label: '特种商业服务' },
+    { value: 'Construction', label: '建筑' },
+    { value: 'Conglomerates', label: '企业集团' },
+    { value: 'Electrical Equipment & Parts', label: '电气设备与零件' },
+    { value: 'Agricultural - Machinery', label: '农业机械' },
+    { value: 'Agricultural - Commodities/Milling', label: '农业商品/研磨' },
+    // Real Estate
+    { value: 'REIT - Specialty', label: 'REIT-专业' },
+    { value: 'REIT - Retail', label: 'REIT-零售' },
+    { value: 'REIT - Residential', label: 'REIT-住宅' },
+    { value: 'REIT - Office', label: 'REIT-办公' },
+    { value: 'REIT - Mortgage', label: 'REIT-抵押' },
+    { value: 'REIT - Industrial', label: 'REIT-工业' },
+    { value: 'REIT - Hotel & Motel', label: 'REIT-酒店' },
+    { value: 'REIT - Healthcare Facilities', label: 'REIT-医疗设施' },
+    { value: 'REIT - Diversified', label: 'REIT-多元化' },
+    { value: 'Real Estate - Services', label: '房地产服务' },
+    { value: 'Real Estate - Diversified', label: '多元化房地产' },
+    { value: 'Real Estate - Development', label: '房地产开发' },
+    { value: 'Real Estate - General', label: '综合房地产' },
+    // Technology
+    { value: 'Information Technology Services', label: 'IT服务' },
+    { value: 'Hardware, Equipment & Parts', label: '硬件设备与零件' },
+    { value: 'Computer Hardware', label: '计算机硬件' },
+    { value: 'Electronic Gaming & Multimedia', label: '电子游戏与多媒体' },
+    { value: 'Software - Services', label: '软件服务' },
+    { value: 'Software - Infrastructure', label: '基础软件' },
+    { value: 'Software - Application', label: '应用软件' },
+    { value: 'Semiconductors', label: '半导体' },
+    { value: 'Media & Entertainment', label: '媒体与娱乐' },
+    { value: 'Communication Equipment', label: '通信设备' },
+    { value: 'Technology Distributors', label: '技术分销商' },
+    { value: 'Consumer Electronics', label: '消费电子' },
+    // Utilities
+    { value: 'Renewable Utilities', label: '可再生能源公用事业' },
+    { value: 'Regulated Water', label: '水务' },
+    { value: 'Regulated Gas', label: '燃气' },
+    { value: 'Regulated Electric', label: '电力' },
+    { value: 'Independent Power Producers', label: '独立发电商' },
+    { value: 'Diversified Utilities', label: '多元化公用事业' },
+    { value: 'General Utilities', label: '综合公用事业' },
+];
+
+// 市值范围预设选项
+const MARKET_CAP_RANGES = [
+    { value: 'mega', label: '超大盘', desc: '>1000亿', min: 100000000000, max: undefined },
+    { value: 'large', label: '大盘', desc: '100-1000亿', min: 10000000000, max: 100000000000 },
+    { value: 'mid', label: '中盘', desc: '10-100亿', min: 1000000000, max: 10000000000 },
+    { value: 'small', label: '小盘', desc: '1-10亿', min: 100000000, max: 1000000000 },
+    { value: 'micro', label: '微盘', desc: '<1亿', min: undefined, max: 100000000 },
+];
+
+// 多选下拉列表组件
+interface MultiSelectDropdownProps {
+    label: string;
+    options: { value: string; label: string }[];
+    selected: string[];
+    onChange: (values: string[]) => void;
+}
+
+function MultiSelectDropdown({ label, options, selected, onChange }: MultiSelectDropdownProps) {
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const filteredOptions = options.filter(opt =>
+        opt.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        opt.value.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const handleToggle = (value: string) => {
+        if (selected.includes(value)) {
+            onChange(selected.filter(v => v !== value));
+        } else {
+            onChange([...selected, value]);
+        }
+    };
+
+    const handleSelectAll = () => {
+        onChange(options.map(opt => opt.value));
+    };
+
+    const handleDeselectAll = () => {
+        onChange([]);
+    };
+
+    return (
+        <div className="relative">
+            <button
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-sm text-sm bg-white/5 border border-white/10 hover:border-white/20 text-text-primary transition-colors"
+            >
+                <span className="truncate">
+                    {selected.length === 0
+                        ? label
+                        : `已选 ${selected.length} 项`}
+                </span>
+                <ChevronDownIcon
+                    size={14}
+                    className={`text-text-muted transition-transform ml-2 flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`}
+                />
+            </button>
+
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute z-50 top-full left-0 right-0 mt-1 glass-card rounded-sm border border-white/10 shadow-xl max-h-64 overflow-hidden"
+                    >
+                        {/* 搜索框 */}
+                        <div className="p-2 border-b border-white/5">
+                            <input
+                                type="text"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                placeholder="搜索..."
+                                className="w-full px-2 py-1.5 text-xs bg-white/5 border border-white/10 rounded-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50"
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                        </div>
+
+                        {/* 全选/全不选按钮 */}
+                        <div className="flex gap-2 px-2 py-1.5 border-b border-white/5 bg-white/[0.02]">
+                            <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); handleSelectAll(); }}
+                                className="text-[10px] text-accent hover:underline"
+                            >
+                                全选
+                            </button>
+                            <span className="text-text-muted text-[10px]">|</span>
+                            <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); handleDeselectAll(); }}
+                                className="text-[10px] text-text-muted hover:text-text-secondary"
+                            >
+                                全不选
+                            </button>
+                        </div>
+
+                        {/* 选项列表 */}
+                        <div className="max-h-40 overflow-y-auto">
+                            {filteredOptions.map((option) => (
+                                <button
+                                    key={option.value}
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); handleToggle(option.value); }}
+                                    className={`w-full text-left px-3 py-1.5 text-xs hover:bg-white/5 transition-colors flex items-center gap-2 ${selected.includes(option.value) ? 'text-accent' : 'text-text-secondary'
+                                        }`}
+                                >
+                                    <div className={`w-3 h-3 rounded-sm border flex-shrink-0 flex items-center justify-center ${selected.includes(option.value)
+                                        ? 'bg-accent border-accent'
+                                        : 'border-white/20'
+                                        }`}>
+                                        {selected.includes(option.value) && (
+                                            <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        )}
+                                    </div>
+                                    <span className="truncate">{option.label}</span>
+                                </button>
+                            ))}
+                            {filteredOptions.length === 0 && (
+                                <div className="px-3 py-2 text-xs text-text-muted">无匹配结果</div>
+                            )}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* 点击外部关闭 */}
+            {isOpen && (
+                <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setIsOpen(false)}
+                />
+            )}
+        </div>
+    );
+}
+
 export default function CompaniesPage() {
     const router = useRouter();
     const [filters, setFilters] = useState<CompanyFilterRequest>({
@@ -88,6 +419,7 @@ export default function CompaniesPage() {
     const [isFilterExpanded, setIsFilterExpanded] = useState(true);
     const [theme, setTheme] = useState<'dark' | 'light'>('dark');
     const [showContactModal, setShowContactModal] = useState(false);
+    const [selectedMarketCapRange, setSelectedMarketCapRange] = useState<string | null>(null);
 
     // 初始化主题
     useEffect(() => {
@@ -141,6 +473,7 @@ export default function CompaniesPage() {
     const resetFilters = () => {
         setFilters({ page: 1, limit: 50 });
         setSearchQuery('');
+        setSelectedMarketCapRange(null);
         fetchCompanies();
     };
 
@@ -151,6 +484,32 @@ export default function CompaniesPage() {
             ? currentValues.filter((v) => v !== value)
             : [...currentValues, value];
         setFilters({ ...filters, [key]: newValues.length > 0 ? newValues : undefined });
+    };
+
+    // 选择市值范围
+    const handleMarketCapRangeSelect = (rangeValue: string) => {
+        if (selectedMarketCapRange === rangeValue) {
+            // 取消选择
+            setSelectedMarketCapRange(null);
+            setFilters({ ...filters, marketCapMin: undefined, marketCapMax: undefined });
+        } else {
+            // 选中新范围
+            setSelectedMarketCapRange(rangeValue);
+            const range = MARKET_CAP_RANGES.find(r => r.value === rangeValue);
+            if (range) {
+                setFilters({ ...filters, marketCapMin: range.min, marketCapMax: range.max });
+            }
+        }
+    };
+
+    // 更新 sector 筛选
+    const handleSectorsChange = (values: string[]) => {
+        setFilters({ ...filters, sectors: values.length > 0 ? values : undefined });
+    };
+
+    // 更新 industry 筛选
+    const handleIndustriesChange = (values: string[]) => {
+        setFilters({ ...filters, industries: values.length > 0 ? values : undefined });
     };
 
     // 格式化市值
@@ -263,6 +622,65 @@ export default function CompaniesPage() {
                                                     </div>
                                                 </div>
                                             ))}
+                                        </div>
+
+                                        {/* 新增筛选条件：市值范围、行业板块、细分行业 */}
+                                        <div className="px-6 pb-4 border-t border-white/5 pt-4">
+                                            <h4 className="text-[11px] font-bold text-accent uppercase tracking-wider mb-4">
+                                                其他筛选条件
+                                            </h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                {/* 市值范围 */}
+                                                <div className="space-y-2">
+                                                    <h5 className="text-[11px] font-bold text-text-muted uppercase tracking-wider">
+                                                        市值（美元）
+                                                    </h5>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        {MARKET_CAP_RANGES.map((range) => {
+                                                            const isActive = selectedMarketCapRange === range.value;
+                                                            return (
+                                                                <button
+                                                                    key={range.value}
+                                                                    onClick={() => handleMarketCapRangeSelect(range.value)}
+                                                                    className={`px-2 py-1.5 rounded-sm text-xs transition-all border text-center ${isActive
+                                                                        ? 'bg-accent/15 border-accent text-accent shadow-[0_0_8px_rgba(20,184,166,0.1)]'
+                                                                        : 'bg-white/5 border-transparent text-text-muted hover:border-text-muted/30 hover:text-text-secondary hover:bg-white/10'
+                                                                        }`}
+                                                                    title={range.desc}
+                                                                >
+                                                                    {range.label}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+
+                                                {/* 行业板块 */}
+                                                <div className="space-y-2">
+                                                    <h5 className="text-[11px] font-bold text-text-muted uppercase tracking-wider">
+                                                        行业板块
+                                                    </h5>
+                                                    <MultiSelectDropdown
+                                                        label="选择行业板块"
+                                                        options={SECTOR_OPTIONS}
+                                                        selected={filters.sectors || []}
+                                                        onChange={handleSectorsChange}
+                                                    />
+                                                </div>
+
+                                                {/* 细分行业 */}
+                                                <div className="space-y-2">
+                                                    <h5 className="text-[11px] font-bold text-text-muted uppercase tracking-wider">
+                                                        细分行业
+                                                    </h5>
+                                                    <MultiSelectDropdown
+                                                        label="选择细分行业"
+                                                        options={INDUSTRY_OPTIONS}
+                                                        selected={filters.industries || []}
+                                                        onChange={handleIndustriesChange}
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
                                         <div className="p-4 bg-white/5 border-t border-white/5 flex justify-end items-center gap-4">
                                             <button
