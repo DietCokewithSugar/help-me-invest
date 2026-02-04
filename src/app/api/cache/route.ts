@@ -47,8 +47,24 @@ export async function GET(request: NextRequest) {
     };
 
     // 检查是否有有效的 AI 分析内容
-    const hasStandardAnalysis = Object.values(aiAnalysis).some(v => v && v.trim().length > 0);
-    const hasProAnalysis = Object.values(proAiAnalysis).some(v => v && v.trim().length > 0);
+    // 必须所有核心字段都有内容才算有效缓存，避免使用流式输出中断导致的不完整数据
+    const requiredStandardFields = [
+      aiAnalysis.companyOverview,
+      aiAnalysis.industryAnalysis,
+      aiAnalysis.competitors,
+      aiAnalysis.moat,
+      aiAnalysis.investmentConclusion,
+    ];
+    const hasStandardAnalysis = requiredStandardFields.every(v => v && v.trim().length > 0);
+
+    // 专业版同样需要所有核心字段都有内容
+    const requiredProFields = [
+      proAiAnalysis.proBusinessModel,
+      proAiAnalysis.proFinancialHealth,
+      proAiAnalysis.proValuation,
+      proAiAnalysis.proInvestmentConclusion,
+    ];
+    const hasProAnalysis = requiredProFields.every(v => v && v.trim().length > 0);
 
     // 检查是否有有效的 FMP 数据
     const hasFmpData = !!(
