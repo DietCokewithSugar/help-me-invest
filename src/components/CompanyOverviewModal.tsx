@@ -58,6 +58,7 @@ interface CompanyOverviewModalProps {
     isOpen: boolean;
     onClose: () => void;
     currentFilters?: CompanyFilterRequest;
+    onCompanyChange?: (company: CompanyDiagnostic) => void;
 }
 
 export default function CompanyOverviewModal({
@@ -65,6 +66,7 @@ export default function CompanyOverviewModal({
     isOpen,
     onClose,
     currentFilters,
+    onCompanyChange,
 }: CompanyOverviewModalProps) {
     const router = useRouter();
     const [relatedCompanies, setRelatedCompanies] = useState<CompanyDiagnostic[]>([]);
@@ -119,9 +121,10 @@ export default function CompanyOverviewModal({
 
     // 打开相关公司的概述
     const handleRelatedCompanyClick = (relatedCompany: CompanyDiagnostic) => {
-        // 这里可以通过 callback 触发切换到新公司
-        // 或者直接打开报告
-        handleGenerateReport(relatedCompany.symbol);
+        // 通过 callback 触发切换到新公司的概述页面
+        if (onCompanyChange) {
+            onCompanyChange(relatedCompany);
+        }
     };
 
     // 获取维度的显示值

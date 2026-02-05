@@ -443,7 +443,7 @@ export default function CompaniesPage() {
     const [theme, setTheme] = useState<'dark' | 'light'>('dark');
     const [showContactModal, setShowContactModal] = useState(false);
     const [selectedMarketCapRange, setSelectedMarketCapRange] = useState<string | null>(null);
-    
+
     // 公司概述浮窗状态
     const [selectedCompany, setSelectedCompany] = useState<CompanyDiagnostic | null>(null);
     const [showOverviewModal, setShowOverviewModal] = useState(false);
@@ -648,8 +648,8 @@ export default function CompaniesPage() {
                                                             {config.label}
                                                         </h4>
                                                         <div className={`grid gap-2 ${isProfitModel
-                                                                ? 'grid-cols-2 lg:grid-cols-4'
-                                                                : 'grid-cols-2 lg:grid-cols-3'
+                                                            ? 'grid-cols-2 lg:grid-cols-4'
+                                                            : 'grid-cols-2 lg:grid-cols-3'
                                                             }`}>
                                                             {config.options.map((option) => {
                                                                 const isActive = (filters[key as keyof CompanyFilterRequest] as string[])?.includes(option.value);
@@ -868,6 +868,7 @@ export default function CompaniesPage() {
                 isOpen={showOverviewModal}
                 onClose={handleCloseOverview}
                 currentFilters={filters}
+                onCompanyChange={(newCompany) => setSelectedCompany(newCompany)}
             />
 
             {/* 联系我们弹窗 */}
