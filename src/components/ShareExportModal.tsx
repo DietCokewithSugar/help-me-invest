@@ -106,7 +106,10 @@ const themeConfig = {
 };
 
 // ==================== HTML Content Processor ====================
-function processContentHtml(html: string, theme: typeof themeConfig.dark): string {
+function processContentHtml(html: string, inputTheme: typeof themeConfig.dark | undefined): string {
+    // 防止 theme 为 undefined 的情况，使用 const 变量确保 TypeScript 类型安全
+    const theme = inputTheme ?? themeConfig.dark;
+
     // 创建一个临时的 DOM 解析器来处理 HTML
     const parser = new DOMParser();
     const doc = parser.parseFromString(`<div>${html}</div>`, 'text/html');
@@ -211,6 +214,38 @@ function processContentHtml(html: string, theme: typeof themeConfig.dark): strin
                     style.display = 'none';
                 }
                 break;
+            case 'table':
+                style.width = '100%';
+                style.borderCollapse = 'collapse';
+                style.tableLayout = 'fixed';
+                style.marginTop = '0.75em';
+                style.marginBottom = '0.75em';
+                style.fontSize = '0.9em';
+                break;
+            case 'thead':
+                style.borderBottom = `2px solid ${theme.headerBorder}`;
+                break;
+            case 'tbody':
+                // tbody 不需要额外样式
+                break;
+            case 'tr':
+                style.borderBottom = `1px solid ${theme.headerBorder}`;
+                break;
+            case 'th':
+                style.color = theme.title;
+                style.fontWeight = '600';
+                style.textAlign = 'left';
+                style.padding = '8px 12px';
+                style.whiteSpace = 'nowrap';
+                style.overflow = 'hidden';
+                style.textOverflow = 'ellipsis';
+                break;
+            case 'td':
+                style.color = theme.content;
+                style.padding = '8px 12px';
+                style.verticalAlign = 'top';
+                style.wordBreak = 'break-word';
+                break;
             default:
                 // 对于其他元素，设置默认颜色
                 style.color = theme.content;
@@ -238,9 +273,9 @@ const ExportCard = React.forwardRef<
         symbol?: string;
     }
 >(({ title, contentHtml, settings, companyName, symbol }, ref) => {
-    const fontSize = fontSizeConfig[settings.fontSize];
-    const theme = themeConfig[settings.theme];
-    
+    const fontSize = fontSizeConfig[settings.fontSize] ?? fontSizeConfig.md;
+    const theme = themeConfig[settings.theme] ?? themeConfig.dark;
+
     // 处理 HTML 内容，添加内联样式
     const processedHtml = React.useMemo(() => {
         if (typeof window === 'undefined') return contentHtml;
@@ -358,31 +393,49 @@ const ExportCard = React.forwardRef<
                             justifyContent: 'space-between',
                         }}
                     >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <span
+                                style={{
+                                    fontSize: '13px',
+                                    color: theme.title,
+                                    fontWeight: 600,
+                                    fontFamily: '"Noto Serif SC", "Songti SC", serif',
+                                }}
+                            >
+                                智投研究
+                            </span>
                             <span
                                 style={{
                                     fontSize: '11px',
                                     color: theme.footerText,
                                     fontFamily: '"JetBrains Mono", monospace',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.05em',
                                 }}
                             >
-                                AI 投资研究报告
+                                https://www.help-me-invest.com
                             </span>
                         </div>
                         <div
                             style={{
-                                width: '48px',
-                                height: '48px',
-                                background: theme.qrBg,
+                                width: '56px',
+                                height: '56px',
+                                background: 'white',
                                 borderRadius: '6px',
+                                padding: '4px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                             }}
                         >
-                            <QrCode style={{ width: '32px', height: '32px', color: theme.qrIcon }} />
+                            <img
+                                src="/web-qrcode.png"
+                                alt="扫码访问网站"
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'contain',
+                                    borderRadius: '4px',
+                                }}
+                            />
                         </div>
                     </div>
                 )}
@@ -398,7 +451,7 @@ const ExportCard = React.forwardRef<
                     fontFamily: '"JetBrains Mono", monospace',
                 }}
             >
-                Generated by Help Me Invest · AI Powered
+                智投研究 · help-me-invest.com · AI Powered
             </div>
         </div>
     );
@@ -450,10 +503,11 @@ export default function ShareExportModal({
                 await document.fonts.ready;
             }
 
+            const currentTheme = themeConfig[settings.theme] ?? themeConfig.dark;
             const dataUrl = await toPng(cardRef.current, {
                 quality: 1,
                 pixelRatio: settings.quality,
-                backgroundColor: themeConfig[settings.theme].exportBg,
+                backgroundColor: currentTheme.exportBg,
                 cacheBust: false, // 禁用 cacheBust 避免字体缓存问题
                 skipFonts: true,  // 跳过字体嵌入，避免 CORS 问题
                 style: {
@@ -484,10 +538,11 @@ export default function ShareExportModal({
                 await document.fonts.ready;
             }
 
+            const currentTheme = themeConfig[settings.theme] ?? themeConfig.dark;
             const dataUrl = await toPng(cardRef.current, {
                 quality: 1,
                 pixelRatio: settings.quality,
-                backgroundColor: themeConfig[settings.theme].exportBg,
+                backgroundColor: currentTheme.exportBg,
                 cacheBust: false, // 禁用 cacheBust 避免字体缓存问题
                 skipFonts: true,  // 跳过字体嵌入，避免 CORS 问题
             });

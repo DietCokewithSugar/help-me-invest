@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import {
-    LogoIcon,
     FilterIcon,
     TrendingUpIcon,
     SunIcon,
@@ -47,8 +46,14 @@ export default function Header({
                             onClick={handleLogoClick}
                         >
                             <div className="relative">
-                                <div className="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-gradient-to-br from-glacier-500 to-gemini-blue flex items-center justify-center shadow-lg shadow-glacier-500/20 group-hover:shadow-glacier-500/40 transition-shadow">
-                                    <LogoIcon size={24} className="text-white" />
+                                <div className="w-10 h-10 md:w-11 md:h-11 rounded-2xl overflow-hidden shadow-lg shadow-glacier-500/20 group-hover:shadow-glacier-500/40 transition-shadow">
+                                    <Image
+                                        src="/icon.png"
+                                        alt="智投研究"
+                                        width={44}
+                                        height={44}
+                                        className="w-full h-full object-cover"
+                                    />
                                 </div>
                                 <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-glacier-500 to-gemini-blue opacity-40 blur-xl group-hover:opacity-60 transition-opacity" />
                             </div>
