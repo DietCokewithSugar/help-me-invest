@@ -2,6 +2,7 @@
 
 import { Suspense } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import {
@@ -25,6 +26,16 @@ export default function Header({
     onReset,
     showContactModal,
 }: HeaderProps) {
+    const router = useRouter();
+
+    const handleLogoClick = () => {
+        if (onReset) {
+            onReset();
+        } else {
+            router.push('/');
+        }
+    };
+
     return (
         <header className="fixed top-0 left-0 right-0 z-50">
             <div className="mx-4 mt-4">
@@ -33,7 +44,7 @@ export default function Header({
                         {/* Logo */}
                         <div
                             className="flex items-center gap-3 cursor-pointer group"
-                            onClick={onReset}
+                            onClick={handleLogoClick}
                         >
                             <div className="relative">
                                 <div className="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-gradient-to-br from-glacier-500 to-gemini-blue flex items-center justify-center shadow-lg shadow-glacier-500/20 group-hover:shadow-glacier-500/40 transition-shadow">

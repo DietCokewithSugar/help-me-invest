@@ -454,14 +454,9 @@ export default function TrackingPage() {
             />
 
             {/* 二级工具栏 - 视图切换 */}
-            <div className="pt-24 pb-2 px-4 sm:px-6">
-                <div className="max-w-7xl mx-auto flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-glacier-500 to-gemini-blue flex items-center justify-center">
-                            <TrendingUpIcon size={18} className="text-white" />
-                        </div>
-                        <h1 className="text-lg font-medium tracking-tight theme-text-heading">组合追踪</h1>
-                    </div>
+            <div className="pt-28 pb-2 mx-4">
+                <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between">
+                    <h1 className="text-2xl font-light tracking-tight theme-text-heading">组合追踪</h1>
                     <div className="hidden sm:flex p-1 bg-white/5 rounded-lg border border-white/10">
                         <button
                             onClick={() => setViewMode('grid')}
