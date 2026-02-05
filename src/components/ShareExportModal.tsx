@@ -105,6 +105,129 @@ const themeConfig = {
     },
 };
 
+// ==================== HTML Content Processor ====================
+function processContentHtml(html: string, theme: typeof themeConfig.dark): string {
+    // 创建一个临时的 DOM 解析器来处理 HTML
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(`<div>${html}</div>`, 'text/html');
+    const container = doc.body.firstChild as HTMLElement;
+
+    // 递归处理所有元素，添加内联样式
+    function processElement(el: Element) {
+        const tagName = el.tagName.toLowerCase();
+        const htmlEl = el as HTMLElement;
+        const style = htmlEl.style;
+        // SVG 元素的 className 是 SVGAnimatedString，需要特殊处理
+        const className = typeof htmlEl.className === 'string' 
+            ? htmlEl.className 
+            : (htmlEl.className?.baseVal || htmlEl.getAttribute('class') || '');
+
+        // 确保所有元素可见（移除可能的隐藏样式）
+        style.opacity = '1';
+        style.height = 'auto';
+        style.overflow = 'visible';
+        style.visibility = 'visible';
+
+        // 移除过渡动画
+        style.transition = 'none';
+
+        // 为不同元素类型设置颜色
+        switch (tagName) {
+            case 'h1':
+            case 'h2':
+            case 'h3':
+            case 'h4':
+            case 'h5':
+            case 'h6':
+                style.color = theme.title;
+                style.fontWeight = '600';
+                style.marginTop = '0.75em';
+                style.marginBottom = '0.5em';
+                break;
+            case 'p':
+                style.color = theme.content;
+                style.marginTop = '0.5em';
+                style.marginBottom = '0.5em';
+                break;
+            case 'strong':
+            case 'b':
+                style.color = theme.title;
+                style.fontWeight = '600';
+                break;
+            case 'ul':
+            case 'ol':
+                style.color = theme.content;
+                style.paddingLeft = '1.5em';
+                style.marginTop = '0.5em';
+                style.marginBottom = '0.5em';
+                break;
+            case 'li':
+                style.color = theme.content;
+                style.marginTop = '0.25em';
+                style.marginBottom = '0.25em';
+                break;
+            case 'a':
+                style.color = '#14b8a6';
+                break;
+            case 'code':
+                style.fontFamily = '"JetBrains Mono", monospace';
+                style.fontSize = '0.9em';
+                break;
+            case 'blockquote':
+                style.borderLeft = '3px solid #14b8a6';
+                style.paddingLeft = '1em';
+                style.marginTop = '0.75em';
+                style.marginBottom = '0.75em';
+                style.color = theme.content;
+                break;
+            case 'span':
+                // 处理 span 元素的颜色类
+                if (className.includes('text-mist') || className.includes('text-white')) {
+                    style.color = theme.content;
+                }
+                if (className.includes('text-glacier') || className.includes('text-emerald')) {
+                    style.color = '#14b8a6';
+                }
+                if (className.includes('text-red')) {
+                    style.color = '#ef4444';
+                }
+                break;
+            case 'div':
+                // 为 div 设置默认颜色
+                style.color = theme.content;
+                // 清理可能的背景和边框（用于卡片容器）
+                if (className.includes('bg-white') || className.includes('gemini-card')) {
+                    style.background = 'transparent';
+                    style.border = 'none';
+                    style.padding = '0';
+                }
+                break;
+            case 'button':
+                // 隐藏按钮元素（如分享按钮、折叠按钮）
+                style.display = 'none';
+                break;
+            case 'svg':
+                // 隐藏 SVG 图标（如 loading spinner）
+                if (className.includes('animate-spin')) {
+                    style.display = 'none';
+                }
+                break;
+            default:
+                // 对于其他元素，设置默认颜色
+                style.color = theme.content;
+        }
+
+        // 递归处理子元素
+        Array.from(el.children).forEach(child => processElement(child));
+    }
+
+    if (container) {
+        processElement(container);
+        return container.innerHTML;
+    }
+    return html;
+}
+
 // ==================== Export Card Component ====================
 const ExportCard = React.forwardRef<
     HTMLDivElement,
@@ -118,6 +241,12 @@ const ExportCard = React.forwardRef<
 >(({ title, contentHtml, settings, companyName, symbol }, ref) => {
     const fontSize = fontSizeConfig[settings.fontSize];
     const theme = themeConfig[settings.theme];
+    
+    // 处理 HTML 内容，添加内联样式
+    const processedHtml = React.useMemo(() => {
+        if (typeof window === 'undefined') return contentHtml;
+        return processContentHtml(contentHtml, theme);
+    }, [contentHtml, theme]);
 
     return (
         <div
@@ -208,14 +337,14 @@ const ExportCard = React.forwardRef<
 
                 {/* Content */}
                 <div
-                    className={`export-content prose ${settings.theme === 'dark' ? 'prose-invert' : ''}`}
+                    className="export-content"
                     style={{
                         fontSize: fontSize.value,
                         lineHeight: fontSize.lineHeight,
                         color: theme.content,
                         fontFamily: '"Noto Serif SC", "Songti SC", "STSong", serif',
                     }}
-                    dangerouslySetInnerHTML={{ __html: contentHtml }}
+                    dangerouslySetInnerHTML={{ __html: processedHtml }}
                 />
 
                 {/* Footer with QR code option */}
