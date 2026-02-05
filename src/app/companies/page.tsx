@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import Header from '@/components/Header';
+import CompanyOverviewModal from '@/components/CompanyOverviewModal';
 import {
     SearchIcon,
     FilterIcon,
@@ -442,6 +443,10 @@ export default function CompaniesPage() {
     const [theme, setTheme] = useState<'dark' | 'light'>('dark');
     const [showContactModal, setShowContactModal] = useState(false);
     const [selectedMarketCapRange, setSelectedMarketCapRange] = useState<string | null>(null);
+    
+    // 公司概述浮窗状态
+    const [selectedCompany, setSelectedCompany] = useState<CompanyDiagnostic | null>(null);
+    const [showOverviewModal, setShowOverviewModal] = useState(false);
 
     // 初始化主题
     useEffect(() => {
@@ -556,6 +561,18 @@ export default function CompaniesPage() {
     // 导航到报告页面
     const handleGenerateReport = (symbol: string) => {
         router.push(`/?symbol=${symbol}`);
+    };
+
+    // 打开公司概述浮窗
+    const handleOpenOverview = (company: CompanyDiagnostic) => {
+        setSelectedCompany(company);
+        setShowOverviewModal(true);
+    };
+
+    // 关闭公司概述浮窗
+    const handleCloseOverview = () => {
+        setShowOverviewModal(false);
+        setSelectedCompany(null);
     };
 
     return (
@@ -771,7 +788,7 @@ export default function CompaniesPage() {
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             className="glass-card p-5 rounded-sm border border-white/10 dark:border-white/10 light:border-black/5 hover:border-accent/50 transition-all group cursor-pointer relative overflow-hidden"
-                                            onClick={() => handleGenerateReport(company.symbol)}
+                                            onClick={() => handleOpenOverview(company)}
                                         >
                                             <div className="flex items-start justify-between mb-4">
                                                 <div className="flex-1">
@@ -844,6 +861,14 @@ export default function CompaniesPage() {
                     </div>
                 </div>
             </div >
+
+            {/* 公司概述浮窗 */}
+            <CompanyOverviewModal
+                company={selectedCompany}
+                isOpen={showOverviewModal}
+                onClose={handleCloseOverview}
+                currentFilters={filters}
+            />
 
             {/* 联系我们弹窗 */}
             <AnimatePresence>
