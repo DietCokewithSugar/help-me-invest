@@ -1,6 +1,108 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { MarketType } from '@/lib/markets';
 
+// ============================================================================
+// Gemini API 速率限制器 - 防止 429 Too Many Requests 错误
+// ============================================================================
+
+interface QueuedRequest<T> {
+  execute: () => Promise<T>;
+  resolve: (value: T) => void;
+  reject: (error: any) => void;
+  label: string;
+}
+
+class GeminiRateLimiter {
+  private queue: QueuedRequest<any>[] = [];
+  private activeRequests = 0;
+  private readonly maxConcurrent: number;
+  private readonly minDelayMs: number;
+  private lastRequestTime = 0;
+  private isProcessing = false;
+
+  constructor(maxConcurrent = 2, minDelayMs = 1500) {
+    this.maxConcurrent = maxConcurrent;
+    this.minDelayMs = minDelayMs;
+  }
+
+  /**
+   * 将请求添加到队列，并返回结果 Promise
+   */
+  async enqueue<T>(execute: () => Promise<T>, label = 'request'): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      this.queue.push({ execute, resolve, reject, label });
+      this.processQueue();
+    });
+  }
+
+  /**
+   * 处理队列中的请求
+   */
+  private async processQueue(): Promise<void> {
+    if (this.isProcessing) return;
+    this.isProcessing = true;
+
+    while (this.queue.length > 0 && this.activeRequests < this.maxConcurrent) {
+      const request = this.queue.shift();
+      if (!request) continue;
+
+      // 计算需要等待的时间
+      const now = Date.now();
+      const timeSinceLastRequest = now - this.lastRequestTime;
+      const waitTime = Math.max(0, this.minDelayMs - timeSinceLastRequest);
+
+      if (waitTime > 0) {
+        await this.sleep(waitTime);
+      }
+
+      this.activeRequests++;
+      this.lastRequestTime = Date.now();
+
+      // 异步执行请求，不阻塞队列处理
+      this.executeRequest(request);
+    }
+
+    this.isProcessing = false;
+  }
+
+  /**
+   * 执行单个请求
+   */
+  private async executeRequest<T>(request: QueuedRequest<T>): Promise<void> {
+    try {
+      const result = await request.execute();
+      request.resolve(result);
+    } catch (error: any) {
+      // 如果是 429 错误，添加额外等待后重试
+      if (error?.message?.includes('429') || error?.message?.includes('Too Many Requests')) {
+        console.warn(`[RateLimiter] 429 错误，等待 2 秒后重试: ${request.label}`);
+        await this.sleep(2000);
+        try {
+          const result = await request.execute();
+          request.resolve(result);
+        } catch (retryError) {
+          request.reject(retryError);
+        }
+      } else {
+        request.reject(error);
+      }
+    } finally {
+      this.activeRequests--;
+      // 继续处理队列中的下一个请求
+      this.processQueue();
+    }
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+}
+
+// 全局速率限制器实例 - 所有 GeminiClient 共享
+// maxConcurrent=2: 最多同时 2 个请求
+// minDelayMs=500: 每个请求之间至少间隔 500ms
+const globalRateLimiter = new GeminiRateLimiter(2, 500);
+
 // 市场名称映射
 const MARKET_NAMES: Record<MarketType, string> = {
   US: '美股',
@@ -122,7 +224,11 @@ export class GeminiClient {
         topP: 0.9,
         maxOutputTokens: 1024,
       });
-      const result = await model.generateContent(prompt);
+      // 使用速率限制器
+      const result = await globalRateLimiter.enqueue(
+        () => model.generateContent(prompt),
+        'suggestSymbol'
+      );
       const response = await result.response;
       const text = response.text();
 
@@ -212,7 +318,11 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
         topP: 0.95,
         maxOutputTokens: 12000,
       });
-      const result = await model.generateContent(prompt);
+      // 使用速率限制器
+      const result = await globalRateLimiter.enqueue(
+        () => model.generateContent(prompt),
+        'analyzeCompany'
+      );
       const response = await result.response;
       const text = response.text();
 
@@ -260,7 +370,11 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
 请严格以“今天日期”为基准计算近90天范围；如无近90天内信息，recentNews 需明确说明“未找到近90天内的有效信息”。请确保返回有效的 JSON 格式，可以包含 markdown 代码块标记。使用中文回答。`;
 
     try {
-      const result = await modelWithSearch.generateContent(prompt);
+      // 使用速率限制器
+      const result = await globalRateLimiter.enqueue(
+        () => modelWithSearch.generateContent(prompt),
+        'searchAndAnalyze'
+      );
       const response = await result.response;
       return response.text();
     } catch (error: any) {
@@ -310,7 +424,11 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
 请严格以“今天日期”为基准计算近90天范围；如无近90天内信息，recentNews 需明确说明“未找到近90天内的有效信息”。请确保返回有效的 JSON 格式，可以包含 markdown 代码块标记。使用中文回答。`;
 
     try {
-      const result = await modelWithSearch.generateContent(prompt);
+      // 使用速率限制器
+      const result = await globalRateLimiter.enqueue(
+        () => modelWithSearch.generateContent(prompt),
+        'searchCompanyDetails'
+      );
       const response = await result.response;
       const rawText = response.text();
 
@@ -398,7 +516,11 @@ ${transcriptText}
         topP: 0.9,
         maxOutputTokens: 4096,
       });
-      const result = await model.generateContent(prompt);
+      // 使用速率限制器
+      const result = await globalRateLimiter.enqueue(
+        () => model.generateContent(prompt),
+        'summarizeEarningsCall'
+      );
       const response = await result.response;
       return response.text();
     } catch (error: any) {
@@ -416,7 +538,7 @@ ${transcriptText}
   // 新的流式生成方法 (Granular Streaming Methods)
   // ============================================================================
 
-  // 通用的流式生成辅助方法
+  // 通用的流式生成辅助方法（带速率限制）
   async *generateStream(prompt: string, tier: ModelTier = 'standard'): AsyncGenerator<string, void, unknown> {
     const model = this.getModel(tier, {
       temperature: 0.7,
@@ -424,8 +546,13 @@ ${transcriptText}
       maxOutputTokens: 8192
     });
 
+    // 使用速率限制器来获取流
+    const result = await globalRateLimiter.enqueue(
+      () => model.generateContentStream(prompt),
+      `generateStream-${tier}`
+    );
+
     try {
-      const result = await model.generateContentStream(prompt);
       for await (const chunk of result.stream) {
         const chunkText = chunk.text();
         if (chunkText) {
@@ -529,7 +656,7 @@ ${JSON.stringify(companyData, null, 2)}
     return this.generateStream(prompt, 'standard');
   }
 
-  // 7. 最新发展动态 (需要联网搜索能力)
+  // 7. 最新发展动态 (需要联网搜索能力)（带速率限制）
   async streamRecentDevelopments(companyName: string, symbol: string, market: MarketType): Promise<AsyncGenerator<string, void, unknown>> {
     const marketName = MARKET_NAMES[market] || '美股';
     // 使用 search 模型
@@ -546,9 +673,11 @@ ${JSON.stringify(companyData, null, 2)}
      如果没有近期的重大消息，请说明。
      使用中文，Markdown 格式，关键动态加粗。`;
 
-    const result = await model.generateContentStream(prompt);
-    // Note: AsyncGenerator doesn't automatically imply * functionality in standard implementation unless tailored, 
-    // but here we just return the iterable.
+    // 使用速率限制器
+    const result = await globalRateLimiter.enqueue(
+      () => model.generateContentStream(prompt),
+      'recentDevelopments'
+    );
     async function* streamIterator() {
       for await (const chunk of result.stream) {
         yield chunk.text();
@@ -661,7 +790,7 @@ ${transcriptText}
     });
   }
 
-  // 10.1 专业版 - 生意模式分析
+  // 10.1 专业版 - 生意模式分析（带速率限制）
   async streamProBusinessModel(
     companyData: any,
     market: MarketType
@@ -706,7 +835,11 @@ ${transcriptText}
 
 字数控制在 400-600 字。`;
 
-    const result = await model.generateContentStream(prompt);
+    // 使用速率限制器
+    const result = await globalRateLimiter.enqueue(
+      () => model.generateContentStream(prompt),
+      'proBusinessModel'
+    );
     async function* streamIterator() {
       for await (const chunk of result.stream) {
         const text = chunk.text();
@@ -716,7 +849,7 @@ ${transcriptText}
     return streamIterator();
   }
 
-  // 10.2 专业版 - 运营模式分析
+  // 10.2 专业版 - 运营模式分析（带速率限制）
   async streamProOperatingModel(
     companyData: any,
     market: MarketType
@@ -760,7 +893,11 @@ ${transcriptText}
 
 字数控制在 400-600 字。`;
 
-    const result = await model.generateContentStream(prompt);
+    // 使用速率限制器
+    const result = await globalRateLimiter.enqueue(
+      () => model.generateContentStream(prompt),
+      'proOperatingModel'
+    );
     async function* streamIterator() {
       for await (const chunk of result.stream) {
         const text = chunk.text();
@@ -770,7 +907,7 @@ ${transcriptText}
     return streamIterator();
   }
 
-  // 10.3 专业版 - 行业前景评估
+  // 10.3 专业版 - 行业前景评估（带速率限制）
   async streamProIndustryOutlook(
     companyData: any,
     market: MarketType
@@ -813,7 +950,11 @@ ${transcriptText}
 
 字数控制在 300-500 字。`;
 
-    const result = await model.generateContentStream(prompt);
+    // 使用速率限制器
+    const result = await globalRateLimiter.enqueue(
+      () => model.generateContentStream(prompt),
+      'proIndustryOutlook'
+    );
     async function* streamIterator() {
       for await (const chunk of result.stream) {
         const text = chunk.text();
@@ -823,7 +964,7 @@ ${transcriptText}
     return streamIterator();
   }
 
-  // 10.4 专业版 - 竞争地位与护城河
+  // 10.4 专业版 - 竞争地位与护城河（带速率限制）
   async streamProMoatAnalysis(
     companyData: any,
     profitabilityData: any,
@@ -877,7 +1018,11 @@ ${transcriptText}
 
 字数控制在 300-500 字。`;
 
-    const result = await model.generateContentStream(prompt);
+    // 使用速率限制器
+    const result = await globalRateLimiter.enqueue(
+      () => model.generateContentStream(prompt),
+      'proMoatAnalysis'
+    );
     async function* streamIterator() {
       for await (const chunk of result.stream) {
         const text = chunk.text();
@@ -887,7 +1032,7 @@ ${transcriptText}
     return streamIterator();
   }
 
-  // 10.5 专业版 - 财务健康与经营质量
+  // 10.5 专业版 - 财务健康与经营质量（带速率限制）
   async streamProFinancialHealth(
     companyData: any,
     annualFinancials: any[],
@@ -959,7 +1104,11 @@ ${JSON.stringify(quarterlyFinancials, null, 2)}
 
 字数控制在 400-600 字。`;
 
-    const result = await model.generateContentStream(prompt);
+    // 使用速率限制器
+    const result = await globalRateLimiter.enqueue(
+      () => model.generateContentStream(prompt),
+      'proFinancialHealth'
+    );
     async function* streamIterator() {
       for await (const chunk of result.stream) {
         const text = chunk.text();
@@ -969,7 +1118,7 @@ ${JSON.stringify(quarterlyFinancials, null, 2)}
     return streamIterator();
   }
 
-  // 10.6 专业版 - 估值与买入时机
+  // 10.6 专业版 - 估值与买入时机（带速率限制）
   async streamProValuation(
     companyData: any,
     valuationData: any,
@@ -1034,7 +1183,11 @@ ${JSON.stringify(quarterlyFinancials, null, 2)}
 
 字数控制在 400-600 字。`;
 
-    const result = await model.generateContentStream(prompt);
+    // 使用速率限制器
+    const result = await globalRateLimiter.enqueue(
+      () => model.generateContentStream(prompt),
+      'proValuation'
+    );
     async function* streamIterator() {
       for await (const chunk of result.stream) {
         const text = chunk.text();
@@ -1044,7 +1197,7 @@ ${JSON.stringify(quarterlyFinancials, null, 2)}
     return streamIterator();
   }
 
-  // 10.7 专业版 - 综合投资建议（需要前6个章节的内容）
+  // 10.7 专业版 - 综合投资建议（需要前6个章节的内容）（带速率限制）
   async streamProInvestmentConclusion(
     companyData: any,
     prevContext: string,
@@ -1116,7 +1269,11 @@ ${prevContext}
 
 字数控制在 500-800 字。`;
 
-    const result = await model.generateContentStream(prompt);
+    // 使用速率限制器
+    const result = await globalRateLimiter.enqueue(
+      () => model.generateContentStream(prompt),
+      'proInvestmentConclusion'
+    );
     async function* streamIterator() {
       for await (const chunk of result.stream) {
         const text = chunk.text();
@@ -1500,7 +1657,11 @@ ${JSON.stringify(quarterlyFinancials, null, 2)}
 - 引用搜索到的信息时标注来源
 - 全文约 1200-1800 字，深入分析而非简单罗列`;
 
-    const result = await model.generateContentStream(prompt);
+    // 使用速率限制器
+    const result = await globalRateLimiter.enqueue(
+      () => model.generateContentStream(prompt),
+      'proAnalysis'
+    );
     
     async function* streamIterator() {
       for await (const chunk of result.stream) {
@@ -1538,7 +1699,11 @@ ${JSON.stringify(quarterlyFinancials, null, 2)}
         topP: 0.9,
         maxOutputTokens: 1024,
       });
-      const result = await model.generateContent(prompt);
+      // 使用速率限制器
+      const result = await globalRateLimiter.enqueue(
+        () => model.generateContent(prompt),
+        'explainText'
+      );
       const response = await result.response;
       return response.text();
     } catch (error: any) {

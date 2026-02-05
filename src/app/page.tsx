@@ -421,6 +421,25 @@ function HomeContent() {
     }
   };
 
+  // 分批执行任务的辅助函数，避免瞬间并发过高导致 429 错误
+  const executeBatched = async <T,>(
+    tasks: (() => Promise<T>)[],
+    batchSize = 2,
+    delayMs = 300
+  ): Promise<T[]> => {
+    const results: T[] = [];
+    for (let i = 0; i < tasks.length; i += batchSize) {
+      const batch = tasks.slice(i, i + batchSize);
+      const batchResults = await Promise.all(batch.map(task => task()));
+      results.push(...batchResults);
+      // 如果还有更多批次，添加延迟
+      if (i + batchSize < tasks.length) {
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+    return results;
+  };
+
   // Streaming helper
   const streamSection = async (section: string, payload: any, symbol?: string) => {
     try {
