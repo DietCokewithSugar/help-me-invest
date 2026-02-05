@@ -118,9 +118,8 @@ function processContentHtml(html: string, theme: typeof themeConfig.dark): strin
         const htmlEl = el as HTMLElement;
         const style = htmlEl.style;
         // SVG 元素的 className 是 SVGAnimatedString，需要特殊处理
-        const className = typeof htmlEl.className === 'string' 
-            ? htmlEl.className 
-            : (htmlEl.className?.baseVal || htmlEl.getAttribute('class') || '');
+        // 使用 getAttribute 作为通用方法，兼容 HTML 和 SVG 元素
+        const className = el.getAttribute('class') || '';
 
         // 确保所有元素可见（移除可能的隐藏样式）
         style.opacity = '1';
