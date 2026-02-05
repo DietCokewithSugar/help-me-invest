@@ -55,6 +55,31 @@ interface SymbolSuggestion {
   confidence?: number;
 }
 
+// 将全角字符转换为半角，并去除所有空格（处理中文输入法输入的情况）
+function normalizeSymbol(input: string): string {
+  let result = '';
+  for (let i = 0; i < input.length; i++) {
+    const code = input.charCodeAt(i);
+    // 全角字母和数字转换为半角 (0xFF01-0xFF5E -> 0x0021-0x007E)
+    if (code >= 0xFF01 && code <= 0xFF5E) {
+      result += String.fromCharCode(code - 0xFEE0);
+    }
+    // 全角空格转换为半角空格
+    else if (code === 0x3000) {
+      // 跳过空格，不添加
+    }
+    // 普通半角空格也跳过
+    else if (code === 0x20) {
+      // 跳过空格
+    }
+    // 其他字符保留
+    else {
+      result += input[i];
+    }
+  }
+  return result.toUpperCase();
+}
+
 const LOADING_STEPS = [
   { text: '正在获取企业基本信息', icon: FileTextIcon, color: 'from-glacier-500 to-glacier-600' },
   { text: '正在分析财务数据', icon: BarChart3Icon, color: 'from-gemini-purple to-gemini-pink' },
@@ -503,7 +528,8 @@ function HomeContent() {
 
 
   const handleAnalyze = async () => {
-    const trimmedSymbol = symbol.trim().toUpperCase();
+    // 使用 normalizeSymbol 处理全角字符和空格（中文输入法可能输入的情况）
+    const trimmedSymbol = normalizeSymbol(symbol);
     if (!trimmedSymbol) {
       setError('请输入股票代码');
       inputRef.current?.focus();
@@ -956,14 +982,16 @@ ${proResults[5]}
                         value={symbol}
                         onChange={(e) => {
                           const nextValue = e.target.value;
-                          setSymbol(isComposing ? nextValue : nextValue.toUpperCase());
+                          // 输入法组合中时保留原始值，否则进行规范化（全角转半角、去空格、转大写）
+                          setSymbol(isComposing ? nextValue : normalizeSymbol(nextValue));
                           setError('');
                           setShowSuggestions(true);
                         }}
                         onCompositionStart={() => setIsComposing(true)}
                         onCompositionEnd={(e) => {
                           setIsComposing(false);
-                          setSymbol(e.currentTarget.value.toUpperCase());
+                          // 组合结束后进行规范化处理
+                          setSymbol(normalizeSymbol(e.currentTarget.value));
                         }}
                         onKeyDown={handleKeyDown}
                         placeholder=""
