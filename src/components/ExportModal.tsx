@@ -81,11 +81,17 @@ export default function ExportModal({
     if (!targetRef.current) return null;
 
     try {
+      // 等待所有字体加载完成
+      if (document.fonts && document.fonts.ready) {
+        await document.fonts.ready;
+      }
+
       const dataUrl = await toPng(targetRef.current, {
         quality: 1,
         pixelRatio: 2,
         backgroundColor: '#0a0a0f',
-        cacheBust: true,
+        cacheBust: false, // 禁用 cacheBust 避免字体缓存问题
+        skipFonts: true,  // 跳过字体嵌入，避免 CORS 问题
         style: {
           transform: 'none',
         },
@@ -111,18 +117,28 @@ export default function ExportModal({
         throw new Error('无法找到要导出的内容');
       }
 
+      // 等待所有字体加载完成
+      if (document.fonts && document.fonts.ready) {
+        await document.fonts.ready;
+      }
+
+      // 使用 skipFonts 避免外部字体的 CORS 问题
+      // 字体已经在页面中渲染好了，不需要重新嵌入
       const dataUrl = await toPng(targetRef.current, {
         quality: 1,
         pixelRatio: 2,
         backgroundColor: '#0a0a0f',
-        cacheBust: true,
+        cacheBust: false, // 禁用 cacheBust 避免字体缓存问题
+        skipFonts: true,  // 跳过字体嵌入，避免 CORS 问题
       });
 
       // 创建下载链接
       const link = document.createElement('a');
       link.download = `${fileName}.png`;
       link.href = dataUrl;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
 
       setStatus('success');
       setTimeout(() => {

@@ -317,11 +317,17 @@ export default function ShareExportModal({
         if (!cardRef.current) return null;
 
         try {
+            // 等待所有字体加载完成
+            if (document.fonts && document.fonts.ready) {
+                await document.fonts.ready;
+            }
+
             const dataUrl = await toPng(cardRef.current, {
                 quality: 1,
                 pixelRatio: settings.quality,
                 backgroundColor: themeConfig[settings.theme].exportBg,
-                cacheBust: true,
+                cacheBust: false, // 禁用 cacheBust 避免字体缓存问题
+                skipFonts: true,  // 跳过字体嵌入，避免 CORS 问题
                 style: {
                     transform: 'none',
                 },
@@ -333,7 +339,7 @@ export default function ShareExportModal({
             console.error('生成图片失败:', error);
             throw error;
         }
-    }, [settings.quality]);
+    }, [settings.quality, settings.theme]);
 
     // Download image
     const handleDownload = useCallback(async () => {
@@ -345,17 +351,25 @@ export default function ShareExportModal({
                 throw new Error('无法找到要导出的内容');
             }
 
+            // 等待所有字体加载完成
+            if (document.fonts && document.fonts.ready) {
+                await document.fonts.ready;
+            }
+
             const dataUrl = await toPng(cardRef.current, {
                 quality: 1,
                 pixelRatio: settings.quality,
                 backgroundColor: themeConfig[settings.theme].exportBg,
-                cacheBust: true,
+                cacheBust: false, // 禁用 cacheBust 避免字体缓存问题
+                skipFonts: true,  // 跳过字体嵌入，避免 CORS 问题
             });
 
             const link = document.createElement('a');
             link.download = `${symbol || 'report'}_${title}.png`;
             link.href = dataUrl;
+            document.body.appendChild(link);
             link.click();
+            document.body.removeChild(link);
 
             setStatus('success');
             setTimeout(() => {
@@ -368,7 +382,7 @@ export default function ShareExportModal({
             setErrorMessage(error.message || '导出失败，请稍后重试');
             setTimeout(() => setStatus('idle'), 3000);
         }
-    }, [settings.quality, symbol, title, onClose]);
+    }, [settings.quality, settings.theme, symbol, title, onClose]);
 
     // Share image
     const handleShare = useCallback(async () => {
