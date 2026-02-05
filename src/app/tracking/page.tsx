@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactECharts from 'echarts-for-react';
 import {
@@ -10,7 +11,9 @@ import {
     LogoIcon,
     SunIcon,
     MoonIcon,
+    FilterIcon,
 } from '@/components/Icons';
+import Header from '@/components/Header';
 import {
     ChevronLeft as ChevronLeftIcon,
     LayoutGrid as LayoutGridIcon,
@@ -387,6 +390,7 @@ export default function TrackingPage() {
     const [theme, setTheme] = useState<'dark' | 'light'>('dark');
     const [selectedCompany, setSelectedCompany] = useState<TrackedCompany | null>(null);
     const [reportModalOpen, setReportModalOpen] = useState(false);
+    const [showContactModal, setShowContactModal] = useState(false);
 
     const handleSelectCompany = (company: TrackedCompany) => {
         setSelectedCompany(company);
@@ -442,54 +446,38 @@ export default function TrackingPage() {
 
     return (
         <main className="min-h-screen selection:bg-glacier-500/30 transition-colors duration-300">
-            {/* Header */}
-            <header className="sticky top-0 z-50 glass-card border-b border-white/5">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Link href="/" className="p-2 hover:bg-white/5 rounded-full transition-colors group">
-                            <ChevronLeftIcon size={20} className="text-mist-400 group-hover:text-glacier-500" />
-                        </Link>
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-glacier-500 to-gemini-blue flex items-center justify-center">
-                                <TrendingUpIcon size={18} className="text-white" />
-                            </div>
-                            <h1 className="text-lg font-medium tracking-tight theme-text-heading">组合追踪</h1>
-                        </div>
-                    </div>
+            {/* Header - 与首页保持一致 */}
+            <Header
+                theme={theme}
+                toggleTheme={toggleTheme}
+                showContactModal={() => setShowContactModal(showContactModal)}
+            />
 
+            {/* 二级工具栏 - 视图切换 */}
+            <div className="pt-24 pb-2 px-4 sm:px-6">
+                <div className="max-w-7xl mx-auto flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="hidden sm:flex p-1 bg-white/5 rounded-lg border border-white/10">
-                            <button
-                                onClick={() => setViewMode('grid')}
-                                className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-glacier-500 text-white shadow-sm' : 'text-mist-500 hover:text-mist-300'}`}
-                            >
-                                <LayoutGridIcon size={18} />
-                            </button>
-                            <button
-                                onClick={() => setViewMode('list')}
-                                className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-glacier-500 text-white shadow-sm' : 'text-mist-500 hover:text-mist-300'}`}
-                            >
-                                <ListIcon size={18} />
-                            </button>
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-glacier-500 to-gemini-blue flex items-center justify-center">
+                            <TrendingUpIcon size={18} className="text-white" />
                         </div>
-
-                        <div className="h-6 w-px bg-white/10 mx-1 hidden sm:block" />
-
-                        {/* 主题切换 */}
+                        <h1 className="text-lg font-medium tracking-tight theme-text-heading">组合追踪</h1>
+                    </div>
+                    <div className="hidden sm:flex p-1 bg-white/5 rounded-lg border border-white/10">
                         <button
-                            onClick={toggleTheme}
-                            className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer"
-                            title={theme === 'dark' ? '切换到亮色模式' : '切换到深色模式'}
+                            onClick={() => setViewMode('grid')}
+                            className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-glacier-500 text-white shadow-sm' : 'text-mist-500 hover:text-mist-300'}`}
                         >
-                            {theme === 'dark' ? (
-                                <SunIcon size={18} className="text-mist-300" />
-                            ) : (
-                                <MoonIcon size={18} className="text-mist-300" />
-                            )}
+                            <LayoutGridIcon size={18} />
+                        </button>
+                        <button
+                            onClick={() => setViewMode('list')}
+                            className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-glacier-500 text-white shadow-sm' : 'text-mist-500 hover:text-mist-300'}`}
+                        >
+                            <ListIcon size={18} />
                         </button>
                     </div>
                 </div>
-            </header>
+            </div>
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
                 <div className="flex flex-col lg:flex-row gap-8">

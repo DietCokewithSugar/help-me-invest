@@ -1019,10 +1019,14 @@ ${proResults[5]}
                         exit={{ opacity: 0, y: -4 }}
                         transition={{ duration: 0.15 }}
                       >
-                        <div className="px-5 py-2.5 text-xs text-mist-500 flex items-center justify-between">
-                          <span>AI 联想</span>
-                          {suggestLoading && <span className="text-mist-600">查询中...</span>}
-                        </div>
+                        {/* 加载条 - 仅在加载时显示 */}
+                        {suggestLoading && (
+                          <div className="px-5 py-2 flex items-center justify-center">
+                            <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                              <div className="h-full w-1/3 bg-gradient-to-r from-glacier-400 via-glacier-500 to-glacier-400 rounded-full animate-bounce-horizontal" />
+                            </div>
+                          </div>
+                        )}
                         <div className="max-h-56 overflow-auto">
                           {suggestions.map((item) => (
                             <button
