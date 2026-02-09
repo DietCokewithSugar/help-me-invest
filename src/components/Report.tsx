@@ -805,32 +805,32 @@ export default function Report({
       <SideAnchorNav sections={navSections} activeSection={activeSection} />
 
       {/* 操作栏 */}
-      <div className="flex items-center justify-between mb-8 animate-fade-in-up">
-        {!isModalView ? (
+      <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-8 animate-fade-in-up">
+        {!isModalView && (
           <button
             onClick={onReset}
             className="gemini-btn gemini-btn-secondary flex items-center gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
-            返回搜索
+            <span className="hidden sm:inline">返回搜索</span>
           </button>
-        ) : (
-          <div /> /* Placeholder to keep layout alignment if needed, or just let justify-between handle it */
         )}
 
-        <div className="flex items-center gap-3">
-          {/* 版本切换 */}
-          <button
-            onClick={() => setReportVersion(reportVersion === 'standard' ? 'professional' : 'standard')}
-            className="gemini-btn gemini-btn-secondary flex items-center gap-2"
-          >
-            <span>{reportVersion === 'standard' ? '切换到专业版' : '切换到普通版'}</span>
-            <RefreshCw className="w-4 h-4" />
-          </button>
+        {/* 版本切换 */}
+        <button
+          onClick={() => setReportVersion(reportVersion === 'standard' ? 'professional' : 'standard')}
+          className="gemini-btn gemini-btn-primary flex items-center gap-2 px-5 py-3 text-base"
+        >
+          <RefreshCw className="w-4 h-4" />
+          <span className="hidden sm:inline">{reportVersion === 'standard' ? '切换到专业版' : '切换到普通版'}</span>
+          <span className="sm:hidden text-xs">{reportVersion === 'standard' ? '专业版' : '普通版'}</span>
+        </button>
 
-          {/* 单位切换 */}
-          <UnitModeToggle />
+        {/* 单位切换 */}
+        <UnitModeToggle />
 
+        {/* 右侧按钮组 - 推到右边 */}
+        <div className="flex items-center gap-2 md:gap-3 ml-auto">
           <motion.button
             onClick={() => setIsExportModalOpen(true)}
             className="gemini-btn gemini-btn-secondary flex items-center gap-2"
@@ -838,7 +838,7 @@ export default function Report({
             whileTap={{ scale: 0.98 }}
           >
             <ImageIcon className="w-4 h-4" />
-            导出图片
+            <span className="hidden sm:inline">导出图片</span>
           </motion.button>
 
           {/* 重新生成按钮 */}
@@ -858,7 +858,7 @@ export default function Report({
               whileTap={{ scale: 0.98 }}
             >
               <RefreshCw className={`w-4 h-4 ${isRegenerating ? 'animate-spin' : ''}`} />
-              {isRegenerating ? '生成中...' : '重新生成'}
+              <span className="hidden sm:inline">{isRegenerating ? '生成中...' : '重新生成'}</span>
             </motion.button>
           )}
         </div>

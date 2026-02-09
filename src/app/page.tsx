@@ -168,6 +168,57 @@ function LinearLoader({ step, totalSteps }: { step: number; totalSteps: number }
   );
 }
 
+// 搜索历史类型
+interface SearchHistoryItem {
+  symbol: string;
+  name?: string;
+  timestamp: number;
+}
+
+const SEARCH_HISTORY_KEY = 'search-history';
+const MAX_SEARCH_HISTORY = 8;
+
+function getSearchHistory(): SearchHistoryItem[] {
+  try {
+    const raw = localStorage.getItem(SEARCH_HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveSearchHistory(history: SearchHistoryItem[]) {
+  try {
+    localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history.slice(0, MAX_SEARCH_HISTORY)));
+  } catch {
+    // localStorage 不可用时静默失败
+  }
+}
+
+function addToSearchHistory(symbol: string, name?: string) {
+  const history = getSearchHistory();
+  // 去重：如果已存在相同 symbol，先移除旧的
+  const filtered = history.filter(item => item.symbol !== symbol);
+  // 添加到最前面
+  filtered.unshift({ symbol, name, timestamp: Date.now() });
+  saveSearchHistory(filtered);
+}
+
+function removeFromSearchHistory(symbol: string) {
+  const history = getSearchHistory();
+  saveSearchHistory(history.filter(item => item.symbol !== symbol));
+}
+
+function clearSearchHistory() {
+  try {
+    localStorage.removeItem(SEARCH_HISTORY_KEY);
+  } catch {
+    // 静默失败
+  }
+}
+
 function HomeContent() {
   const [symbol, setSymbol] = useState('');
   const [selectedMarket, setSelectedMarket] = useState<MarketType>('US');
@@ -192,9 +243,15 @@ function HomeContent() {
   const [retryCount, setRetryCount] = useState(0);
   const [isRetryable, setIsRetryable] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
+  const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestContainerRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
+
+  // 初始化搜索历史
+  useEffect(() => {
+    setSearchHistory(getSearchHistory());
+  }, []);
 
   const currentMarketConfig = getMarketConfig(selectedMarket);
 
@@ -624,6 +681,10 @@ function HomeContent() {
       setIsRetryable(false);
 
       recordSearchToDb(formattedSymbol, data?.profile?.companyName);
+
+      // 记录到本地搜索历史
+      addToSearchHistory(formattedSymbol, data?.profile?.companyName);
+      setSearchHistory(getSearchHistory());
 
       // 如果有缓存的 AI 分析，直接使用缓存数据
       if (useCachedAI && cachedData?.data?.aiAnalysis) {
@@ -1105,6 +1166,59 @@ ${proResults[5]}
                       </div>
                     </div>
                   </motion.div>
+                )}
+
+                {/* 搜索历史 */}
+                {searchHistory.length > 0 && (
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-3 px-1">
+                      <ClockIcon size={14} className="text-mist-500" />
+                      <span className="text-sm text-mist-500">搜索历史</span>
+                      <button
+                        onClick={() => {
+                          clearSearchHistory();
+                          setSearchHistory([]);
+                        }}
+                        className="ml-auto text-xs text-mist-600 hover:text-mist-400 transition-colors"
+                      >
+                        清除全部
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {searchHistory.slice(0, 6).map((item) => (
+                        <div
+                          key={item.symbol}
+                          className="group relative flex items-center gap-1.5 pl-3 pr-1.5 py-1.5 rounded-lg bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.1] transition-all"
+                        >
+                          <button
+                            onClick={() => setSymbol(item.symbol)}
+                            disabled={loading}
+                            className="flex items-center gap-2 disabled:opacity-50"
+                          >
+                            <span className="font-mono text-sm text-mist-300 group-hover:text-white transition-colors">
+                              {item.symbol}
+                            </span>
+                            {item.name && (
+                              <span className="text-xs text-mist-600 hidden sm:inline">
+                                {item.name}
+                              </span>
+                            )}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeFromSearchHistory(item.symbol);
+                              setSearchHistory(getSearchHistory());
+                            }}
+                            className="w-5 h-5 flex items-center justify-center rounded-md text-mist-700 hover:text-mist-300 hover:bg-white/[0.06] transition-all opacity-0 group-hover:opacity-100"
+                            title="删除"
+                          >
+                            <XIcon size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
 
                 {/* 热门股票区域 - 统一冷色调 */}
