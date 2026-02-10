@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense, lazy, useCallback } from 'react';
 import Image from 'next/image';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import Report from '@/components/Report';
@@ -247,6 +247,7 @@ function HomeContent() {
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestContainerRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   // 初始化搜索历史
   useEffect(() => {
@@ -980,6 +981,10 @@ ${proResults[5]}
     setAiLoading(false);
     setAiError('');
     setError('');
+    // 清除 URL 中的 symbol 参数，防止返回时重新触发分析
+    if (searchParams.get('symbol')) {
+      router.replace('/', { scroll: false });
+    }
   };
 
   return (
