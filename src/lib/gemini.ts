@@ -192,7 +192,8 @@ export class GeminiClient {
 
   async suggestSymbol(
     query: string,
-    marketHint?: MarketType
+    marketHint?: MarketType,
+    language: string = 'zh'
   ): Promise<{
     query: string;
     suggestions: Array<{
@@ -205,6 +206,15 @@ export class GeminiClient {
   }> {
     const trimmedQuery = query.trim();
     const marketName = marketHint ? (MARKET_NAMES[marketHint] || '美股') : '未指定';
+    const nameInstruction = language === 'en'
+      ? '6. Fill the name field with the English company name. Fill nameCn with the Chinese name if known.'
+      : '6. 如果知道中文名，请填充 nameCn；否则可以留空。';
+    const nameFieldDesc = language === 'en'
+      ? '"name": "Company name in English (optional)"'
+      : '"name": "公司名称（可选）"';
+    const nameCnFieldDesc = language === 'en'
+      ? '"nameCn": "Company name in Chinese (optional)"'
+      : '"nameCn": "公司中文名（可选）"';
     const prompt = `你是股票搜索联想引擎。用户输入可能是股票代码、公司中文/英文名、拼音缩写或简称。请根据输入联想到正确格式的股票代码，并输出 JSON。
 
 要求：
@@ -217,7 +227,7 @@ export class GeminiClient {
    - JP: 4 位数字 + .T
 4. 优先返回最相关的 1-5 个候选，confidence 为 0-1 之间的小数。
 5. 如果无法确定，suggestions 为空数组。
-6. 如果知道中文名，请填充 nameCn；否则可以留空。
+${nameInstruction}
 
 用户输入：${trimmedQuery}
 市场提示：${marketName}
@@ -229,8 +239,8 @@ export class GeminiClient {
     {
       "symbol": "XXXX",
       "market": "US",
-      "name": "公司名称（可选）",
-      "nameCn": "公司中文名（可选）",
+      ${nameFieldDesc},
+      ${nameCnFieldDesc},
       "confidence": 0.75
     }
   ]

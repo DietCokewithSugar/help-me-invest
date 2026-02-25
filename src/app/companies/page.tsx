@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Header from '@/components/Header';
 import CompanyOverviewModal from '@/components/CompanyOverviewModal';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { translateDiagnosticTag } from '@/i18n/diagnosticTags';
 import {
     SearchIcon,
     FilterIcon,
@@ -871,17 +872,17 @@ export default function CompaniesPage() {
                                             <div className="flex flex-wrap gap-1.5 mb-4">
                                                 {company.strategic_positioning && (
                                                     <span className="px-1.5 py-0.5 text-[10px] rounded-sm bg-white/5 text-text-secondary border border-white/10">
-                                                        {company.strategic_positioning}
+                                                        {translateDiagnosticTag(company.strategic_positioning, locale)}
                                                     </span>
                                                 )}
                                                 {company.market_cap_size && (
                                                     <span className="px-1.5 py-0.5 text-[10px] rounded-sm bg-white/5 text-text-secondary border border-white/10">
-                                                        {company.market_cap_size}
+                                                        {translateDiagnosticTag(company.market_cap_size, locale)}
                                                     </span>
                                                 )}
                                                 {company.profit_model && (
                                                     <span className="px-1.5 py-0.5 text-[10px] rounded-sm bg-white/5 text-text-secondary border border-white/10">
-                                                        {company.profit_model}
+                                                        {translateDiagnosticTag(company.profit_model, locale)}
                                                     </span>
                                                 )}
                                             </div>

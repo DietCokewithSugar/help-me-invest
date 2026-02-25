@@ -1141,7 +1141,7 @@ ${proResults[5]}
                               </span>
                               {(item.nameCn || item.name) && (
                                 <span className="text-sm text-mist-400 truncate">
-                                  {item.nameCn || item.name}
+                                  {locale === 'en' ? (item.name || item.nameCn) : (item.nameCn || item.name)}
                                 </span>
                               )}
                             </button>
