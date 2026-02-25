@@ -13,12 +13,13 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const symbol = searchParams.get('symbol');
     const market = (searchParams.get('market') as MarketType) || 'US';
+    const language = searchParams.get('language') || 'zh';
 
     if (!symbol) {
       return NextResponse.json({ error: '缺少股票代码' }, { status: 400 });
     }
 
-    const cachedReport = await getCachedReportV2(symbol, market);
+    const cachedReport = await getCachedReportV2(symbol, market, language);
 
     if (!cachedReport) {
       return NextResponse.json({ cached: false });
@@ -114,12 +115,13 @@ export async function DELETE(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const symbol = searchParams.get('symbol');
     const market = (searchParams.get('market') as MarketType) || 'US';
+    const language = searchParams.get('language') || 'zh';
 
     if (!symbol) {
       return NextResponse.json({ error: '缺少股票代码' }, { status: 400 });
     }
 
-    const result = await deleteReportCache(symbol, market);
+    const result = await deleteReportCache(symbol, market, language);
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 500 });

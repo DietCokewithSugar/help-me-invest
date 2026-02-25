@@ -6,7 +6,7 @@ export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
     try {
-        const { text } = await request.json();
+        const { text, language = 'zh' } = await request.json();
 
         if (!text || typeof text !== 'string' || text.trim().length === 0) {
             return NextResponse.json({ error: '请提供有效的文本' }, { status: 400 });
@@ -19,11 +19,10 @@ export async function POST(request: NextRequest) {
 
         const gemini = new GeminiClient(googleApiKey);
 
-        // 限制文本长度，防止滥用
         const limitedText = text.trim().slice(0, 1000);
 
         const explanation = await withRetryAndTimeout(
-            () => gemini.explainText(limitedText),
+            () => gemini.explainText(limitedText, language),
             { maxRetries: 3, retryDelayMs: 1000, timeoutMs: 15000, label: 'explainText' },
             ''
         );
