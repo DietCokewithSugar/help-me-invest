@@ -299,6 +299,7 @@ export const zh = {
       disclaimer: '免责声明：本报告由 AI 自动生成，仅供参考，不构成任何投资建议。投资有风险，入市需谨慎。报告中的分析基于公开数据和 AI 推理，可能存在偏差或不准确之处，请结合专业投资顾问意见进行决策。',
     },
     shareModule: '分享此模块',
+    analyzingCompanyFeatures: 'AI 正在分析企业特征...',
   },
   financial: {
     incomeStatement: '利润表',
