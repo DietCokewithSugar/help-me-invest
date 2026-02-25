@@ -124,6 +124,18 @@ export const zh = {
       scanQr: '扫描二维码添加微信',
       lookForward: '期待与您交流',
     },
+    featuredStocks: {
+      AAPL: '苹果',
+      NVDA: '英伟达',
+      TSLA: '特斯拉',
+      MSFT: '微软',
+      GOOGL: '谷歌',
+      '600519.SS': '贵州茅台',
+      '000858.SZ': '五粮液',
+      '0700.HK': '腾讯控股',
+      '9988.HK': '阿里巴巴',
+      '7203.T': '丰田汽车',
+    },
   },
   companies: {
     title: '公司发现',

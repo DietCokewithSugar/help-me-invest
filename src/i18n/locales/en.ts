@@ -126,6 +126,18 @@ export const en: TranslationKeys = {
       scanQr: 'Scan QR code to add on WeChat',
       lookForward: 'Looking forward to connecting with you',
     },
+    featuredStocks: {
+      AAPL: 'Apple',
+      NVDA: 'NVIDIA',
+      TSLA: 'Tesla',
+      MSFT: 'Microsoft',
+      GOOGL: 'Google',
+      '600519.SS': 'Kweichow Moutai',
+      '000858.SZ': 'Wuliangye',
+      '0700.HK': 'Tencent',
+      '9988.HK': 'Alibaba',
+      '7203.T': 'Toyota',
+    },
   },
   companies: {
     title: 'Company Discovery',
