@@ -3,6 +3,7 @@ import { Analytics } from '@vercel/analytics/next';
 import TextSelectionMenu from '@/components/TextSelectionMenu';
 import { UnitModeProvider } from '@/lib/UnitModeContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
+import { CompareProvider } from '@/contexts/CompareContext';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -31,13 +32,15 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <LanguageProvider>
-          <UnitModeProvider>
-            <div className="relative z-10">
-              {children}
-            </div>
-            <Analytics />
-            <TextSelectionMenu />
-          </UnitModeProvider>
+          <CompareProvider>
+            <UnitModeProvider>
+              <div className="relative z-10">
+                {children}
+              </div>
+              <Analytics />
+              <TextSelectionMenu />
+            </UnitModeProvider>
+          </CompareProvider>
         </LanguageProvider>
       </body>
     </html>

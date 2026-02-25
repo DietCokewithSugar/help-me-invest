@@ -8,10 +8,12 @@ import { motion } from 'framer-motion';
 import {
     FilterIcon,
     TrendingUpIcon,
+    ScaleIcon,
     SunIcon,
     MoonIcon,
 } from '@/components/Icons';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useCompare } from '@/contexts/CompareContext';
 
 interface HeaderProps {
     theme: 'dark' | 'light';
@@ -28,6 +30,7 @@ export default function Header({
 }: HeaderProps) {
     const router = useRouter();
     const { locale, setLocale, t } = useLanguage();
+    const { companies: compareCompanies } = useCompare();
 
     const handleLogoClick = () => {
         if (onReset) {
@@ -83,6 +86,20 @@ export default function Header({
                                 title={t.header.tracking}
                             >
                                 <TrendingUpIcon size={18} className="text-glacier-500" />
+                            </Link>
+
+                            {/* 公司对比入口 */}
+                            <Link
+                                href="/compare"
+                                className="relative flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer"
+                                title={t.compare.title}
+                            >
+                                <ScaleIcon size={18} className="text-glacier-500" />
+                                {compareCompanies.length > 0 && (
+                                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-glacier-500 text-[10px] font-bold text-white flex items-center justify-center">
+                                        {compareCompanies.length}
+                                    </span>
+                                )}
                             </Link>
 
                             {/* 联系我们 - 微信图标 */}
