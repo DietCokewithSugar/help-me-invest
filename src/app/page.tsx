@@ -895,22 +895,22 @@ function HomeContent() {
       Promise.all(proTasks).then((proResults) => {
         // 7. 专业版综合投资建议（需要前6个章节的内容）
         const proContext = `
-生意模式分析：
+${t.report.proAnalysis.businessModel}:
 ${proResults[0]}
 
-运营模式分析：
+${t.report.proAnalysis.operatingModel}:
 ${proResults[1]}
 
-行业前景评估：
+${t.report.proAnalysis.industryOutlook}:
 ${proResults[2]}
 
-竞争地位与护城河：
+${t.report.proAnalysis.moatAnalysis}:
 ${proResults[3]}
 
-财务健康与经营质量：
+${t.report.proAnalysis.financialHealth}:
 ${proResults[4]}
 
-估值与买入时机：
+${t.report.proAnalysis.valuation}:
 ${proResults[5]}
         `;
         streamSection('proInvestmentConclusion', {
