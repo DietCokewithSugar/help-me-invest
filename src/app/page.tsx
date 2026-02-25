@@ -502,7 +502,7 @@ function HomeContent() {
   // 检查缓存
   const checkCache = async (symbol: string, market: MarketType) => {
     try {
-      const response = await fetch(`/api/cache?symbol=${encodeURIComponent(symbol)}&market=${market}`);
+      const response = await fetch(`/api/cache?symbol=${encodeURIComponent(symbol)}&market=${market}&language=${locale}`);
       if (!response.ok) return null;
       return await response.json();
     } catch (error) {
