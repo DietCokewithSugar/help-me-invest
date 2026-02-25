@@ -155,9 +155,10 @@ function normalizeSuggestion(item: any) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { query, market } = await request.json();
+    const { query, market, language } = await request.json();
     const trimmedQuery = String(query || '').trim();
     const marketHint = (market || '') as MarketType;
+    const lang = typeof language === 'string' ? language : 'zh';
 
     if (!trimmedQuery || trimmedQuery.length < 2) {
       return NextResponse.json({ query: trimmedQuery, suggestions: [] });
@@ -179,7 +180,7 @@ export async function POST(request: NextRequest) {
     try {
       // 尝试使用 Gemini AI 搜索
       const gemini = new GeminiClient(googleApiKey);
-      const aiResult = await gemini.suggestSymbol(trimmedQuery, marketHint);
+      const aiResult = await gemini.suggestSymbol(trimmedQuery, marketHint, lang);
       const rawSuggestions = Array.isArray(aiResult?.suggestions) ? aiResult.suggestions : [];
       const suggestions = rawSuggestions
         .map(normalizeSuggestion)

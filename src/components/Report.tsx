@@ -86,6 +86,7 @@ import { useUnitMode } from '@/lib/UnitModeContext';
 import { formatNumber as formatNumberUtil } from '@/lib/format-number';
 import UnitModeToggle from './UnitModeToggle';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { translateDiagnosticTag } from '@/i18n/diagnosticTags';
 
 // 市场标识徽章 - 极简设计，无 emoji，直角
 const MarketBadge = ({ market }: { market: MarketType }) => {
@@ -423,12 +424,13 @@ const LEVEL_STYLES: Record<DimensionLevel, { bg: string; border: string; text: s
 // 单个维度标签组件
 function DimensionBadge({ tag }: { tag: DimensionTag }) {
   const style = LEVEL_STYLES[tag.level];
+  const { locale } = useLanguage();
 
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-[10px] text-mist-500 font-mono uppercase tracking-widest">{tag.dimension}</span>
+      <span className="text-[10px] text-mist-500 font-mono uppercase tracking-widest">{translateDiagnosticTag(tag.dimension, locale)}</span>
       <div className={`inline-flex items-center px-3 py-1.5 rounded-sm text-xs font-medium border transition-all ${style.bg} ${style.border} ${style.text}`}>
-        <span className="tracking-wide">{tag.label}</span>
+        <span className="tracking-wide">{translateDiagnosticTag(tag.label, locale)}</span>
       </div>
     </div>
   );
@@ -557,6 +559,7 @@ function CompanyTags({
   news: any[];
   isLoading?: boolean;
 }) {
+  const { t } = useLanguage();
   const tags = useMemo(() => {
     return generateDimensionTags(aiAnalysis, profile, financialGrowth);
   }, [aiAnalysis, profile, financialGrowth]);
@@ -566,7 +569,7 @@ function CompanyTags({
       <div className="flex items-center gap-2 mt-4">
         <div className="flex items-center gap-2 text-xs text-mist-500">
           <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
-          <span>AI 正在分析企业特征...</span>
+          <span>{t.report.analyzingCompanyFeatures}</span>
         </div>
       </div>
     );

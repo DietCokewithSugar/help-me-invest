@@ -335,6 +335,21 @@ function HomeContent() {
     }
   }, [symbol, searchParams, reportData, loading]);
 
+  // 语言切换时自动重新加载/生成报告
+  const prevLocaleRef = useRef(locale);
+  useEffect(() => {
+    if (prevLocaleRef.current !== locale && reportData && !loading) {
+      prevLocaleRef.current = locale;
+      const currentSymbol = reportData.profile?.symbol;
+      const currentMarket = reportData.market || selectedMarket;
+      if (currentSymbol) {
+        handleAnalyze();
+      }
+    } else {
+      prevLocaleRef.current = locale;
+    }
+  }, [locale]);
+
   // 获取研报总数的函数
   const fetchReportCount = useCallback(async () => {
     try {
@@ -1141,7 +1156,7 @@ ${proResults[5]}
                               </span>
                               {(item.nameCn || item.name) && (
                                 <span className="text-sm text-mist-400 truncate">
-                                  {item.nameCn || item.name}
+                                  {locale === 'en' ? (item.name || item.nameCn) : (item.nameCn || item.name)}
                                 </span>
                               )}
                             </button>
@@ -1670,9 +1685,8 @@ ${proResults[5]}
               const symbolToRegenerate = reportData.profile.symbol;
               const marketToRegenerate = reportData.market || 'US';
 
-              // 先删除缓存
               try {
-                await fetch(`/api/cache?symbol=${encodeURIComponent(symbolToRegenerate)}&market=${marketToRegenerate}`, {
+                await fetch(`/api/cache?symbol=${encodeURIComponent(symbolToRegenerate)}&market=${marketToRegenerate}&language=${locale}`, {
                   method: 'DELETE',
                 });
               } catch (e) {

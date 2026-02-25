@@ -301,6 +301,7 @@ export const en: TranslationKeys = {
       disclaimer: 'Disclaimer: This report is AI-generated for reference only and does not constitute investment advice. Investing involves risks. The analysis is based on public data and AI reasoning, which may contain biases or inaccuracies. Please consult professional investment advisors for decision-making.',
     },
     shareModule: 'Share this module',
+    analyzingCompanyFeatures: 'AI is analyzing company features...',
   },
   financial: {
     incomeStatement: 'Income Statement',
