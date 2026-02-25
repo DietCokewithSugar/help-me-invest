@@ -88,14 +88,15 @@ export default function Header({
                             {/* 联系我们 - 微信图标 */}
                             <button
                                 onClick={showContactModal}
-                                className="relative flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer overflow-hidden"
+                                className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer overflow-hidden"
                                 title={t.header.contactUs}
                             >
                                 <Image
                                     src="/images/wechat-logo.png"
                                     alt="WeChat"
-                                    fill
-                                    className="object-cover"
+                                    width={40}
+                                    height={40}
+                                    className="w-full h-full object-cover"
                                 />
                             </button>
 
