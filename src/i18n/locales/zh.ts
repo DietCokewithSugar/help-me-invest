@@ -552,4 +552,14 @@ export const zh = {
   },
 } as const;
 
-export type TranslationKeys = typeof zh;
+type DeepStringify<T> = {
+  [K in keyof T]: T[K] extends (...args: infer A) => string
+    ? (...args: A) => string
+    : T[K] extends string
+    ? string
+    : T[K] extends object
+    ? DeepStringify<T[K]>
+    : T[K];
+};
+
+export type TranslationKeys = DeepStringify<typeof zh>;
