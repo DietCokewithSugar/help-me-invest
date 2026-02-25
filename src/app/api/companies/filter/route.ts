@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
             industries,
             marketCapMin,
             marketCapMax,
+            searchQuery,
             page = 1,
             limit = 50,
         } = body;
@@ -84,6 +85,12 @@ export async function POST(request: NextRequest) {
 
         if (marketCapMax !== undefined) {
             query = query.lte('market_cap', marketCapMax);
+        }
+
+        // 搜索：按股票代码或公司名称模糊匹配
+        if (searchQuery && searchQuery.trim()) {
+            const q = searchQuery.trim();
+            query = query.or(`symbol.ilike.%${q}%,company_name.ilike.%${q}%`);
         }
 
         // 只返回活跃交易的股票

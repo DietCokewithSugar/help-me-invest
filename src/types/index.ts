@@ -597,6 +597,7 @@ export interface CompanyFilterRequest {
   industries?: string[];
   marketCapMin?: number;
   marketCapMax?: number;
+  searchQuery?: string;
   page?: number;
   limit?: number;
 }
