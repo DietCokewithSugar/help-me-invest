@@ -86,6 +86,8 @@ import { useUnitMode } from '@/lib/UnitModeContext';
 import { formatNumber as formatNumberUtil } from '@/lib/format-number';
 import UnitModeToggle from './UnitModeToggle';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useCompare } from '@/contexts/CompareContext';
+import { ScaleIcon } from '@/components/Icons';
 import { translateDiagnosticTag } from '@/i18n/diagnosticTags';
 
 // 市场标识徽章 - 极简设计，无 emoji，直角
@@ -618,6 +620,7 @@ export default function Report({
   const [sankeyYearIndex, setSankeyYearIndex] = useState(0);
 
   const { locale, t } = useLanguage();
+  const { addCompany, isInCompare, isFull } = useCompare();
 
   // 分享模块状态
   const [shareModalState, setShareModalState] = useState<{
@@ -839,6 +842,34 @@ export default function Report({
 
         {/* 右侧按钮组 - 推到右边 */}
         <div className="flex items-center gap-2 md:gap-3 ml-auto">
+          {/* 加入对比按钮 */}
+          {profile && (
+            <motion.button
+              onClick={() => {
+                addCompany({
+                  symbol: profile.symbol,
+                  companyName: profile.companyName,
+                  market: data.market || 'US',
+                  image: profile.image,
+                  price: profile.price,
+                  changePercentage: profile.changesPercentage ? parseFloat(profile.changesPercentage) : profile.changePercentage,
+                  marketCap: profile.marketCap || profile.mktCap,
+                  sector: profile.sector,
+                  industry: profile.industry,
+                });
+              }}
+              disabled={isInCompare(profile.symbol) || isFull}
+              className="gemini-btn gemini-btn-secondary flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+              whileHover={{ scale: isInCompare(profile.symbol) || isFull ? 1 : 1.02 }}
+              whileTap={{ scale: isInCompare(profile.symbol) || isFull ? 1 : 0.98 }}
+            >
+              <ScaleIcon size={16} />
+              <span className="hidden sm:inline">
+                {isInCompare(profile.symbol) ? t.compare.alreadyInCompare : t.compare.addToCompare}
+              </span>
+            </motion.button>
+          )}
+
           <motion.button
             onClick={() => setIsExportModalOpen(true)}
             className="gemini-btn gemini-btn-secondary flex items-center gap-2"
