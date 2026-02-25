@@ -505,11 +505,21 @@ const sectionToColumn: Record<string, keyof ReportCacheRecord> = {
 };
 
 /**
+ * 构建包含语言信息的 market key
+ * 中文（默认）不加后缀以保持向后兼容，英文加 ':en' 后缀
+ */
+function buildMarketKey(market: string, language?: string): string {
+  if (!language || language === 'zh') return market;
+  return `${market}:${language}`;
+}
+
+/**
  * 获取缓存的报告（7天内有效）- 新版
  */
 export async function getCachedReportV2(
   symbol: string,
-  market: string
+  market: string,
+  language?: string
 ): Promise<ReportCacheRecord | null> {
   const supabase = getSupabase();
   if (!supabase) {
@@ -518,6 +528,7 @@ export async function getCachedReportV2(
 
   try {
     const upperSymbol = symbol.toUpperCase().trim();
+    const marketKey = buildMarketKey(market, language);
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -525,13 +536,12 @@ export async function getCachedReportV2(
       .from('reports_cache')
       .select('*')
       .eq('symbol', upperSymbol)
-      .eq('market', market)
+      .eq('market', marketKey)
       .gte('updated_at', sevenDaysAgo.toISOString())
       .limit(1)
       .single();
 
     if (error) {
-      // PGRST116 = no rows found, not an error
       if (error.code !== 'PGRST116') {
         console.error('获取缓存报告失败:', error);
       }
@@ -553,7 +563,8 @@ export async function saveReportSection(
   symbol: string,
   market: string,
   section: string,
-  content: string
+  content: string,
+  language?: string
 ): Promise<{ success: boolean; error?: string }> {
   const supabase = getSupabase();
   if (!supabase) {
@@ -568,14 +579,14 @@ export async function saveReportSection(
 
   try {
     const upperSymbol = symbol.toUpperCase().trim();
+    const marketKey = buildMarketKey(market, language);
 
-    // 使用 upsert 实现插入或更新
     const { error } = await supabase
       .from('reports_cache')
       .upsert(
         {
           symbol: upperSymbol,
-          market,
+          market: marketKey,
           [columnName]: content,
         },
         {
@@ -612,7 +623,8 @@ export async function saveFmpDataToCache(
     balanceSheetsQuarter?: any;
     cashFlowStatementsQuarter?: any;
     capitalReturnData?: any;
-  }
+  },
+  language?: string
 ): Promise<{ success: boolean; error?: string }> {
   const supabase = getSupabase();
   if (!supabase) {
@@ -621,10 +633,11 @@ export async function saveFmpDataToCache(
 
   try {
     const upperSymbol = symbol.toUpperCase().trim();
+    const marketKey = buildMarketKey(market, language);
 
     const updateData: Record<string, any> = {
       symbol: upperSymbol,
-      market,
+      market: marketKey,
     };
 
     // 只添加有值的字段
@@ -662,7 +675,8 @@ export async function saveFmpDataToCache(
  */
 export async function deleteReportCache(
   symbol: string,
-  market: string
+  market: string,
+  language?: string
 ): Promise<{ success: boolean; error?: string }> {
   const supabase = getSupabase();
   if (!supabase) {
@@ -671,12 +685,13 @@ export async function deleteReportCache(
 
   try {
     const upperSymbol = symbol.toUpperCase().trim();
+    const marketKey = buildMarketKey(market, language);
 
     const { error } = await supabase
       .from('reports_cache')
       .delete()
       .eq('symbol', upperSymbol)
-      .eq('market', market);
+      .eq('market', marketKey);
 
     if (error) {
       console.error('删除缓存失败:', error);

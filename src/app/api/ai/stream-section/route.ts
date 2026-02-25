@@ -78,7 +78,8 @@ function iteratorToStreamWithCache(
     saveToCache: boolean,
     symbol: string,
     market: string,
-    section: string
+    section: string,
+    language?: string
 ) {
     let fullContent = '';
 
@@ -92,7 +93,7 @@ function iteratorToStreamWithCache(
                         // 重要：必须等待保存完成后再关闭流
                         // 否则 Vercel Serverless Function 会在保存完成前终止
                         try {
-                            await saveReportSection(symbol, market, section, fullContent);
+                            await saveReportSection(symbol, market, section, fullContent, language);
                         } catch (err) {
                             console.error(`保存模块 ${section} 到缓存失败:`, err);
                         }
@@ -141,6 +142,8 @@ export async function POST(request: NextRequest) {
             // 用于缓存的参数
             symbol,
             saveToCache = true,
+            // 语言参数
+            language = 'zh',
             // 年度财务数据
             incomeStatements,
             balanceSheets,
@@ -170,43 +173,43 @@ export async function POST(request: NextRequest) {
         switch (section) {
             case 'companyOverview':
                 streamIterator = await getStreamWithRetry(
-                    () => client.streamCompanyOverview(data, marketType),
+                    () => client.streamCompanyOverview(data, marketType, language),
                     'companyOverview'
                 );
                 break;
             case 'industryAnalysis':
                 streamIterator = await getStreamWithRetry(
-                    () => client.streamIndustryAnalysis(data, marketType),
+                    () => client.streamIndustryAnalysis(data, marketType, language),
                     'industryAnalysis'
                 );
                 break;
             case 'industryPainPoints':
                 streamIterator = await getStreamWithRetry(
-                    () => client.streamIndustryPainPoints(data, marketType),
+                    () => client.streamIndustryPainPoints(data, marketType, language),
                     'industryPainPoints'
                 );
                 break;
             case 'competitors':
                 streamIterator = await getStreamWithRetry(
-                    () => client.streamCompetitors(data, data.peers || [], marketType),
+                    () => client.streamCompetitors(data, data.peers || [], marketType, language),
                     'competitors'
                 );
                 break;
             case 'competitiveAdvantage':
                 streamIterator = await getStreamWithRetry(
-                    () => client.streamCompetitiveAdvantage(data, marketType),
+                    () => client.streamCompetitiveAdvantage(data, marketType, language),
                     'competitiveAdvantage'
                 );
                 break;
             case 'moat':
                 streamIterator = await getStreamWithRetry(
-                    () => client.streamMoat(data, marketType),
+                    () => client.streamMoat(data, marketType, language),
                     'moat'
                 );
                 break;
             case 'recentDevelopments':
                 streamIterator = await getStreamWithRetry(
-                    () => client.streamRecentDevelopments(data.companyName, data.symbol, marketType),
+                    () => client.streamRecentDevelopments(data.companyName, data.symbol, marketType, language),
                     'recentDevelopments'
                 );
                 break;
@@ -215,7 +218,7 @@ export async function POST(request: NextRequest) {
                     return NextResponse.json({ error: 'Transcript missing' }, { status: 400 });
                 }
                 streamIterator = await getStreamWithRetry(
-                    () => client.streamEarningsCallSummary(data.transcript, data.companyName, data.symbol),
+                    () => client.streamEarningsCallSummary(data.transcript, data.companyName, data.symbol, language),
                     'earningsCallSummary'
                 );
                 break;
@@ -224,26 +227,25 @@ export async function POST(request: NextRequest) {
                     return NextResponse.json({ error: 'Context required for conclusion' }, { status: 400 });
                 }
                 streamIterator = await getStreamWithRetry(
-                    () => client.streamInvestmentConclusion(data, prevContext, marketType),
+                    () => client.streamInvestmentConclusion(data, prevContext, marketType, language),
                     'investmentConclusion'
                 );
                 break;
-            // ============ 专业版报告 - 7个独立的并发请求 ============
             case 'proBusinessModel':
                 streamIterator = await getStreamWithRetry(
-                    () => client.streamProBusinessModel(data, marketType),
+                    () => client.streamProBusinessModel(data, marketType, language),
                     'proBusinessModel'
                 );
                 break;
             case 'proOperatingModel':
                 streamIterator = await getStreamWithRetry(
-                    () => client.streamProOperatingModel(data, marketType),
+                    () => client.streamProOperatingModel(data, marketType, language),
                     'proOperatingModel'
                 );
                 break;
             case 'proIndustryOutlook':
                 streamIterator = await getStreamWithRetry(
-                    () => client.streamProIndustryOutlook(data, marketType),
+                    () => client.streamProIndustryOutlook(data, marketType, language),
                     'proIndustryOutlook'
                 );
                 break;
@@ -253,7 +255,8 @@ export async function POST(request: NextRequest) {
                         data,
                         data.profitabilityData || {},
                         data.capitalReturnData || {},
-                        marketType
+                        marketType,
+                        language
                     ),
                     'proMoatAnalysis'
                 );
@@ -267,7 +270,8 @@ export async function POST(request: NextRequest) {
                         data.profitabilityData || {},
                         data.debtData || {},
                         data.healthScores || {},
-                        marketType
+                        marketType,
+                        language
                     ),
                     'proFinancialHealth'
                 );
@@ -279,7 +283,8 @@ export async function POST(request: NextRequest) {
                         data.valuationData || {},
                         data.growthData || {},
                         data.quarterlyFinancials || [],
-                        marketType
+                        marketType,
+                        language
                     ),
                     'proValuation'
                 );
@@ -289,7 +294,7 @@ export async function POST(request: NextRequest) {
                     return NextResponse.json({ error: 'Context required for pro conclusion' }, { status: 400 });
                 }
                 streamIterator = await getStreamWithRetry(
-                    () => client.streamProInvestmentConclusion(data, prevContext, marketType),
+                    () => client.streamProInvestmentConclusion(data, prevContext, marketType, language),
                     'proInvestmentConclusion'
                 );
                 break;
@@ -303,7 +308,7 @@ export async function POST(request: NextRequest) {
 
         // 使用带缓存的流，如果有有效的 symbol
         const stream = (saveToCache && effectiveSymbol)
-            ? iteratorToStreamWithCache(streamIterator, true, effectiveSymbol, effectiveMarket, section)
+            ? iteratorToStreamWithCache(streamIterator, true, effectiveSymbol, effectiveMarket, section, language)
             : iteratorToStream(streamIterator);
 
         return new NextResponse(stream, {

@@ -36,12 +36,12 @@ export function useReportAnalysis() {
     const [fromCache, setFromCache] = useState(false);
 
     // Streaming helper
-    const streamSection = async (section: string, payload: any, saveToCache: boolean = true) => {
+    const streamSection = async (section: string, payload: any, saveToCache: boolean = true, language: string = 'zh') => {
         try {
             const response = await fetch('/api/ai/stream-section', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ section, saveToCache, ...payload }),
+                body: JSON.stringify({ section, saveToCache, language, ...payload }),
             });
 
             if (!response.body) return '';
@@ -93,9 +93,9 @@ export function useReportAnalysis() {
     };
 
     // 检查缓存
-    const checkCache = async (symbol: string, market: MarketType): Promise<CacheResponse | null> => {
+    const checkCache = async (symbol: string, market: MarketType, language: string = 'zh'): Promise<CacheResponse | null> => {
         try {
-            const response = await fetch(`/api/cache?symbol=${encodeURIComponent(symbol)}&market=${market}`);
+            const response = await fetch(`/api/cache?symbol=${encodeURIComponent(symbol)}&market=${market}&language=${language}`);
             if (!response.ok) return null;
             return await response.json();
         } catch (error) {
@@ -104,7 +104,7 @@ export function useReportAnalysis() {
         }
     };
 
-    const analyze = useCallback(async (symbol: string, market: MarketType, forceRefresh: boolean = false) => {
+    const analyze = useCallback(async (symbol: string, market: MarketType, forceRefresh: boolean = false, language: string = 'zh') => {
         const formattedSymbol = formatSymbolForMarket(symbol, market);
 
         setLoading(true);
@@ -148,7 +148,7 @@ export function useReportAnalysis() {
             // 0. 检查缓存（如果不是强制刷新）
             let cachedData: CacheResponse | null = null;
             if (!forceRefresh) {
-                cachedData = await checkCache(formattedSymbol, market);
+                cachedData = await checkCache(formattedSymbol, market, language);
             }
 
             // 1. Fetch Basic FMP Data
@@ -215,13 +215,13 @@ export function useReportAnalysis() {
             // 传递 symbol 和 market 用于保存到缓存
             const streamPayload = { symbol: formattedSymbol, market };
 
-            tasks.push(streamSection('companyOverview', { ...streamPayload, data: companyData }));
-            tasks.push(streamSection('industryAnalysis', { ...streamPayload, data: companyData }));
-            tasks.push(streamSection('industryPainPoints', { ...streamPayload, data: companyData }));
-            tasks.push(streamSection('competitors', { ...streamPayload, data: { ...companyData, peers } }));
-            tasks.push(streamSection('competitiveAdvantage', { ...streamPayload, data: companyData }));
-            tasks.push(streamSection('moat', { ...streamPayload, data: companyData }));
-            tasks.push(streamSection('recentDevelopments', { ...streamPayload, data: { companyName: companyData.companyName, symbol: formattedSymbol } }));
+            tasks.push(streamSection('companyOverview', { ...streamPayload, data: companyData }, true, language));
+            tasks.push(streamSection('industryAnalysis', { ...streamPayload, data: companyData }, true, language));
+            tasks.push(streamSection('industryPainPoints', { ...streamPayload, data: companyData }, true, language));
+            tasks.push(streamSection('competitors', { ...streamPayload, data: { ...companyData, peers } }, true, language));
+            tasks.push(streamSection('competitiveAdvantage', { ...streamPayload, data: companyData }, true, language));
+            tasks.push(streamSection('moat', { ...streamPayload, data: companyData }, true, language));
+            tasks.push(streamSection('recentDevelopments', { ...streamPayload, data: { companyName: companyData.companyName, symbol: formattedSymbol } }, true, language));
 
             const transcript = data.earningsTranscripts?.[0];
             let earningsPromise: Promise<string> | null = null;
@@ -235,7 +235,7 @@ export function useReportAnalysis() {
                             companyName: companyData.companyName,
                             symbol: formattedSymbol
                         },
-                    });
+                    }, true, language);
                 }
             }
 
@@ -257,7 +257,7 @@ export function useReportAnalysis() {
                 ...streamPayload,
                 data: companyData,
                 prevContext: context
-            });
+            }, true, language);
 
             // 更新报告生成时间
             setReportData(prev => prev ? { ...prev, reportGeneratedAt: new Date().toISOString() } : prev);
@@ -277,17 +277,15 @@ export function useReportAnalysis() {
     }, []);
 
     // 强制重新生成报告
-    const regenerate = useCallback(async (symbol: string, market: MarketType) => {
-        // 先删除缓存
+    const regenerate = useCallback(async (symbol: string, market: MarketType, language: string = 'zh') => {
         try {
-            await fetch(`/api/cache?symbol=${encodeURIComponent(symbol)}&market=${market}`, {
+            await fetch(`/api/cache?symbol=${encodeURIComponent(symbol)}&market=${market}&language=${language}`, {
                 method: 'DELETE',
             });
         } catch (error) {
             console.error('删除缓存失败:', error);
         }
-        // 强制刷新重新分析
-        await analyze(symbol, market, true);
+        await analyze(symbol, market, true, language);
     }, [analyze]);
 
     return {

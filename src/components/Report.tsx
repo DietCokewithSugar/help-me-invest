@@ -85,6 +85,7 @@ import { buildSankeyData } from '@/lib/sankey-utils';
 import { useUnitMode } from '@/lib/UnitModeContext';
 import { formatNumber as formatNumberUtil } from '@/lib/format-number';
 import UnitModeToggle from './UnitModeToggle';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // 市场标识徽章 - 极简设计，无 emoji，直角
 const MarketBadge = ({ market }: { market: MarketType }) => {
@@ -188,6 +189,7 @@ function AnalysisCard({
 }) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const contentRef = useRef<HTMLDivElement>(null);
+  const { t } = useLanguage();
 
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -208,7 +210,7 @@ function AnalysisCard({
             <button
               onClick={handleShare}
               className="w-7 h-7 rounded-md bg-white/5 flex items-center justify-center text-mist-500 hover:text-white hover:bg-white/10 transition-all opacity-0 group-hover:opacity-100"
-              title="分享此模块"
+              title={t.report.shareModule}
             >
               <Share2 className="w-3.5 h-3.5" />
             </button>
@@ -262,6 +264,7 @@ function CollapsibleSection({
   onShare?: (title: string, contentElement: HTMLDivElement) => void;
 }) {
   const contentRef = useRef<HTMLDivElement>(null);
+  const { t } = useLanguage();
 
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -291,7 +294,7 @@ function CollapsibleSection({
             <button
               onClick={handleShare}
               className="w-8 h-8 rounded-sm bg-white/5 flex items-center justify-center border border-white/10 hover:bg-white/10 transition-colors text-mist-400 hover:text-white"
-              title="分享此模块"
+              title={t.report.shareModule}
             >
               <Share2 className="w-4 h-4" />
             </button>
@@ -611,6 +614,8 @@ export default function Report({
   // 桑基图年份选择状态（0 表示最新年份）
   const [sankeyYearIndex, setSankeyYearIndex] = useState(0);
 
+  const { locale, t } = useLanguage();
+
   // 分享模块状态
   const [shareModalState, setShareModalState] = useState<{
     isOpen: boolean;
@@ -676,9 +681,9 @@ export default function Report({
     return incomeStatements.map((stmt, index) => ({
       index,
       year: stmt.date?.split('-')[0] || stmt.calendarYear || stmt.fiscalYear || '',
-      label: stmt.date?.split('-')[0] || stmt.calendarYear || stmt.fiscalYear || `第${index + 1}年`,
+      label: stmt.date?.split('-')[0] || stmt.calendarYear || stmt.fiscalYear || t.report.sankey.yearIndex(index + 1),
     }));
-  }, [incomeStatements]);
+  }, [incomeStatements, t]);
 
   // 获取市场配置
   const marketConfig = getMarketConfig(market);
@@ -778,13 +783,13 @@ export default function Report({
 
   // 快捷导航 - 根据版本和市场类型和数据可用性显示
   const baseSections = [
-    ...(showAiSectionInVersion ? [{ id: 'aiAnalysis', label: '智投分析', icon: Sparkles }] : []),
-    ...(showFinancialStatementsInVersion ? [{ id: 'financialStatements', label: '财务报表', icon: FileSpreadsheet }] : []),
-    ...(showValuationSection ? [{ id: 'proAnalysis', label: '专业分析', icon: Sparkles }] : []),  // 专业版分析
-    ...(showValuationSection ? [{ id: 'valuation', label: '估值指标', icon: Calculator }] : []),
-    ...(hasEventsData ? [{ id: 'events', label: '事件日历', icon: Calendar }] : []),
-    ...(hasHoldingsData ? [{ id: 'holdings', label: '持仓分析', icon: Briefcase }] : []),
-    ...(showNewsInVersion ? [{ id: 'news', label: '新闻资讯', icon: Newspaper }] : []),
+    ...(showAiSectionInVersion ? [{ id: 'aiAnalysis', label: t.report.sections.aiAnalysis, icon: Sparkles }] : []),
+    ...(showFinancialStatementsInVersion ? [{ id: 'financialStatements', label: t.report.sections.financialData, icon: FileSpreadsheet }] : []),
+    ...(showValuationSection ? [{ id: 'proAnalysis', label: t.report.sections.proAnalysis, icon: Sparkles }] : []),
+    ...(showValuationSection ? [{ id: 'valuation', label: t.report.sections.valuation, icon: Calculator }] : []),
+    ...(hasEventsData ? [{ id: 'events', label: t.report.sections.events, icon: Calendar }] : []),
+    ...(hasHoldingsData ? [{ id: 'holdings', label: t.report.sections.holdings, icon: Briefcase }] : []),
+    ...(showNewsInVersion ? [{ id: 'news', label: t.report.sections.news, icon: Newspaper }] : []),
   ];
 
   // 添加编号
@@ -812,7 +817,7 @@ export default function Report({
             className="gemini-btn gemini-btn-secondary flex items-center gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">返回搜索</span>
+            <span className="hidden sm:inline">{t.report.backToSearch}</span>
           </button>
         )}
 
@@ -822,8 +827,8 @@ export default function Report({
           className="gemini-btn gemini-btn-primary flex items-center gap-2 px-5 py-3 text-base"
         >
           <RefreshCw className="w-4 h-4" />
-          <span className="hidden sm:inline">{reportVersion === 'standard' ? '切换到专业版' : '切换到普通版'}</span>
-          <span className="sm:hidden text-xs">{reportVersion === 'standard' ? '专业版' : '普通版'}</span>
+          <span className="hidden sm:inline">{reportVersion === 'standard' ? t.report.switchToPro : t.report.switchToBasic}</span>
+          <span className="sm:hidden text-xs">{reportVersion === 'standard' ? t.report.proVersion : t.report.basicVersion}</span>
         </button>
 
         {/* 单位切换 */}
@@ -838,7 +843,7 @@ export default function Report({
             whileTap={{ scale: 0.98 }}
           >
             <ImageIcon className="w-4 h-4" />
-            <span className="hidden sm:inline">导出图片</span>
+            <span className="hidden sm:inline">{t.report.exportImage}</span>
           </motion.button>
 
           {/* 重新生成按钮 */}
@@ -858,7 +863,7 @@ export default function Report({
               whileTap={{ scale: 0.98 }}
             >
               <RefreshCw className={`w-4 h-4 ${isRegenerating ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">{isRegenerating ? '生成中...' : '重新生成'}</span>
+              <span className="hidden sm:inline">{isRegenerating ? t.report.generating : t.report.regenerate}</span>
             </motion.button>
           )}
         </div>
@@ -904,13 +909,13 @@ export default function Report({
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm py-3 px-4 bg-white/[0.03] rounded-lg border border-white/5">
                 <div className="flex items-center gap-2">
                   <DollarSign className="w-3.5 h-3.5 text-mist-600" />
-                  <span className="text-mist-500 text-xs">市值</span>
+                  <span className="text-mist-500 text-xs">{t.common.marketCap}</span>
                   <span className="font-mono font-medium text-white">{currencySymbol}{formatNumber(marketCap)}</span>
                 </div>
                 <span className="text-mist-700">·</span>
                 <div className="flex items-center gap-2">
                   <TrendingUp className="w-3.5 h-3.5 text-mist-600" />
-                  <span className="text-mist-500 text-xs">股价</span>
+                  <span className="text-mist-500 text-xs">{t.common.price}</span>
                   <span className="font-mono font-medium text-white">{currencySymbol}{profile.price?.toFixed(2) || 'N/A'}</span>
                   <span className={`text-xs font-mono px-1.5 py-0.5 rounded ${priceChange >= 0 ? 'text-growth bg-growth/10' : 'text-decay bg-decay/10'}`}>
                     {priceChange >= 0 ? '+' : ''}{priceChangePercent}
@@ -919,7 +924,7 @@ export default function Report({
                 <span className="text-mist-700 hidden sm:inline">·</span>
                 <div className="flex items-center gap-2">
                   <Users2 className="w-3.5 h-3.5 text-mist-600" />
-                  <span className="text-mist-500 text-xs">员工</span>
+                  <span className="text-mist-500 text-xs">{t.common.employees}</span>
                   <span className="font-mono font-medium text-white">{profile.fullTimeEmployees ? parseInt(profile.fullTimeEmployees).toLocaleString() : 'N/A'}</span>
                 </div>
                 <span className="text-mist-700 hidden md:inline">·</span>
@@ -948,18 +953,18 @@ export default function Report({
             {/* 标题区域 */}
             <div className="flex items-center gap-3 mb-4">
               <div className="w-4 h-4 border-2 border-white/10 border-t-glacier-500 rounded-full animate-spin" />
-              <h3 className="text-sm font-medium text-white font-mono uppercase tracking-wider">AI 分析进行中...</h3>
+              <h3 className="text-sm font-medium text-white font-mono uppercase tracking-wider">{t.report.aiAnalysis}</h3>
             </div>
 
             {/* 分析步骤指示器 */}
             <div className="space-y-2 mb-4 pl-7">
               <div className="flex items-center gap-3 text-xs font-mono">
                 <div className="w-1 h-1 rounded-full bg-glacier-500" />
-                <span className="text-mist-300">数据加载完成</span>
+                <span className="text-mist-300">{t.report.dataLoaded}</span>
               </div>
               <div className="flex items-center gap-3 text-xs font-mono">
                 <div className="w-1 h-1 rounded-full bg-glacier-500 animate-pulse" />
-                <span className="text-mist-400">正在分析护城河...</span>
+                <span className="text-mist-400">{t.report.analyzingMoat}</span>
               </div>
             </div>
 
@@ -974,7 +979,7 @@ export default function Report({
         {showAiSectionArea && (
           <CollapsibleSection
             id="aiAnalysis"
-            title="智投综合分析"
+            title={t.report.sections.aiAnalysis}
             expanded={expandedSections.aiAnalysis}
             onToggle={() => toggleSection('aiAnalysis')}
             sectionNumber={getSectionNumber('aiAnalysis')}
@@ -989,49 +994,49 @@ export default function Report({
 
               <div className="grid grid-cols-1 gap-6">
                 {/* 企业概况 */}
-                <AnalysisCard title="企业概况" onShare={handleShareModule}>
+                <AnalysisCard title={t.report.analysis.companyOverview} onShare={handleShareModule}>
                   {aiAnalysis?.companyOverview ? (
                     <ReactMarkdown>{aiAnalysis.companyOverview}</ReactMarkdown>
                   ) : (
                     <div className="flex items-center gap-2 text-mist-500 text-sm">
                       <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
-                      <span>正在分析企业概况...</span>
+                      <span>{t.report.analysis.companyOverviewLoading}</span>
                     </div>
                   )}
                 </AnalysisCard>
 
                 {/* 行业分析 */}
-                <AnalysisCard title="行业分析" onShare={handleShareModule}>
+                <AnalysisCard title={t.report.analysis.industryAnalysis} onShare={handleShareModule}>
                   {aiAnalysis?.industryAnalysis ? (
                     <ReactMarkdown>{aiAnalysis.industryAnalysis}</ReactMarkdown>
                   ) : (
                     <div className="flex items-center gap-2 text-mist-500 text-sm">
                       <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
-                      <span>正在分析行业情况...</span>
+                      <span>{t.report.analysis.industryAnalysisLoading}</span>
                     </div>
                   )}
                 </AnalysisCard>
 
                 {/* 行业痛点与障碍 */}
-                <AnalysisCard title="行业痛点与障碍" onShare={handleShareModule}>
+                <AnalysisCard title={t.report.analysis.industryPainPoints} onShare={handleShareModule}>
                   {aiAnalysis?.industryPainPoints ? (
                     <ReactMarkdown>{aiAnalysis.industryPainPoints}</ReactMarkdown>
                   ) : (
                     <div className="flex items-center gap-2 text-mist-500 text-sm">
                       <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
-                      <span>正在分析行业痛点...</span>
+                      <span>{t.report.analysis.industryPainPointsLoading}</span>
                     </div>
                   )}
                 </AnalysisCard>
 
                 {/* 竞争格局 */}
-                <AnalysisCard title="竞争格局" onShare={handleShareModule}>
+                <AnalysisCard title={t.report.analysis.competitiveLandscape} onShare={handleShareModule}>
                   {aiAnalysis?.competitors ? (
                     <>
                       <ReactMarkdown>{aiAnalysis.competitors}</ReactMarkdown>
                       {peers && peers.length > 0 && (
                         <div className="flex flex-wrap gap-2 pt-4 mt-4 border-t border-white/5">
-                          <span className="text-xs text-mist-500 mr-2">主要竞争对手:</span>
+                          <span className="text-xs text-mist-500 mr-2">{t.report.analysis.mainCompetitors}</span>
                           {peers.slice(0, 8).map((peer) => (
                             <span key={peer} className="px-3 py-1 bg-glacier-500/10 border border-glacier-500/20 rounded-full text-glacier-400 text-sm font-mono hover:bg-glacier-500/15 transition-colors cursor-default">
                               {peer}
@@ -1043,38 +1048,38 @@ export default function Report({
                   ) : (
                     <div className="flex items-center gap-2 text-mist-500 text-sm">
                       <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
-                      <span>正在分析竞争格局...</span>
+                      <span>{t.report.analysis.competitiveLandscapeLoading}</span>
                     </div>
                   )}
                 </AnalysisCard>
 
                 {/* 竞争优势 */}
-                <AnalysisCard title="竞争优势" onShare={handleShareModule}>
+                <AnalysisCard title={t.report.analysis.competitiveAdvantage} onShare={handleShareModule}>
                   {aiAnalysis?.competitiveAdvantage ? (
                     <ReactMarkdown>{aiAnalysis.competitiveAdvantage}</ReactMarkdown>
                   ) : (
                     <div className="flex items-center gap-2 text-mist-500 text-sm">
                       <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
-                      <span>正在分析竞争优势...</span>
+                      <span>{t.report.analysis.competitiveAdvantageLoading}</span>
                     </div>
                   )}
                 </AnalysisCard>
 
                 {/* 核心护城河 */}
-                <AnalysisCard title="核心护城河" onShare={handleShareModule}>
+                <AnalysisCard title={t.report.analysis.coreMoat} onShare={handleShareModule}>
                   {aiAnalysis?.moat ? (
                     <ReactMarkdown>{aiAnalysis.moat}</ReactMarkdown>
                   ) : (
                     <div className="flex items-center gap-2 text-mist-500 text-sm">
                       <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
-                      <span>正在分析护城河...</span>
+                      <span>{t.report.analysis.coreMoatLoading}</span>
                     </div>
                   )}
                 </AnalysisCard>
               </div>
 
               {/* 最新动态 */}
-              <AnalysisCard title="最新发展动态" onShare={handleShareModule}>
+              <AnalysisCard title={t.report.analysis.recentDevelopments} onShare={handleShareModule}>
                 {aiAnalysis?.recentDevelopments ? (
                   <div className="prose prose-gemini max-w-none prose-p:text-mist-300 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-300 prose-a:text-glacier-500 prose-a:no-underline hover:prose-a:underline text-sm">
                     <ReactMarkdown>{aiAnalysis.recentDevelopments}</ReactMarkdown>
@@ -1082,14 +1087,14 @@ export default function Report({
                 ) : (
                   <div className="flex items-center gap-2 text-mist-500 text-sm">
                     <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
-                    <span>正在获取最新动态...</span>
+                    <span>{t.report.analysis.recentDevelopmentsLoading}</span>
                   </div>
                 )}
               </AnalysisCard>
 
               {/* 财报电话会议精要 */}
               {(earningsCallSummary || aiLoading) && (
-                <AnalysisCard title="财报电话会议精要" onShare={handleShareModule}>
+                <AnalysisCard title={t.report.analysis.earningsCallSummary} onShare={handleShareModule}>
                   {earningsCallSummary ? (
                     <>
                       <ReactMarkdown>{earningsCallSummary}</ReactMarkdown>
@@ -1102,7 +1107,7 @@ export default function Report({
                             }}
                             className="gemini-btn gemini-btn-secondary text-sm"
                           >
-                            {showTranscript ? '收起原文' : '查看原文'}
+                            {showTranscript ? t.report.analysis.hideOriginal : t.report.analysis.viewOriginal}
                           </button>
                           {showTranscript && (
                             <div className="rounded-md border border-white/10 max-md:border-0 bg-black/30 p-4 max-h-[420px] overflow-auto">
@@ -1117,14 +1122,14 @@ export default function Report({
                   ) : (
                     <div className="flex items-center gap-2 text-mist-500 text-sm">
                       <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
-                      <span>正在分析财报电话会议...</span>
+                      <span>{t.report.analysis.earningsCallSummaryLoading}</span>
                     </div>
                   )}
                 </AnalysisCard>
               )}
 
               {/* 投资建议总结 */}
-              <AnalysisCard title="投资建议总结" onShare={handleShareModule}>
+              <AnalysisCard title={t.report.analysis.investmentConclusion} onShare={handleShareModule}>
                 {aiAnalysis?.investmentConclusion ? (
                   <div className="prose prose-gemini max-w-none prose-p:text-mist-200 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-200 text-sm">
                     <ReactMarkdown>{aiAnalysis.investmentConclusion}</ReactMarkdown>
@@ -1132,7 +1137,7 @@ export default function Report({
                 ) : (
                   <div className="flex items-center gap-2 text-mist-500 text-sm">
                     <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
-                    <span>正在生成投资建议...</span>
+                    <span>{t.report.analysis.investmentConclusionLoading}</span>
                   </div>
                 )}
               </AnalysisCard>
@@ -1144,8 +1149,8 @@ export default function Report({
         {showFinancialStatementsInVersion && (
           <CollapsibleSection
             id="financialStatements"
-            title="财务数据"
-            subtitle="基于近5年财务报表数据"
+            title={t.report.sections.financialData}
+            subtitle={t.report.sections.financialSubtitle}
             expanded={expandedSections.financialStatements}
             onToggle={() => toggleSection('financialStatements')}
             sectionNumber={getSectionNumber('financialStatements')}
@@ -1158,10 +1163,10 @@ export default function Report({
                 {currentSankeyData && currentSankeyData.links && currentSankeyData.links.length > 0 && (
                   <div className="mb-10">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                      <h4 className="text-sm font-medium text-mist-300">营收流向分析（桑基图）</h4>
+                      <h4 className="text-sm font-medium text-mist-300">{t.report.sankey.title}</h4>
                       {availableYears.length > 1 && (
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs text-mist-500 whitespace-nowrap">选择年份：</span>
+                          <span className="text-xs text-mist-500 whitespace-nowrap">{t.report.sankey.selectYear}</span>
                           <div className="flex p-1 bg-white/5 border border-white/10 rounded-lg flex-wrap gap-1">
                             {availableYears.map((year) => (
                               <button
@@ -1209,8 +1214,8 @@ export default function Report({
         {showValuationSection && (
           <CollapsibleSection
             id="proAnalysis"
-            title="专业投资分析"
-            subtitle="生意模式 · 运营模式 · 行业前景 · 护城河 · 财务健康 · 估值判断"
+            title={t.report.sections.proAnalysis}
+            subtitle={t.report.sections.proSubtitle}
             expanded={expandedSections.proAnalysis}
             onToggle={() => toggleSection('proAnalysis')}
             sectionNumber={getSectionNumber('proAnalysis')}
@@ -1218,85 +1223,85 @@ export default function Report({
           >
             <div className="space-y-6 animate-fade-in">
               {/* 1. 生意模式分析 */}
-              <AnalysisCard title="一、生意模式分析" onShare={handleShareModule}>
+              <AnalysisCard title={t.report.proAnalysis.businessModel} onShare={handleShareModule}>
                 {proAiAnalysis?.proBusinessModel ? (
                   <ProMarkdown>{proAiAnalysis.proBusinessModel}</ProMarkdown>
                 ) : (
                   <div className="flex items-center gap-2 text-mist-500 text-sm">
                     <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
-                    <span>正在分析生意模式...</span>
+                    <span>{t.report.proAnalysis.businessModelLoading}</span>
                   </div>
                 )}
               </AnalysisCard>
 
               {/* 2. 运营模式分析 */}
-              <AnalysisCard title="二、运营模式分析" onShare={handleShareModule}>
+              <AnalysisCard title={t.report.proAnalysis.operatingModel} onShare={handleShareModule}>
                 {proAiAnalysis?.proOperatingModel ? (
                   <ProMarkdown>{proAiAnalysis.proOperatingModel}</ProMarkdown>
                 ) : (
                   <div className="flex items-center gap-2 text-mist-500 text-sm">
                     <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
-                    <span>正在分析运营模式...</span>
+                    <span>{t.report.proAnalysis.operatingModelLoading}</span>
                   </div>
                 )}
               </AnalysisCard>
 
               {/* 3. 行业前景评估 */}
-              <AnalysisCard title="三、行业前景评估" onShare={handleShareModule}>
+              <AnalysisCard title={t.report.proAnalysis.industryOutlook} onShare={handleShareModule}>
                 {proAiAnalysis?.proIndustryOutlook ? (
                   <ProMarkdown>{proAiAnalysis.proIndustryOutlook}</ProMarkdown>
                 ) : (
                   <div className="flex items-center gap-2 text-mist-500 text-sm">
                     <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
-                    <span>正在评估行业前景...</span>
+                    <span>{t.report.proAnalysis.industryOutlookLoading}</span>
                   </div>
                 )}
               </AnalysisCard>
 
               {/* 4. 竞争地位与护城河 */}
-              <AnalysisCard title="四、竞争地位与护城河" onShare={handleShareModule}>
+              <AnalysisCard title={t.report.proAnalysis.moatAnalysis} onShare={handleShareModule}>
                 {proAiAnalysis?.proMoatAnalysis ? (
                   <ProMarkdown>{proAiAnalysis.proMoatAnalysis}</ProMarkdown>
                 ) : (
                   <div className="flex items-center gap-2 text-mist-500 text-sm">
                     <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
-                    <span>正在分析护城河...</span>
+                    <span>{t.report.proAnalysis.moatAnalysisLoading}</span>
                   </div>
                 )}
               </AnalysisCard>
 
               {/* 5. 财务健康与经营质量 */}
-              <AnalysisCard title="五、财务健康与经营质量" onShare={handleShareModule}>
+              <AnalysisCard title={t.report.proAnalysis.financialHealth} onShare={handleShareModule}>
                 {proAiAnalysis?.proFinancialHealth ? (
                   <ProMarkdown>{proAiAnalysis.proFinancialHealth}</ProMarkdown>
                 ) : (
                   <div className="flex items-center gap-2 text-mist-500 text-sm">
                     <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
-                    <span>正在分析财务健康...</span>
+                    <span>{t.report.proAnalysis.financialHealthLoading}</span>
                   </div>
                 )}
               </AnalysisCard>
 
               {/* 6. 估值与买入时机 */}
-              <AnalysisCard title="六、估值与买入时机" onShare={handleShareModule}>
+              <AnalysisCard title={t.report.proAnalysis.valuation} onShare={handleShareModule}>
                 {proAiAnalysis?.proValuation ? (
                   <ProMarkdown>{proAiAnalysis.proValuation}</ProMarkdown>
                 ) : (
                   <div className="flex items-center gap-2 text-mist-500 text-sm">
                     <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
-                    <span>正在分析估值...</span>
+                    <span>{t.report.proAnalysis.valuationLoading}</span>
                   </div>
                 )}
               </AnalysisCard>
 
               {/* 7. 综合投资建议 */}
-              <AnalysisCard title="七、综合投资建议" onShare={handleShareModule} collapsible={false}>
+              <AnalysisCard title={t.report.proAnalysis.investmentConclusion} onShare={handleShareModule} collapsible={false}>
                 {proAiAnalysis?.proInvestmentConclusion ? (
                   <ProMarkdown>{proAiAnalysis.proInvestmentConclusion}</ProMarkdown>
                 ) : (
                   <div className="flex items-center gap-2 text-mist-500 text-sm">
                     <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
-                    <span>正在生成综合投资建议（等待前6个分析完成）...</span>
+                    <span>{t.report.proAnalysis.investmentConclusionLoading}</span>
                   </div>
                 )}
               </AnalysisCard>
@@ -1308,7 +1313,7 @@ export default function Report({
         {showValuationSection && (
           <CollapsibleSection
             id="valuation"
-            title="估值与指标"
+            title={t.report.sections.valuation}
             expanded={expandedSections.valuation}
             onToggle={() => toggleSection('valuation')}
             sectionNumber={getSectionNumber('valuation')}
@@ -1332,8 +1337,8 @@ export default function Report({
         {hasEventsData && (
           <CollapsibleSection
             id="events"
-            title="事件日历"
-            subtitle="财报 · 分红 · 拆股"
+            title={t.report.sections.events}
+            subtitle={t.report.sections.eventsSubtitle}
             expanded={expandedSections.events}
             onToggle={() => toggleSection('events')}
             sectionNumber={getSectionNumber('events')}
@@ -1354,8 +1359,8 @@ export default function Report({
         {hasHoldingsData && (
           <CollapsibleSection
             id="holdings"
-            title="持仓分析"
-            subtitle="机构持仓 · 内幕交易"
+            title={t.report.sections.holdings}
+            subtitle={t.report.sections.holdingsSubtitle}
             expanded={expandedSections.holdings}
             onToggle={() => toggleSection('holdings')}
             sectionNumber={getSectionNumber('holdings')}
@@ -1379,10 +1384,9 @@ export default function Report({
                 <Info className="w-5 h-5 text-amber-400" />
               </div>
               <div>
-                <h4 className="text-amber-300 font-medium mb-2">数据说明</h4>
+                <h4 className="text-amber-300 font-medium mb-2">{t.report.dataNotice.title}</h4>
                 <p className="text-sm text-mist-400 leading-relaxed">
-                  {marketConfig.nameCn}市场的部分数据（如机构持仓、内幕交易、财报电话会议等）暂不可用。
-                  AI 分析已通过 Google Search 搜索补充了最新的市场动态和分析师观点，以提供更全面的投资参考。
+                  {t.report.dataNotice.content(marketConfig.nameCn)}
                 </p>
               </div>
             </div>
@@ -1393,7 +1397,7 @@ export default function Report({
         {showNewsInVersion && (
           <CollapsibleSection
             id="news"
-            title="相关新闻资讯"
+            title={t.report.sections.news}
             expanded={expandedSections.news}
             onToggle={() => toggleSection('news')}
             sectionNumber={getSectionNumber('news')}
@@ -1438,13 +1442,13 @@ export default function Report({
           {data.reportGeneratedAt && (
             <div className="flex flex-col items-center gap-4 mb-8">
               <p className="text-sm text-mist-400">
-                报告生成于：{new Date(data.reportGeneratedAt).toLocaleDateString('zh-CN', {
+                {t.report.footer.generatedAt(new Date(data.reportGeneratedAt).toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-US', {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric',
                   hour: '2-digit',
                   minute: '2-digit',
-                })}
+                }))}
               </p>
               {onRegenerate && (
                 <button
@@ -1460,15 +1464,14 @@ export default function Report({
                   className="gemini-btn gemini-btn-secondary flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <RefreshCw className={`w-4 h-4 ${isRegenerating ? 'animate-spin' : ''}`} />
-                  {isRegenerating ? '正在重新生成...' : '重新生成 AI 报告'}
+                  {isRegenerating ? t.report.regenerating : t.report.regenerateAi}
                 </button>
               )}
             </div>
           )}
 
           <p className="text-xs text-mist-400 max-w-2xl mx-auto leading-relaxed font-sans">
-            免责声明：本报告由 AI 自动生成，仅供参考，不构成任何投资建议。投资有风险，入市需谨慎。
-            报告中的分析基于公开数据和 AI 推理，可能存在偏差或不准确之处，请结合专业投资顾问意见进行决策。
+            {t.report.footer.disclaimer}
           </p>
         </footer>
       </div>

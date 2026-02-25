@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import Header from '@/components/Header';
 import CompanyOverviewModal from '@/components/CompanyOverviewModal';
+import { useLanguage } from '@/contexts/LanguageContext';
 import {
     SearchIcon,
     FilterIcon,
@@ -75,6 +76,30 @@ const DIMENSION_OPTIONS = {
             { value: '烧钱圈地型', label: '烧钱圈地型', desc: '补贴换市场' },
         ],
     },
+};
+
+const DIMENSION_VALUE_KEY_MAP: Record<string, string> = {
+    '开拓者': 'pioneer',
+    '稳固者': 'stabilizer',
+    '分红者': 'dividend',
+    '实力股': 'largeCap',
+    '潜力股': 'midCap',
+    '弹簧股': 'smallCap',
+    '防御型': 'defensive',
+    '周期型': 'cyclical',
+    '探险型': 'adventurous',
+    '健康型': 'healthy',
+    '贫血型': 'anemic',
+    '轻装型': 'light',
+    '平衡型': 'balanced',
+    '背债型': 'heavy',
+    '政策型': 'policy',
+    '汇率型': 'forex',
+    '内功型': 'internal',
+    '薄利多销型': 'thinMargin',
+    '高利少销型': 'highMargin',
+    '坐地收租型': 'rentSeeking',
+    '烧钱圈地型': 'cashBurn',
 };
 
 // 行业板块选项（中英文映射）
@@ -281,9 +306,14 @@ interface MultiSelectDropdownProps {
     options: { value: string; label: string }[];
     selected: string[];
     onChange: (values: string[]) => void;
+    selectAllLabel: string;
+    deselectAllLabel: string;
+    searchPlaceholder: string;
+    selectedLabel: (count: number) => string;
+    noMatchLabel: string;
 }
 
-function MultiSelectDropdown({ label, options, selected, onChange }: MultiSelectDropdownProps) {
+function MultiSelectDropdown({ label, options, selected, onChange, selectAllLabel, deselectAllLabel, searchPlaceholder, selectedLabel, noMatchLabel }: MultiSelectDropdownProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const buttonRef = useRef<HTMLButtonElement>(null);
@@ -333,7 +363,7 @@ function MultiSelectDropdown({ label, options, selected, onChange }: MultiSelect
                 <span className="truncate">
                     {selected.length === 0
                         ? label
-                        : `已选 ${selected.length} 项`}
+                        : selectedLabel(selected.length)}
                 </span>
                 <ChevronDownIcon
                     size={14}
@@ -369,7 +399,7 @@ function MultiSelectDropdown({ label, options, selected, onChange }: MultiSelect
                                 type="text"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                placeholder="搜索..."
+                                placeholder={searchPlaceholder}
                                 className="w-full px-2 py-1.5 text-xs bg-white/5 border border-white/10 rounded-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50"
                                 onClick={(e) => e.stopPropagation()}
                             />
@@ -382,7 +412,7 @@ function MultiSelectDropdown({ label, options, selected, onChange }: MultiSelect
                                 onClick={(e) => { e.stopPropagation(); handleSelectAll(); }}
                                 className="text-[10px] text-accent hover:underline"
                             >
-                                全选
+                                {selectAllLabel}
                             </button>
                             <span className="text-text-muted text-[10px]">|</span>
                             <button
@@ -390,7 +420,7 @@ function MultiSelectDropdown({ label, options, selected, onChange }: MultiSelect
                                 onClick={(e) => { e.stopPropagation(); handleDeselectAll(); }}
                                 className="text-[10px] text-text-muted hover:text-text-secondary"
                             >
-                                全不选
+                                {deselectAllLabel}
                             </button>
                         </div>
 
@@ -418,7 +448,7 @@ function MultiSelectDropdown({ label, options, selected, onChange }: MultiSelect
                                 </button>
                             ))}
                             {filteredOptions.length === 0 && (
-                                <div className="px-3 py-2 text-xs text-text-muted">无匹配结果</div>
+                                <div className="px-3 py-2 text-xs text-text-muted">{noMatchLabel}</div>
                             )}
                         </div>
                     </motion.div>
@@ -431,6 +461,7 @@ function MultiSelectDropdown({ label, options, selected, onChange }: MultiSelect
 
 export default function CompaniesPage() {
     const router = useRouter();
+    const { locale, t } = useLanguage();
     const [filters, setFilters] = useState<CompanyFilterRequest>({
         page: 1,
         limit: 50,
@@ -584,6 +615,11 @@ export default function CompaniesPage() {
         setSelectedCompany(null);
     };
 
+    const translatedSectorOptions = SECTOR_OPTIONS.map(opt => ({
+        ...opt,
+        label: t.sectors[opt.value as keyof typeof t.sectors] || opt.label,
+    }));
+
     return (
         <div className="min-h-screen bg-main-bg transition-colors duration-200">
             {/* Background Pattern */}
@@ -604,16 +640,16 @@ export default function CompaniesPage() {
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                         <div>
                             <h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-2">
-                                公司发现
+                                {t.companies.title}
                             </h2>
                             <p className="text-text-secondary">
-                                从 10,000+ 美股中发现投资机会，使用 AI 诊断维度精准筛选
+                                {t.companies.subtitle}
                             </p>
                         </div>
                         <div className="glass-card p-4 rounded-sm border border-white/10 dark:border-white/10 light:border-black/5 flex items-center gap-4">
                             <div className="text-right">
                                 <div className="text-2xl font-mono font-bold text-text-primary leading-none">{total}</div>
-                                <div className="text-xs text-text-muted mt-1">符合条件的公司</div>
+                                <div className="text-xs text-text-muted mt-1">{t.companies.matchingCompanies}</div>
                             </div>
                         </div>
                     </div>
@@ -627,7 +663,7 @@ export default function CompaniesPage() {
                             >
                                 <div className="flex items-center gap-2 text-sm font-semibold text-text-primary">
                                     <FilterIcon size={16} />
-                                    筛选条件
+                                    {t.companies.filterTitle}
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <ChevronDownIcon
@@ -654,7 +690,7 @@ export default function CompaniesPage() {
                                                         className={`space-y-2 ${isProfitModel ? 'lg:col-span-2' : ''}`}
                                                     >
                                                         <h4 className="text-[11px] font-bold text-text-muted uppercase tracking-wider">
-                                                            {config.label}
+                                                            {t.companies.dimensions[key as keyof typeof t.companies.dimensions]}
                                                         </h4>
                                                         <div className={`grid gap-2 ${isProfitModel
                                                             ? 'grid-cols-2 lg:grid-cols-4'
@@ -662,6 +698,7 @@ export default function CompaniesPage() {
                                                             }`}>
                                                             {config.options.map((option) => {
                                                                 const isActive = (filters[key as keyof CompanyFilterRequest] as string[])?.includes(option.value);
+                                                                const translationKey = DIMENSION_VALUE_KEY_MAP[option.value];
                                                                 return (
                                                                     <button
                                                                         key={option.value}
@@ -671,7 +708,9 @@ export default function CompaniesPage() {
                                                                             : 'bg-white/5 border-transparent text-text-muted hover:border-text-muted/30 hover:text-text-secondary hover:bg-white/10'
                                                                             }`}
                                                                     >
-                                                                        {option.label}
+                                                                        {translationKey
+                                                                            ? t.companies.dimensionValues[translationKey as keyof typeof t.companies.dimensionValues]
+                                                                            : option.label}
                                                                     </button>
                                                                 );
                                                             })}
@@ -684,13 +723,13 @@ export default function CompaniesPage() {
                                         {/* 新增筛选条件：市值范围、行业板块、细分行业 */}
                                         <div className="px-6 pb-4 border-t border-white/5 pt-4">
                                             <h4 className="text-[11px] font-bold text-accent uppercase tracking-wider mb-4">
-                                                其他筛选条件
+                                                {t.companies.otherFilters}
                                             </h4>
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                 {/* 市值范围 */}
                                                 <div className="space-y-2">
                                                     <h5 className="text-[11px] font-bold text-text-muted uppercase tracking-wider">
-                                                        市值（美元）
+                                                        {t.companies.marketCapUsd}
                                                     </h5>
                                                     <div className="grid grid-cols-2 gap-2">
                                                         {MARKET_CAP_RANGES.map((range) => {
@@ -705,7 +744,7 @@ export default function CompaniesPage() {
                                                                         }`}
                                                                     title={range.desc}
                                                                 >
-                                                                    {range.label}
+                                                                    {t.companies.marketCapRanges[range.value as keyof typeof t.companies.marketCapRanges]}
                                                                 </button>
                                                             );
                                                         })}
@@ -715,26 +754,36 @@ export default function CompaniesPage() {
                                                 {/* 行业板块 */}
                                                 <div className="space-y-2">
                                                     <h5 className="text-[11px] font-bold text-text-muted uppercase tracking-wider">
-                                                        行业板块
+                                                        {t.companies.sectorLabel}
                                                     </h5>
                                                     <MultiSelectDropdown
-                                                        label="选择行业板块"
-                                                        options={SECTOR_OPTIONS}
+                                                        label={t.companies.sectorPlaceholder}
+                                                        options={translatedSectorOptions}
                                                         selected={filters.sectors || []}
                                                         onChange={handleSectorsChange}
+                                                        selectAllLabel={t.companies.selectAll}
+                                                        deselectAllLabel={t.companies.deselectAll}
+                                                        searchPlaceholder={t.common.search + '...'}
+                                                        selectedLabel={t.companies.selected}
+                                                        noMatchLabel={t.companies.noMatch}
                                                     />
                                                 </div>
 
                                                 {/* 细分行业 */}
                                                 <div className="space-y-2">
                                                     <h5 className="text-[11px] font-bold text-text-muted uppercase tracking-wider">
-                                                        细分行业
+                                                        {t.companies.industryLabel}
                                                     </h5>
                                                     <MultiSelectDropdown
-                                                        label="选择细分行业"
+                                                        label={t.companies.industryPlaceholder}
                                                         options={INDUSTRY_OPTIONS}
                                                         selected={filters.industries || []}
                                                         onChange={handleIndustriesChange}
+                                                        selectAllLabel={t.companies.selectAll}
+                                                        deselectAllLabel={t.companies.deselectAll}
+                                                        searchPlaceholder={t.common.search + '...'}
+                                                        selectedLabel={t.companies.selected}
+                                                        noMatchLabel={t.companies.noMatch}
                                                     />
                                                 </div>
                                             </div>
@@ -744,14 +793,14 @@ export default function CompaniesPage() {
                                                 onClick={resetFilters}
                                                 className="text-sm text-text-muted hover:text-text-primary transition-colors"
                                             >
-                                                重置
+                                                {t.common.reset}
                                             </button>
                                             <button
                                                 onClick={applyFilters}
                                                 disabled={loading}
                                                 className="px-6 py-2 bg-[#10B981] hover:bg-[#059669] text-white rounded-sm font-medium text-sm transition-colors disabled:opacity-50"
                                             >
-                                                {loading ? '加载中...' : '应用'}
+                                                {loading ? t.common.loading : t.common.apply}
                                             </button>
                                         </div>
                                     </motion.div>
@@ -766,7 +815,7 @@ export default function CompaniesPage() {
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => handleSearchChange(e.target.value)}
-                                placeholder="搜索公司名称或代码..."
+                                placeholder={t.companies.searchPlaceholder}
                                 className="w-full pl-12 pr-4 py-4 glass-card border border-white/10 dark:border-white/10 light:border-black/10 rounded-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 transition-colors"
                             />
                         </div>
@@ -776,16 +825,16 @@ export default function CompaniesPage() {
                     <div className="space-y-4">
                         {loading ? (
                             <div className="flex items-center justify-center py-20">
-                                <div className="text-text-muted font-mono animate-pulse">LOADING_DATA...</div>
+                                <div className="text-text-muted font-mono animate-pulse">{t.companies.loadingData}</div>
                             </div>
                         ) : companies.length === 0 ? (
                             <div className="glass-card p-12 rounded-sm border border-white/10 text-center">
-                                <div className="text-text-muted mb-4 font-mono">NO_RESULTS_FOUND</div>
+                                <div className="text-text-muted mb-4 font-mono">{t.companies.noResultsFound}</div>
                                 <button
                                     onClick={resetFilters}
                                     className="text-sm text-accent hover:underline"
                                 >
-                                    重置筛选条件
+                                    {t.companies.resetFilters}
                                 </button>
                             </div>
                         ) : (
@@ -838,7 +887,7 @@ export default function CompaniesPage() {
                                             </div>
 
                                             <div className="flex items-center justify-between text-[11px] text-accent opacity-0 group-hover:opacity-100 transition-opacity border-t border-white/5 pt-3">
-                                                <span className="font-bold uppercase tracking-tighter">View Research Report</span>
+                                                <span className="font-bold uppercase tracking-tighter">{t.companies.viewReport}</span>
                                                 <TrendingUpIcon size={12} />
                                             </div>
                                         </motion.div>
@@ -908,8 +957,8 @@ export default function CompaniesPage() {
                                 </button>
 
                                 {/* 标题 */}
-                                <h3 className="text-xl font-semibold text-white mb-2 text-center">联系我们</h3>
-                                <p className="text-sm text-mist-400 mb-6 text-center">扫描二维码添加微信</p>
+                                <h3 className="text-xl font-semibold text-white mb-2 text-center">{t.home.contact.title}</h3>
+                                <p className="text-sm text-mist-400 mb-6 text-center">{t.home.contact.scanQr}</p>
 
                                 {/* 二维码图片 */}
                                 <div className="flex justify-center">
@@ -922,7 +971,7 @@ export default function CompaniesPage() {
 
                                 {/* 提示文字 */}
                                 <p className="text-xs text-mist-500 mt-4 text-center">
-                                    期待与您交流
+                                    {t.home.contact.lookForward}
                                 </p>
                             </motion.div>
                         </motion.div>

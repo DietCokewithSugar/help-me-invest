@@ -144,6 +144,25 @@ export class GeminiClient {
     this.genAI = new GoogleGenerativeAI(apiKey);
   }
 
+  private getLanguageInstruction(language: string = 'zh'): {
+    outputLang: string;
+    langName: string;
+    useMarkdown: string;
+  } {
+    if (language === 'en') {
+      return {
+        outputLang: 'Use English',
+        langName: 'English',
+        useMarkdown: 'Use English, Markdown format, bold key information',
+      };
+    }
+    return {
+      outputLang: '使用中文',
+      langName: '中文',
+      useMarkdown: '使用中文，Markdown 格式，关键信息加粗',
+    };
+  }
+
   // 根据任务类型获取对应的模型实例
   private getModel(
     tier: ModelTier,
@@ -257,8 +276,10 @@ export class GeminiClient {
     incomeData: any[],
     peers: string[],
     transcriptData?: any,
-    market: MarketType = 'US'
+    market: MarketType = 'US',
+    language?: string
   ): Promise<string> {
+    const lang = this.getLanguageInstruction(language);
     const marketName = MARKET_NAMES[market] || '美股';
     const isNonUS = market !== 'US';
 
@@ -286,7 +307,7 @@ ${peers.length > 0 ? peers.join(', ') : '（数据暂无，请基于行业知识
 ${marketContext}
 ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcriptData, null, 2)}` : ''}
 
-请按照以下JSON格式返回分析结果（请使用中文）：
+请按照以下JSON格式返回分析结果（${lang.outputLang}）：
 
 {
   "companyOverview": "企业整体说明，包括主营业务、商业模式、发展历程等（300-500字）",
@@ -348,8 +369,10 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
   async searchAndAnalyze(
     companyName: string,
     symbol: string,
-    market: MarketType = 'US'
+    market: MarketType = 'US',
+    language?: string
   ): Promise<string> {
+    const lang = this.getLanguageInstruction(language);
     void market;
     // 使用 search 模型：需要 Google Search Grounding 能力
     const modelWithSearch = this.getModel('search', {
@@ -367,7 +390,7 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
 
 请优先检索对应市场的本地权威站点，并把时间范围限定为“近90天”：
 关键词要求：同时使用“公司中文名/英文名 + 股票代码 + 交易所/市场名”，并加入“公告/业绩/财报/指引/监管/重组/并购/订单/合作/回购/股东/减持/增持/处罚/诉讼/立案”等关键词组合检索。
-请严格以“今天日期”为基准计算近90天范围；如无近90天内信息，recentNews 需明确说明“未找到近90天内的有效信息”。请确保返回有效的 JSON 格式，可以包含 markdown 代码块标记。使用中文回答。`;
+请严格以“今天日期”为基准计算近90天范围；如无近90天内信息，recentNews 需明确说明“未找到近90天内的有效信息”。请确保返回有效的 JSON 格式，可以包含 markdown 代码块标记。${lang.outputLang}。`;
 
     try {
       // 使用速率限制器
@@ -393,12 +416,14 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
   async searchCompanyDetails(
     companyName: string,
     symbol: string,
-    market: MarketType
+    market: MarketType,
+    language?: string
   ): Promise<{
     competitors: string;
     recentNews: string;
     analystViews: string;
   }> {
+    const lang = this.getLanguageInstruction(language);
     // 使用 search 模型：需要 Google Search Grounding 能力
     const modelWithSearch = this.getModel('search', {
       temperature: 0.7,
@@ -421,7 +446,7 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
 
 请优先检索对应市场的本地权威站点，并把时间范围限定为“近90天”：
 关键词要求：同时使用“公司中文名/英文名 + 股票代码 + 交易所/市场名”，并加入“公告/业绩/财报/指引/监管/重组/并购/订单/合作/回购/股东/减持/增持/处罚/诉讼/立案”等关键词组合检索。
-请严格以“今天日期”为基准计算近90天范围；如无近90天内信息，recentNews 需明确说明“未找到近90天内的有效信息”。请确保返回有效的 JSON 格式，可以包含 markdown 代码块标记。使用中文回答。`;
+请严格以“今天日期”为基准计算近90天范围；如无近90天内信息，recentNews 需明确说明“未找到近90天内的有效信息”。请确保返回有效的 JSON 格式，可以包含 markdown 代码块标记。${lang.outputLang}。`;
 
     try {
       // 使用速率限制器
@@ -464,8 +489,10 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
   async summarizeEarningsCall(
     transcriptText: string,
     companyName: string,
-    symbol: string
+    symbol: string,
+    language?: string
   ): Promise<string> {
+    const lang = this.getLanguageInstruction(language);
     const prompt = `
 你是一位资深卖方分析师。请根据以下英文电话会议全文，生成中文“财报电话会议精要”。
 必须严格围绕用户关心的四个区域输出，并给出清晰的要点与判断：
@@ -493,7 +520,7 @@ CFO的发言虽然枯燥，但往往包含了解释数据的“钥匙”。重�
 - 提炼战略优先级变化与业务亮点（避免套话）。
 
 输出要求：
-- 中文输出，结构化呈现，每个部分用清晰标题。
+- ${lang.outputLang}，结构化呈现，每个部分用清晰标题。
 - 每部分 3-6 条要点，简洁、可读。
 - 如果原文未披露某项，明确写“未披露/未提及”。
 - 只输出内容，不要包含任何代码块标记。
@@ -566,7 +593,8 @@ ${transcriptText}
   }
 
   // 1. 企业概况
-  async streamCompanyOverview(companyData: any, market: MarketType): Promise<AsyncGenerator<string, void, unknown>> {
+  async streamCompanyOverview(companyData: any, market: MarketType, language?: string): Promise<AsyncGenerator<string, void, unknown>> {
+    const lang = this.getLanguageInstruction(language);
     const prompt = `
 你是一位专业的金融分析师。请根据以下公司信息，撰写一份简洁的“企业概况”。
 
@@ -576,14 +604,15 @@ ${JSON.stringify(companyData, null, 2)}
 要求：
 - 介绍主营业务、商业模式和简要发展历程。
 - 字数控制在 300-500 字。
-- 使用中文。
+- ${lang.outputLang}。
 - 格式：Markdown，关键信息（如核心产品、市场地位）加粗。
 `;
     return this.generateStream(prompt, 'standard');
   }
 
   // 2. 行业分析
-  async streamIndustryAnalysis(companyData: any, market: MarketType): Promise<AsyncGenerator<string, void, unknown>> {
+  async streamIndustryAnalysis(companyData: any, market: MarketType, language?: string): Promise<AsyncGenerator<string, void, unknown>> {
+    const lang = this.getLanguageInstruction(language);
     const prompt = `
 请分析 ${companyData.companyName} (${companyData.symbol}) 所处的行业。
 
@@ -591,14 +620,15 @@ ${JSON.stringify(companyData, null, 2)}
 - **禁止任何开场白、问候语、自我介绍**，直接输出报告内容
 - 分析行业规模、增长趋势、技术演进方向。
 - 字数控制在 300-400 字。
-- 使用中文。
+- ${lang.outputLang}。
 - 格式：Markdown，关键数据和趋势加粗。
 `;
     return this.generateStream(prompt, 'standard');
   }
 
   // 3. 行业痛点与障碍
-  async streamIndustryPainPoints(companyData: any, market: MarketType): Promise<AsyncGenerator<string, void, unknown>> {
+  async streamIndustryPainPoints(companyData: any, market: MarketType, language?: string): Promise<AsyncGenerator<string, void, unknown>> {
+    const lang = this.getLanguageInstruction(language);
     const prompt = `
 请深入分析 ${companyData.companyName} 所处行业当前面临的最大痛点与发展障碍。
 
@@ -606,14 +636,15 @@ ${JSON.stringify(companyData, null, 2)}
 - 涵盖技术挑战、监管压力、供应链问题、人才短缺、成本压力、竞争加剧等方面。
 - 必须提供具体分析，而非泛泛而谈。
 - 字数 200-300 字。
-- 使用中文。
+- ${lang.outputLang}。
 - 格式：Markdown，关键痛点加粗。
 `;
     return this.generateStream(prompt, 'standard');
   }
 
   // 4. 竞争格局
-  async streamCompetitors(companyData: any, peers: string[], market: MarketType): Promise<AsyncGenerator<string, void, unknown>> {
+  async streamCompetitors(companyData: any, peers: string[], market: MarketType, language?: string): Promise<AsyncGenerator<string, void, unknown>> {
+    const lang = this.getLanguageInstruction(language);
     const prompt = `
 请分析 ${companyData.companyName} 的竞争格局。
 
@@ -622,42 +653,45 @@ ${JSON.stringify(companyData, null, 2)}
 要求：
 - 分析主要竞争对手的市场地位和特点。
 - 字数 200-300 字。
-- 使用中文。
+- ${lang.outputLang}。
 - 格式：Markdown，对手名称和关键特点加粗。
 `;
     return this.generateStream(prompt, 'standard');
   }
 
   // 5. 竞争优势
-  async streamCompetitiveAdvantage(companyData: any, market: MarketType): Promise<AsyncGenerator<string, void, unknown>> {
+  async streamCompetitiveAdvantage(companyData: any, market: MarketType, language?: string): Promise<AsyncGenerator<string, void, unknown>> {
+    const lang = this.getLanguageInstruction(language);
     const prompt = `
 请分析 ${companyData.companyName} 相较于竞争对手的独特优势。
 
 要求：
 - 聚焦于不可复制的优势。
 - 字数 200-300 字。
-- 使用中文。
+- ${lang.outputLang}。
 - 格式：Markdown，核心优势点加粗。
 `;
     return this.generateStream(prompt, 'standard');
   }
 
   // 6. 核心护城河
-  async streamMoat(companyData: any, market: MarketType): Promise<AsyncGenerator<string, void, unknown>> {
+  async streamMoat(companyData: any, market: MarketType, language?: string): Promise<AsyncGenerator<string, void, unknown>> {
+    const lang = this.getLanguageInstruction(language);
     const prompt = `
 请深入剖析 ${companyData.companyName} 的核心护城河。
 
 要求：
 - 分析技术壁垒、品牌效应、网络效应、转换成本等。
 - 字数 300-400 字。
-- 使用中文。
+- ${lang.outputLang}。
 - 格式：Markdown，关键护城河加粗。
 `;
     return this.generateStream(prompt, 'standard');
   }
 
   // 7. 最新发展动态 (需要联网搜索能力)（带速率限制）
-  async streamRecentDevelopments(companyName: string, symbol: string, market: MarketType): Promise<AsyncGenerator<string, void, unknown>> {
+  async streamRecentDevelopments(companyName: string, symbol: string, market: MarketType, language?: string): Promise<AsyncGenerator<string, void, unknown>> {
+    const lang = this.getLanguageInstruction(language);
     const marketName = MARKET_NAMES[market] || '美股';
     // 使用 search 模型
     const model = this.getModel('search', {
@@ -671,7 +705,7 @@ ${JSON.stringify(companyData, null, 2)}
      请总结企业最近的重要发展动态（200-300字）。
      重点关注：公告、业绩、财报、指引、监管、重组、并购、订单、合作。
      如果没有近期的重大消息，请说明。
-     使用中文，Markdown 格式，关键动态加粗。`;
+     ${lang.outputLang}，Markdown 格式，关键动态加粗。`;
 
     // 使用速率限制器
     const result = await globalRateLimiter.enqueue(
@@ -690,8 +724,10 @@ ${JSON.stringify(companyData, null, 2)}
   async streamInvestmentConclusion(
     companyData: any,
     context: string,
-    market: MarketType
+    market: MarketType,
+    language?: string
   ): Promise<AsyncGenerator<string, void, unknown>> {
+    const lang = this.getLanguageInstruction(language);
     const prompt = `
 你是一位专业的投资研究分析师。请根据以下关于 ${companyData.companyName} (${companyData.symbol}) 的研究报告内容，撰写一份“投资建议总结”。
 
@@ -704,7 +740,7 @@ ${context}
 - 只客观分析该公司的**核心优势**和**主要弊端/风险**
 - 帮助投资者全面了解这家公司，让他们自行做出判断
 - 字数 200-300 字
-- 使用中文
+- ${lang.outputLang}
 - 格式：Markdown，核心优势和主要风险点加粗
 
 输出结构：
@@ -721,8 +757,10 @@ ${context}
   async streamEarningsCallSummary(
     transcriptText: string,
     companyName: string,
-    symbol: string
+    symbol: string,
+    language?: string
   ): Promise<AsyncGenerator<string, void, unknown>> {
+    const lang = this.getLanguageInstruction(language);
     const prompt = `
 你是一位资深卖方分析师。请根据以下英文电话会议全文，生成中文“财报电话会议精要”。
 必须严格围绕用户关心的四个区域输出，并给出清晰的要点与判断：
@@ -750,7 +788,7 @@ CFO的发言虽然枯燥，但往往包含了解释数据的“钥匙”。重�
 - 提炼战略优先级变化与业务亮点（避免套话）。
 
 输出要求：
-- 中文输出，结构化呈现，每个部分用清晰标题。
+- ${lang.outputLang}，结构化呈现，每个部分用清晰标题。
 - 每部分 3-6 条要点，简洁、可读。
 - 如果原文未披露某项，明确写“未披露/未提及”。
 - 只输出内容，不要包含任何代码块标记。
@@ -793,8 +831,10 @@ ${transcriptText}
   // 10.1 专业版 - 生意模式分析（带速率限制）
   async streamProBusinessModel(
     companyData: any,
-    market: MarketType
+    market: MarketType,
+    language?: string
   ): Promise<AsyncGenerator<string, void, unknown>> {
+    const lang = this.getLanguageInstruction(language);
     const marketName = MARKET_NAMES[market] || '美股';
     const model = this.getProModel();
     const today = new Date().toISOString().slice(0, 10);
@@ -811,7 +851,7 @@ ${transcriptText}
 今天日期：${today}
 
 **输出要求**：
-- 使用中文，Markdown 格式，关键信息加粗
+- ${lang.useMarkdown}
 - **禁止任何开场白、问候语、自我介绍**，直接输出报告内容
 - **禁止使用任何 emoji 表情符号**
 - 如有必要，可使用 Markdown 表格呈现数据对比（如业务板块收入占比）
@@ -852,8 +892,10 @@ ${transcriptText}
   // 10.2 专业版 - 运营模式分析（带速率限制）
   async streamProOperatingModel(
     companyData: any,
-    market: MarketType
+    market: MarketType,
+    language?: string
   ): Promise<AsyncGenerator<string, void, unknown>> {
+    const lang = this.getLanguageInstruction(language);
     const marketName = MARKET_NAMES[market] || '美股';
     const model = this.getProModel();
     const today = new Date().toISOString().slice(0, 10);
@@ -869,7 +911,7 @@ ${transcriptText}
 今天日期：${today}
 
 **输出要求**：
-- 使用中文，Markdown 格式，关键信息加粗
+- ${lang.useMarkdown}
 - **禁止任何开场白、问候语、自我介绍**，直接输出报告内容
 - **禁止使用任何 emoji 表情符号**
 - 如有必要，可使用 Markdown 表格呈现数据
@@ -910,8 +952,10 @@ ${transcriptText}
   // 10.3 专业版 - 行业前景评估（带速率限制）
   async streamProIndustryOutlook(
     companyData: any,
-    market: MarketType
+    market: MarketType,
+    language?: string
   ): Promise<AsyncGenerator<string, void, unknown>> {
+    const lang = this.getLanguageInstruction(language);
     const marketName = MARKET_NAMES[market] || '美股';
     const model = this.getProModel();
     const today = new Date().toISOString().slice(0, 10);
@@ -928,7 +972,7 @@ ${transcriptText}
 今天日期：${today}
 
 **输出要求**：
-- 使用中文，Markdown 格式，关键信息加粗
+- ${lang.useMarkdown}
 - **禁止任何开场白、问候语、自我介绍**，直接输出报告内容
 - **禁止使用任何 emoji 表情符号**
 - 如有必要，可使用 Markdown 表格呈现行业数据对比
@@ -969,8 +1013,10 @@ ${transcriptText}
     companyData: any,
     profitabilityData: any,
     capitalReturnData: any,
-    market: MarketType
+    market: MarketType,
+    language?: string
   ): Promise<AsyncGenerator<string, void, unknown>> {
+    const lang = this.getLanguageInstruction(language);
     const marketName = MARKET_NAMES[market] || '美股';
     const model = this.getProModel();
     const today = new Date().toISOString().slice(0, 10);
@@ -994,7 +1040,7 @@ ${transcriptText}
 今天日期：${today}
 
 **输出要求**：
-- 使用中文，Markdown 格式，关键信息加粗
+- ${lang.useMarkdown}
 - **禁止任何开场白、问候语、自我介绍**，直接输出报告内容
 - **禁止使用任何 emoji 表情符号**
 - 可使用 Markdown 表格对比该公司与竞争对手的关键指标
@@ -1040,8 +1086,10 @@ ${transcriptText}
     profitabilityData: any,
     debtData: any,
     healthScores: any,
-    market: MarketType
+    market: MarketType,
+    language?: string
   ): Promise<AsyncGenerator<string, void, unknown>> {
+    const lang = this.getLanguageInstruction(language);
     const marketName = MARKET_NAMES[market] || '美股';
     const model = this.getProModel();
 
@@ -1076,7 +1124,7 @@ ${JSON.stringify(quarterlyFinancials, null, 2)}
 - Piotroski F-Score：${healthScores?.piotroskiScore || 'N/A'}
 
 **输出要求**：
-- 使用中文，Markdown 格式，关键信息加粗
+- ${lang.useMarkdown}
 - **禁止任何开场白、问候语、自我介绍**，直接输出报告内容
 - **禁止使用任何 emoji 表情符号**
 - **建议使用表格**呈现关键财务指标趋势（年度/季度对比）
@@ -1124,8 +1172,10 @@ ${JSON.stringify(quarterlyFinancials, null, 2)}
     valuationData: any,
     growthData: any,
     quarterlyFinancials: any[],
-    market: MarketType
+    market: MarketType,
+    language?: string
   ): Promise<AsyncGenerator<string, void, unknown>> {
+    const lang = this.getLanguageInstruction(language);
     const marketName = MARKET_NAMES[market] || '美股';
     const model = this.getProModel();
     const today = new Date().toISOString().slice(0, 10);
@@ -1160,7 +1210,7 @@ ${JSON.stringify(quarterlyFinancials, null, 2)}
 今天日期：${today}
 
 **输出要求**：
-- 使用中文，Markdown 格式，关键信息加粗
+- ${lang.useMarkdown}
 - **禁止任何开场白、问候语、自我介绍**，直接输出报告内容
 - **禁止使用任何 emoji 表情符号**
 - **建议使用表格**对比该公司与行业平均估值
@@ -1201,8 +1251,10 @@ ${JSON.stringify(quarterlyFinancials, null, 2)}
   async streamProInvestmentConclusion(
     companyData: any,
     prevContext: string,
-    market: MarketType
+    market: MarketType,
+    language?: string
   ): Promise<AsyncGenerator<string, void, unknown>> {
+    const lang = this.getLanguageInstruction(language);
     const marketName = MARKET_NAMES[market] || '美股';
     const model = this.genAI.getGenerativeModel({
       model: 'gemini-3-flash-preview',
@@ -1228,7 +1280,7 @@ ${JSON.stringify(quarterlyFinancials, null, 2)}
 ${prevContext}
 
 **输出要求**：
-- 使用中文，Markdown 格式，关键信息加粗
+- ${lang.useMarkdown}
 - **禁止任何开场白、问候语、自我介绍**，直接输出报告内容
 - **禁止使用任何 emoji 表情符号**
 - 可使用表格汇总投资评级
@@ -1298,8 +1350,10 @@ ${prevContext}
     financialRatiosTTM: any[],
     financialGrowth: any[],
     financialScores: any,
-    market: MarketType
+    market: MarketType,
+    language?: string
   ): Promise<AsyncGenerator<string, void, unknown>> {
+    const lang = this.getLanguageInstruction(language);
     const marketName = MARKET_NAMES[market] || '美股';
     
     // 准备最新财务数据
@@ -1651,7 +1705,7 @@ ${JSON.stringify(quarterlyFinancials, null, 2)}
 ---
 
 **格式要求**：
-- 使用中文回答
+- ${lang.outputLang}
 - 使用 Markdown 格式，重要结论和关键数据请**加粗**
 - 每个部分的结论要明确、直接，给出清晰的评级
 - 引用搜索到的信息时标注来源
@@ -1675,7 +1729,8 @@ ${JSON.stringify(quarterlyFinancials, null, 2)}
   }
 
   // 11. 智能划词解释
-  async explainText(text: string): Promise<string> {
+  async explainText(text: string, language?: string): Promise<string> {
+    const lang = this.getLanguageInstruction(language);
     const prompt = `
 你是一个专业的金融助手，擅长用最通俗易懂的语言解释复杂的金融概念。
 用户选中了一段文本（可能是专业术语、公司名、或者一段话），请给出一个简单直接的解释。
@@ -1683,7 +1738,7 @@ ${JSON.stringify(quarterlyFinancials, null, 2)}
 要求：
 1. **通俗易懂**：假设用户是金融小白，不要堆砌专业术语。如果必须用，请顺便解释。
 2. **简洁**：控制在 100-150 字以内。
-3. **中文回答**。
+3. **${lang.outputLang}**。
 4. **格式**：Markdown 格式，关键概念加粗。
 
 用户选中的文本：

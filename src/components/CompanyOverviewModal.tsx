@@ -8,17 +8,27 @@ import {
     TrendingUpIcon,
     ChevronRightIcon,
 } from '@/components/Icons';
+import { useLanguage } from '@/contexts/LanguageContext';
 import type { CompanyDiagnostic, CompanyFilterRequest } from '@/types';
 
-// 7个维度的中英文映射与描述
-const DIMENSION_META: Record<string, { label: string; description: string }> = {
-    strategic_positioning: { label: '企业战略定位', description: '公司的增长策略和投资方向' },
-    market_cap_size: { label: '市场体量', description: '基于市值的公司规模分类' },
-    cyclical_nature: { label: '周期特性', description: '对宏观经济周期的敏感程度' },
-    cash_flow_status: { label: '资金状况', description: '当前现金流健康程度' },
-    debt_structure: { label: '债务结构', description: '负债水平与杠杆情况' },
-    external_sensitivity: { label: '外部敏感点', description: '受外部因素影响的主要来源' },
-    profit_model: { label: '盈利模式', description: '主要的盈利方式和商业模式' },
+const DIMENSION_KEYS = [
+    'strategicPositioning',
+    'marketCapSize',
+    'cyclicalNature',
+    'cashFlowStatus',
+    'debtStructure',
+    'externalSensitivity',
+    'profitModel',
+] as const;
+
+const DIMENSION_FIELD_MAP: Record<string, string> = {
+    strategicPositioning: 'strategic_positioning',
+    marketCapSize: 'market_cap_size',
+    cyclicalNature: 'cyclical_nature',
+    cashFlowStatus: 'cash_flow_status',
+    debtStructure: 'debt_structure',
+    externalSensitivity: 'external_sensitivity',
+    profitModel: 'profit_model',
 };
 
 // 维度值对应的颜色
@@ -69,6 +79,7 @@ export default function CompanyOverviewModal({
     onCompanyChange,
 }: CompanyOverviewModalProps) {
     const router = useRouter();
+    const { t } = useLanguage();
     const [relatedCompanies, setRelatedCompanies] = useState<CompanyDiagnostic[]>([]);
     const [loadingRelated, setLoadingRelated] = useState(false);
 
@@ -127,10 +138,10 @@ export default function CompanyOverviewModal({
         }
     };
 
-    // 获取维度的显示值
-    const getDimensionValue = (key: string) => {
+    const getDimensionValue = (dimKey: string) => {
         if (!company) return null;
-        const value = company[key as keyof CompanyDiagnostic];
+        const fieldName = DIMENSION_FIELD_MAP[dimKey] || dimKey;
+        const value = company[fieldName as keyof CompanyDiagnostic];
         return value as string | null;
     };
 
@@ -187,25 +198,25 @@ export default function CompanyOverviewModal({
                             {/* 基本信息 */}
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <div className="bg-white/5 p-4 rounded-sm border border-white/5">
-                                    <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">市值</div>
+                                    <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">{t.common.marketCap}</div>
                                     <div className="text-lg font-mono font-bold text-text-primary">
                                         {formatMarketCap(company.market_cap)}
                                     </div>
                                 </div>
                                 <div className="bg-white/5 p-4 rounded-sm border border-white/5">
-                                    <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">股价</div>
+                                    <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">{t.common.price}</div>
                                     <div className="text-lg font-mono font-bold text-text-primary">
                                         ${company.price?.toFixed(2) || 'N/A'}
                                     </div>
                                 </div>
                                 <div className="bg-white/5 p-4 rounded-sm border border-white/5">
-                                    <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">Beta</div>
+                                    <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">{t.companyOverviewModal.beta}</div>
                                     <div className="text-lg font-mono font-bold text-text-primary">
                                         {company.beta?.toFixed(2) || 'N/A'}
                                     </div>
                                 </div>
                                 <div className="bg-white/5 p-4 rounded-sm border border-white/5">
-                                    <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">年度分红</div>
+                                    <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">{t.companyOverviewModal.annualDividend}</div>
                                     <div className="text-lg font-mono font-bold text-text-primary">
                                         ${company.last_annual_dividend?.toFixed(2) || '0.00'}
                                     </div>
@@ -216,21 +227,21 @@ export default function CompanyOverviewModal({
                             <div>
                                 <h3 className="text-sm font-bold text-text-primary mb-4 flex items-center gap-2">
                                     <span className="w-1 h-4 bg-accent rounded-full"></span>
-                                    AI 七维诊断
+                                    {t.companyOverviewModal.aiDiagnosis}
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {Object.entries(DIMENSION_META).map(([key, meta]) => {
-                                        const value = getDimensionValue(key);
+                                    {DIMENSION_KEYS.map((dimKey) => {
+                                        const value = getDimensionValue(dimKey);
                                         if (!value) return null;
                                         const colorClass = DIMENSION_VALUE_COLORS[value] || 'bg-white/10 text-text-secondary border-white/10';
                                         return (
                                             <div
-                                                key={key}
+                                                key={dimKey}
                                                 className="flex items-center justify-between p-3 bg-white/[0.02] rounded-sm border border-white/5 hover:bg-white/5 transition-colors"
                                             >
                                                 <div>
-                                                    <div className="text-xs text-text-secondary mb-0.5">{meta.label}</div>
-                                                    <div className="text-[10px] text-text-muted">{meta.description}</div>
+                                                    <div className="text-xs text-text-secondary mb-0.5">{t.companyOverviewModal.dimLabels[dimKey]}</div>
+                                                    <div className="text-[10px] text-text-muted">{t.companyOverviewModal.dimDescs[dimKey]}</div>
                                                 </div>
                                                 <span className={`px-2.5 py-1 text-xs font-medium rounded-sm border ${colorClass}`}>
                                                     {value}
@@ -246,7 +257,7 @@ export default function CompanyOverviewModal({
                                 <div>
                                     <h3 className="text-sm font-bold text-text-primary mb-4 flex items-center gap-2">
                                         <span className="w-1 h-4 bg-accent rounded-full"></span>
-                                        AI 分析摘要
+                                        {t.companyOverviewModal.aiSummary}
                                     </h3>
                                     <div className="bg-white/[0.02] p-4 rounded-sm border border-white/5">
                                         <p className="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">
@@ -260,15 +271,15 @@ export default function CompanyOverviewModal({
                             <div>
                                 <h3 className="text-sm font-bold text-text-primary mb-4 flex items-center gap-2">
                                     <span className="w-1 h-4 bg-accent rounded-full"></span>
-                                    相关公司
+                                    {t.companyOverviewModal.relatedCompanies}
                                     <span className="text-xs font-normal text-text-muted ml-1">
-                                        （基于当前筛选条件）
+                                        {t.companyOverviewModal.basedOnFilters}
                                     </span>
                                 </h3>
                                 {loadingRelated ? (
                                     <div className="flex items-center justify-center py-8">
                                         <div className="text-text-muted font-mono text-xs animate-pulse">
-                                            LOADING...
+                                            {t.companyOverviewModal.loading}
                                         </div>
                                     </div>
                                 ) : relatedCompanies.length > 0 ? (
@@ -298,7 +309,7 @@ export default function CompanyOverviewModal({
                                     </div>
                                 ) : (
                                     <div className="text-center py-6 text-text-muted text-xs">
-                                        暂无相关公司推荐
+                                        {t.companyOverviewModal.noRelated}
                                     </div>
                                 )}
                             </div>
@@ -307,7 +318,7 @@ export default function CompanyOverviewModal({
                             {company.sources && company.sources.length > 0 && (
                                 <div className="pt-2 border-t border-white/5">
                                     <span className="text-[10px] text-text-muted">
-                                        数据来源：{company.sources[0]}
+                                        {t.companyOverviewModal.dataSource(company.sources[0])}
                                     </span>
                                 </div>
                             )}
@@ -320,7 +331,7 @@ export default function CompanyOverviewModal({
                                 className="flex items-center justify-center gap-2 px-8 py-2.5 bg-[#10B981] hover:bg-[#059669] text-white rounded-sm font-medium text-sm transition-colors"
                             >
                                 <TrendingUpIcon size={14} />
-                                生成详细分析报告
+                                {t.companyOverviewModal.generateReport}
                             </button>
                         </div>
                     </motion.div>

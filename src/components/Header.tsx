@@ -11,6 +11,7 @@ import {
     SunIcon,
     MoonIcon,
 } from '@/components/Icons';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface HeaderProps {
     theme: 'dark' | 'light';
@@ -26,6 +27,7 @@ export default function Header({
     showContactModal,
 }: HeaderProps) {
     const router = useRouter();
+    const { locale, setLocale, t } = useLanguage();
 
     const handleLogoClick = () => {
         if (onReset) {
@@ -58,8 +60,8 @@ export default function Header({
                                 <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-glacier-500 to-gemini-blue opacity-40 blur-xl group-hover:opacity-60 transition-opacity" />
                             </div>
                             <div>
-                                <h1 className="text-base md:text-lg font-semibold text-white group-hover:text-glacier-400 transition-colors">智投研究</h1>
-                                <p className="text-xs text-mist-500 hidden sm:block">AI Investment Research</p>
+                                <h1 className="text-base md:text-lg font-semibold text-white group-hover:text-glacier-400 transition-colors">{t.header.title}</h1>
+                                <p className="text-xs text-mist-500 hidden sm:block">{t.header.subtitle}</p>
                             </div>
                         </div>
 
@@ -69,7 +71,7 @@ export default function Header({
                             <Link
                                 href="/companies"
                                 className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer"
-                                title="公司筛选"
+                                title={t.header.companyFilter}
                             >
                                 <FilterIcon size={18} className="text-glacier-500" />
                             </Link>
@@ -78,7 +80,7 @@ export default function Header({
                             <Link
                                 href="/tracking"
                                 className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer"
-                                title="追踪"
+                                title={t.header.tracking}
                             >
                                 <TrendingUpIcon size={18} className="text-glacier-500" />
                             </Link>
@@ -87,21 +89,30 @@ export default function Header({
                             <button
                                 onClick={showContactModal}
                                 className="relative flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer overflow-hidden"
-                                title="联系我们"
+                                title={t.header.contactUs}
                             >
                                 <Image
                                     src="/images/wechat-logo.png"
-                                    alt="微信"
+                                    alt="WeChat"
                                     fill
                                     className="object-cover"
                                 />
+                            </button>
+
+                            {/* 语言切换 */}
+                            <button
+                                onClick={() => setLocale(locale === 'zh' ? 'en' : 'zh')}
+                                className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer text-xs font-mono font-bold text-mist-300"
+                                title={t.header.language}
+                            >
+                                {locale === 'zh' ? 'EN' : '中'}
                             </button>
 
                             {/* 主题切换 */}
                             <button
                                 onClick={toggleTheme}
                                 className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer"
-                                title={theme === 'dark' ? '切换到亮色模式' : '切换到深色模式'}
+                                title={theme === 'dark' ? t.header.lightMode : t.header.darkMode}
                             >
                                 {theme === 'dark' ? (
                                     <SunIcon size={18} className="text-mist-300" />

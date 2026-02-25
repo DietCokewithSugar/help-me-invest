@@ -32,6 +32,7 @@ import {
   SearchIcon,
 } from '@/components/Icons';
 import Header from '@/components/Header';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // 懒加载组件
 
@@ -80,49 +81,20 @@ function normalizeSymbol(input: string): string {
   return result.toUpperCase();
 }
 
-const LOADING_STEPS = [
-  { text: '正在获取企业基本信息', icon: FileTextIcon, color: 'from-glacier-500 to-glacier-600' },
-  { text: '正在分析财务数据', icon: BarChart3Icon, color: 'from-gemini-purple to-gemini-pink' },
-  { text: 'AI 正在深度分析', icon: BrainIcon, color: 'from-gemini-blue to-gemini-purple' },
-  { text: '正在搜索最新动态', icon: Globe2Icon, color: 'from-glacier-400 to-gemini-blue' },
-  { text: '正在生成研究报告', icon: TrendingUpIcon, color: 'from-gemini-green to-glacier-500' },
+const LOADING_STEPS_META = [
+  { icon: FileTextIcon, color: 'from-glacier-500 to-glacier-600' },
+  { icon: BarChart3Icon, color: 'from-gemini-purple to-gemini-pink' },
+  { icon: BrainIcon, color: 'from-gemini-blue to-gemini-purple' },
+  { icon: Globe2Icon, color: 'from-glacier-400 to-gemini-blue' },
+  { icon: TrendingUpIcon, color: 'from-gemini-green to-glacier-500' },
 ];
 
 // 热门股票展示列表
-const FEATURED_STOCKS = [
-  { symbol: 'AAPL', name: '苹果' },
-  { symbol: 'NVDA', name: '英伟达' },
-  { symbol: 'TSLA', name: '特斯拉' },
-  { symbol: 'MSFT', name: '微软' },
-  { symbol: 'GOOGL', name: '谷歌' },
-  { symbol: '600519.SS', name: '贵州茅台' },
-  { symbol: '000858.SZ', name: '五粮液' },
-  { symbol: '0700.HK', name: '腾讯控股' },
-  { symbol: '9988.HK', name: '阿里巴巴' },
-  { symbol: '7203.T', name: '丰田汽车' },
+const FEATURED_STOCK_SYMBOLS = [
+  'AAPL', 'NVDA', 'TSLA', 'MSFT', 'GOOGL',
+  '600519.SS', '000858.SZ', '0700.HK', '9988.HK', '7203.T',
 ];
 
-// 核心优势数据
-const CORE_ADVANTAGES = [
-  {
-    id: 'ai-logic',
-    number: '壹',
-    title: '穿透表象的 AI 逻辑',
-    description: 'AI 不止总结数据，而是理解财报背后的商业动机，洞察企业真正的经营本质。',
-  },
-  {
-    id: 'multi-source',
-    number: '贰',
-    title: '多维数据印证',
-    description: '整合 FMP 财务数据与 Google Search 实时新闻，实现基本面与消息面的交叉验证。',
-  },
-  {
-    id: 'minimalist',
-    number: '叁',
-    title: '极致克制的研报',
-    description: '告别繁琐的传统报告，用可视化（如桑基图）还原经营本质，只留下真正重要的信息。',
-  },
-];
 
 // 加载动画组件
 function GeminiLoader() {
@@ -137,9 +109,9 @@ function GeminiLoader() {
 }
 
 // 极简线性进度加载器
-function LinearLoader({ step, totalSteps }: { step: number; totalSteps: number }) {
+function LinearLoader({ step, totalSteps, stepTexts, estimateText }: { step: number; totalSteps: number; stepTexts: string[]; estimateText: string }) {
   const progress = ((step + 1) / totalSteps) * 100;
-  const Icon = LOADING_STEPS[step].icon;
+  const Icon = LOADING_STEPS_META[step].icon;
 
   return (
     <div className="w-full max-w-sm">
@@ -148,7 +120,7 @@ function LinearLoader({ step, totalSteps }: { step: number; totalSteps: number }
         <div className="w-8 h-8 rounded-xl bg-glacier-500/15 flex items-center justify-center">
           <Icon className="w-4 h-4 text-glacier-500" />
         </div>
-        <span className="text-sm text-mist-300">{LOADING_STEPS[step].text}</span>
+        <span className="text-sm text-mist-300">{stepTexts[step]}</span>
       </div>
 
       {/* 线性进度条 */}
@@ -162,7 +134,7 @@ function LinearLoader({ step, totalSteps }: { step: number; totalSteps: number }
       {/* 进度文字 */}
       <div className="flex items-center justify-between mt-3 text-xs text-mist-600">
         <span>{step + 1} / {totalSteps}</span>
-        <span>预计 15-30 秒</span>
+        <span>{estimateText}</span>
       </div>
     </div>
   );
@@ -220,6 +192,7 @@ function clearSearchHistory() {
 }
 
 function HomeContent() {
+  const { locale, t } = useLanguage();
   const [symbol, setSymbol] = useState('');
   const [selectedMarket, setSelectedMarket] = useState<MarketType>('US');
   const [loading, setLoading] = useState(false);
@@ -249,6 +222,40 @@ function HomeContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
+  const featuredStocks = FEATURED_STOCK_SYMBOLS.map((sym) => ({
+    symbol: sym,
+    name: (t.home.featuredStocks as Record<string, string>)[sym] || sym,
+  }));
+
+  const loadingStepTexts = [
+    t.home.loading.step1,
+    t.home.loading.step2,
+    t.home.loading.step3,
+    t.home.loading.step4,
+    t.home.loading.step5,
+  ];
+
+  const coreAdvantages = [
+    {
+      id: 'ai-logic',
+      number: t.home.features.one,
+      title: t.home.features.feature1Title,
+      description: t.home.features.feature1Desc,
+    },
+    {
+      id: 'multi-source',
+      number: t.home.features.two,
+      title: t.home.features.feature2Title,
+      description: t.home.features.feature2Desc,
+    },
+    {
+      id: 'minimalist',
+      number: t.home.features.three,
+      title: t.home.features.feature3Title,
+      description: t.home.features.feature3Desc,
+    },
+  ];
+
   // 初始化搜索历史
   useEffect(() => {
     setSearchHistory(getSearchHistory());
@@ -276,7 +283,7 @@ function HomeContent() {
   useEffect(() => {
     if (symbol || reportData) return;
     const interval = setInterval(() => {
-      setCurrentStockIndex((prev) => (prev + 1) % FEATURED_STOCKS.length);
+      setCurrentStockIndex((prev) => (prev + 1) % FEATURED_STOCK_SYMBOLS.length);
     }, 2500);
     return () => clearInterval(interval);
   }, [symbol, reportData]);
@@ -417,7 +424,7 @@ function HomeContent() {
   useEffect(() => {
     if (loading) {
       const interval = setInterval(() => {
-        setLoadingStep((prev) => (prev + 1) % LOADING_STEPS.length);
+        setLoadingStep((prev) => (prev + 1) % LOADING_STEPS_META.length);
       }, 3000);
       return () => clearInterval(interval);
     }
@@ -441,7 +448,7 @@ function HomeContent() {
         const response = await fetch('/api/symbol-suggest', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query, market: marketHint }),
+          body: JSON.stringify({ query, market: marketHint, language: locale }),
           signal: controller.signal,
         });
         const data = await response.json();
@@ -465,7 +472,7 @@ function HomeContent() {
       controller.abort();
       clearTimeout(timeout);
     };
-  }, [symbol]);
+  }, [symbol, locale]);
 
   const handleSelectSuggestion = (item: SymbolSuggestion) => {
     setSelectedMarket(item.market);
@@ -495,7 +502,7 @@ function HomeContent() {
   // 检查缓存
   const checkCache = async (symbol: string, market: MarketType) => {
     try {
-      const response = await fetch(`/api/cache?symbol=${encodeURIComponent(symbol)}&market=${market}`);
+      const response = await fetch(`/api/cache?symbol=${encodeURIComponent(symbol)}&market=${market}&language=${locale}`);
       if (!response.ok) return null;
       return await response.json();
     } catch (error) {
@@ -529,7 +536,7 @@ function HomeContent() {
       const response = await fetch('/api/ai/stream-section', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ section, symbol, ...payload }),
+        body: JSON.stringify({ section, symbol, language: locale, ...payload }),
       });
 
       if (!response.body) return '';
@@ -589,7 +596,7 @@ function HomeContent() {
     // 使用 normalizeSymbol 处理全角字符和空格（中文输入法可能输入的情况）
     const trimmedSymbol = normalizeSymbol(symbol);
     if (!trimmedSymbol) {
-      setError('请输入股票代码');
+      setError(t.home.search.enterSymbol);
       inputRef.current?.focus();
       return;
     }
@@ -626,7 +633,7 @@ function HomeContent() {
         return JSON.parse(text);
       } catch (error) {
         // FMP or other APIs might return non-JSON on error
-        throw new Error('服务返回了非 JSON 响应');
+        throw new Error(t.home.errors.nonJsonResponse);
       }
     };
 
@@ -644,7 +651,7 @@ function HomeContent() {
       } catch (error: any) {
         clearTimeout(timeoutId);
         if (error.name === 'AbortError') {
-          throw new Error('请求超时，服务器响应时间过长。请检查网络连接后重试。');
+          throw new Error(t.home.errors.timeout);
         }
         throw error;
       }
@@ -662,13 +669,14 @@ function HomeContent() {
         body: JSON.stringify({
           symbol: formattedSymbol,
           market: marketForAnalyze,
-          period: 'annual'
+          period: 'annual',
+          language: locale,
         }),
       }, 90000);
       const data = await parseJsonResponse(response);
 
       if (!response.ok) {
-        const errorMsg = data?.error || '分析失败，请稍后重试';
+        const errorMsg = data?.error || t.home.errors.analysisFailed;
         const retryable = data?.retryable ?? true;
         setIsRetryable(retryable);
         if (errorMsg.includes('找不到') || errorMsg.includes('not found') || errorMsg.includes('无效')) {
@@ -887,22 +895,22 @@ function HomeContent() {
       Promise.all(proTasks).then((proResults) => {
         // 7. 专业版综合投资建议（需要前6个章节的内容）
         const proContext = `
-生意模式分析：
+${t.report.proAnalysis.businessModel}:
 ${proResults[0]}
 
-运营模式分析：
+${t.report.proAnalysis.operatingModel}:
 ${proResults[1]}
 
-行业前景评估：
+${t.report.proAnalysis.industryOutlook}:
 ${proResults[2]}
 
-竞争地位与护城河：
+${t.report.proAnalysis.moatAnalysis}:
 ${proResults[3]}
 
-财务健康与经营质量：
+${t.report.proAnalysis.financialHealth}:
 ${proResults[4]}
 
-估值与买入时机：
+${t.report.proAnalysis.valuation}:
 ${proResults[5]}
         `;
         streamSection('proInvestmentConclusion', {
@@ -960,9 +968,8 @@ ${proResults[5]}
     } catch (err: any) {
       console.error(err);
       setRetryCount(prev => prev + 1);
-      const baseError = err.message || '网络错误，请检查连接后重试';
-      // Add VPN suggestion after 3+ failures
-      const vpnHint = retryCount >= 2 ? '\n\n提示：如果您在中国大陆，可能需要使用 VPN 才能访问 FMP API。' : '';
+      const baseError = err.message || t.home.errors.networkError;
+      const vpnHint = retryCount >= 2 ? '\n\n' + t.home.errors.vpnHint : '';
       setError(baseError + vpnHint);
       setIsRetryable(true);
       setLoading(false);
@@ -1012,16 +1019,16 @@ ${proResults[5]}
               >
                 {/* 主标题 - 愿景式文案 */}
                 <h2 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-light text-white mb-6 md:mb-8 leading-tight tracking-tight">
-                  看透财务，
+                  {t.home.hero.title}
                   <br className="md:hidden" />
-                  <span className="gradient-text font-normal">见证商业逻辑</span>
+                  <span className="gradient-text font-normal">{t.home.hero.titleHighlight}</span>
                 </h2>
 
                 {/* 副标题 */}
                 <p className="text-base md:text-xl text-mist-400 max-w-2xl mx-auto leading-relaxed px-4">
-                  将海量数据转化为你的投资决断
+                  {t.home.hero.subtitle1}
                   <br className="hidden md:block" />
-                  <span className="text-mist-500">跨越市场疆界，AI 为你实时解码</span>
+                  <span className="text-mist-500">{t.home.hero.subtitle2}</span>
                 </p>
               </motion.div>
 
@@ -1035,7 +1042,7 @@ ${proResults[5]}
                 {/* 市场识别提示 - 独立于卡片外 */}
                 <div className="flex items-center gap-2 mb-4 text-sm text-mist-500 px-1">
                   <Globe2Icon size={14} className="text-glacier-500/70" />
-                  <span>AI 自动识别市场 · 当前：{currentMarketConfig.nameCn}</span>
+                  <span>{t.home.search.aiMarketDetect}{currentMarketConfig.nameCn}</span>
                 </div>
 
                 {/* 搜索框容器 */}
@@ -1071,7 +1078,7 @@ ${proResults[5]}
                             className="transition-transform duration-500 ease-in-out"
                             style={{ transform: `translateY(-${currentStockIndex * 24}px)` }}
                           >
-                            {FEATURED_STOCKS.map((stock, index) => (
+                            {featuredStocks.map((stock, index) => (
                               <div
                                 key={index}
                                 className="h-6 flex items-center text-mist-600 text-base md:text-lg"
@@ -1096,7 +1103,7 @@ ${proResults[5]}
                       ) : (
                         <>
                           <TrendingUpIcon size={20} />
-                          <span>开始分析</span>
+                          <span>{t.home.search.startAnalysis}</span>
                           <ArrowRightIcon size={16} className="opacity-70 hidden sm:block" />
                         </>
                       )}
@@ -1140,7 +1147,7 @@ ${proResults[5]}
                             </button>
                           ))}
                           {suggestions.length === 0 && !suggestLoading && (
-                            <div className="px-5 py-2.5 text-sm text-mist-600">暂未找到匹配结果</div>
+                            <div className="px-5 py-2.5 text-sm text-mist-600">{t.home.search.noMatch}</div>
                           )}
                         </div>
                       </motion.div>
@@ -1165,7 +1172,7 @@ ${proResults[5]}
                             disabled={loading}
                             className="mt-3 px-4 py-2 text-sm font-medium rounded-lg bg-glacier-500/20 text-glacier-400 hover:bg-glacier-500/30 transition-colors disabled:opacity-50"
                           >
-                            {retryCount > 0 ? `重试 (${retryCount})` : '重试'}
+                            {retryCount > 0 ? t.home.errors.retryWithCount(retryCount) : t.common.retry}
                           </button>
                         )}
                       </div>
@@ -1178,7 +1185,7 @@ ${proResults[5]}
                   <div className="mb-4">
                     <div className="flex items-center gap-2 mb-3 px-1">
                       <ClockIcon size={14} className="text-mist-500" />
-                      <span className="text-sm text-mist-500">搜索历史</span>
+                      <span className="text-sm text-mist-500">{t.home.search.searchHistory}</span>
                       <button
                         onClick={() => {
                           clearSearchHistory();
@@ -1186,7 +1193,7 @@ ${proResults[5]}
                         }}
                         className="ml-auto text-xs text-mist-600 hover:text-mist-400 transition-colors"
                       >
-                        清除全部
+                        {t.home.search.clearAll}
                       </button>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
@@ -1216,7 +1223,7 @@ ${proResults[5]}
                               setSearchHistory(getSearchHistory());
                             }}
                             className="w-5 h-5 flex items-center justify-center rounded-md text-mist-700 hover:text-mist-300 hover:bg-white/[0.06] transition-all opacity-0 group-hover:opacity-100"
-                            title="删除"
+                            title={t.common.delete}
                           >
                             <XIcon size={12} />
                           </button>
@@ -1233,10 +1240,10 @@ ${proResults[5]}
                     <div>
                       <div className="flex items-center gap-2 mb-3 px-1">
                         <FlameIcon size={14} className="text-mist-500" />
-                        <span className="text-sm text-mist-500">本周热搜</span>
+                        <span className="text-sm text-mist-500">{t.home.search.trendingThisWeek}</span>
                         <div className="flex items-center gap-1 ml-auto text-xs text-mist-600">
                           <ClockIcon size={11} />
-                          <span className="hidden sm:inline">实时更新</span>
+                          <span className="hidden sm:inline">{t.home.search.realtimeUpdate}</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
@@ -1266,7 +1273,7 @@ ${proResults[5]}
 
                   {/* 市场推荐股票 */}
                   <div className="flex items-center gap-2 flex-wrap text-sm px-1">
-                    <span className="text-mist-600">{currentMarketConfig.nameCn}热门：</span>
+                    <span className="text-mist-600">{t.home.search.marketHot(currentMarketConfig.nameCn)}</span>
                     {currentMarketConfig.featuredStocks.slice(0, 5).map((stock) => (
                       <button
                         key={stock.symbol}
@@ -1289,7 +1296,7 @@ ${proResults[5]}
                   animate={{ opacity: 1, y: 0 }}
                 >
                   <div className="glass-card p-6 md:p-8 w-full max-w-md">
-                    <LinearLoader step={loadingStep} totalSteps={LOADING_STEPS.length} />
+                    <LinearLoader step={loadingStep} totalSteps={LOADING_STEPS_META.length} stepTexts={loadingStepTexts} estimateText={t.home.loading.estimate} />
                   </div>
                 </motion.div>
               )}
@@ -1306,12 +1313,12 @@ ${proResults[5]}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-100px' }}
                 >
-                  <h3 className="text-2xl md:text-3xl lg:text-4xl font-light text-white mb-4">为什么选择智投研究</h3>
-                  <p className="text-mist-500 text-sm md:text-base">不只是工具，更是你的投研智囊</p>
+                  <h3 className="text-2xl md:text-3xl lg:text-4xl font-light text-white mb-4">{t.home.features.title}</h3>
+                  <p className="text-mist-500 text-sm md:text-base">{t.home.features.subtitle}</p>
                 </motion.div>
 
                 <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
-                  {CORE_ADVANTAGES.map((advantage, index) => (
+                  {coreAdvantages.map((advantage, index) => (
                     <motion.div
                       key={advantage.id}
                       className="feature-card group"
@@ -1345,8 +1352,8 @@ ${proResults[5]}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-100px' }}
                 >
-                  <h3 className="text-2xl md:text-3xl lg:text-4xl font-light text-white mb-4">AI 正在解读</h3>
-                  <p className="text-mist-500 text-sm md:text-base">实时展示研报生成过程</p>
+                  <h3 className="text-2xl md:text-3xl lg:text-4xl font-light text-white mb-4">{t.home.aiShowcase.title}</h3>
+                  <p className="text-mist-500 text-sm md:text-base">{t.home.aiShowcase.displayTitle}</p>
                 </motion.div>
 
                 <Suspense fallback={
@@ -1373,22 +1380,19 @@ ${proResults[5]}
                     transition={{ duration: 0.6 }}
                   >
                     <h3 className="text-2xl md:text-3xl lg:text-4xl font-light text-white mb-6">
-                      全球视野，
-                      <span className="gradient-text">本土洞察</span>
+                      {t.home.globalVision.title}
                     </h3>
                     <p className="text-mist-400 leading-relaxed mb-10 text-[15px] md:text-base max-w-2xl mx-auto">
-                      无论是硅谷的创新脉搏，还是沪深的产业律动，
-                      <br className="hidden md:block" />
-                      AI 为你跨越市场疆界，实时解码全球投资机会。
+                      {t.home.globalVision.subtitle}
                     </p>
 
                     {/* 市场列表 */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
                       {[
-                        { name: '美股', code: 'NYSE / NASDAQ', color: '#4285f4' },
-                        { name: 'A股', code: 'SSE / SZSE', color: '#ea4335' },
-                        { name: '港股', code: 'HKEX', color: '#fbbc04' },
-                        { name: '日股', code: 'TSE', color: '#34a853' },
+                        { name: t.markets.us, code: 'NYSE / NASDAQ', color: '#4285f4' },
+                        { name: t.markets.cn, code: 'SSE / SZSE', color: '#ea4335' },
+                        { name: t.markets.hk, code: 'HKEX', color: '#fbbc04' },
+                        { name: t.markets.jp, code: 'TSE', color: '#34a853' },
                       ].map((market) => (
                         <div key={market.name} className="flex items-center justify-center gap-3 p-4 rounded-xl bg-white/5 border border-white/5 text-left hover:bg-white/10 transition-colors">
                           <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: market.color }} />
@@ -1415,8 +1419,8 @@ ${proResults[5]}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-100px' }}
                 >
-                  <h3 className="text-2xl md:text-3xl lg:text-4xl font-light text-white mb-4">用户如是说</h3>
-                  <p className="text-mist-500 text-sm md:text-base">来自不同背景投资者的真实反馈</p>
+                  <h3 className="text-2xl md:text-3xl lg:text-4xl font-light text-white mb-4">{t.home.testimonials.title}</h3>
+                  <p className="text-mist-500 text-sm md:text-base">{t.home.testimonials.subtitle}</p>
                 </motion.div>
 
                 <Suspense fallback={
@@ -1440,7 +1444,7 @@ ${proResults[5]}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-100px' }}
                 >
-                  <h3 className="text-2xl md:text-3xl lg:text-4xl font-light text-white mb-4">常见问题</h3>
+                  <h3 className="text-2xl md:text-3xl lg:text-4xl font-light text-white mb-4">{t.home.faq.title}</h3>
                 </motion.div>
 
                 <div className="space-y-4">
@@ -1459,7 +1463,7 @@ ${proResults[5]}
                         <div className="w-8 h-8 rounded-sm bg-glacier-500/10 border border-glacier-500/20 flex items-center justify-center flex-shrink-0 text-glacier-500">
                           <HelpCircleIcon size={16} />
                         </div>
-                        <span className="text-sm md:text-base font-medium text-mist-200 group-hover:text-white transition-colors text-left">如何使用？</span>
+                        <span className="text-sm md:text-base font-medium text-mist-200 group-hover:text-white transition-colors text-left">{t.home.faq.q1}</span>
                       </div>
                       <ChevronDownIcon
                         size={16}
@@ -1478,10 +1482,10 @@ ${proResults[5]}
                         >
                           <div className="px-5 pb-5 pt-1 space-y-3 border-t border-white/5">
                             <p className="text-mist-400 leading-relaxed text-sm">
-                              在搜索框输入股票代码（如 <span className="text-glacier-400 font-mono">AAPL</span>、<span className="text-glacier-400 font-mono">600519</span>）或名称，点击"开始分析"。
+                              {t.home.faq.a1_1}
                             </p>
                             <p className="text-mist-400 leading-relaxed text-sm">
-                              生成报告通常需要 <span className="text-white font-mono">15-30s</span>，系统会自动识别市场并调用 AI 进行深度分析。
+                              {t.home.faq.a1_2}
                             </p>
                           </div>
                         </motion.div>
@@ -1505,7 +1509,7 @@ ${proResults[5]}
                         <div className="w-8 h-8 rounded-sm bg-gemini-purple/10 border border-gemini-purple/20 flex items-center justify-center flex-shrink-0 text-gemini-purple">
                           <DollarSignIcon size={16} />
                         </div>
-                        <span className="text-sm md:text-base font-medium text-mist-200 group-hover:text-white transition-colors text-left">是否收费？</span>
+                        <span className="text-sm md:text-base font-medium text-mist-200 group-hover:text-white transition-colors text-left">{t.home.faq.q2}</span>
                       </div>
                       <ChevronDownIcon
                         size={16}
@@ -1524,10 +1528,10 @@ ${proResults[5]}
                         >
                           <div className="px-5 pb-5 pt-1 space-y-3 border-t border-white/5">
                             <p className="text-mist-400 leading-relaxed text-sm">
-                              目前 <span className="text-white font-semibold">完全免费</span>，所有 API 调用、AI 分析等费用均由创作者个人承担。
+                              {t.home.faq.a2_1}
                             </p>
                             <p className="text-mist-400 leading-relaxed text-sm">
-                              我们的目标是帮助更多人了解股票投资，做出更明智的决策。
+                              {t.home.faq.a2_2}
                             </p>
                           </div>
                         </motion.div>
@@ -1551,7 +1555,7 @@ ${proResults[5]}
                         <div className="w-8 h-8 rounded-sm bg-gemini-yellow/10 border border-gemini-yellow/20 flex items-center justify-center flex-shrink-0 text-gemini-yellow">
                           <MessageCircleIcon size={16} />
                         </div>
-                        <span className="text-sm md:text-base font-medium text-mist-200 group-hover:text-white transition-colors text-left">联系作者与反馈</span>
+                        <span className="text-sm md:text-base font-medium text-mist-200 group-hover:text-white transition-colors text-left">{t.home.faq.q3}</span>
                       </div>
                       <ChevronDownIcon
                         size={16}
@@ -1571,15 +1575,15 @@ ${proResults[5]}
                           <div className="px-5 pb-5 pt-1 space-y-4 border-t border-white/5">
                             <div className="space-y-2">
                               <p className="text-mist-400 leading-relaxed text-sm">
-                                欢迎通过以下方式联系我们：
+                                {t.home.faq.a3_1}
                               </p>
                               <div className="space-y-2 pl-4">
                                 <p className="text-mist-400 text-sm">
-                                  <span className="text-mist-500">微信：</span>
+                                  <span className="text-mist-500">{t.home.faq.wechat}</span>
                                   <span className="text-white font-mono ml-2">kaizhou_wang</span>
                                 </p>
                                 <p className="text-mist-400 text-sm">
-                                  <span className="text-mist-500">邮箱：</span>
+                                  <span className="text-mist-500">{t.home.faq.email}</span>
                                   <a
                                     href="mailto:wangkaizhou2024@gmail.com"
                                     className="text-glacier-400 hover:text-glacier-300 transition-colors ml-2"
@@ -1593,15 +1597,15 @@ ${proResults[5]}
                             {/* 微信群二维码 */}
                             <div className="pt-2">
                               <div className="bg-white/5 rounded-md p-4 text-center border border-white/5">
-                                <p className="text-mist-400 text-sm mb-3">扫码加入微信群</p>
+                                <p className="text-mist-400 text-sm mb-3">{t.home.faq.scanQr}</p>
                                 <div className="w-32 h-32 bg-white rounded-sm p-1 mx-auto">
                                   <img
                                     src="/wechat-qr.jpg"
-                                    alt="微信群二维码"
+                                    alt="WeChat QR"
                                     className="w-full h-full object-contain"
                                   />
                                 </div>
-                                <p className="text-mist-600 text-xs mt-3">二维码 7 天内有效</p>
+                                <p className="text-mist-600 text-xs mt-3">{t.home.faq.qrExpiry}</p>
                               </div>
                             </div>
                           </div>
@@ -1619,9 +1623,9 @@ ${proResults[5]}
                   viewport={{ once: true }}
                 >
                   <p className="text-mist-600 text-sm">
-                    还有其他问题？
+                    {t.home.faq.q4}
                     <a href="mailto:wangkaizhou2024@gmail.com" className="text-glacier-400 hover:text-glacier-300 transition-colors ml-1">
-                      联系我们
+                      {t.common.contactUs}
                     </a>
                   </p>
                 </motion.div>
@@ -1634,17 +1638,17 @@ ${proResults[5]}
             <footer className="py-8 md:py-12 px-4 md:px-6 border-t border-white/5">
               <div className="max-w-6xl mx-auto text-center">
                 <div className="flex items-center justify-center gap-2 text-mist-500 text-sm mb-1">
-                  <span>已产出</span>
+                  <span>{t.home.footer.reportCount}</span>
                   <Suspense fallback={<span className="font-mono">—</span>}>
                     <FlipCounter value={reportCount} className="text-glacier-400 text-base relative" />
                   </Suspense>
-                  <span>篇企业研报</span>
+                  <span>{t.home.footer.reportUnit}</span>
                 </div>
                 <p className="text-mist-600 text-sm">
-                  © {new Date().getFullYear()} 智投研究 · AI Investment Research
+                  {t.home.footer.copyright(new Date().getFullYear())}
                 </p>
                 <p className="text-mist-700 text-xs mt-2">
-                  数据来源：Financial Modeling Prep (FMP) · AI 由 Google Gemini 提供支持
+                  {t.home.footer.dataSource}
                 </p>
               </div>
             </footer>
@@ -1718,21 +1722,21 @@ ${proResults[5]}
               </button>
 
               {/* 标题 */}
-              <h3 className="text-xl font-semibold text-white mb-2 text-center">联系我们</h3>
-              <p className="text-sm text-mist-400 mb-6 text-center">扫描二维码添加微信</p>
+              <h3 className="text-xl font-semibold text-white mb-2 text-center">{t.home.contact.title}</h3>
+              <p className="text-sm text-mist-400 mb-6 text-center">{t.home.contact.scanQr}</p>
 
               {/* 二维码图片 */}
               <div className="flex justify-center">
                 <img
                   src="/wechat-qr.jpg"
-                  alt="微信二维码"
+                  alt="WeChat QR"
                   className="w-64 h-64 object-cover rounded-lg"
                 />
               </div>
 
               {/* 提示文字 */}
               <p className="text-xs text-mist-500 mt-4 text-center">
-                期待与您交流
+                {t.home.contact.lookForward}
               </p>
             </motion.div>
           </motion.div>
