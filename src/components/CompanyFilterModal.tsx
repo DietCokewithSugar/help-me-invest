@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     XIcon,
@@ -77,20 +77,23 @@ export default function CompanyFilterModal({
     const [industries, setIndustries] = useState<string[]>([]);
 
     // 获取筛选后的公司列表
-    const fetchCompanies = async () => {
+    const fetchCompanies = useCallback(async (currentFilters: CompanyFilterRequest, query: string) => {
         setLoading(true);
         try {
+            const requestBody = {
+                ...currentFilters,
+                searchQuery: query.trim() || undefined,
+            };
             const response = await fetch('/api/companies/filter', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(filters),
+                body: JSON.stringify(requestBody),
             });
             const data = await response.json();
             if (data.success) {
                 setCompanies(data.data);
                 setTotal(data.total);
 
-                // 提取唯一的 sector 和 industry
                 const uniqueSectors = Array.from(new Set(data.data.map((c: CompanyDiagnostic) => c.sector).filter(Boolean)));
                 const uniqueIndustries = Array.from(new Set(data.data.map((c: CompanyDiagnostic) => c.industry).filter(Boolean)));
                 setSectors(uniqueSectors as string[]);
@@ -101,25 +104,41 @@ export default function CompanyFilterModal({
         } finally {
             setLoading(false);
         }
+    }, []);
+
+    // 搜索防抖
+    const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const handleSearchChange = (value: string) => {
+        setSearchQuery(value);
+        if (searchTimerRef.current) {
+            clearTimeout(searchTimerRef.current);
+        }
+        searchTimerRef.current = setTimeout(() => {
+            setFilters((prev) => ({ ...prev, page: 1 }));
+            fetchCompanies({ ...filters, page: 1 }, value);
+        }, 300);
     };
 
     // 初始加载
     useEffect(() => {
         if (isOpen) {
-            fetchCompanies();
+            fetchCompanies(filters, searchQuery);
         }
     }, [isOpen]);
 
     // 应用筛选
     const applyFilters = () => {
-        setFilters({ ...filters, page: 1 });
-        fetchCompanies();
+        const newFilters = { ...filters, page: 1 };
+        setFilters(newFilters);
+        fetchCompanies(newFilters, searchQuery);
     };
 
     // 重置筛选
     const resetFilters = () => {
-        setFilters({ page: 1, limit: 50 });
+        const newFilters = { page: 1, limit: 50 };
+        setFilters(newFilters);
         setSearchQuery('');
+        fetchCompanies(newFilters, '');
     };
 
     // 切换多选项
@@ -139,16 +158,6 @@ export default function CompanyFilterModal({
         if (marketCap >= 1e6) return `$${(marketCap / 1e6).toFixed(2)}M`;
         return `$${marketCap.toFixed(0)}`;
     };
-
-    // 筛选后的公司（基于搜索）
-    const filteredCompanies = companies.filter((company) => {
-        if (!searchQuery) return true;
-        const query = searchQuery.toLowerCase();
-        return (
-            company.symbol.toLowerCase().includes(query) ||
-            company.company_name?.toLowerCase().includes(query)
-        );
-    });
 
     if (!isOpen) return null;
 
@@ -329,13 +338,13 @@ export default function CompanyFilterModal({
                                             <input
                                                 type="text"
                                                 value={searchQuery}
-                                                onChange={(e) => setSearchQuery(e.target.value)}
+                                                onChange={(e) => handleSearchChange(e.target.value)}
                                                 placeholder="搜索公司名称或代码..."
                                                 className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-mist-600 focus:outline-none focus:border-glacier-500/50"
                                             />
                                         </div>
                                         <div className="mt-2 text-sm text-mist-500">
-                                            找到 {total} 家公司 {searchQuery && `（显示 ${filteredCompanies.length} 条结果）`}
+                                            找到 {total} 家公司
                                         </div>
                                     </div>
 
@@ -345,7 +354,7 @@ export default function CompanyFilterModal({
                                             <div className="flex items-center justify-center h-full">
                                                 <div className="text-mist-500">加载中...</div>
                                             </div>
-                                        ) : filteredCompanies.length === 0 ? (
+                                        ) : companies.length === 0 ? (
                                             <div className="flex items-center justify-center h-full">
                                                 <div className="text-center">
                                                     <div className="text-mist-500 mb-2">未找到符合条件的公司</div>
@@ -359,7 +368,7 @@ export default function CompanyFilterModal({
                                             </div>
                                         ) : (
                                             <div className="grid grid-cols-1 gap-3">
-                                                {filteredCompanies.map((company) => (
+                                                {companies.map((company) => (
                                                     <button
                                                         key={company.id}
                                                         onClick={() => setSelectedCompany(company)}
@@ -394,12 +403,13 @@ export default function CompanyFilterModal({
                                     </div>
 
                                     {/* Pagination */}
-                                    {!loading && filteredCompanies.length > 0 && (
+                                    {!loading && companies.length > 0 && (
                                         <div className="p-6 border-t border-white/10 flex items-center justify-between">
                                             <button
                                                 onClick={() => {
-                                                    setFilters({ ...filters, page: (filters.page || 1) - 1 });
-                                                    fetchCompanies();
+                                                    const newFilters = { ...filters, page: (filters.page || 1) - 1 };
+                                                    setFilters(newFilters);
+                                                    fetchCompanies(newFilters, searchQuery);
                                                 }}
                                                 disabled={(filters.page || 1) <= 1}
                                                 className="px-4 py-2 bg-white/5 hover:bg-white/10 text-mist-300 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -411,8 +421,9 @@ export default function CompanyFilterModal({
                                             </div>
                                             <button
                                                 onClick={() => {
-                                                    setFilters({ ...filters, page: (filters.page || 1) + 1 });
-                                                    fetchCompanies();
+                                                    const newFilters = { ...filters, page: (filters.page || 1) + 1 };
+                                                    setFilters(newFilters);
+                                                    fetchCompanies(newFilters, searchQuery);
                                                 }}
                                                 disabled={(filters.page || 1) * (filters.limit || 50) >= total}
                                                 className="px-4 py-2 bg-white/5 hover:bg-white/10 text-mist-300 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

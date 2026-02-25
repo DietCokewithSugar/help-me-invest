@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -465,13 +465,17 @@ export default function CompaniesPage() {
     };
 
     // 获取筛选后的公司列表
-    const fetchCompanies = async () => {
+    const fetchCompanies = useCallback(async (currentFilters: CompanyFilterRequest, query: string) => {
         setLoading(true);
         try {
+            const requestBody = {
+                ...currentFilters,
+                searchQuery: query.trim() || undefined,
+            };
             const response = await fetch('/api/companies/filter', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(filters),
+                body: JSON.stringify(requestBody),
             });
             const data = await response.json();
             if (data.success) {
@@ -483,25 +487,40 @@ export default function CompaniesPage() {
         } finally {
             setLoading(false);
         }
+    }, []);
+
+    // 搜索防抖
+    const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const handleSearchChange = (value: string) => {
+        setSearchQuery(value);
+        if (searchTimerRef.current) {
+            clearTimeout(searchTimerRef.current);
+        }
+        searchTimerRef.current = setTimeout(() => {
+            setFilters((prev) => ({ ...prev, page: 1 }));
+            fetchCompanies({ ...filters, page: 1 }, value);
+        }, 300);
     };
 
-    // 初始加载
+    // 初始加载 & 翻页
     useEffect(() => {
-        fetchCompanies();
+        fetchCompanies(filters, searchQuery);
     }, [filters.page]);
 
     // 应用筛选
     const applyFilters = () => {
-        setFilters({ ...filters, page: 1 });
-        fetchCompanies();
+        const newFilters = { ...filters, page: 1 };
+        setFilters(newFilters);
+        fetchCompanies(newFilters, searchQuery);
     };
 
     // 重置筛选
     const resetFilters = () => {
-        setFilters({ page: 1, limit: 50 });
+        const newFilters = { page: 1, limit: 50 };
+        setFilters(newFilters);
         setSearchQuery('');
         setSelectedMarketCapRange(null);
-        fetchCompanies();
+        fetchCompanies(newFilters, '');
     };
 
     // 切换多选项
@@ -547,16 +566,6 @@ export default function CompaniesPage() {
         if (marketCap >= 1e6) return `$${(marketCap / 1e6).toFixed(2)}M`;
         return `$${marketCap.toFixed(0)}`;
     };
-
-    // 筛选后的公司（基于搜索）
-    const filteredCompanies = companies.filter((company) => {
-        if (!searchQuery) return true;
-        const query = searchQuery.toLowerCase();
-        return (
-            company.symbol.toLowerCase().includes(query) ||
-            company.company_name?.toLowerCase().includes(query)
-        );
-    });
 
     // 导航到报告页面
     const handleGenerateReport = (symbol: string) => {
@@ -756,7 +765,7 @@ export default function CompaniesPage() {
                             <input
                                 type="text"
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onChange={(e) => handleSearchChange(e.target.value)}
                                 placeholder="搜索公司名称或代码..."
                                 className="w-full pl-12 pr-4 py-4 glass-card border border-white/10 dark:border-white/10 light:border-black/10 rounded-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 transition-colors"
                             />
@@ -769,7 +778,7 @@ export default function CompaniesPage() {
                             <div className="flex items-center justify-center py-20">
                                 <div className="text-text-muted font-mono animate-pulse">LOADING_DATA...</div>
                             </div>
-                        ) : filteredCompanies.length === 0 ? (
+                        ) : companies.length === 0 ? (
                             <div className="glass-card p-12 rounded-sm border border-white/10 text-center">
                                 <div className="text-text-muted mb-4 font-mono">NO_RESULTS_FOUND</div>
                                 <button
@@ -782,7 +791,7 @@ export default function CompaniesPage() {
                         ) : (
                             <>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {filteredCompanies.map((company) => (
+                                    {companies.map((company) => (
                                         <motion.div
                                             key={company.id}
                                             initial={{ opacity: 0, y: 10 }}
