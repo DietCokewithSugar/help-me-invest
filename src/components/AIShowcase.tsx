@@ -2,52 +2,55 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const ANALYSIS_DIMENSIONS = [
-  { id: 'revenue', label: '营收结构', detail: '分析主营业务收入构成与增长趋势' },
-  { id: 'position', label: '行业地位', detail: '评估市场份额与竞争格局' },
-  { id: 'advantage', label: '竞争优势', detail: '挖掘护城河与核心壁垒' },
-  { id: 'risk', label: '风险因素', detail: '识别潜在风险与应对策略' },
-  { id: 'valuation', label: '估值分析', detail: '多维度估值模型与对比' },
-];
-
-const DEMO_STOCKS = [
-  { symbol: 'NVDA', name: '英伟达', sector: '半导体' },
-  { symbol: 'AAPL', name: '苹果', sector: '消费电子' },
-  { symbol: 'TSLA', name: '特斯拉', sector: '新能源汽车' },
-];
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function AIShowcase() {
+  const { t } = useLanguage();
   const [currentStock, setCurrentStock] = useState(0);
   const [activeDimension, setActiveDimension] = useState(0);
   const [isTyping, setIsTyping] = useState(true);
   const [typedText, setTypedText] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
+  const ANALYSIS_DIMENSIONS = [
+    { id: 'revenue', label: t.aiShowcase.revenueStructure, detail: t.aiShowcase.revenueDesc },
+    { id: 'position', label: t.aiShowcase.industryPosition, detail: t.aiShowcase.industryDesc },
+    { id: 'advantage', label: t.aiShowcase.competitiveAdvantage, detail: t.aiShowcase.competitiveDesc },
+    { id: 'risk', label: t.aiShowcase.riskFactors, detail: t.aiShowcase.riskDesc },
+    { id: 'valuation', label: t.aiShowcase.valuationAnalysis, detail: t.aiShowcase.valuationDesc },
+  ];
+
+  const DEMO_STOCKS = [
+    { symbol: 'NVDA', name: t.aiShowcase.nvidia, sector: t.aiShowcase.semiconductor },
+    { symbol: 'AAPL', name: t.aiShowcase.apple, sector: t.aiShowcase.consumerElectronics },
+    { symbol: 'TSLA', name: t.aiShowcase.tesla, sector: t.aiShowcase.newEnergyVehicle },
+  ];
+
   const stock = DEMO_STOCKS[currentStock];
   const dimension = ANALYSIS_DIMENSIONS[activeDimension];
   
-  // 切换股票
   useEffect(() => {
+    const stockCount = DEMO_STOCKS.length;
     const interval = setInterval(() => {
-      setCurrentStock(prev => (prev + 1) % DEMO_STOCKS.length);
+      setCurrentStock(prev => (prev + 1) % stockCount);
       setActiveDimension(0);
       setTypedText('');
     }, 12000);
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
-  // 切换分析维度
   useEffect(() => {
+    const dimCount = ANALYSIS_DIMENSIONS.length;
     const interval = setInterval(() => {
-      setActiveDimension(prev => (prev + 1) % ANALYSIS_DIMENSIONS.length);
+      setActiveDimension(prev => (prev + 1) % dimCount);
       setTypedText('');
       setIsTyping(true);
     }, 2400);
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStock]);
   
-  // 打字机效果
   useEffect(() => {
     if (!isTyping) return;
     
@@ -70,15 +73,15 @@ export default function AIShowcase() {
   return (
     <div ref={containerRef} className="relative">
       <div className="glass-card p-8 md:p-12 overflow-hidden">
-        {/* 背景装饰 */}
+        {/* Background decoration */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-glacier-500/10 to-transparent rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-gemini-blue/10 to-transparent rounded-full blur-3xl" />
         
         <div className="relative grid md:grid-cols-2 gap-8 md:gap-12">
-          {/* 左侧 - 股票信息展示 */}
+          {/* Left - Stock info */}
           <div className="space-y-6">
             <div className="space-y-2">
-              <p className="text-mist-500 text-sm tracking-wider uppercase">AI 正在解读</p>
+              <p className="text-mist-500 text-sm tracking-wider uppercase">{t.aiShowcase.title}</p>
               <AnimatePresence mode="wait">
                 <motion.div
                   key={stock.symbol}
@@ -95,13 +98,13 @@ export default function AIShowcase() {
               </AnimatePresence>
             </div>
             
-            {/* 模拟终端 */}
+            {/* Terminal */}
             <div className="bg-obsidian/80 rounded-2xl p-6 font-mono text-sm border border-white/5">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-3 h-3 rounded-full bg-red-500/80" />
                 <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
                 <div className="w-3 h-3 rounded-full bg-green-500/80" />
-                <span className="ml-2 text-mist-600 text-xs">AI Analysis Terminal</span>
+                <span className="ml-2 text-mist-600 text-xs">{t.aiShowcase.terminal}</span>
               </div>
               
               <div className="space-y-2 text-mist-400">
@@ -116,7 +119,7 @@ export default function AIShowcase() {
               </div>
             </div>
             
-            {/* 股票切换指示器 */}
+            {/* Stock switcher */}
             <div className="flex items-center gap-3">
               {DEMO_STOCKS.map((s, i) => (
                 <button
@@ -138,9 +141,9 @@ export default function AIShowcase() {
             </div>
           </div>
           
-          {/* 右侧 - 分析维度列表 */}
+          {/* Right - Analysis dimensions */}
           <div className="space-y-4">
-            <p className="text-mist-500 text-sm mb-6">分析维度</p>
+            <p className="text-mist-500 text-sm mb-6">{t.aiShowcase.dimensions}</p>
             
             {ANALYSIS_DIMENSIONS.map((dim, index) => (
               <motion.div
@@ -155,7 +158,7 @@ export default function AIShowcase() {
                 }`}
               >
                 <div className="flex items-center gap-4">
-                  {/* 状态指示器 */}
+                  {/* Status indicator */}
                   <div className={`relative w-10 h-10 rounded-xl flex items-center justify-center ${
                     index < activeDimension
                       ? 'bg-glacier-500/20'
@@ -174,7 +177,7 @@ export default function AIShowcase() {
                     )}
                   </div>
                   
-                  {/* 维度信息 */}
+                  {/* Dimension info */}
                   <div className="flex-1">
                     <h4 className={`font-medium transition-colors ${
                       index === activeDimension ? 'text-white' : 'text-mist-400'
@@ -192,7 +195,7 @@ export default function AIShowcase() {
                     )}
                   </div>
                   
-                  {/* 进度条 */}
+                  {/* Progress bar */}
                   {index === activeDimension && (
                     <motion.div
                       className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-glacier-500 to-gemini-blue"

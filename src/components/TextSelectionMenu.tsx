@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { X, Copy, Loader2, MessageSquare } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface SelectionState {
     text: string;
@@ -19,6 +20,7 @@ export default function TextSelectionMenu() {
     const [explanation, setExplanation] = useState('');
     const [error, setError] = useState('');
     const [isMobile, setIsMobile] = useState(false);
+    const { locale, t } = useLanguage();
 
     const popoverRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null); // Kept for type safety, though conditional in render
@@ -120,7 +122,7 @@ export default function TextSelectionMenu() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ text: selection.text }),
+                body: JSON.stringify({ text: selection.text, language: locale }),
             });
 
             const contentType = response.headers.get('content-type');
@@ -169,7 +171,7 @@ export default function TextSelectionMenu() {
                         onClick={handleExplain}
                     >
                         <MessageSquare size={16} className="text-teal-600 dark:text-glacier-500" />
-                        <span className="font-medium text-sm theme-text-primary whitespace-nowrap">AI 解读</span>
+                        <span className="font-medium text-sm theme-text-primary whitespace-nowrap">{t.textSelection.aiExplain}</span>
                     </motion.button>
                 )}
             </AnimatePresence>
@@ -199,7 +201,7 @@ export default function TextSelectionMenu() {
                                 <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-white/10">
                                     <div className="flex items-center gap-2">
                                         <div className="w-1 h-4 bg-teal-500 rounded-full" />
-                                        <span className="font-bold text-base text-slate-900 dark:text-white">AI 深度解读</span>
+                                        <span className="font-bold text-base text-slate-900 dark:text-white">{t.textSelection.aiInsight}</span>
                                     </div>
                                     <div className="flex gap-3">
                                         {!loading && !error && (
@@ -218,7 +220,7 @@ export default function TextSelectionMenu() {
                                     {loading ? (
                                         <div className="flex flex-col items-center justify-center py-12 gap-4">
                                             <Loader2 size={32} className="animate-spin text-teal-600 dark:text-glacier-500" />
-                                            <span className="text-sm text-mist-500">正在分析上下文...</span>
+                                            <span className="text-sm text-mist-500">{t.textSelection.analyzing}</span>
                                         </div>
                                     ) : error ? (
                                         <div className="text-decay p-4 bg-red-500/5 border border-decay/20 rounded-lg text-sm">
@@ -256,7 +258,7 @@ export default function TextSelectionMenu() {
                             {/* Existing Desktop Header & Content logic... copied for consistency */}
                             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02]">
                                 <div className="flex items-center gap-2">
-                                    <span className="text-xs font-bold tracking-wider text-teal-600 dark:text-glacier-500 uppercase">AI Insight</span>
+                                    <span className="text-xs font-bold tracking-wider text-teal-600 dark:text-glacier-500 uppercase">{t.textSelection.aiInsightDesktop}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     {!loading && !error && (
@@ -274,7 +276,7 @@ export default function TextSelectionMenu() {
                                 {loading ? (
                                     <div className="flex flex-col items-center justify-center py-8 gap-3">
                                         <Loader2 size={20} className="animate-spin text-teal-600 dark:text-glacier-500" />
-                                        <span className="text-xs text-mist-500 dark:text-mist-500 font-medium">分析中...</span>
+                                        <span className="text-xs text-mist-500 dark:text-mist-500 font-medium">{t.textSelection.analyzingShort}</span>
                                     </div>
                                 ) : error ? (
                                     <div className="text-decay text-xs p-2 bg-red-500/5 border border-decay/20 rounded-sm">
