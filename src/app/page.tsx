@@ -622,6 +622,181 @@ function HomeContent() {
   };
 
 
+  const generateReportForVersion = async (
+    version: 'beginner' | 'standard' | 'professional',
+    existingReportData: ReportData
+  ) => {
+    const companyData = existingReportData.profile;
+    const formattedSymbol = companyData.symbol;
+    const market = existingReportData.market || selectedMarket;
+    const peers = existingReportData.peers || [];
+
+    const cacheType = version === 'professional' ? 'professional' : version;
+    try {
+      const cacheResponse = await fetch(
+        `/api/cache?symbol=${encodeURIComponent(formattedSymbol)}&market=${market}&language=${locale}&type=${cacheType}`
+      );
+      if (cacheResponse.ok) {
+        const cacheData = await cacheResponse.json();
+        if (cacheData.hasAiContent && cacheData.data?.aiAnalysis) {
+          if (version === 'beginner') {
+            setReportData(prev => prev ? { ...prev, beginnerAiAnalysis: cacheData.data.aiAnalysis } : prev);
+          } else if (version === 'standard') {
+            setReportData(prev => prev ? {
+              ...prev,
+              aiAnalysis: cacheData.data.aiAnalysis,
+              earningsCallSummary: cacheData.data.earningsCallSummary || prev.earningsCallSummary || '',
+            } : prev);
+          } else {
+            setReportData(prev => prev ? { ...prev, proAiAnalysis: cacheData.data.aiAnalysis } : prev);
+          }
+          return;
+        }
+      }
+    } catch (e) {
+      console.error('Cache check failed:', e);
+    }
+
+    if (version === 'beginner') {
+      setReportData(prev => prev ? {
+        ...prev,
+        beginnerAiAnalysis: {
+          beginnerVerdict: '',
+          beginnerCompanyIntro: '',
+          beginnerRiskReward: '',
+          beginnerActionPlan: '',
+        },
+      } : prev);
+
+      const tasks: Promise<string>[] = [];
+      tasks.push(streamSection('beginnerVerdict', { data: { ...companyData, incomeStatements: existingReportData.incomeStatements }, market }, formattedSymbol));
+      tasks.push(streamSection('beginnerCompanyIntro', { data: companyData, market }, formattedSymbol));
+      tasks.push(streamSection('beginnerRiskReward', { data: companyData, market }, formattedSymbol));
+      const results = await Promise.all(tasks);
+      const context = `Verdict: ${results[0]}\nCompany Intro: ${results[1]}\nRisk/Reward: ${results[2]}`;
+      await streamSection('beginnerActionPlan', { data: companyData, prevContext: context, market }, formattedSymbol);
+
+    } else if (version === 'standard') {
+      setReportData(prev => prev ? {
+        ...prev,
+        aiAnalysis: {
+          companyOverview: '', industryAnalysis: '', industryPainPoints: '',
+          competitors: '', competitiveAdvantage: '', moat: '',
+          recentDevelopments: '', investmentConclusion: '',
+        },
+      } : prev);
+
+      const tasks: Promise<string>[] = [];
+      tasks.push(streamSection('companyOverview', { data: companyData, market }, formattedSymbol));
+      tasks.push(streamSection('industryAnalysis', { data: companyData, market }, formattedSymbol));
+      tasks.push(streamSection('industryPainPoints', { data: companyData, market }, formattedSymbol));
+      tasks.push(streamSection('competitors', { data: { ...companyData, peers }, market }, formattedSymbol));
+      tasks.push(streamSection('competitiveAdvantage', { data: companyData, market }, formattedSymbol));
+      tasks.push(streamSection('moat', { data: companyData, market }, formattedSymbol));
+      tasks.push(streamSection('recentDevelopments', { data: { companyName: companyData.companyName, symbol: formattedSymbol }, market }, formattedSymbol));
+
+      const transcript = existingReportData.earningsTranscripts?.[0];
+      let earningsPromise: Promise<string> | null = null;
+      if (transcript && companyData.companyName) {
+        const transcriptText = transcript.content || transcript.transcript || transcript.text || '';
+        if (transcriptText) {
+          earningsPromise = streamSection('earningsCallSummary', {
+            data: { transcript: transcriptText, companyName: companyData.companyName, symbol: formattedSymbol },
+            market,
+          }, formattedSymbol);
+        }
+      }
+
+      const results = await Promise.all(tasks);
+      const earningsResult = earningsPromise ? await earningsPromise : '';
+
+      const context = `Company Overview: ${results[0]}\nIndustry Analysis: ${results[1]}\nIndustry Pain Points: ${results[2]}\nCompetitors: ${results[3]}\nCompetitive Advantage: ${results[4]}\nMoat: ${results[5]}\nRecent Developments: ${results[6]}\nEarnings Call Summary: ${earningsResult}`;
+      await streamSection('investmentConclusion', { data: companyData, prevContext: context, market }, formattedSymbol);
+
+    } else if (version === 'professional') {
+      setReportData(prev => prev ? {
+        ...prev,
+        proAiAnalysis: {
+          proBusinessModel: '', proOperatingModel: '', proIndustryOutlook: '',
+          proMoatAnalysis: '', proFinancialHealth: '', proValuation: '', proInvestmentConclusion: '',
+        },
+      } : prev);
+
+      const latestMetrics = existingReportData.keyMetrics?.[0] || {};
+      const latestMetricsTTM = existingReportData.keyMetricsTTM?.[0] || {};
+      const latestBalance = existingReportData.balanceSheets?.[0] || {};
+      const latestRatios = existingReportData.financialRatios?.[0] || {};
+      const latestRatiosTTM = existingReportData.financialRatiosTTM?.[0] || {};
+      const latestGrowth = existingReportData.financialGrowth?.[0] || {};
+
+      const annualFinancials = existingReportData.incomeStatements?.slice(0, 5).map((stmt: any, idx: number) => {
+        const balance = existingReportData.balanceSheets?.[idx] || {};
+        const cashFlow = existingReportData.cashFlowStatements?.[idx] || {};
+        const metrics = existingReportData.keyMetrics?.[idx] || {};
+        const ratios = existingReportData.financialRatios?.[idx] || {};
+        return {
+          period: stmt.calendarYear || stmt.date?.split('-')[0] || `Y${idx + 1}`,
+          revenue: stmt.revenue, netIncome: stmt.netIncome, grossProfit: stmt.grossProfit,
+          operatingIncome: stmt.operatingIncome, ebitda: stmt.ebitda,
+          grossProfitMargin: ratios.grossProfitMargin || stmt.grossProfitRatio,
+          netProfitMargin: ratios.netProfitMargin || stmt.netIncomeRatio,
+          totalAssets: balance.totalAssets, totalLiabilities: balance.totalLiabilities,
+          freeCashFlow: cashFlow.freeCashFlow, roe: ratios.returnOnEquity || metrics.roe,
+        };
+      }) || [];
+
+      const quarterlyFinancials = existingReportData.incomeStatementsQuarter?.slice(0, 5).map((stmt: any, idx: number) => {
+        const balance: any = existingReportData.balanceSheetsQuarter?.[idx] || {};
+        return {
+          period: stmt.date || `Q${idx + 1}`, revenue: stmt.revenue, netIncome: stmt.netIncome,
+          grossProfitMargin: stmt.grossProfitRatio, netProfitMargin: stmt.netIncomeRatio,
+          totalAssets: balance.totalAssets, totalLiabilities: balance.totalLiabilities,
+        };
+      }) || [];
+
+      const profitabilityData = {
+        grossProfitMargin: latestRatios.grossProfitMargin || latestRatiosTTM?.grossProfitMargin,
+        netProfitMargin: latestRatios.netProfitMargin || latestRatiosTTM?.netProfitMargin,
+        roe: latestRatios.returnOnEquity || latestMetrics.roe,
+        roic: latestMetrics.roic || latestMetricsTTM?.roic,
+        incomeQuality: latestMetrics.incomeQuality || latestMetricsTTM?.incomeQuality,
+      };
+      const capitalReturnData = { rdToRevenue: latestMetrics.researchAndDdevelopementToRevenue || latestMetricsTTM?.researchAndDdevelopementToRevenue };
+      const debtData = {
+        workingCapital: latestMetrics.workingCapital || existingReportData.financialScores?.workingCapital,
+        totalLiabilities: latestBalance.totalLiabilities || existingReportData.financialScores?.totalLiabilities,
+        debtToEquity: latestRatios.debtEquityRatio || latestMetrics.debtToEquity,
+        currentRatio: latestRatios.currentRatio || latestMetrics.currentRatio,
+      };
+      const healthScores = { altmanZScore: existingReportData.financialScores?.altmanZScore, piotroskiScore: existingReportData.financialScores?.piotroskiScore };
+      const valuationData = {
+        peRatio: latestMetrics.peRatio || latestRatios.priceEarningsRatio || latestMetricsTTM?.peRatio,
+        pbRatio: latestMetrics.pbRatio || latestRatios.priceToBookRatio || latestMetricsTTM?.pbRatio,
+        psRatio: latestMetrics.priceToSalesRatio || latestRatios.priceToSalesRatio,
+        evToEbitda: latestMetrics.enterpriseValueOverEBITDA || latestMetricsTTM?.enterpriseValueOverEBITDA,
+        grahamNumber: latestMetrics.grahamNumber || latestMetricsTTM?.grahamNumber,
+        earningsYield: latestMetrics.earningsYield || latestMetricsTTM?.earningsYield,
+        freeCashFlowYield: latestMetrics.freeCashFlowYield || latestMetricsTTM?.freeCashFlowYield,
+      };
+      const growthData = {
+        revenueGrowth: latestGrowth.revenueGrowth, netIncomeGrowth: latestGrowth.netIncomeGrowth,
+        threeYRevenueGrowth: latestGrowth.threeYRevenueGrowthPerShare, fiveYRevenueGrowth: latestGrowth.fiveYRevenueGrowthPerShare,
+      };
+
+      const proTasks: Promise<string>[] = [];
+      proTasks.push(streamSection('proBusinessModel', { data: companyData, market }, formattedSymbol));
+      proTasks.push(streamSection('proOperatingModel', { data: companyData, market }, formattedSymbol));
+      proTasks.push(streamSection('proIndustryOutlook', { data: companyData, market }, formattedSymbol));
+      proTasks.push(streamSection('proMoatAnalysis', { data: { ...companyData, profitabilityData, capitalReturnData }, market }, formattedSymbol));
+      proTasks.push(streamSection('proFinancialHealth', { data: { ...companyData, annualFinancials, quarterlyFinancials, profitabilityData, debtData, healthScores }, market }, formattedSymbol));
+      proTasks.push(streamSection('proValuation', { data: { ...companyData, valuationData, growthData, quarterlyFinancials }, market }, formattedSymbol));
+
+      const proResults = await Promise.all(proTasks);
+      const proContext = proResults.map((r, i) => `Section ${i + 1}: ${r}`).join('\n');
+      await streamSection('proInvestmentConclusion', { data: companyData, market, prevContext: proContext }, formattedSymbol);
+    }
+  };
+
   const handleAnalyze = async () => {
     // 使用 normalizeSymbol 处理全角字符和空格（中文输入法可能输入的情况）
     const trimmedSymbol = normalizeSymbol(symbol);
@@ -748,350 +923,16 @@ function HomeContent() {
         return;
       }
 
-      // 2. Start Parallel Streaming
-      const companyData = data.profile; // basic profile
-      const peers = data.peers || [];
-      const market = marketForAnalyze;
+      // 2. Set initial report data with FMP info and generate only the selected tier
+      const initialData: ReportData = {
+        ...data,
+        earningsCallSummary: '',
+      };
+      setReportData(initialData);
+      setLoading(false);
 
-      if (reportType === 'beginner') {
-        // ============ Beginner Mode: 4 simple sections ============
-        setReportData({
-          ...data,
-          beginnerAiAnalysis: {
-            beginnerVerdict: '',
-            beginnerCompanyIntro: '',
-            beginnerRiskReward: '',
-            beginnerActionPlan: '',
-          },
-          earningsCallSummary: '',
-        });
-
-        setLoading(false);
-
-        const beginnerTasks: Promise<string>[] = [];
-        beginnerTasks.push(streamSection('beginnerVerdict', { data: { ...companyData, incomeStatements: data.incomeStatements }, market }, formattedSymbol));
-        beginnerTasks.push(streamSection('beginnerCompanyIntro', { data: companyData, market }, formattedSymbol));
-        beginnerTasks.push(streamSection('beginnerRiskReward', { data: companyData, market }, formattedSymbol));
-
-        const beginnerResults = await Promise.all(beginnerTasks);
-
-        const beginnerContext = `Verdict: ${beginnerResults[0]}\nCompany Intro: ${beginnerResults[1]}\nRisk/Reward: ${beginnerResults[2]}`;
-        await streamSection('beginnerActionPlan', { data: companyData, prevContext: beginnerContext, market }, formattedSymbol);
-
-      } else if (reportType === 'pro') {
-        // ============ Professional Mode: 7 deep sections ============
-        setReportData({
-          ...data,
-          proAiAnalysis: {
-            proBusinessModel: '',
-            proOperatingModel: '',
-            proIndustryOutlook: '',
-            proMoatAnalysis: '',
-            proFinancialHealth: '',
-            proValuation: '',
-            proInvestmentConclusion: '',
-          },
-          earningsCallSummary: '',
-        });
-
-        setLoading(false);
-
-        const latestMetrics = data.keyMetrics?.[0] || {};
-        const latestMetricsTTM = data.keyMetricsTTM?.[0] || {};
-        const latestBalance = data.balanceSheets?.[0] || {};
-        const latestRatios = data.financialRatios?.[0] || {};
-        const latestRatiosTTM = data.financialRatiosTTM?.[0] || {};
-        const latestGrowth = data.financialGrowth?.[0] || {};
-
-        const annualFinancials = data.incomeStatements?.slice(0, 5).map((stmt: any, idx: number) => {
-          const balance = data.balanceSheets?.[idx] || {};
-          const cashFlow = data.cashFlowStatements?.[idx] || {};
-          const metrics = data.keyMetrics?.[idx] || {};
-          const ratios = data.financialRatios?.[idx] || {};
-          return {
-            period: stmt.calendarYear || stmt.date?.split('-')[0] || `Y${idx + 1}`,
-            revenue: stmt.revenue, netIncome: stmt.netIncome, grossProfit: stmt.grossProfit,
-            operatingIncome: stmt.operatingIncome, ebitda: stmt.ebitda,
-            grossProfitMargin: ratios.grossProfitMargin || stmt.grossProfitRatio,
-            netProfitMargin: ratios.netProfitMargin || stmt.netIncomeRatio,
-            totalAssets: balance.totalAssets, totalLiabilities: balance.totalLiabilities,
-            freeCashFlow: cashFlow.freeCashFlow, roe: ratios.returnOnEquity || metrics.roe,
-          };
-        }) || [];
-
-        const quarterlyFinancials = data.incomeStatementsQuarter?.slice(0, 5).map((stmt: any, idx: number) => {
-          const balance = data.balanceSheetsQuarter?.[idx] || {};
-          return {
-            period: stmt.date || `Q${idx + 1}`, revenue: stmt.revenue, netIncome: stmt.netIncome,
-            grossProfitMargin: stmt.grossProfitRatio, netProfitMargin: stmt.netIncomeRatio,
-            totalAssets: balance.totalAssets, totalLiabilities: balance.totalLiabilities,
-          };
-        }) || [];
-
-        const profitabilityData = {
-          grossProfitMargin: latestRatios.grossProfitMargin || latestRatiosTTM?.grossProfitMargin,
-          netProfitMargin: latestRatios.netProfitMargin || latestRatiosTTM?.netProfitMargin,
-          roe: latestRatios.returnOnEquity || latestMetrics.roe,
-          roic: latestMetrics.roic || latestMetricsTTM?.roic,
-          incomeQuality: latestMetrics.incomeQuality || latestMetricsTTM?.incomeQuality,
-        };
-
-        const capitalReturnData = {
-          rdToRevenue: latestMetrics.researchAndDdevelopementToRevenue || latestMetricsTTM?.researchAndDdevelopementToRevenue,
-        };
-
-        const debtData = {
-          workingCapital: latestMetrics.workingCapital || data.financialScores?.workingCapital,
-          totalLiabilities: latestBalance.totalLiabilities || data.financialScores?.totalLiabilities,
-          debtToEquity: latestRatios.debtEquityRatio || latestMetrics.debtToEquity,
-          currentRatio: latestRatios.currentRatio || latestMetrics.currentRatio,
-        };
-
-        const healthScores = {
-          altmanZScore: data.financialScores?.altmanZScore,
-          piotroskiScore: data.financialScores?.piotroskiScore,
-        };
-
-        const valuationData = {
-          peRatio: latestMetrics.peRatio || latestRatios.priceEarningsRatio || latestMetricsTTM?.peRatio,
-          pbRatio: latestMetrics.pbRatio || latestRatios.priceToBookRatio || latestMetricsTTM?.pbRatio,
-          psRatio: latestMetrics.priceToSalesRatio || latestRatios.priceToSalesRatio,
-          evToEbitda: latestMetrics.enterpriseValueOverEBITDA || latestMetricsTTM?.enterpriseValueOverEBITDA,
-          grahamNumber: latestMetrics.grahamNumber || latestMetricsTTM?.grahamNumber,
-          earningsYield: latestMetrics.earningsYield || latestMetricsTTM?.earningsYield,
-          freeCashFlowYield: latestMetrics.freeCashFlowYield || latestMetricsTTM?.freeCashFlowYield,
-        };
-
-        const growthData = {
-          revenueGrowth: latestGrowth.revenueGrowth,
-          netIncomeGrowth: latestGrowth.netIncomeGrowth,
-          threeYRevenueGrowth: latestGrowth.threeYRevenueGrowthPerShare,
-          fiveYRevenueGrowth: latestGrowth.fiveYRevenueGrowthPerShare,
-        };
-
-        const proTasks: Promise<string>[] = [];
-        proTasks.push(streamSection('proBusinessModel', { data: companyData, market }, formattedSymbol));
-        proTasks.push(streamSection('proOperatingModel', { data: companyData, market }, formattedSymbol));
-        proTasks.push(streamSection('proIndustryOutlook', { data: companyData, market }, formattedSymbol));
-        proTasks.push(streamSection('proMoatAnalysis', {
-          data: { ...companyData, profitabilityData, capitalReturnData }, market
-        }, formattedSymbol));
-        proTasks.push(streamSection('proFinancialHealth', {
-          data: { ...companyData, annualFinancials, quarterlyFinancials, profitabilityData, debtData, healthScores }, market
-        }, formattedSymbol));
-        proTasks.push(streamSection('proValuation', {
-          data: { ...companyData, valuationData, growthData, quarterlyFinancials }, market
-        }, formattedSymbol));
-
-        const proResults = await Promise.all(proTasks);
-
-        const proContext = `
-${t.report.proAnalysis.businessModel}:
-${proResults[0]}
-
-${t.report.proAnalysis.operatingModel}:
-${proResults[1]}
-
-${t.report.proAnalysis.industryOutlook}:
-${proResults[2]}
-
-${t.report.proAnalysis.moatAnalysis}:
-${proResults[3]}
-
-${t.report.proAnalysis.financialHealth}:
-${proResults[4]}
-
-${t.report.proAnalysis.valuation}:
-${proResults[5]}
-        `;
-        await streamSection('proInvestmentConclusion', {
-          data: companyData, market, prevContext: proContext
-        }, formattedSymbol);
-
-      } else {
-        // ============ Standard Mode: existing 8 sections + pro in background ============
-        // Initialize Report Data with empty AI Analysis to trigger UI rendering
-        setReportData({
-          ...data,
-          aiAnalysis: {
-            companyOverview: '',
-            industryAnalysis: '',
-            industryPainPoints: '',
-            competitors: '',
-            competitiveAdvantage: '',
-            moat: '',
-            recentDevelopments: '',
-            investmentConclusion: '',
-          },
-          proAiAnalysis: {
-            proBusinessModel: '',
-            proOperatingModel: '',
-            proIndustryOutlook: '',
-            proMoatAnalysis: '',
-            proFinancialHealth: '',
-            proValuation: '',
-            proInvestmentConclusion: '',
-          },
-          earningsCallSummary: '',
-        });
-
-        setLoading(false);
-
-        // Prepare independent tasks
-        const tasks: Promise<string>[] = [];
-
-        tasks.push(streamSection('companyOverview', { data: companyData, market }, formattedSymbol));
-        tasks.push(streamSection('industryAnalysis', { data: companyData, market }, formattedSymbol));
-        tasks.push(streamSection('industryPainPoints', { data: companyData, market }, formattedSymbol));
-        tasks.push(streamSection('competitors', { data: { ...companyData, peers }, market }, formattedSymbol));
-        tasks.push(streamSection('competitiveAdvantage', { data: companyData, market }, formattedSymbol));
-        tasks.push(streamSection('moat', { data: companyData, market }, formattedSymbol));
-        tasks.push(streamSection('recentDevelopments', { data: { companyName: companyData.companyName, symbol: formattedSymbol }, market }, formattedSymbol));
-
-        // ============ 专业版分析 - 6个独立并发请求 ============
-        const latestMetrics = data.keyMetrics?.[0] || {};
-        const latestMetricsTTM = data.keyMetricsTTM?.[0] || {};
-        const latestBalance = data.balanceSheets?.[0] || {};
-        const latestRatios = data.financialRatios?.[0] || {};
-        const latestRatiosTTM = data.financialRatiosTTM?.[0] || {};
-        const latestGrowth = data.financialGrowth?.[0] || {};
-
-        const annualFinancials = data.incomeStatements?.slice(0, 5).map((stmt: any, idx: number) => {
-          const balance = data.balanceSheets?.[idx] || {};
-          const cashFlow = data.cashFlowStatements?.[idx] || {};
-          const metrics = data.keyMetrics?.[idx] || {};
-          const ratios = data.financialRatios?.[idx] || {};
-          return {
-            period: stmt.calendarYear || stmt.date?.split('-')[0] || `Y${idx + 1}`,
-            revenue: stmt.revenue, netIncome: stmt.netIncome, grossProfit: stmt.grossProfit,
-            operatingIncome: stmt.operatingIncome, ebitda: stmt.ebitda,
-            grossProfitMargin: ratios.grossProfitMargin || stmt.grossProfitRatio,
-            netProfitMargin: ratios.netProfitMargin || stmt.netIncomeRatio,
-            totalAssets: balance.totalAssets, totalLiabilities: balance.totalLiabilities,
-            freeCashFlow: cashFlow.freeCashFlow, roe: ratios.returnOnEquity || metrics.roe,
-          };
-        }) || [];
-
-        const quarterlyFinancials = data.incomeStatementsQuarter?.slice(0, 5).map((stmt: any, idx: number) => {
-          const balance = data.balanceSheetsQuarter?.[idx] || {};
-          return {
-            period: stmt.date || `Q${idx + 1}`, revenue: stmt.revenue, netIncome: stmt.netIncome,
-            grossProfitMargin: stmt.grossProfitRatio, netProfitMargin: stmt.netIncomeRatio,
-            totalAssets: balance.totalAssets, totalLiabilities: balance.totalLiabilities,
-          };
-        }) || [];
-
-        const profitabilityData = {
-          grossProfitMargin: latestRatios.grossProfitMargin || latestRatiosTTM?.grossProfitMargin,
-          netProfitMargin: latestRatios.netProfitMargin || latestRatiosTTM?.netProfitMargin,
-          roe: latestRatios.returnOnEquity || latestMetrics.roe,
-          roic: latestMetrics.roic || latestMetricsTTM?.roic,
-          incomeQuality: latestMetrics.incomeQuality || latestMetricsTTM?.incomeQuality,
-        };
-
-        const capitalReturnData = {
-          rdToRevenue: latestMetrics.researchAndDdevelopementToRevenue || latestMetricsTTM?.researchAndDdevelopementToRevenue,
-        };
-
-        const debtData = {
-          workingCapital: latestMetrics.workingCapital || data.financialScores?.workingCapital,
-          totalLiabilities: latestBalance.totalLiabilities || data.financialScores?.totalLiabilities,
-          debtToEquity: latestRatios.debtEquityRatio || latestMetrics.debtToEquity,
-          currentRatio: latestRatios.currentRatio || latestMetrics.currentRatio,
-        };
-
-        const healthScores = {
-          altmanZScore: data.financialScores?.altmanZScore,
-          piotroskiScore: data.financialScores?.piotroskiScore,
-        };
-
-        const valuationData = {
-          peRatio: latestMetrics.peRatio || latestRatios.priceEarningsRatio || latestMetricsTTM?.peRatio,
-          pbRatio: latestMetrics.pbRatio || latestRatios.priceToBookRatio || latestMetricsTTM?.pbRatio,
-          psRatio: latestMetrics.priceToSalesRatio || latestRatios.priceToSalesRatio,
-          evToEbitda: latestMetrics.enterpriseValueOverEBITDA || latestMetricsTTM?.enterpriseValueOverEBITDA,
-          grahamNumber: latestMetrics.grahamNumber || latestMetricsTTM?.grahamNumber,
-          earningsYield: latestMetrics.earningsYield || latestMetricsTTM?.earningsYield,
-          freeCashFlowYield: latestMetrics.freeCashFlowYield || latestMetricsTTM?.freeCashFlowYield,
-        };
-
-        const growthData = {
-          revenueGrowth: latestGrowth.revenueGrowth,
-          netIncomeGrowth: latestGrowth.netIncomeGrowth,
-          threeYRevenueGrowth: latestGrowth.threeYRevenueGrowthPerShare,
-          fiveYRevenueGrowth: latestGrowth.fiveYRevenueGrowthPerShare,
-        };
-
-        const proTasks: Promise<string>[] = [];
-        proTasks.push(streamSection('proBusinessModel', { data: companyData, market }, formattedSymbol));
-        proTasks.push(streamSection('proOperatingModel', { data: companyData, market }, formattedSymbol));
-        proTasks.push(streamSection('proIndustryOutlook', { data: companyData, market }, formattedSymbol));
-        proTasks.push(streamSection('proMoatAnalysis', {
-          data: { ...companyData, profitabilityData, capitalReturnData }, market
-        }, formattedSymbol));
-        proTasks.push(streamSection('proFinancialHealth', {
-          data: { ...companyData, annualFinancials, quarterlyFinancials, profitabilityData, debtData, healthScores }, market
-        }, formattedSymbol));
-        proTasks.push(streamSection('proValuation', {
-          data: { ...companyData, valuationData, growthData, quarterlyFinancials }, market
-        }, formattedSymbol));
-
-        Promise.all(proTasks).then((proResults) => {
-          const proContext = `
-${t.report.proAnalysis.businessModel}:
-${proResults[0]}
-
-${t.report.proAnalysis.operatingModel}:
-${proResults[1]}
-
-${t.report.proAnalysis.industryOutlook}:
-${proResults[2]}
-
-${t.report.proAnalysis.moatAnalysis}:
-${proResults[3]}
-
-${t.report.proAnalysis.financialHealth}:
-${proResults[4]}
-
-${t.report.proAnalysis.valuation}:
-${proResults[5]}
-          `;
-          streamSection('proInvestmentConclusion', {
-            data: companyData, market, prevContext: proContext
-          }, formattedSymbol);
-        });
-
-        // Earnings Call Summary
-        const transcript = data.earningsTranscripts?.[0];
-        let earningsPromise: Promise<string> | null = null;
-        if (transcript && companyData.companyName) {
-          const transcriptText = transcript.content || transcript.transcript || transcript.text || '';
-          if (transcriptText) {
-            earningsPromise = streamSection('earningsCallSummary', {
-              data: { transcript: transcriptText, companyName: companyData.companyName, symbol: formattedSymbol },
-              market
-            }, formattedSymbol);
-          }
-        }
-
-        const results = await Promise.all(tasks);
-        const earningsResult = earningsPromise ? await earningsPromise : '';
-
-        const context = `
-      Company Overview: ${results[0]}
-      Industry Analysis: ${results[1]}
-      Industry Pain Points: ${results[2]}
-      Competitors: ${results[3]}
-      Competitive Advantage: ${results[4]}
-      Moat: ${results[5]}
-      Recent Developments: ${results[6]}
-      Earnings Call Summary: ${earningsResult}
-        `;
-
-        await streamSection('investmentConclusion', {
-          data: companyData, market, prevContext: context
-        }, formattedSymbol);
-      }
+      const versionToGenerate = reportType === 'pro' ? 'professional' : (reportType as 'beginner' | 'standard' | 'professional');
+      await generateReportForVersion(versionToGenerate, initialData);
 
       // 更新报告生成时间
       setReportData(prev => prev ? { ...prev, reportGeneratedAt: new Date().toISOString() } : prev);
@@ -1819,6 +1660,11 @@ ${proResults[5]}
             aiError={aiError}
             onReset={resetToHome}
             theme={theme}
+            onVersionChange={async (newVersion) => {
+              if (!reportData) return;
+              setReportType(newVersion === 'professional' ? 'pro' : newVersion);
+              await generateReportForVersion(newVersion, reportData);
+            }}
             onRegenerate={async () => {
               if (!reportData) return;
               const symbolToRegenerate = reportData.profile.symbol;

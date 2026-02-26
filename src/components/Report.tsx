@@ -172,6 +172,7 @@ interface ReportProps {
   aiLoading?: boolean;
   aiError?: string;
   onRegenerate?: () => Promise<void>;
+  onVersionChange?: (version: 'beginner' | 'standard' | 'professional') => void;
   theme?: 'dark' | 'light';
   isModalView?: boolean;
   initialReportVersion?: 'beginner' | 'standard' | 'professional';
@@ -599,6 +600,7 @@ export default function Report({
   aiLoading = false,
   aiError = '',
   onRegenerate,
+  onVersionChange,
   theme = 'dark',
   isModalView = false,
   initialReportVersion = 'standard',
@@ -847,7 +849,12 @@ export default function Report({
             return (
               <button
                 key={ver}
-                onClick={() => setReportVersion(ver)}
+                onClick={() => {
+                  setReportVersion(ver);
+                  if (onVersionChange) {
+                    onVersionChange(ver);
+                  }
+                }}
                 className={`px-3 py-1.5 text-xs rounded-sm transition-all ${
                   isActive
                     ? 'bg-accent/20 text-accent font-medium'
