@@ -21,17 +21,18 @@ const SECTOR_KEYS = [
 export async function GET() {
   try {
     const fmpApiKey = process.env.FMP_API_KEY;
-    if (!fmpApiKey) {
-      return NextResponse.json({ success: false, error: 'FMP API key not configured' }, { status: 500 });
+    let sectorPerf: any[] = [];
+    let sectorPE: any[] = [];
+    let historicalPerf: any[] = [];
+
+    if (fmpApiKey) {
+      const fmp = new FMPClient(fmpApiKey);
+      [sectorPerf, sectorPE, historicalPerf] = await Promise.all([
+        fmp.getSectorPerformance().catch(() => []),
+        fmp.getSectorPE().catch(() => []),
+        fmp.getHistoricalSectorPerformance(50).catch(() => []),
+      ]);
     }
-
-    const fmp = new FMPClient(fmpApiKey);
-
-    const [sectorPerf, sectorPE, historicalPerf] = await Promise.all([
-      fmp.getSectorPerformance().catch(() => []),
-      fmp.getSectorPE().catch(() => []),
-      fmp.getHistoricalSectorPerformance(50).catch(() => []),
-    ]);
 
     const perfMap = new Map<string, any>();
     if (Array.isArray(sectorPerf)) {
