@@ -170,7 +170,7 @@ export default function IndustryDetailPage() {
     if (!data || data.companies.length === 0) return {};
 
     return {
-      backgroundColor: isDark ? '#121212' : undefined,
+      backgroundColor: isDark ? '#121212' : 'transparent',
       color: ['#88ABDA', '#98B6C2', '#C0D09D', '#CB523E', '#DFD6B8'],
       grid: { top: 60, right: 30, bottom: 50, left: 60 },
       tooltip: {
@@ -308,7 +308,7 @@ export default function IndustryDetailPage() {
     }
 
     return {
-      backgroundColor: isDark ? '#121212' : undefined,
+      backgroundColor: isDark ? '#121212' : 'transparent',
       color: ['#88ABDA', '#98B6C2', '#C0D09D', '#CB523E', '#DFD6B8', '#EAE4D1'],
       tooltip: {
         trigger: 'item',
@@ -492,6 +492,7 @@ export default function IndustryDetailPage() {
                         option={supplyChainFlowOption}
                         style={{ width: '100%', height: 320 }}
                         opts={{ renderer: 'canvas' }}
+                        notMerge
                       />
                     </div>
                   </section>
@@ -576,6 +577,7 @@ export default function IndustryDetailPage() {
                       option={scatterOption}
                       style={{ width: '100%', height: 380 }}
                       opts={{ renderer: 'canvas' }}
+                      notMerge
                     />
                   </div>
                 </section>
