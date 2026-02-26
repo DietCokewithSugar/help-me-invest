@@ -17,6 +17,7 @@ import {
     Sun,
     Moon,
 } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // ==================== Types ====================
 interface ExportSettings {
@@ -271,8 +272,9 @@ const ExportCard = React.forwardRef<
         settings: ExportSettings;
         companyName?: string;
         symbol?: string;
+        t: { shareExportCard: { investReport: string } };
     }
->(({ title, contentHtml, settings, companyName, symbol }, ref) => {
+>(({ title, contentHtml, settings, companyName, symbol, t }, ref) => {
     const fontSize = fontSizeConfig[settings.fontSize] ?? fontSizeConfig.md;
     const theme = themeConfig[settings.theme] ?? themeConfig.dark;
 
@@ -282,39 +284,34 @@ const ExportCard = React.forwardRef<
         return processContentHtml(contentHtml, theme);
     }, [contentHtml, theme]);
 
+    const contentRef = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+        if (contentRef.current && processedHtml) {
+            contentRef.current.innerHTML = processedHtml;
+        }
+    }, [processedHtml]);
+
     return (
         <div
             ref={ref}
             className="export-card-wrapper"
             style={{
                 padding: '24px',
-                background: theme.wrapper,
+                background: settings.theme === 'dark' ? '#0f0f12' : '#f8fafc',
+                width: '600px',
                 minWidth: '400px',
                 maxWidth: '600px',
             }}
         >
-            {/* Glow effect */}
-            <div
-                style={{
-                    position: 'absolute',
-                    inset: '-50px',
-                    background: theme.glow,
-                    pointerEvents: 'none',
-                    zIndex: 0,
-                }}
-            />
-
             {/* Card content */}
             <div
                 className="export-card"
                 style={{
-                    position: 'relative',
-                    zIndex: 1,
-                    background: theme.card,
+                    background: settings.theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.95)',
                     border: `1px solid ${theme.cardBorder}`,
                     borderRadius: '12px',
                     padding: '24px',
-                    backdropFilter: 'blur(20px)',
                     boxShadow: settings.theme === 'light' ? '0 4px 24px rgba(0,0,0,0.08)' : 'none',
                 }}
             >
@@ -352,25 +349,24 @@ const ExportCard = React.forwardRef<
                                 fontFamily: '"Noto Serif SC", "Songti SC", "STSong", serif',
                             }}
                         >
-                            {title}
+                            {companyName ? `${companyName} ${t.shareExportCard.investReport}` : title}
                         </h2>
-                        {companyName && (
-                            <p
-                                style={{
-                                    fontSize: '12px',
-                                    color: theme.subtitle,
-                                    margin: '4px 0 0 0',
-                                    fontFamily: '"JetBrains Mono", monospace',
-                                }}
-                            >
-                                {companyName} {symbol && `(${symbol})`}
-                            </p>
-                        )}
+                        <p
+                            style={{
+                                fontSize: '12px',
+                                color: theme.subtitle,
+                                margin: '4px 0 0 0',
+                                fontFamily: '"JetBrains Mono", monospace',
+                            }}
+                        >
+                            {symbol && `${symbol} · `}{title}
+                        </p>
                     </div>
                 </div>
 
                 {/* Content */}
                 <div
+                    ref={contentRef}
                     className="export-content"
                     style={{
                         fontSize: fontSize.value,
@@ -378,7 +374,6 @@ const ExportCard = React.forwardRef<
                         color: theme.content,
                         fontFamily: '"Noto Serif SC", "Songti SC", "STSong", serif',
                     }}
-                    dangerouslySetInnerHTML={{ __html: processedHtml }}
                 />
 
                 {/* Footer with QR code option */}
@@ -470,6 +465,7 @@ export default function ShareExportModal({
     theme = 'dark',
 }: ShareExportModalProps) {
     const cardRef = useRef<HTMLDivElement>(null);
+    const { t } = useLanguage();
     const [status, setStatus] = useState<ExportStatus>('idle');
     const [errorMessage, setErrorMessage] = useState('');
     const [settings, setSettings] = useState<ExportSettings>({
@@ -503,13 +499,18 @@ export default function ShareExportModal({
                 await document.fonts.ready;
             }
 
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
             const currentTheme = themeConfig[settings.theme] ?? themeConfig.dark;
+            const rect = cardRef.current.getBoundingClientRect();
             const dataUrl = await toPng(cardRef.current, {
                 quality: 1,
                 pixelRatio: settings.quality,
                 backgroundColor: currentTheme.exportBg,
-                cacheBust: false, // 禁用 cacheBust 避免字体缓存问题
-                skipFonts: true,  // 跳过字体嵌入，避免 CORS 问题
+                cacheBust: false,
+                skipFonts: true,
+                width: rect.width,
+                height: rect.height,
                 style: {
                     transform: 'none',
                 },
@@ -538,13 +539,22 @@ export default function ShareExportModal({
                 await document.fonts.ready;
             }
 
+            // 等待两帧确保布局完全稳定
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
             const currentTheme = themeConfig[settings.theme] ?? themeConfig.dark;
+            const rect = cardRef.current.getBoundingClientRect();
             const dataUrl = await toPng(cardRef.current, {
                 quality: 1,
                 pixelRatio: settings.quality,
                 backgroundColor: currentTheme.exportBg,
-                cacheBust: false, // 禁用 cacheBust 避免字体缓存问题
-                skipFonts: true,  // 跳过字体嵌入，避免 CORS 问题
+                cacheBust: false,
+                skipFonts: true,
+                width: rect.width,
+                height: rect.height,
+                style: {
+                    transform: 'none',
+                },
             });
 
             const link = document.createElement('a');
@@ -647,8 +657,8 @@ export default function ShareExportModal({
                                     <Share2 className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-white">分享模块</h2>
-                                    <p className="text-xs text-mist-500">{title}</p>
+                                    <h2 className="text-lg font-semibold text-white">{t.shareModal.title}</h2>
+                                    <p className="text-xs text-mist-500">{companyName ? `${companyName} · ${title}` : title}</p>
                                 </div>
                             </div>
                             <motion.button
@@ -672,6 +682,7 @@ export default function ShareExportModal({
                                     settings={settings}
                                     companyName={companyName}
                                     symbol={symbol}
+                                    t={t}
                                 />
                             </div>
                         </div>

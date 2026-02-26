@@ -22,6 +22,7 @@ import {
   SunDim,
   UserX,
   Warehouse,
+  FileDown,
 } from 'lucide-react';
 import ReactMarkdown, { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -89,6 +90,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useCompare } from '@/contexts/CompareContext';
 import { ScaleIcon } from '@/components/Icons';
 import { translateDiagnosticTag } from '@/i18n/diagnosticTags';
+import { exportReportToExcel } from '@/lib/export-excel';
 
 // 市场标识徽章 - 极简设计，无 emoji，直角
 const MarketBadge = ({ market }: { market: MarketType }) => {
@@ -908,6 +910,16 @@ export default function Report({
           >
             <ImageIcon className="w-4 h-4" />
             <span className="hidden sm:inline">{t.report.exportImage}</span>
+          </motion.button>
+
+          <motion.button
+            onClick={() => exportReportToExcel(data, t)}
+            className="gemini-btn gemini-btn-secondary flex items-center gap-2"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <FileDown className="w-4 h-4" />
+            <span className="hidden sm:inline">{t.report.exportExcel}</span>
           </motion.button>
 
           {/* 重新生成按钮 */}
