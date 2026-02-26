@@ -34,6 +34,10 @@ export const en: TranslationKeys = {
     lightMode: 'Switch to light mode',
     darkMode: 'Switch to dark mode',
     language: 'Language',
+    discover: 'Discover',
+    portfolio: 'Portfolios',
+    compare: 'Compare',
+    contact: 'Contact',
   },
   home: {
     hero: {
@@ -125,6 +129,15 @@ export const en: TranslationKeys = {
       title: 'Contact Us',
       scanQr: 'Scan QR code to add on WeChat',
       lookForward: 'Looking forward to connecting with you',
+    },
+    reportTypeSelector: {
+      title: 'Select Report Type',
+      beginner: 'Beginner',
+      beginnerDesc: 'Simple language, conclusion first',
+      standard: 'Standard',
+      standardDesc: 'Full analysis, 8 dimensions',
+      pro: 'Professional',
+      proDesc: 'Deep research, 7 modules',
     },
     featuredStocks: {
       AAPL: 'Apple',
@@ -302,6 +315,19 @@ export const en: TranslationKeys = {
     },
     shareModule: 'Share this module',
     analyzingCompanyFeatures: 'AI is analyzing company features...',
+    beginnerReport: 'Beginner',
+    switchToBeginner: 'Switch to Beginner',
+    beginnerSubtitle: 'Simple advice on whether to buy or not',
+    beginnerSections: {
+      verdict: 'Investment Verdict',
+      verdictLoading: 'AI is determining if it\'s worth buying...',
+      companyIntro: 'What does this company do?',
+      companyIntroLoading: 'AI is explaining in simple terms...',
+      riskReward: 'Reasons to Buy vs Risks',
+      riskRewardLoading: 'AI is analyzing pros and cons...',
+      actionPlan: 'What should beginners do?',
+      actionPlanLoading: 'AI is giving you advice...',
+    },
   },
   financial: {
     incomeStatement: 'Income Statement',
