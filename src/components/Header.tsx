@@ -6,9 +6,6 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import {
-    FilterIcon,
-    TrendingUpIcon,
-    ScaleIcon,
     SunIcon,
     MoonIcon,
 } from '@/components/Icons';
@@ -69,75 +66,52 @@ export default function Header({
                         </div>
 
                         {/* 右侧操作区 */}
-                        <div className="flex items-center gap-2">
-                            {/* 公司筛选入口 */}
-                            <Link
-                                href="/companies"
-                                className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer"
-                                title={t.header.companyFilter}
-                            >
-                                <FilterIcon size={18} className="text-glacier-500" />
-                            </Link>
+                        <div className="flex items-center gap-3 md:gap-5">
+                            {/* Text nav links */}
+                            <nav className="flex items-center gap-3 md:gap-5">
+                                <Link href="/companies" className="text-[11px] md:text-sm text-mist-400 hover:text-glacier-400 transition-colors whitespace-nowrap">
+                                    {t.header.discover}
+                                </Link>
+                                <Link href="/tracking" className="text-[11px] md:text-sm text-mist-400 hover:text-glacier-400 transition-colors whitespace-nowrap">
+                                    {t.header.portfolio}
+                                </Link>
+                                <Link href="/compare" className="relative text-[11px] md:text-sm text-mist-400 hover:text-glacier-400 transition-colors whitespace-nowrap">
+                                    {t.header.compare}
+                                    {compareCompanies.length > 0 && (
+                                        <span className="absolute -top-2 -right-3 w-4 h-4 rounded-full bg-glacier-500 text-[9px] font-bold text-white flex items-center justify-center">
+                                            {compareCompanies.length}
+                                        </span>
+                                    )}
+                                </Link>
+                                <button onClick={showContactModal} className="text-[11px] md:text-sm text-mist-400 hover:text-glacier-400 transition-colors whitespace-nowrap">
+                                    {t.header.contact}
+                                </button>
+                            </nav>
 
-                            {/* 追踪功能入口 */}
-                            <Link
-                                href="/tracking"
-                                className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer"
-                                title={t.header.tracking}
-                            >
-                                <TrendingUpIcon size={18} className="text-glacier-500" />
-                            </Link>
+                            {/* Separator */}
+                            <div className="w-px h-5 bg-white/10" />
 
-                            {/* 公司对比入口 */}
-                            <Link
-                                href="/compare"
-                                className="relative flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer"
-                                title={t.compare.title}
-                            >
-                                <ScaleIcon size={18} className="text-glacier-500" />
-                                {compareCompanies.length > 0 && (
-                                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-glacier-500 text-[10px] font-bold text-white flex items-center justify-center">
-                                        {compareCompanies.length}
-                                    </span>
-                                )}
-                            </Link>
-
-                            {/* 联系我们 - 微信图标 */}
-                            <button
-                                onClick={showContactModal}
-                                className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer overflow-hidden"
-                                title={t.header.contactUs}
-                            >
-                                <Image
-                                    src="/images/wechat-logo.png"
-                                    alt="WeChat"
-                                    width={40}
-                                    height={40}
-                                    className="w-full h-full object-cover"
-                                />
-                            </button>
-
-                            {/* 语言切换 */}
-                            <button
-                                onClick={() => setLocale(locale === 'zh' ? 'en' : 'zh')}
-                                className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer text-xs font-mono font-bold text-mist-300"
-                                title={t.header.language}
-                            >
-                                {locale === 'zh' ? 'EN' : '中'}
-                            </button>
-
-                            {/* 主题切换 */}
-                            <button
-                                onClick={toggleTheme}
-                                className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer"
-                                title={theme === 'dark' ? t.header.lightMode : t.header.darkMode}
-                            >
-                                {theme === 'dark' ? (
-                                    <SunIcon size={18} className="text-mist-300" />
-                                ) : (
-                                    <MoonIcon size={18} className="text-mist-300" />
-                                )}
-                            </button>
+                            {/* Language + Theme toggles */}
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setLocale(locale === 'zh' ? 'en' : 'zh')}
+                                    className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer text-xs font-mono font-bold text-mist-300"
+                                    title={t.header.language}
+                                >
+                                    {locale === 'zh' ? 'EN' : '中'}
+                                </button>
+                                <button
+                                    onClick={toggleTheme}
+                                    className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer"
+                                    title={theme === 'dark' ? t.header.lightMode : t.header.darkMode}
+                                >
+                                    {theme === 'dark' ? (
+                                        <SunIcon size={18} className="text-mist-300" />
+                                    ) : (
+                                        <MoonIcon size={18} className="text-mist-300" />
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
