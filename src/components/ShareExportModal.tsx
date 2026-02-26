@@ -284,38 +284,31 @@ const ExportCard = React.forwardRef<
         return processContentHtml(contentHtml, theme);
     }, [contentHtml, theme]);
 
+    const contentRef = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+        if (contentRef.current && processedHtml) {
+            contentRef.current.innerHTML = processedHtml;
+        }
+    }, [processedHtml]);
+
     return (
         <div
             ref={ref}
             className="export-card-wrapper"
             style={{
                 padding: '24px',
-                background: theme.wrapper,
+                background: settings.theme === 'dark' ? '#0f0f12' : '#f8fafc',
                 width: '600px',
                 minWidth: '400px',
                 maxWidth: '600px',
-                position: 'relative',
-                overflow: 'hidden',
             }}
         >
-            {/* Glow effect */}
-            <div
-                style={{
-                    position: 'absolute',
-                    inset: '-50px',
-                    background: theme.glow,
-                    pointerEvents: 'none',
-                    zIndex: 0,
-                }}
-            />
-
             {/* Card content */}
             <div
                 className="export-card"
                 style={{
-                    position: 'relative',
-                    zIndex: 1,
-                    background: theme.card,
+                    background: settings.theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.95)',
                     border: `1px solid ${theme.cardBorder}`,
                     borderRadius: '12px',
                     padding: '24px',
@@ -373,6 +366,7 @@ const ExportCard = React.forwardRef<
 
                 {/* Content */}
                 <div
+                    ref={contentRef}
                     className="export-content"
                     style={{
                         fontSize: fontSize.value,
@@ -380,7 +374,6 @@ const ExportCard = React.forwardRef<
                         color: theme.content,
                         fontFamily: '"Noto Serif SC", "Songti SC", "STSong", serif',
                     }}
-                    dangerouslySetInnerHTML={{ __html: processedHtml }}
                 />
 
                 {/* Footer with QR code option */}
