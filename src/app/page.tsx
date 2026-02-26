@@ -1176,7 +1176,7 @@ ${proResults[5]}
                 </div>
 
                 {/* Report Type Selector */}
-                <div className="flex items-center justify-center gap-2 mb-3">
+                <div className="flex items-center justify-start gap-2 mb-3">
                   {[
                     { value: 'beginner', label: t.home.reportTypeSelector.beginner, desc: t.home.reportTypeSelector.beginnerDesc },
                     { value: 'standard', label: t.home.reportTypeSelector.standard, desc: t.home.reportTypeSelector.standardDesc },
@@ -1732,15 +1732,15 @@ ${proResults[5]}
                               <div className="space-y-2 pl-4">
                                 <p className="text-mist-400 text-sm">
                                   <span className="text-mist-500">{t.home.faq.wechat}</span>
-                                  <span className="text-white font-mono ml-2">kaizhou_wang</span>
+                                  <span className="text-white font-mono ml-2">wkzSteven</span>
                                 </p>
                                 <p className="text-mist-400 text-sm">
                                   <span className="text-mist-500">{t.home.faq.email}</span>
                                   <a
-                                    href="mailto:wangkaizhou2024@gmail.com"
+                                    href="mailto:wangkaizhou2016@gmail.com"
                                     className="text-glacier-400 hover:text-glacier-300 transition-colors ml-2"
                                   >
-                                    wangkaizhou2024@gmail.com
+                                    wangkaizhou2016@gmail.com
                                   </a>
                                 </p>
                               </div>
@@ -1776,7 +1776,7 @@ ${proResults[5]}
                 >
                   <p className="text-mist-600 text-sm">
                     {t.home.faq.q4}
-                    <a href="mailto:wangkaizhou2024@gmail.com" className="text-glacier-400 hover:text-glacier-300 transition-colors ml-1">
+                    <a href="mailto:wangkaizhou2016@gmail.com" className="text-glacier-400 hover:text-glacier-300 transition-colors ml-1">
                       {t.common.contactUs}
                     </a>
                   </p>
@@ -1877,13 +1877,30 @@ ${proResults[5]}
               <h3 className="text-xl font-semibold text-white mb-2 text-center">{t.home.contact.title}</h3>
               <p className="text-sm text-mist-400 mb-6 text-center">{t.home.contact.scanQr}</p>
 
-              {/* 二维码图片 */}
-              <div className="flex justify-center">
-                <img
-                  src="/wechat-qr.jpg"
-                  alt="WeChat QR"
-                  className="w-64 h-64 object-cover rounded-lg"
-                />
+              {/* 联系信息 */}
+              <div className="text-center space-y-4">
+                {/* WeChat QR code */}
+                <div className="flex justify-center">
+                  <img
+                    src="/wechat-qr.jpg"
+                    alt="WeChat QR"
+                    className="w-64 h-64 object-contain rounded-lg"
+                  />
+                </div>
+
+                {/* WeChat ID */}
+                <div className="flex items-center justify-center gap-2 text-sm">
+                  <span className="text-mist-400">{t.home.faq.wechat}</span>
+                  <span className="font-mono text-text-primary select-all">wkzSteven</span>
+                </div>
+
+                {/* Email */}
+                <div className="flex items-center justify-center gap-2 text-sm">
+                  <span className="text-mist-400">{t.home.faq.email}</span>
+                  <a href="mailto:wangkaizhou2016@gmail.com" className="font-mono text-glacier-500 hover:underline">
+                    wangkaizhou2016@gmail.com
+                  </a>
+                </div>
               </div>
 
               {/* 提示文字 */}

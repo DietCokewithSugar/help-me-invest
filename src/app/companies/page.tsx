@@ -961,13 +961,30 @@ export default function CompaniesPage() {
                                 <h3 className="text-xl font-semibold text-white mb-2 text-center">{t.home.contact.title}</h3>
                                 <p className="text-sm text-mist-400 mb-6 text-center">{t.home.contact.scanQr}</p>
 
-                                {/* 二维码图片 */}
-                                <div className="flex justify-center">
-                                    <img
-                                        src="/wechat-qr.jpg"
-                                        alt="微信二维码"
-                                        className="w-64 h-64 object-cover rounded-lg"
-                                    />
+                                {/* 联系信息 */}
+                                <div className="text-center space-y-4">
+                                    {/* WeChat QR code */}
+                                    <div className="flex justify-center">
+                                        <img
+                                            src="/wechat-qr.jpg"
+                                            alt="WeChat QR"
+                                            className="w-64 h-64 object-contain rounded-lg"
+                                        />
+                                    </div>
+
+                                    {/* WeChat ID */}
+                                    <div className="flex items-center justify-center gap-2 text-sm">
+                                        <span className="text-mist-400">{t.home.faq.wechat}</span>
+                                        <span className="font-mono text-text-primary select-all">wkzSteven</span>
+                                    </div>
+
+                                    {/* Email */}
+                                    <div className="flex items-center justify-center gap-2 text-sm">
+                                        <span className="text-mist-400">{t.home.faq.email}</span>
+                                        <a href="mailto:wangkaizhou2016@gmail.com" className="font-mono text-glacier-500 hover:underline">
+                                            wangkaizhou2016@gmail.com
+                                        </a>
+                                    </div>
                                 </div>
 
                                 {/* 提示文字 */}

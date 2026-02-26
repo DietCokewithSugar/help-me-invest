@@ -29,7 +29,10 @@ import {
     AlertTriangle as AlertTriangleIcon,
     Coins as CoinsIcon,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import ReportModal from '@/components/ReportModal';
+import CompanyOverviewModal from '@/components/CompanyOverviewModal';
+import type { CompanyDiagnostic } from '@/types';
 import {
     PORTFOLIOS,
     PORTFOLIO_CATEGORIES,
@@ -391,10 +394,25 @@ export default function TrackingPage() {
     const [selectedCompany, setSelectedCompany] = useState<TrackedCompany | null>(null);
     const [reportModalOpen, setReportModalOpen] = useState(false);
     const [showContactModal, setShowContactModal] = useState(false);
+    const [diagnosticCompany, setDiagnosticCompany] = useState<CompanyDiagnostic | null>(null);
+    const [showOverviewModal, setShowOverviewModal] = useState(false);
+    const router = useRouter();
 
-    const handleSelectCompany = (company: TrackedCompany) => {
-        setSelectedCompany(company);
-        setReportModalOpen(true);
+    const handleSelectCompany = async (company: TrackedCompany) => {
+        try {
+            const response = await fetch(`/api/companies/${encodeURIComponent(company.symbol)}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.data) {
+                    setDiagnosticCompany(data.data);
+                    setShowOverviewModal(true);
+                    return;
+                }
+            }
+            router.push(`/?symbol=${encodeURIComponent(company.symbol)}`);
+        } catch {
+            router.push(`/?symbol=${encodeURIComponent(company.symbol)}`);
+        }
     };
 
     // 初始化主题
@@ -663,6 +681,15 @@ export default function TrackingPage() {
                     />
                 </div>
             )}
+
+            {/* Company Overview Modal */}
+            <CompanyOverviewModal
+                company={diagnosticCompany}
+                isOpen={showOverviewModal}
+                onClose={() => { setShowOverviewModal(false); setDiagnosticCompany(null); }}
+                currentFilters={{}}
+                onCompanyChange={(newCompany) => setDiagnosticCompany(newCompany)}
+            />
         </main>
     );
 }
