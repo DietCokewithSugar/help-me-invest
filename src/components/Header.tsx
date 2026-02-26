@@ -75,6 +75,9 @@ export default function Header({
                                 <Link href="/tracking" className="text-[11px] md:text-sm text-mist-400 hover:text-glacier-400 transition-colors whitespace-nowrap">
                                     {t.header.portfolio}
                                 </Link>
+                                <Link href="/industry" className="text-[11px] md:text-sm text-mist-400 hover:text-glacier-400 transition-colors whitespace-nowrap">
+                                    {t.header.industry}
+                                </Link>
                                 <Link href="/compare" className="relative text-[11px] md:text-sm text-mist-400 hover:text-glacier-400 transition-colors whitespace-nowrap">
                                     {t.header.compare}
                                     {compareCompanies.length > 0 && (
