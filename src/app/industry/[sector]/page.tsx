@@ -4,8 +4,10 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
+import CompanyOverviewModal from '@/components/CompanyOverviewModal';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatMarketCap, type SupplyChainData, type SupplyChainNode } from '@/lib/industry-data';
+import type { CompanyDiagnostic } from '@/types';
 import dynamic from 'next/dynamic';
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
@@ -48,6 +50,9 @@ export default function IndustryDetailPage() {
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [showContactModal, setShowContactModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'chain' | 'companies' | 'news'>('chain');
+  const [selectedCompany, setSelectedCompany] = useState<CompanyDiagnostic | null>(null);
+  const [showOverviewModal, setShowOverviewModal] = useState(false);
+  const [loadingCompany, setLoadingCompany] = useState<string | null>(null);
 
   const sector = typeof params.sector === 'string' ? decodeURIComponent(params.sector) : '';
 
@@ -124,6 +129,30 @@ export default function IndustryDetailPage() {
       setSortKey(key);
       setSortDir('desc');
     }
+  };
+
+  const handleCompanyClick = async (symbol: string) => {
+    if (loadingCompany) return;
+    setLoadingCompany(symbol);
+    try {
+      const res = await fetch(`/api/companies/${encodeURIComponent(symbol)}`);
+      const json = await res.json();
+      if (json.success && json.data) {
+        setSelectedCompany(json.data);
+        setShowOverviewModal(true);
+      } else {
+        router.push(`/?symbol=${symbol}`);
+      }
+    } catch {
+      router.push(`/?symbol=${symbol}`);
+    } finally {
+      setLoadingCompany(null);
+    }
+  };
+
+  const handleCloseOverview = () => {
+    setShowOverviewModal(false);
+    setTimeout(() => setSelectedCompany(null), 300);
   };
 
   const scatterOption = useMemo(() => {
@@ -487,12 +516,14 @@ export default function IndustryDetailPage() {
                                       {node.companies.map((co) => (
                                         <div
                                           key={co.symbol}
-                                          className="flex items-center gap-3 px-2 py-1 hover:bg-white/5 rounded-sm transition-colors cursor-pointer"
-                                          onClick={() => router.push(`/?s=${co.symbol}`)}
+                                          className={`flex items-center gap-3 px-2 py-1 hover:bg-white/5 rounded-sm transition-colors cursor-pointer ${loadingCompany === co.symbol ? 'opacity-60' : ''}`}
+                                          onClick={() => handleCompanyClick(co.symbol)}
                                         >
                                           <span className="text-xs font-mono text-glacier-500 w-14">{co.symbol}</span>
                                           <span className="text-xs flex-1" style={{ color: 'var(--text-primary)' }}>{co.name}</span>
-                                          {shareTag(co.share)}
+                                          {loadingCompany === co.symbol ? (
+                                            <span className="w-3 h-3 border border-glacier-500 border-t-transparent rounded-full animate-spin" />
+                                          ) : shareTag(co.share)}
                                         </div>
                                       ))}
                                     </div>
@@ -559,7 +590,7 @@ export default function IndustryDetailPage() {
                             key={c.symbol}
                             className="border-b cursor-pointer transition-colors hover:bg-white/5"
                             style={{ borderColor: 'var(--border-color)' }}
-                            onClick={() => router.push(`/?s=${c.symbol}`)}
+                            onClick={() => handleCompanyClick(c.symbol)}
                           >
                             <td className="px-4 md:px-6 py-3">
                               <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{c.name}</span>
@@ -651,6 +682,13 @@ export default function IndustryDetailPage() {
           </div>
         </div>
       )}
+
+      <CompanyOverviewModal
+        company={selectedCompany}
+        isOpen={showOverviewModal}
+        onClose={handleCloseOverview}
+        onCompanyChange={(newCompany) => setSelectedCompany(newCompany)}
+      />
     </div>
   );
 }
