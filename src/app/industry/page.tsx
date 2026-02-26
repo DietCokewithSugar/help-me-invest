@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { getTrendColor, formatMarketCap } from '@/lib/industry-data';
+import { getTrendColor } from '@/lib/industry-data';
+import { stripEmoji } from '@/lib/text-utils';
 import dynamic from 'next/dynamic';
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
@@ -23,9 +24,18 @@ interface SectorData {
 type SortKey = 'marketCapWeight' | 'cagr3y' | 'sentiment' | 'change1D';
 type SortDir = 'asc' | 'desc';
 
+const darkPanelStyle = {
+  backgroundColor: '#121212',
+  borderColor: 'rgba(255, 255, 255, 0.12)',
+} as const;
+
+const darkTableHeaderStyle = {
+  backgroundColor: 'rgba(255, 255, 255, 0.02)',
+} as const;
+
 export default function IndustryPage() {
   const router = useRouter();
-  const { locale, t } = useLanguage();
+  const { t } = useLanguage();
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [sectors, setSectors] = useState<SectorData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +43,7 @@ export default function IndustryPage() {
   const [sortKey, setSortKey] = useState<SortKey>('marketCapWeight');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [showContactModal, setShowContactModal] = useState(false);
+  const isDark = theme === 'dark';
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as 'dark' | 'light' | null;
@@ -73,7 +84,7 @@ export default function IndustryPage() {
   const sectorName = useCallback(
     (sector: string) => {
       const sectorMap = t.sectors as Record<string, string>;
-      return sectorMap[sector] || sector;
+      return stripEmoji(sectorMap[sector] || sector);
     },
     [t]
   );
@@ -298,7 +309,7 @@ export default function IndustryPage() {
             </section>
 
             {/* Data Grid */}
-            <section className="gemini-card overflow-hidden">
+            <section className="gemini-card overflow-hidden" style={isDark ? darkPanelStyle : undefined}>
               <div className="p-4 md:p-6 pb-0">
                 <h2 className="text-base font-semibold" style={{ color: 'var(--text-heading)' }}>
                   {t.industry.rankingTitle}
@@ -307,7 +318,7 @@ export default function IndustryPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b" style={{ borderColor: 'var(--border-color)' }}>
+                    <tr className="border-b" style={{ borderColor: 'var(--border-color)', ...(isDark ? darkTableHeaderStyle : {}) }}>
                       <th className="text-left px-4 md:px-6 py-3 text-mist-400 font-medium text-xs">
                         {t.industry.rankingCols.sector}
                       </th>
@@ -346,7 +357,10 @@ export default function IndustryPage() {
                       <tr
                         key={sd.sector}
                         className="border-b cursor-pointer transition-colors hover:bg-white/5"
-                        style={{ borderColor: 'var(--border-color)' }}
+                        style={{
+                          borderColor: 'var(--border-color)',
+                          backgroundColor: isDark && idx % 2 === 1 ? 'rgba(255,255,255,0.012)' : undefined,
+                        }}
                         onClick={() => handleRowClick(sd.sector)}
                       >
                         <td className="px-4 md:px-6 py-3">
@@ -376,9 +390,9 @@ export default function IndustryPage() {
                         </td>
                         <td className="px-4 md:px-6 py-3 hidden md:table-cell">
                           <span className="text-xs font-mono text-glacier-500">
-                            {sd.leadingCompany.symbol}
+                            {stripEmoji(sd.leadingCompany.symbol)}
                           </span>
-                          <span className="text-xs text-mist-500 ml-1.5">{sd.leadingCompany.name}</span>
+                          <span className="text-xs text-mist-500 ml-1.5">{stripEmoji(sd.leadingCompany.name)}</span>
                         </td>
                         <td className="px-4 md:px-6 py-3">
                           <span className={trendBadgeClass(sd.trend)}>{trendLabel(sd.trend)}</span>
