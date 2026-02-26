@@ -1345,6 +1345,97 @@ ${prevContext}
     return streamIterator();
   }
 
+  // ============================================================================
+  // 小白版报告分析 - 面向投资新手的通俗分析
+  // ============================================================================
+
+  async streamBeginnerVerdict(companyData: any, incomeStatements: any[], market: MarketType, language?: string): Promise<AsyncGenerator<string, void, unknown>> {
+    const lang = this.getLanguageInstruction(language);
+    const recentRevenue = incomeStatements?.slice(0, 3).map((s: any) => ({
+      year: s.calendarYear || s.date?.substring(0, 4),
+      revenue: s.revenue,
+      netIncome: s.netIncome,
+      revenueGrowth: s.revenueGrowth,
+    })) || [];
+    
+    const prompt = `
+你是一位面向投资新手的分析师。请用最通俗直白的语言，针对 ${companyData.companyName} (${companyData.symbol}) 给出投资结论。
+
+公司数据：
+- 当前股价：$${companyData.price}
+- 市值：$${companyData.marketCap || companyData.mktCap}
+- 行业：${companyData.sector} / ${companyData.industry}
+- 近几年营收数据：${JSON.stringify(recentRevenue)}
+
+要求：
+- **第一句话就给出明确结论**：这只股票现在是否值得买？用 ✅ 或 ⚠️ 或 ❌ 开头。
+- 结合营收数据判断：公司最近是在增长还是在走下坡路？当前股价是不是在历史高位？
+- 用"说人话"的方式解释，就像给完全不懂股票的朋友讲。
+- 禁止任何开场白、问候语。
+- 字数 200-300 字。
+- ${lang.outputLang}。
+- 格式：Markdown，关键结论加粗。
+`;
+    return this.generateStream(prompt, 'standard');
+  }
+
+  async streamBeginnerCompanyIntro(companyData: any, market: MarketType, language?: string): Promise<AsyncGenerator<string, void, unknown>> {
+    const lang = this.getLanguageInstruction(language);
+    const prompt = `
+用最简单的语言介绍 ${companyData.companyName} (${companyData.symbol}) 这家公司。
+
+要求：
+- 想象你在跟一个完全不懂商业的朋友解释。
+- 这家公司是做什么的？靠什么赚钱？它的产品你可能用过吗？
+- 禁止使用任何专业金融术语（如"P/E"、"ROE"等）。如果必须提到，要用括号解释。
+- 字数 150-250 字。
+- ${lang.outputLang}。
+- 格式：Markdown，关键信息加粗。
+`;
+    return this.generateStream(prompt, 'standard');
+  }
+
+  async streamBeginnerRiskReward(companyData: any, market: MarketType, language?: string): Promise<AsyncGenerator<string, void, unknown>> {
+    const lang = this.getLanguageInstruction(language);
+    const prompt = `
+用最直白的语言分析投资 ${companyData.companyName} (${companyData.symbol}) 的好处和风险。
+
+要求：
+- 分为"👍 买它的理由"和"👎 需要担心的事"两部分。
+- 每部分列 2-3 个要点，每个要点一句话说清楚。
+- 用日常生活的例子或比喻来解释。
+- 禁止使用专业金融术语。
+- 字数 200-300 字。
+- ${lang.outputLang}。
+- 格式：Markdown，关键信息加粗。
+`;
+    return this.generateStream(prompt, 'standard');
+  }
+
+  async streamBeginnerActionPlan(companyData: any, prevContext: string, market: MarketType, language?: string): Promise<AsyncGenerator<string, void, unknown>> {
+    const lang = this.getLanguageInstruction(language);
+    const prompt = `
+基于以下分析内容，给投资新手一份简单的行动建议。
+
+前置分析：
+${prevContext}
+
+公司：${companyData.companyName} (${companyData.symbol})
+当前股价：$${companyData.price}
+
+要求：
+- 明确告诉新手：现在该怎么做？买？等等看？还是别碰？
+- 如果建议买，给一个简单的策略（比如"可以先买一点试试"或"等跌到xx再考虑"）。
+- 提醒新手最重要的一两个注意事项。
+- 最后用一句话总结。
+- 禁止使用专业术语。
+- 字数 150-250 字。
+- ${lang.outputLang}。
+- 格式：Markdown，关键建议加粗。
+`;
+    return this.generateStream(prompt, 'standard');
+  }
+
   // 保留旧方法的兼容性（可选，后续可删除）
   async streamProAnalysis(
     companyData: any,
