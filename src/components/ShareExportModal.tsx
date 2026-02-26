@@ -17,6 +17,7 @@ import {
     Sun,
     Moon,
 } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // ==================== Types ====================
 interface ExportSettings {
@@ -271,8 +272,9 @@ const ExportCard = React.forwardRef<
         settings: ExportSettings;
         companyName?: string;
         symbol?: string;
+        t: { shareExportCard: { investReport: string } };
     }
->(({ title, contentHtml, settings, companyName, symbol }, ref) => {
+>(({ title, contentHtml, settings, companyName, symbol, t }, ref) => {
     const fontSize = fontSizeConfig[settings.fontSize] ?? fontSizeConfig.md;
     const theme = themeConfig[settings.theme] ?? themeConfig.dark;
 
@@ -289,8 +291,11 @@ const ExportCard = React.forwardRef<
             style={{
                 padding: '24px',
                 background: theme.wrapper,
+                width: '600px',
                 minWidth: '400px',
                 maxWidth: '600px',
+                position: 'relative',
+                overflow: 'hidden',
             }}
         >
             {/* Glow effect */}
@@ -314,7 +319,6 @@ const ExportCard = React.forwardRef<
                     border: `1px solid ${theme.cardBorder}`,
                     borderRadius: '12px',
                     padding: '24px',
-                    backdropFilter: 'blur(20px)',
                     boxShadow: settings.theme === 'light' ? '0 4px 24px rgba(0,0,0,0.08)' : 'none',
                 }}
             >
@@ -352,20 +356,18 @@ const ExportCard = React.forwardRef<
                                 fontFamily: '"Noto Serif SC", "Songti SC", "STSong", serif',
                             }}
                         >
-                            {title}
+                            {companyName ? `${companyName} ${t.shareExportCard.investReport}` : title}
                         </h2>
-                        {companyName && (
-                            <p
-                                style={{
-                                    fontSize: '12px',
-                                    color: theme.subtitle,
-                                    margin: '4px 0 0 0',
-                                    fontFamily: '"JetBrains Mono", monospace',
-                                }}
-                            >
-                                {companyName} {symbol && `(${symbol})`}
-                            </p>
-                        )}
+                        <p
+                            style={{
+                                fontSize: '12px',
+                                color: theme.subtitle,
+                                margin: '4px 0 0 0',
+                                fontFamily: '"JetBrains Mono", monospace',
+                            }}
+                        >
+                            {symbol && `${symbol} · `}{title}
+                        </p>
                     </div>
                 </div>
 
@@ -470,6 +472,7 @@ export default function ShareExportModal({
     theme = 'dark',
 }: ShareExportModalProps) {
     const cardRef = useRef<HTMLDivElement>(null);
+    const { t } = useLanguage();
     const [status, setStatus] = useState<ExportStatus>('idle');
     const [errorMessage, setErrorMessage] = useState('');
     const [settings, setSettings] = useState<ExportSettings>({
@@ -503,13 +506,18 @@ export default function ShareExportModal({
                 await document.fonts.ready;
             }
 
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
             const currentTheme = themeConfig[settings.theme] ?? themeConfig.dark;
+            const rect = cardRef.current.getBoundingClientRect();
             const dataUrl = await toPng(cardRef.current, {
                 quality: 1,
                 pixelRatio: settings.quality,
                 backgroundColor: currentTheme.exportBg,
-                cacheBust: false, // 禁用 cacheBust 避免字体缓存问题
-                skipFonts: true,  // 跳过字体嵌入，避免 CORS 问题
+                cacheBust: false,
+                skipFonts: true,
+                width: rect.width,
+                height: rect.height,
                 style: {
                     transform: 'none',
                 },
@@ -538,13 +546,22 @@ export default function ShareExportModal({
                 await document.fonts.ready;
             }
 
+            // 等待两帧确保布局完全稳定
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
             const currentTheme = themeConfig[settings.theme] ?? themeConfig.dark;
+            const rect = cardRef.current.getBoundingClientRect();
             const dataUrl = await toPng(cardRef.current, {
                 quality: 1,
                 pixelRatio: settings.quality,
                 backgroundColor: currentTheme.exportBg,
-                cacheBust: false, // 禁用 cacheBust 避免字体缓存问题
-                skipFonts: true,  // 跳过字体嵌入，避免 CORS 问题
+                cacheBust: false,
+                skipFonts: true,
+                width: rect.width,
+                height: rect.height,
+                style: {
+                    transform: 'none',
+                },
             });
 
             const link = document.createElement('a');
@@ -647,8 +664,8 @@ export default function ShareExportModal({
                                     <Share2 className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-white">分享模块</h2>
-                                    <p className="text-xs text-mist-500">{title}</p>
+                                    <h2 className="text-lg font-semibold text-white">{t.shareModal.title}</h2>
+                                    <p className="text-xs text-mist-500">{companyName ? `${companyName} · ${title}` : title}</p>
                                 </div>
                             </div>
                             <motion.button
@@ -672,6 +689,7 @@ export default function ShareExportModal({
                                     settings={settings}
                                     companyName={companyName}
                                     symbol={symbol}
+                                    t={t}
                                 />
                             </div>
                         </div>
