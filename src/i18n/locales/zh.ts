@@ -32,6 +32,10 @@ export const zh = {
     lightMode: '切换到亮色模式',
     darkMode: '切换到深色模式',
     language: '语言',
+    discover: '发现好公司',
+    portfolio: '大神持仓',
+    compare: '公司对比',
+    contact: '联系我们',
   },
   home: {
     hero: {
@@ -123,6 +127,15 @@ export const zh = {
       title: '联系我们',
       scanQr: '扫描二维码添加微信',
       lookForward: '期待与您交流',
+    },
+    reportTypeSelector: {
+      title: '选择报告类型',
+      beginner: '小白版',
+      beginnerDesc: '通俗易懂，先说结论',
+      standard: '普通版',
+      standardDesc: '全面分析，8大维度',
+      pro: '专业版',
+      proDesc: '深度研究，7大模块',
     },
     featuredStocks: {
       AAPL: '苹果',
@@ -300,6 +313,19 @@ export const zh = {
     },
     shareModule: '分享此模块',
     analyzingCompanyFeatures: 'AI 正在分析企业特征...',
+    beginnerReport: '小白版',
+    switchToBeginner: '切换到小白版',
+    beginnerSubtitle: '用最简单的话告诉你该不该买',
+    beginnerSections: {
+      verdict: '投资结论',
+      verdictLoading: 'AI 正在判断值不值得买...',
+      companyIntro: '这家公司是干嘛的？',
+      companyIntroLoading: 'AI 正在用大白话介绍...',
+      riskReward: '买它的理由 vs 风险',
+      riskRewardLoading: 'AI 正在分析利弊...',
+      actionPlan: '新手该怎么做？',
+      actionPlanLoading: 'AI 正在给你出主意...',
+    },
   },
   financial: {
     incomeStatement: '利润表',

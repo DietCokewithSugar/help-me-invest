@@ -9,6 +9,7 @@ import {
     ChevronRightIcon,
 } from '@/components/Icons';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useCompare } from '@/contexts/CompareContext';
 import type { CompanyDiagnostic, CompanyFilterRequest } from '@/types';
 
 const DIMENSION_KEYS = [
@@ -80,6 +81,7 @@ export default function CompanyOverviewModal({
 }: CompanyOverviewModalProps) {
     const router = useRouter();
     const { t } = useLanguage();
+    const { addCompany, isInCompare, isFull } = useCompare();
     const [relatedCompanies, setRelatedCompanies] = useState<CompanyDiagnostic[]>([]);
     const [loadingRelated, setLoadingRelated] = useState(false);
 
@@ -324,15 +326,35 @@ export default function CompanyOverviewModal({
                             )}
                         </div>
 
-                        {/* Footer - 生成报告按钮 */}
-                        <div className="p-4 border-t border-white/5 bg-white/[0.02] flex justify-center">
-                            <button
-                                onClick={() => handleGenerateReport(company.symbol)}
-                                className="flex items-center justify-center gap-2 px-8 py-2.5 bg-[#10B981] hover:bg-[#059669] text-white rounded-sm font-medium text-sm transition-colors"
-                            >
-                                <TrendingUpIcon size={14} />
-                                {t.companyOverviewModal.generateReport}
-                            </button>
+                        {/* Footer - Compare & Report buttons */}
+                        <div className="p-4 border-t border-white/5 bg-white/[0.02]">
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => {
+                                        if (company) {
+                                            addCompany({
+                                                symbol: company.symbol,
+                                                companyName: company.company_name || '',
+                                                market: 'US',
+                                                price: company.price || undefined,
+                                                marketCap: company.market_cap || undefined,
+                                                sector: company.sector || undefined,
+                                                industry: company.industry || undefined,
+                                            });
+                                        }
+                                    }}
+                                    disabled={!company || isInCompare(company?.symbol || '') || isFull}
+                                    className="flex-1 px-4 py-3 bg-white/5 border border-white/10 hover:bg-white/10 text-mist-300 rounded-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-sm"
+                                >
+                                    {company && isInCompare(company.symbol) ? t.compare.alreadyInCompare : t.compare.addToCompare}
+                                </button>
+                                <button
+                                    onClick={() => handleGenerateReport(company.symbol)}
+                                    className="flex-1 px-6 py-3 bg-[#10B981] hover:bg-[#059669] text-white rounded-sm font-semibold transition-all"
+                                >
+                                    {t.companyOverviewModal.generateReport}
+                                </button>
+                            </div>
                         </div>
                     </motion.div>
                 </motion.div>

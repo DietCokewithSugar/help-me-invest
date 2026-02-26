@@ -486,6 +486,14 @@ export interface ProAIAnalysis {
   proInvestmentConclusion: string; // 综合投资建议
 }
 
+// 小白版 AI 分析结构
+export interface BeginnerAIAnalysis {
+  beginnerVerdict: string;          // 投资结论（先说结论）
+  beginnerCompanyIntro: string;     // 通俗公司介绍
+  beginnerRiskReward: string;       // 好处与风险
+  beginnerActionPlan: string;       // 行动建议
+}
+
 export interface SankeyData {
   nodes: { name: string }[];
   links: { source: string; target: string; value: number }[];
@@ -531,6 +539,7 @@ export interface ReportData {
   earningsTranscripts?: any[];
   aiAnalysis?: AIAnalysis;
   proAiAnalysis?: ProAIAnalysis;  // 专业版 AI 分析
+  beginnerAiAnalysis?: BeginnerAIAnalysis;
   earningsCallSummary?: string;
   searchResults?: string;
   sankeyData: SankeyData;

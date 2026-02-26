@@ -458,6 +458,12 @@ export interface ReportCacheRecord {
   pro_valuation: string | null;
   pro_investment_conclusion: string | null;
   
+  // 小白版 AI 分析模块
+  beginner_verdict: string | null;
+  beginner_company_intro: string | null;
+  beginner_risk_reward: string | null;
+  beginner_action_plan: string | null;
+  
   // FMP 财务数据（季度更新）
   sankey_data: any | null;
   revenue_trend: any | null;
@@ -502,6 +508,11 @@ const sectionToColumn: Record<string, keyof ReportCacheRecord> = {
   proFinancialHealth: 'pro_financial_health',
   proValuation: 'pro_valuation',
   proInvestmentConclusion: 'pro_investment_conclusion',
+  // 小白版模块
+  beginnerVerdict: 'beginner_verdict',
+  beginnerCompanyIntro: 'beginner_company_intro',
+  beginnerRiskReward: 'beginner_risk_reward',
+  beginnerActionPlan: 'beginner_action_plan',
 };
 
 /**

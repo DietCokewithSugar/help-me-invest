@@ -174,6 +174,7 @@ interface ReportProps {
   onRegenerate?: () => Promise<void>;
   theme?: 'dark' | 'light';
   isModalView?: boolean;
+  initialReportVersion?: 'beginner' | 'standard' | 'professional';
 }
 
 // 分析卡片组件 - 扁平化设计
@@ -600,18 +601,20 @@ export default function Report({
   onRegenerate,
   theme = 'dark',
   isModalView = false,
+  initialReportVersion = 'standard',
 }: ReportProps) {
   const reportRef = useRef<HTMLDivElement>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
   const [activeSection, setActiveSection] = useState('');
   const [isRegenerating, setIsRegenerating] = useState(false);
-  const [reportVersion, setReportVersion] = useState<'standard' | 'professional'>('standard');
+  const [reportVersion, setReportVersion] = useState<'beginner' | 'standard' | 'professional'>(initialReportVersion);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     aiAnalysis: true,
+    beginnerAnalysis: true,
     financialStatements: true,
     valuation: true,
-    proAnalysis: true,  // 专业版分析区块
+    proAnalysis: true,
     events: false,
     holdings: false,
     news: true,
@@ -741,6 +744,7 @@ export default function Report({
     !aiLoading && (!!aiError || !!aiAnalysis || !!earningsCallSummary);
   // 普通版 AI 分析区域是否可见（加载中或有内容时都显示）
   const showAiSectionArea = reportVersion === 'standard' && (aiLoading || showAiSection);
+  const showBeginnerArea = reportVersion === 'beginner';
 
   // 兼容新旧 API 格式
   const marketCap = profile.marketCap || profile.mktCap || 0;
@@ -753,7 +757,7 @@ export default function Report({
   // 根据版本决定显示哪些部分
   const showValuationSection = reportVersion === 'professional';
   const showAiSectionInVersion = reportVersion === 'standard' && showAiSection;
-  const showFinancialStatementsInVersion = reportVersion === 'standard';
+  const showFinancialStatementsInVersion = reportVersion === 'standard' || reportVersion === 'beginner';
   const showNewsInVersion = reportVersion === 'standard' && hasNewsData;
 
   // 监听滚动，更新当前活跃的 section
@@ -761,7 +765,10 @@ export default function Report({
     const handleScroll = () => {
       // 根据版本动态构建可用的 sections
       const availableSections: string[] = [];
-      if (reportVersion === 'standard') {
+      if (reportVersion === 'beginner') {
+        availableSections.push('beginnerAnalysis');
+        availableSections.push('financialStatements');
+      } else if (reportVersion === 'standard') {
         if (showAiSection) availableSections.push('aiAnalysis');
         availableSections.push('financialStatements');
         if (hasNewsData) availableSections.push('news');
@@ -785,10 +792,11 @@ export default function Report({
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [reportVersion, showAiSection, hasEventsData, hasHoldingsData, hasNewsData]);
+  }, [reportVersion, showAiSection, showBeginnerArea, hasEventsData, hasHoldingsData, hasNewsData]);
 
   // 快捷导航 - 根据版本和市场类型和数据可用性显示
   const baseSections = [
+    ...(showBeginnerArea ? [{ id: 'beginnerAnalysis', label: t.report.beginnerReport, icon: Sparkles }] : []),
     ...(showAiSectionInVersion ? [{ id: 'aiAnalysis', label: t.report.sections.aiAnalysis, icon: Sparkles }] : []),
     ...(showFinancialStatementsInVersion ? [{ id: 'financialStatements', label: t.report.sections.financialData, icon: FileSpreadsheet }] : []),
     ...(showValuationSection ? [{ id: 'proAnalysis', label: t.report.sections.proAnalysis, icon: Sparkles }] : []),
@@ -827,15 +835,30 @@ export default function Report({
           </button>
         )}
 
-        {/* 版本切换 */}
-        <button
-          onClick={() => setReportVersion(reportVersion === 'standard' ? 'professional' : 'standard')}
-          className="gemini-btn gemini-btn-primary flex items-center gap-2 px-5 py-3 text-base"
-        >
-          <RefreshCw className="w-4 h-4" />
-          <span className="hidden sm:inline">{reportVersion === 'standard' ? t.report.switchToPro : t.report.switchToBasic}</span>
-          <span className="sm:hidden text-xs">{reportVersion === 'standard' ? t.report.proVersion : t.report.basicVersion}</span>
-        </button>
+        {/* Report version switcher - 3 options */}
+        <div className="flex items-center gap-1 bg-white/5 rounded-sm p-0.5">
+          {(['beginner', 'standard', 'professional'] as const).map((ver) => {
+            const labels = {
+              beginner: t.report.beginnerReport,
+              standard: t.report.basicVersion,
+              professional: t.report.proVersion,
+            };
+            const isActive = reportVersion === ver;
+            return (
+              <button
+                key={ver}
+                onClick={() => setReportVersion(ver)}
+                className={`px-3 py-1.5 text-xs rounded-sm transition-all ${
+                  isActive
+                    ? 'bg-accent/20 text-accent font-medium'
+                    : 'text-text-muted hover:text-text-secondary'
+                }`}
+              >
+                {labels[ver]}
+              </button>
+            );
+          })}
+        </div>
 
         {/* 单位切换 */}
         <UnitModeToggle />
@@ -980,6 +1003,69 @@ export default function Report({
             </div>
           </div>
         </header>
+
+        {/* ==================== Beginner Analysis Section ==================== */}
+        {showBeginnerArea && (
+          <CollapsibleSection
+            id="beginnerAnalysis"
+            title={t.report.beginnerReport}
+            subtitle={t.report.beginnerSubtitle}
+            expanded={expandedSections.aiAnalysis}
+            onToggle={() => toggleSection('aiAnalysis')}
+            sectionNumber={getSectionNumber('beginnerAnalysis')}
+            onShare={handleShareModule}
+          >
+            <div className="space-y-6 animate-fade-in">
+              {/* Verdict */}
+              <AnalysisCard title={t.report.beginnerSections.verdict} onShare={handleShareModule}>
+                {data.beginnerAiAnalysis?.beginnerVerdict ? (
+                  <ReactMarkdown>{data.beginnerAiAnalysis.beginnerVerdict}</ReactMarkdown>
+                ) : (
+                  <div className="flex items-center gap-2 text-mist-500 text-sm">
+                    <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                    <span>{t.report.beginnerSections.verdictLoading}</span>
+                  </div>
+                )}
+              </AnalysisCard>
+
+              {/* Company Intro */}
+              <AnalysisCard title={t.report.beginnerSections.companyIntro} onShare={handleShareModule}>
+                {data.beginnerAiAnalysis?.beginnerCompanyIntro ? (
+                  <ReactMarkdown>{data.beginnerAiAnalysis.beginnerCompanyIntro}</ReactMarkdown>
+                ) : (
+                  <div className="flex items-center gap-2 text-mist-500 text-sm">
+                    <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                    <span>{t.report.beginnerSections.companyIntroLoading}</span>
+                  </div>
+                )}
+              </AnalysisCard>
+
+              {/* Risk / Reward */}
+              <AnalysisCard title={t.report.beginnerSections.riskReward} onShare={handleShareModule}>
+                {data.beginnerAiAnalysis?.beginnerRiskReward ? (
+                  <ReactMarkdown>{data.beginnerAiAnalysis.beginnerRiskReward}</ReactMarkdown>
+                ) : (
+                  <div className="flex items-center gap-2 text-mist-500 text-sm">
+                    <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                    <span>{t.report.beginnerSections.riskRewardLoading}</span>
+                  </div>
+                )}
+              </AnalysisCard>
+
+              {/* Action Plan */}
+              <AnalysisCard title={t.report.beginnerSections.actionPlan} onShare={handleShareModule}>
+                {data.beginnerAiAnalysis?.beginnerActionPlan ? (
+                  <ReactMarkdown>{data.beginnerAiAnalysis.beginnerActionPlan}</ReactMarkdown>
+                ) : (
+                  <div className="flex items-center gap-2 text-mist-500 text-sm">
+                    <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                    <span>{t.report.beginnerSections.actionPlanLoading}</span>
+                  </div>
+                )}
+              </AnalysisCard>
+            </div>
+          </CollapsibleSection>
+        )}
 
         {/* ==================== AI 生成中提示（仅普通版） ==================== */}
         {showAiLoading && showAiSectionArea && (

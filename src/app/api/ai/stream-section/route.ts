@@ -298,6 +298,33 @@ export async function POST(request: NextRequest) {
                     'proInvestmentConclusion'
                 );
                 break;
+            case 'beginnerVerdict':
+                streamIterator = await getStreamWithRetry(
+                    () => client.streamBeginnerVerdict(data, data.incomeStatements || [], marketType, language),
+                    'beginnerVerdict'
+                );
+                break;
+            case 'beginnerCompanyIntro':
+                streamIterator = await getStreamWithRetry(
+                    () => client.streamBeginnerCompanyIntro(data, marketType, language),
+                    'beginnerCompanyIntro'
+                );
+                break;
+            case 'beginnerRiskReward':
+                streamIterator = await getStreamWithRetry(
+                    () => client.streamBeginnerRiskReward(data, marketType, language),
+                    'beginnerRiskReward'
+                );
+                break;
+            case 'beginnerActionPlan':
+                if (!prevContext) {
+                    return NextResponse.json({ error: 'Context required for beginner action plan' }, { status: 400 });
+                }
+                streamIterator = await getStreamWithRetry(
+                    () => client.streamBeginnerActionPlan(data, prevContext, marketType, language),
+                    'beginnerActionPlan'
+                );
+                break;
             default:
                 return NextResponse.json({ error: 'Invalid section' }, { status: 400 });
         }
