@@ -516,9 +516,9 @@ function HomeContent() {
   };
 
   // 检查缓存
-  const checkCache = async (symbol: string, market: MarketType) => {
+  const checkCache = async (symbol: string, market: MarketType, reportType: string = 'standard') => {
     try {
-      const response = await fetch(`/api/cache?symbol=${encodeURIComponent(symbol)}&market=${market}&language=${locale}`);
+      const response = await fetch(`/api/cache?symbol=${encodeURIComponent(symbol)}&market=${market}&language=${locale}&type=${reportType}`);
       if (!response.ok) return null;
       return await response.json();
     } catch (error) {
@@ -689,8 +689,8 @@ function HomeContent() {
 
     try {
       // 0. 检查缓存
-      const cachedData = await checkCache(formattedSymbol, marketForAnalyze);
-      const useCachedAI = cachedData?.cached && cachedData?.hasStandardAnalysis;
+      const cachedData = await checkCache(formattedSymbol, marketForAnalyze, reportType === 'pro' ? 'professional' : reportType);
+      const useCachedAI = cachedData?.cached && cachedData?.hasAiContent;
 
       // 1. Fetch Basic FMP Data (with 90s timeout)
       const response = await fetchWithTimeout('/api/fmp', {
@@ -728,23 +728,24 @@ function HomeContent() {
       // 如果有缓存的 AI 分析，直接使用缓存数据
       if (useCachedAI && cachedData?.data?.aiAnalysis) {
         console.log('使用缓存的报告数据');
-        setReportData({
+        const cachedReportType = cachedData.reportType || 'standard';
+        const cachedUpdate: Record<string, any> = {
           ...data,
-          aiAnalysis: cachedData.data.aiAnalysis,
-          proAiAnalysis: cachedData.data.proAiAnalysis || {
-            proBusinessModel: '',
-            proOperatingModel: '',
-            proIndustryOutlook: '',
-            proMoatAnalysis: '',
-            proFinancialHealth: '',
-            proValuation: '',
-            proInvestmentConclusion: '',
-          },
           earningsCallSummary: cachedData.data.earningsCallSummary || '',
           reportGeneratedAt: cachedData.updatedAt,
-        });
+        };
+
+        if (cachedReportType === 'beginner') {
+          cachedUpdate.beginnerAiAnalysis = cachedData.data.aiAnalysis;
+        } else if (cachedReportType === 'professional') {
+          cachedUpdate.proAiAnalysis = cachedData.data.aiAnalysis;
+        } else {
+          cachedUpdate.aiAnalysis = cachedData.data.aiAnalysis;
+        }
+
+        setReportData(cachedUpdate as ReportData);
         setLoading(false);
-        return; // 使用缓存，不需要重新生成
+        return;
       }
 
       // 2. Start Parallel Streaming
@@ -1824,7 +1825,7 @@ ${proResults[5]}
               const marketToRegenerate = reportData.market || 'US';
 
               try {
-                await fetch(`/api/cache?symbol=${encodeURIComponent(symbolToRegenerate)}&market=${marketToRegenerate}&language=${locale}`, {
+                await fetch(`/api/cache?symbol=${encodeURIComponent(symbolToRegenerate)}&market=${marketToRegenerate}&language=${locale}&type=${reportType === 'pro' ? 'professional' : reportType}`, {
                   method: 'DELETE',
                 });
               } catch (e) {

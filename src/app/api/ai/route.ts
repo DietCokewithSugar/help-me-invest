@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GeminiClient } from '@/lib/gemini';
 import type { MarketType } from '@/lib/markets';
-import { getCachedReport, saveReport, type AIReportRecord } from '@/lib/supabase';
+import { getCachedReportV1, saveReport, type AIReportRecord } from '@/lib/supabase';
 import { withRetryAndTimeout } from '@/lib/api-utils';
 
 export const maxDuration = 60;
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     const upperSymbol = symbol.toUpperCase().trim();
 
     // 1. 检查数据库中是否有7天内的缓存报告
-    const cachedReport = await getCachedReport(upperSymbol, marketType);
+    const cachedReport = await getCachedReportV1(upperSymbol, marketType);
     if (cachedReport) {
       console.log(`使用缓存报告: ${upperSymbol} (${marketType}), 生成于: ${cachedReport.created_at}`);
       return NextResponse.json({

@@ -5,12 +5,11 @@ import { formatSymbolForMarket } from '@/lib/markets';
 // 缓存响应类型
 interface CacheResponse {
     cached: boolean;
-    hasStandardAnalysis?: boolean;
-    hasProAnalysis?: boolean;
+    hasAiContent?: boolean;
     hasFmpData?: boolean;
+    reportType?: string;
     data?: {
-        aiAnalysis: AIAnalysis | null;
-        proAiAnalysis: ProAIAnalysis | null;
+        aiAnalysis: AIAnalysis | ProAIAnalysis | null;
         earningsCallSummary: string;
         sankeyData: any;
         revenueTrend: any;
@@ -93,9 +92,9 @@ export function useReportAnalysis() {
     };
 
     // 检查缓存
-    const checkCache = async (symbol: string, market: MarketType, language: string = 'zh'): Promise<CacheResponse | null> => {
+    const checkCache = async (symbol: string, market: MarketType, language: string = 'zh', reportType: string = 'standard'): Promise<CacheResponse | null> => {
         try {
-            const response = await fetch(`/api/cache?symbol=${encodeURIComponent(symbol)}&market=${market}&language=${language}`);
+            const response = await fetch(`/api/cache?symbol=${encodeURIComponent(symbol)}&market=${market}&language=${language}&type=${reportType}`);
             if (!response.ok) return null;
             return await response.json();
         } catch (error) {
@@ -170,16 +169,14 @@ export function useReportAnalysis() {
             }
 
             // 检查是否可以使用缓存的 AI 分析
-            const useCachedAI = !forceRefresh && cachedData?.cached && cachedData?.hasStandardAnalysis;
-            const useCachedProAI = !forceRefresh && cachedData?.cached && cachedData?.hasProAnalysis;
+            const useCachedAI = !forceRefresh && cachedData?.cached && cachedData?.hasAiContent;
 
             if (useCachedAI && cachedData?.data?.aiAnalysis) {
                 // 使用缓存的 AI 分析
                 setFromCache(true);
                 setReportData({
                     ...data,
-                    aiAnalysis: cachedData.data.aiAnalysis,
-                    proAiAnalysis: useCachedProAI ? cachedData.data.proAiAnalysis || undefined : undefined,
+                    aiAnalysis: cachedData.data.aiAnalysis as AIAnalysis,
                     earningsCallSummary: cachedData.data.earningsCallSummary || '',
                     reportGeneratedAt: cachedData.updatedAt,
                 });

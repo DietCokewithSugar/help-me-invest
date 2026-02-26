@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCachedReportV2, deleteReportCache, type ReportCacheRecord } from '@/lib/supabase';
+import { getCachedReport, getCachedFmpData, deleteReportCache, type BeginnerReportRecord, type StandardReportRecord, type ProfessionalReportRecord } from '@/lib/supabase';
 import type { MarketType } from '@/types';
 
 export const maxDuration = 30;
@@ -14,95 +14,103 @@ export async function GET(request: NextRequest) {
     const symbol = searchParams.get('symbol');
     const market = (searchParams.get('market') as MarketType) || 'US';
     const language = searchParams.get('language') || 'zh';
+    const reportType = (searchParams.get('type') as 'beginner' | 'standard' | 'professional') || 'standard';
 
     if (!symbol) {
-      return NextResponse.json({ error: '缺少股票代码' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing symbol' }, { status: 400 });
     }
 
-    const cachedReport = await getCachedReportV2(symbol, market, language);
+    // Fetch AI report and FMP data in parallel
+    const [aiReport, fmpData] = await Promise.all([
+      getCachedReport(symbol, market, reportType, language),
+      getCachedFmpData(symbol, market),
+    ]);
 
-    if (!cachedReport) {
-      return NextResponse.json({ cached: false });
+    // Check if AI report has valid content
+    let hasValidAiContent = false;
+    if (aiReport) {
+      if (reportType === 'beginner') {
+        const r = aiReport as BeginnerReportRecord;
+        hasValidAiContent = !!(r.beginner_verdict && r.beginner_company_intro && r.beginner_action_plan);
+      } else if (reportType === 'standard') {
+        const r = aiReport as StandardReportRecord;
+        hasValidAiContent = !!(r.company_overview && r.industry_analysis && r.competitors && r.moat && r.investment_conclusion);
+      } else if (reportType === 'professional') {
+        const r = aiReport as ProfessionalReportRecord;
+        hasValidAiContent = !!(r.pro_business_model && r.pro_financial_health && r.pro_valuation && r.pro_investment_conclusion);
+      }
     }
 
-    // 转换数据库字段名到前端使用的格式
-    const aiAnalysis = {
-      companyOverview: cachedReport.company_overview || '',
-      industryAnalysis: cachedReport.industry_analysis || '',
-      industryPainPoints: cachedReport.industry_pain_points || '',
-      competitors: cachedReport.competitors || '',
-      competitiveAdvantage: cachedReport.competitive_advantage || '',
-      moat: cachedReport.moat || '',
-      recentDevelopments: cachedReport.recent_developments || '',
-      investmentConclusion: cachedReport.investment_conclusion || '',
-    };
+    const hasFmpData = !!(fmpData?.income_statements || fmpData?.balance_sheets);
 
-    const proAiAnalysis = {
-      proBusinessModel: cachedReport.pro_business_model || '',
-      proOperatingModel: cachedReport.pro_operating_model || '',
-      proIndustryOutlook: cachedReport.pro_industry_outlook || '',
-      proMoatAnalysis: cachedReport.pro_moat_analysis || '',
-      proFinancialHealth: cachedReport.pro_financial_health || '',
-      proValuation: cachedReport.pro_valuation || '',
-      proInvestmentConclusion: cachedReport.pro_investment_conclusion || '',
-    };
+    // Build response based on report type
+    let aiAnalysis = null;
+    if (hasValidAiContent && aiReport) {
+      if (reportType === 'beginner') {
+        const r = aiReport as BeginnerReportRecord;
+        aiAnalysis = {
+          beginnerVerdict: r.beginner_verdict || '',
+          beginnerCompanyIntro: r.beginner_company_intro || '',
+          beginnerRiskReward: r.beginner_risk_reward || '',
+          beginnerActionPlan: r.beginner_action_plan || '',
+        };
+      } else if (reportType === 'standard') {
+        const r = aiReport as StandardReportRecord;
+        aiAnalysis = {
+          companyOverview: r.company_overview || '',
+          industryAnalysis: r.industry_analysis || '',
+          industryPainPoints: r.industry_pain_points || '',
+          competitors: r.competitors || '',
+          competitiveAdvantage: r.competitive_advantage || '',
+          moat: r.moat || '',
+          recentDevelopments: r.recent_developments || '',
+          investmentConclusion: r.investment_conclusion || '',
+        };
+      } else if (reportType === 'professional') {
+        const r = aiReport as ProfessionalReportRecord;
+        aiAnalysis = {
+          proBusinessModel: r.pro_business_model || '',
+          proOperatingModel: r.pro_operating_model || '',
+          proIndustryOutlook: r.pro_industry_outlook || '',
+          proMoatAnalysis: r.pro_moat_analysis || '',
+          proFinancialHealth: r.pro_financial_health || '',
+          proValuation: r.pro_valuation || '',
+          proInvestmentConclusion: r.pro_investment_conclusion || '',
+        };
+      }
+    }
 
-    // 检查是否有有效的 AI 分析内容
-    // 必须所有核心字段都有内容才算有效缓存，避免使用流式输出中断导致的不完整数据
-    const requiredStandardFields = [
-      aiAnalysis.companyOverview,
-      aiAnalysis.industryAnalysis,
-      aiAnalysis.competitors,
-      aiAnalysis.moat,
-      aiAnalysis.investmentConclusion,
-    ];
-    const hasStandardAnalysis = requiredStandardFields.every(v => v && v.trim().length > 0);
-
-    // 专业版同样需要所有核心字段都有内容
-    const requiredProFields = [
-      proAiAnalysis.proBusinessModel,
-      proAiAnalysis.proFinancialHealth,
-      proAiAnalysis.proValuation,
-      proAiAnalysis.proInvestmentConclusion,
-    ];
-    const hasProAnalysis = requiredProFields.every(v => v && v.trim().length > 0);
-
-    // 检查是否有有效的 FMP 数据
-    const hasFmpData = !!(
-      cachedReport.income_statements ||
-      cachedReport.balance_sheets ||
-      cachedReport.cash_flow_statements
-    );
+    // Get earnings call summary from standard report if available
+    let earningsCallSummary = '';
+    if (reportType === 'standard' && aiReport) {
+      earningsCallSummary = (aiReport as StandardReportRecord).earnings_call_summary || '';
+    }
 
     return NextResponse.json({
       cached: true,
-      hasStandardAnalysis,
-      hasProAnalysis,
+      hasAiContent: hasValidAiContent,
       hasFmpData,
+      reportType,
       data: {
-        aiAnalysis: hasStandardAnalysis ? aiAnalysis : null,
-        proAiAnalysis: hasProAnalysis ? proAiAnalysis : null,
-        earningsCallSummary: cachedReport.earnings_call_summary || '',
-        // FMP 数据
-        sankeyData: cachedReport.sankey_data,
-        revenueTrend: cachedReport.revenue_trend,
-        costStructure: cachedReport.cost_structure,
-        incomeStatements: cachedReport.income_statements,
-        balanceSheets: cachedReport.balance_sheets,
-        cashFlowStatements: cachedReport.cash_flow_statements,
-        incomeStatementsQuarter: cachedReport.income_statements_quarter,
-        balanceSheetsQuarter: cachedReport.balance_sheets_quarter,
-        cashFlowStatementsQuarter: cachedReport.cash_flow_statements_quarter,
-        capitalReturnData: cachedReport.capital_return_data,
+        aiAnalysis: hasValidAiContent ? aiAnalysis : null,
+        earningsCallSummary,
+        // FMP data
+        sankeyData: fmpData?.sankey_data,
+        revenueTrend: fmpData?.revenue_trend,
+        costStructure: fmpData?.cost_structure,
+        incomeStatements: fmpData?.income_statements,
+        balanceSheets: fmpData?.balance_sheets,
+        cashFlowStatements: fmpData?.cash_flow_statements,
+        incomeStatementsQuarter: fmpData?.income_statements_quarter,
+        balanceSheetsQuarter: fmpData?.balance_sheets_quarter,
+        cashFlowStatementsQuarter: fmpData?.cash_flow_statements_quarter,
+        capitalReturnData: fmpData?.capital_return_data,
       },
-      updatedAt: cachedReport.updated_at,
+      updatedAt: aiReport?.updated_at || fmpData?.updated_at,
     });
   } catch (error: any) {
     console.error('获取缓存失败:', error);
-    return NextResponse.json(
-      { error: error.message || '获取缓存失败' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message || 'Cache error' }, { status: 500 });
   }
 }
 
@@ -116,13 +124,13 @@ export async function DELETE(request: NextRequest) {
     const symbol = searchParams.get('symbol');
     const market = (searchParams.get('market') as MarketType) || 'US';
     const language = searchParams.get('language') || 'zh';
+    const reportType = searchParams.get('type') as 'beginner' | 'standard' | 'professional' | null;
 
     if (!symbol) {
-      return NextResponse.json({ error: '缺少股票代码' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing symbol' }, { status: 400 });
     }
 
-    const result = await deleteReportCache(symbol, market, language);
-
+    const result = await deleteReportCache(symbol, market, reportType || undefined, language);
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 500 });
     }
@@ -130,9 +138,6 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('删除缓存失败:', error);
-    return NextResponse.json(
-      { error: error.message || '删除缓存失败' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

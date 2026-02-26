@@ -341,9 +341,9 @@ export interface AIReportRecord {
 }
 
 /**
- * 获取缓存的AI报告（7天内有效）- 旧版
+ * 获取缓存的AI报告（7天内有效）- 旧版 v1
  */
-export async function getCachedReport(
+export async function getCachedReportV1(
   symbol: string,
   market: string
 ): Promise<AIReportRecord | null> {
@@ -486,46 +486,106 @@ export interface ReportCacheRecord {
   updated_at: string;
 }
 
-/**
- * 模块名称到数据库字段的映射
- */
-const sectionToColumn: Record<string, keyof ReportCacheRecord> = {
-  // 基础版模块
-  companyOverview: 'company_overview',
-  industryAnalysis: 'industry_analysis',
-  industryPainPoints: 'industry_pain_points',
-  competitors: 'competitors',
-  competitiveAdvantage: 'competitive_advantage',
-  moat: 'moat',
-  recentDevelopments: 'recent_developments',
-  investmentConclusion: 'investment_conclusion',
-  earningsCallSummary: 'earnings_call_summary',
-  // 专业版模块
-  proBusinessModel: 'pro_business_model',
-  proOperatingModel: 'pro_operating_model',
-  proIndustryOutlook: 'pro_industry_outlook',
-  proMoatAnalysis: 'pro_moat_analysis',
-  proFinancialHealth: 'pro_financial_health',
-  proValuation: 'pro_valuation',
-  proInvestmentConclusion: 'pro_investment_conclusion',
-  // 小白版模块
-  beginnerVerdict: 'beginner_verdict',
-  beginnerCompanyIntro: 'beginner_company_intro',
-  beginnerRiskReward: 'beginner_risk_reward',
-  beginnerActionPlan: 'beginner_action_plan',
+// FMP 数据缓存记录
+export interface FmpDataRecord {
+  id: string;
+  symbol: string;
+  market: string;
+  sankey_data: any | null;
+  revenue_trend: any | null;
+  cost_structure: any | null;
+  income_statements: any | null;
+  balance_sheets: any | null;
+  cash_flow_statements: any | null;
+  income_statements_quarter: any | null;
+  balance_sheets_quarter: any | null;
+  cash_flow_statements_quarter: any | null;
+  capital_return_data: any | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// 小白版报告记录
+export interface BeginnerReportRecord {
+  id: string;
+  symbol: string;
+  market: string;
+  language: string;
+  beginner_verdict: string | null;
+  beginner_company_intro: string | null;
+  beginner_risk_reward: string | null;
+  beginner_action_plan: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// 普通版报告记录
+export interface StandardReportRecord {
+  id: string;
+  symbol: string;
+  market: string;
+  language: string;
+  company_overview: string | null;
+  industry_analysis: string | null;
+  industry_pain_points: string | null;
+  competitors: string | null;
+  competitive_advantage: string | null;
+  moat: string | null;
+  recent_developments: string | null;
+  investment_conclusion: string | null;
+  earnings_call_summary: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// 专业版报告记录
+export interface ProfessionalReportRecord {
+  id: string;
+  symbol: string;
+  market: string;
+  language: string;
+  pro_business_model: string | null;
+  pro_operating_model: string | null;
+  pro_industry_outlook: string | null;
+  pro_moat_analysis: string | null;
+  pro_financial_health: string | null;
+  pro_valuation: string | null;
+  pro_investment_conclusion: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+type ReportType = 'beginner' | 'standard' | 'professional';
+
+// Map section names to their table and column
+const sectionConfig: Record<string, { table: string; column: string }> = {
+  // Beginner
+  beginnerVerdict: { table: 'reports_beginner', column: 'beginner_verdict' },
+  beginnerCompanyIntro: { table: 'reports_beginner', column: 'beginner_company_intro' },
+  beginnerRiskReward: { table: 'reports_beginner', column: 'beginner_risk_reward' },
+  beginnerActionPlan: { table: 'reports_beginner', column: 'beginner_action_plan' },
+  // Standard
+  companyOverview: { table: 'reports_standard', column: 'company_overview' },
+  industryAnalysis: { table: 'reports_standard', column: 'industry_analysis' },
+  industryPainPoints: { table: 'reports_standard', column: 'industry_pain_points' },
+  competitors: { table: 'reports_standard', column: 'competitors' },
+  competitiveAdvantage: { table: 'reports_standard', column: 'competitive_advantage' },
+  moat: { table: 'reports_standard', column: 'moat' },
+  recentDevelopments: { table: 'reports_standard', column: 'recent_developments' },
+  investmentConclusion: { table: 'reports_standard', column: 'investment_conclusion' },
+  earningsCallSummary: { table: 'reports_standard', column: 'earnings_call_summary' },
+  // Professional
+  proBusinessModel: { table: 'reports_professional', column: 'pro_business_model' },
+  proOperatingModel: { table: 'reports_professional', column: 'pro_operating_model' },
+  proIndustryOutlook: { table: 'reports_professional', column: 'pro_industry_outlook' },
+  proMoatAnalysis: { table: 'reports_professional', column: 'pro_moat_analysis' },
+  proFinancialHealth: { table: 'reports_professional', column: 'pro_financial_health' },
+  proValuation: { table: 'reports_professional', column: 'pro_valuation' },
+  proInvestmentConclusion: { table: 'reports_professional', column: 'pro_investment_conclusion' },
 };
 
 /**
- * 构建包含语言信息的 market key
- * 中文（默认）不加后缀以保持向后兼容，英文加 ':en' 后缀
- */
-function buildMarketKey(market: string, language?: string): string {
-  if (!language || language === 'zh') return market;
-  return `${market}:${language}`;
-}
-
-/**
- * 获取缓存的报告（7天内有效）- 新版
+ * 获取缓存的报告（7天内有效）- 旧版 v2（保留兼容）
  */
 export async function getCachedReportV2(
   symbol: string,
@@ -539,7 +599,7 @@ export async function getCachedReportV2(
 
   try {
     const upperSymbol = symbol.toUpperCase().trim();
-    const marketKey = buildMarketKey(market, language);
+    const marketKey = (!language || language === 'zh') ? market : `${market}:${language}`;
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -566,8 +626,89 @@ export async function getCachedReportV2(
   }
 }
 
+// Get cached report by type (new 3-table architecture)
+export async function getCachedReport(
+  symbol: string,
+  market: string,
+  reportType: ReportType,
+  language: string = 'zh'
+): Promise<BeginnerReportRecord | StandardReportRecord | ProfessionalReportRecord | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
+  const tableMap: Record<ReportType, string> = {
+    beginner: 'reports_beginner',
+    standard: 'reports_standard',
+    professional: 'reports_professional',
+  };
+
+  try {
+    const upperSymbol = symbol.toUpperCase().trim();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const { data, error } = await supabase
+      .from(tableMap[reportType])
+      .select('*')
+      .eq('symbol', upperSymbol)
+      .eq('market', market)
+      .eq('language', language)
+      .gte('updated_at', sevenDaysAgo.toISOString())
+      .limit(1)
+      .single();
+
+    if (error) {
+      if (error.code !== 'PGRST116') {
+        console.error(`获取${reportType}缓存报告失败:`, error);
+      }
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error(`获取${reportType}缓存报告失败:`, error);
+    return null;
+  }
+}
+
+// Get cached FMP data
+export async function getCachedFmpData(
+  symbol: string,
+  market: string
+): Promise<FmpDataRecord | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
+  try {
+    const upperSymbol = symbol.toUpperCase().trim();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const { data, error } = await supabase
+      .from('reports_fmp_data')
+      .select('*')
+      .eq('symbol', upperSymbol)
+      .eq('market', market)
+      .gte('updated_at', sevenDaysAgo.toISOString())
+      .limit(1)
+      .single();
+
+    if (error) {
+      if (error.code !== 'PGRST116') {
+        console.error('获取FMP缓存数据失败:', error);
+      }
+      return null;
+    }
+
+    return data as FmpDataRecord;
+  } catch (error) {
+    console.error('获取FMP缓存数据失败:', error);
+    return null;
+  }
+}
+
 /**
- * 保存单个模块到缓存 - 新版
+ * 保存单个模块到缓存 - 新版 3-table 架构
  * 用于流式生成时实时保存每个模块
  */
 export async function saveReportSection(
@@ -575,38 +716,38 @@ export async function saveReportSection(
   market: string,
   section: string,
   content: string,
-  language?: string
+  language: string = 'zh'
 ): Promise<{ success: boolean; error?: string }> {
   const supabase = getSupabase();
   if (!supabase) {
     return { success: true };
   }
 
-  const columnName = sectionToColumn[section];
-  if (!columnName) {
+  const config = sectionConfig[section];
+  if (!config) {
     console.warn(`未知的模块名称: ${section}`);
-    return { success: false, error: `未知的模块名称: ${section}` };
+    return { success: false, error: `Unknown section: ${section}` };
   }
 
   try {
     const upperSymbol = symbol.toUpperCase().trim();
-    const marketKey = buildMarketKey(market, language);
 
     const { error } = await supabase
-      .from('reports_cache')
+      .from(config.table)
       .upsert(
         {
           symbol: upperSymbol,
-          market: marketKey,
-          [columnName]: content,
+          market,
+          language,
+          [config.column]: content,
         },
         {
-          onConflict: 'symbol,market',
+          onConflict: 'symbol,market,language',
         }
       );
 
     if (error) {
-      console.error(`保存模块 ${section} 失败:`, error);
+      console.error(`保存模块 ${section} 到 ${config.table} 失败:`, error);
       return { success: false, error: error.message };
     }
 
@@ -618,7 +759,8 @@ export async function saveReportSection(
 }
 
 /**
- * 批量保存 FMP 数据到缓存
+ * 批量保存 FMP 数据到缓存 - 新版（独立 reports_fmp_data 表）
+ * FMP data doesn't need language — it's the same for all languages
  */
 export async function saveFmpDataToCache(
   symbol: string,
@@ -634,8 +776,7 @@ export async function saveFmpDataToCache(
     balanceSheetsQuarter?: any;
     cashFlowStatementsQuarter?: any;
     capitalReturnData?: any;
-  },
-  language?: string
+  }
 ): Promise<{ success: boolean; error?: string }> {
   const supabase = getSupabase();
   if (!supabase) {
@@ -644,14 +785,12 @@ export async function saveFmpDataToCache(
 
   try {
     const upperSymbol = symbol.toUpperCase().trim();
-    const marketKey = buildMarketKey(market, language);
 
     const updateData: Record<string, any> = {
       symbol: upperSymbol,
-      market: marketKey,
+      market,
     };
 
-    // 只添加有值的字段
     if (data.sankeyData !== undefined) updateData.sankey_data = data.sankeyData;
     if (data.revenueTrend !== undefined) updateData.revenue_trend = data.revenueTrend;
     if (data.costStructure !== undefined) updateData.cost_structure = data.costStructure;
@@ -664,10 +803,8 @@ export async function saveFmpDataToCache(
     if (data.capitalReturnData !== undefined) updateData.capital_return_data = data.capitalReturnData;
 
     const { error } = await supabase
-      .from('reports_cache')
-      .upsert(updateData, {
-        onConflict: 'symbol,market',
-      });
+      .from('reports_fmp_data')
+      .upsert(updateData, { onConflict: 'symbol,market' });
 
     if (error) {
       console.error('保存 FMP 数据失败:', error);
@@ -682,12 +819,13 @@ export async function saveFmpDataToCache(
 }
 
 /**
- * 删除指定股票的缓存（用于强制重新生成）
+ * 删除指定股票的缓存（用于强制重新生成）- 新版 3-table 架构
  */
 export async function deleteReportCache(
   symbol: string,
   market: string,
-  language?: string
+  reportType?: ReportType,
+  language: string = 'zh'
 ): Promise<{ success: boolean; error?: string }> {
   const supabase = getSupabase();
   if (!supabase) {
@@ -696,17 +834,31 @@ export async function deleteReportCache(
 
   try {
     const upperSymbol = symbol.toUpperCase().trim();
-    const marketKey = buildMarketKey(market, language);
 
-    const { error } = await supabase
-      .from('reports_cache')
-      .delete()
-      .eq('symbol', upperSymbol)
-      .eq('market', marketKey);
+    if (reportType) {
+      const tableMap: Record<ReportType, string> = {
+        beginner: 'reports_beginner',
+        standard: 'reports_standard',
+        professional: 'reports_professional',
+      };
 
-    if (error) {
-      console.error('删除缓存失败:', error);
-      return { success: false, error: error.message };
+      const { error } = await supabase
+        .from(tableMap[reportType])
+        .delete()
+        .eq('symbol', upperSymbol)
+        .eq('market', market)
+        .eq('language', language);
+
+      if (error) {
+        console.error('删除缓存失败:', error);
+        return { success: false, error: error.message };
+      }
+    } else {
+      await Promise.all([
+        supabase.from('reports_beginner').delete().eq('symbol', upperSymbol).eq('market', market).eq('language', language),
+        supabase.from('reports_standard').delete().eq('symbol', upperSymbol).eq('market', market).eq('language', language),
+        supabase.from('reports_professional').delete().eq('symbol', upperSymbol).eq('market', market).eq('language', language),
+      ]);
     }
 
     return { success: true };
@@ -715,3 +867,5 @@ export async function deleteReportCache(
     return { success: false, error: error.message };
   }
 }
+
+export type { ReportType };
