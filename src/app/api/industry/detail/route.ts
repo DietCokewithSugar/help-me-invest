@@ -5,7 +5,21 @@ import { SECTOR_SUPPLY_CHAINS } from '@/lib/industry-data';
 export const maxDuration = 60;
 
 const SECTOR_MARKET_CAPS: Record<string, Record<string, number>> = {
-  Technology: { AAPL: 3.5e12, MSFT: 3.1e12, NVDA: 2.8e12, GOOGL: 2.1e12, META: 1.5e12, AVGO: 8e11, TSM: 7e11, ORCL: 4e11, AMD: 2.5e11, CRM: 2.8e11, QCOM: 2e11, INTC: 1e11, ACN: 2.3e11, IBM: 2e11, ASML: 3.5e11, AMAT: 1.5e11, LRCX: 1e11, KLAC: 8e10, NOW: 1.8e11, GFS: 2.5e10, PLTR: 2e11 },
+  Technology: {
+    SNPS: 8e10, CDNS: 7.5e10, ARM: 1.5e11,
+    ASML: 3.5e11, AMAT: 1.5e11, LRCX: 1e11, KLAC: 8e10,
+    NVDA: 2.8e12, AMD: 2.5e11, QCOM: 2e11, AVGO: 8e11,
+    TXN: 1.8e11, ADI: 1.1e11, MCHP: 4e10,
+    MU: 1.2e11, WDC: 2e10,
+    TSM: 7e11, INTC: 1e11,
+    PANW: 1.2e11, CRWD: 7.5e10, FTNT: 6e10, NET: 3.5e10,
+    MSFT: 3.1e12, ORCL: 4e11, DDOG: 4e10,
+    CRM: 2.8e11, ADBE: 2.5e11, INTU: 1.8e11, NOW: 1.8e11,
+    ACN: 2.3e11, IBM: 2e11, IT: 4e10,
+    CSCO: 2.3e11, ANET: 1.1e11,
+    AAPL: 3.5e12, DELL: 8e10, HPQ: 3e10, SMCI: 2.5e10,
+    APH: 8e10, TEL: 4.5e10,
+  },
   Healthcare: { UNH: 5e11, LLY: 7.5e11, JNJ: 3.5e11, MRK: 2.5e11, ABT: 2e11, TMO: 2.2e11, PFE: 1.5e11, DHR: 1.8e11, MDT: 1e11, SYK: 1.3e11, ELV: 1.1e11, HCA: 8e10, MCK: 7e10, CAH: 3e10, CVS: 8e10, A: 4e10, ILMN: 2e10, CRSP: 4e9 },
   'Financial Services': { JPM: 6e11, V: 5.5e11, MA: 4.5e11, BAC: 3.3e11, 'BRK-B': 9e11, GS: 1.7e11, WFC: 2.3e11, BLK: 1.5e11, SCHW: 1.3e11, ICE: 8e10, CME: 7.5e10, NDAQ: 4e10, PYPL: 7e10, PGR: 1.5e11, MET: 5e10, BX: 1.8e11, SQ: 3.5e10, COIN: 5e10, SOFI: 1.5e10 },
   Energy: { XOM: 5e11, CVX: 2.8e11, COP: 1.3e11, SLB: 6e10, WMB: 5e10, KMI: 4.5e10, ET: 5.5e10, VLO: 4.5e10, MPC: 5.5e10, PSX: 5e10, NEE: 1.5e11, HAL: 2.5e10, BKR: 4e10, ENPH: 1e10, FSLR: 2e10 },
