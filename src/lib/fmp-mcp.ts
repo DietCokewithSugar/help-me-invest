@@ -93,7 +93,7 @@ export class FMPMCPClient {
     });
   }
 
-  private async callTool<T>(name: string, args: Record<string, unknown> = {}): Promise<T> {
+  private async callTool<T>(name: string, args: object = {}): Promise<T> {
     await this.ensureInitialized();
     const payload = {
       jsonrpc: '2.0',
