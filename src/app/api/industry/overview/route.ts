@@ -3,6 +3,7 @@ import { FMPMCPClient } from '@/lib/fmp-mcp';
 import { getTrendCategory } from '@/lib/industry-data';
 
 export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
 
 const SECTOR_KEYS = [
   'Technology',
