@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { FMPClient } from '@/lib/fmp';
+import { FMPMCPClient } from '@/lib/fmp-mcp';
 import { getTrendCategory } from '@/lib/industry-data';
 
 export const maxDuration = 60;
@@ -18,83 +18,143 @@ const SECTOR_KEYS = [
   'Utilities',
 ];
 
+const FALLBACK_SECTOR_WEIGHTS: Record<string, number> = {
+  Technology: 32,
+  Healthcare: 12,
+  'Financial Services': 13,
+  'Consumer Cyclical': 11,
+  'Communication Services': 9,
+  Industrials: 8,
+  'Consumer Defensive': 6,
+  Energy: 4,
+  'Basic Materials': 2,
+  'Real Estate': 2,
+  Utilities: 2,
+};
+
+const FALLBACK_LEADING_COMPANIES: Record<string, { symbol: string; name: string }> = {
+  Technology: { symbol: 'AAPL', name: 'Apple' },
+  Healthcare: { symbol: 'LLY', name: 'Eli Lilly' },
+  'Financial Services': { symbol: 'JPM', name: 'JPMorgan' },
+  'Consumer Cyclical': { symbol: 'AMZN', name: 'Amazon' },
+  'Communication Services': { symbol: 'GOOGL', name: 'Alphabet' },
+  Industrials: { symbol: 'GE', name: 'GE Aerospace' },
+  'Consumer Defensive': { symbol: 'WMT', name: 'Walmart' },
+  Energy: { symbol: 'XOM', name: 'ExxonMobil' },
+  'Basic Materials': { symbol: 'LIN', name: 'Linde' },
+  'Real Estate': { symbol: 'PLD', name: 'Prologis' },
+  Utilities: { symbol: 'NEE', name: 'NextEra' },
+};
+
+interface SectorSnapshot {
+  sector: string;
+  proxyMarketCap: number;
+  cagr3y: number;
+  leadingCompany: { symbol: string; name: string };
+}
+
 export async function GET() {
   try {
     const fmpApiKey = process.env.FMP_API_KEY;
-    let sectorPerf: any[] = [];
-    let sectorPE: any[] = [];
-    let historicalPerf: any[] = [];
-
-    if (fmpApiKey) {
-      const fmp = new FMPClient(fmpApiKey);
-      [sectorPerf, sectorPE, historicalPerf] = await Promise.all([
-        fmp.getSectorPerformance().catch(() => []),
-        fmp.getSectorPE().catch(() => []),
-        fmp.getHistoricalSectorPerformance(50).catch(() => []),
-      ]);
+    if (!fmpApiKey) {
+      return NextResponse.json(
+        { success: false, error: 'FMP_API_KEY is required for industry data.' },
+        { status: 500 }
+      );
     }
 
-    const perfMap = new Map<string, any>();
-    if (Array.isArray(sectorPerf)) {
-      for (const item of sectorPerf) {
-        const key = item.sector || item.name;
-        if (key) perfMap.set(key, item);
-      }
+    const mcp = new FMPMCPClient(fmpApiKey);
+    const today = new Date().toISOString().slice(0, 10);
+    const fromDate = getDateYearsAgo(3);
+
+    const [sectorPerfRows, sectorPERows, snapshots] = await Promise.all([
+      mcp.getSectorPerformanceSnapshot(today).catch(() => []),
+      mcp.getSectorPESnapshot(today).catch(() => []),
+      runWithConcurrency(SECTOR_KEYS, 4, async (sector): Promise<SectorSnapshot> => {
+        const [screenerRows, historyRows] = await Promise.all([
+          mcp
+            .searchCompanyScreener({
+              sector,
+              limit: 80,
+              isActivelyTrading: true,
+              includeAllShareClasses: false,
+            })
+            .catch(() => []),
+          mcp.getHistoricalSectorPerformance(sector, { from: fromDate }).catch(() => []),
+        ]);
+
+        const sortedCompanies = (Array.isArray(screenerRows) ? screenerRows : [])
+          .map((row: any) => ({
+            symbol: typeof row?.symbol === 'string' ? row.symbol : '',
+            name: typeof row?.companyName === 'string' ? row.companyName : '',
+            marketCap: toNumber(row?.marketCap) ?? 0,
+          }))
+          .filter((company) => company.symbol && company.marketCap > 0)
+          .sort((a, b) => b.marketCap - a.marketCap);
+
+        const proxyMarketCap = sortedCompanies
+          .slice(0, 40)
+          .reduce((sum, company) => sum + company.marketCap, 0);
+
+        const topCompany = sortedCompanies[0];
+        const leadingCompany = topCompany
+          ? { symbol: topCompany.symbol, name: topCompany.name || topCompany.symbol }
+          : FALLBACK_LEADING_COMPANIES[sector] || { symbol: '', name: '' };
+
+        return {
+          sector,
+          proxyMarketCap,
+          cagr3y: calculateAnnualizedCagr(Array.isArray(historyRows) ? historyRows : []),
+          leadingCompany,
+        };
+      }),
+    ]);
+
+    const perfMap = new Map<string, number>();
+    for (const row of Array.isArray(sectorPerfRows) ? sectorPerfRows : []) {
+      const sector = typeof row?.sector === 'string' ? row.sector : '';
+      if (!sector) continue;
+      const change = toNumber(row?.averageChange ?? row?.changesPercentage ?? row?.change);
+      if (change !== null) perfMap.set(sector, change);
     }
 
     const peMap = new Map<string, number>();
-    if (Array.isArray(sectorPE)) {
-      for (const item of sectorPE) {
-        if (item.sector && item.pe) peMap.set(item.sector, item.pe);
-      }
+    for (const row of Array.isArray(sectorPERows) ? sectorPERows : []) {
+      const sector = typeof row?.sector === 'string' ? row.sector : '';
+      if (!sector) continue;
+      const pe = toNumber(row?.pe);
+      if (pe !== null) peMap.set(sector, pe);
     }
 
-    const sectorWeights: Record<string, number> = {
-      Technology: 32,
-      Healthcare: 12,
-      'Financial Services': 13,
-      'Consumer Cyclical': 11,
-      'Communication Services': 9,
-      Industrials: 8,
-      'Consumer Defensive': 6,
-      Energy: 4,
-      'Basic Materials': 2,
-      'Real Estate': 2,
-      Utilities: 2,
-    };
+    const snapshotMap = new Map<string, SectorSnapshot>();
+    for (const snapshot of snapshots) {
+      snapshotMap.set(snapshot.sector, snapshot);
+    }
 
-    const leadingCompanies: Record<string, { symbol: string; name: string }> = {
-      Technology: { symbol: 'AAPL', name: 'Apple' },
-      Healthcare: { symbol: 'UNH', name: 'UnitedHealth' },
-      'Financial Services': { symbol: 'JPM', name: 'JPMorgan' },
-      'Consumer Cyclical': { symbol: 'AMZN', name: 'Amazon' },
-      'Communication Services': { symbol: 'GOOGL', name: 'Alphabet' },
-      Industrials: { symbol: 'GE', name: 'GE Aerospace' },
-      'Consumer Defensive': { symbol: 'WMT', name: 'Walmart' },
-      Energy: { symbol: 'XOM', name: 'ExxonMobil' },
-      'Basic Materials': { symbol: 'LIN', name: 'Linde' },
-      'Real Estate': { symbol: 'PLD', name: 'Prologis' },
-      Utilities: { symbol: 'NEE', name: 'NextEra' },
-    };
+    const totalProxyMarketCap = snapshots.reduce((sum, snapshot) => sum + snapshot.proxyMarketCap, 0);
 
     const sectors = SECTOR_KEYS.map((sector) => {
-      const perf = perfMap.get(sector);
-      const changeStr = perf?.changesPercentage ?? perf?.change ?? '0';
-      const change1D = parseFloat(String(changeStr).replace('%', '')) || 0;
-
-      const cagr3y = estimateCagr(sector, change1D, historicalPerf);
+      const snapshot = snapshotMap.get(sector);
+      const change1D = round(perfMap.get(sector) ?? 0, 2);
+      const cagr3yRaw = snapshot?.cagr3y ?? 0;
+      const cagr3y = round(cagr3yRaw, 1);
       const trend = getTrendCategory(cagr3y);
       const sentiment = deriveSentiment(change1D, cagr3y);
 
+      const marketCapWeight =
+        totalProxyMarketCap > 0
+          ? round(((snapshot?.proxyMarketCap ?? 0) / totalProxyMarketCap) * 100, 1)
+          : FALLBACK_SECTOR_WEIGHTS[sector] || 0;
+
       return {
         sector,
-        marketCapWeight: sectorWeights[sector] || 2,
+        marketCapWeight,
         change1D,
-        cagr3y: Math.round(cagr3y * 10) / 10,
+        cagr3y,
         trend,
         sentiment,
         pe: peMap.get(sector) || null,
-        leadingCompany: leadingCompanies[sector] || { symbol: '', name: '' },
+        leadingCompany: snapshot?.leadingCompany || FALLBACK_LEADING_COMPANIES[sector] || { symbol: '', name: '' },
       };
     });
 
@@ -105,52 +165,94 @@ export async function GET() {
   }
 }
 
-function estimateCagr(
-  sector: string,
-  change1D: number,
-  historicalPerf: any[]
-): number {
-  const baseCagr: Record<string, number> = {
-    Technology: 18,
-    Healthcare: 8,
-    'Financial Services': 10,
-    'Consumer Cyclical': 12,
-    'Communication Services': 14,
-    Industrials: 7,
-    'Consumer Defensive': 4,
-    Energy: -2,
-    'Basic Materials': 3,
-    'Real Estate': 1,
-    Utilities: 3,
-  };
-
-  let cagr = baseCagr[sector] ?? 5;
-
-  if (Array.isArray(historicalPerf) && historicalPerf.length > 0) {
-    const sectorChanges = historicalPerf
-      .filter((h: any) => {
-        const entries = Object.entries(h).filter(([k]) => k !== 'date');
-        return entries.some(([k]) => k.toLowerCase().includes(sector.toLowerCase().split(' ')[0]));
-      });
-
-    if (sectorChanges.length > 10) {
-      const recent = sectorChanges.slice(0, 20);
-      const avgChange = recent.reduce((sum: number, h: any) => {
-        const entries = Object.entries(h).filter(([k]) => k !== 'date');
-        const match = entries.find(([k]) => k.toLowerCase().includes(sector.toLowerCase().split(' ')[0]));
-        return sum + (match ? parseFloat(String(match[1]).replace('%', '')) || 0 : 0);
-      }, 0) / recent.length;
-      cagr = cagr * 0.6 + avgChange * 252 * 0.4;
-    }
-  }
-
-  cagr += change1D * 0.5;
-  return Math.max(-30, Math.min(40, cagr));
-}
-
 function deriveSentiment(change1D: number, cagr3y: number): number {
   let score = 50;
   score += change1D * 5;
   score += cagr3y * 1.5;
   return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+function calculateAnnualizedCagr(rows: any[]): number {
+  const points = rows
+    .map((row) => {
+      const dateStr = typeof row?.date === 'string' ? row.date : '';
+      const date = new Date(dateStr);
+      const change = toNumber(row?.averageChange ?? row?.changesPercentage ?? row?.change);
+      return { date, change };
+    })
+    .filter((point) => Number.isFinite(point.date.getTime()) && point.change !== null) as Array<{
+    date: Date;
+    change: number;
+  }>;
+
+  if (points.length < 2) return 0;
+  points.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  let cumulative = 1;
+  for (const point of points) {
+    cumulative *= 1 + point.change / 100;
+  }
+
+  if (!Number.isFinite(cumulative) || cumulative <= 0) {
+    return -100;
+  }
+
+  const start = points[0].date.getTime();
+  const end = points[points.length - 1].date.getTime();
+  const years = (end - start) / (1000 * 60 * 60 * 24 * 365.25);
+  if (!Number.isFinite(years) || years <= 0) {
+    return 0;
+  }
+
+  const annualized = (Math.pow(cumulative, 1 / years) - 1) * 100;
+  if (!Number.isFinite(annualized)) {
+    return 0;
+  }
+
+  return Math.max(-80, Math.min(80, annualized));
+}
+
+function getDateYearsAgo(years: number): string {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() - years);
+  return date.toISOString().slice(0, 10);
+}
+
+function toNumber(value: unknown): number | null {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value.replace(/[%,$,\s]/g, ''));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function round(value: number, decimals: number): number {
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
+}
+
+async function runWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  worker: (item: T) => Promise<R>
+): Promise<R[]> {
+  if (items.length === 0) return [];
+  const results = new Array<R>(items.length);
+  let index = 0;
+
+  async function runner() {
+    while (true) {
+      const current = index;
+      index += 1;
+      if (current >= items.length) break;
+      results[current] = await worker(items[current]);
+    }
+  }
+
+  const workerCount = Math.min(Math.max(limit, 1), items.length);
+  await Promise.all(Array.from({ length: workerCount }, () => runner()));
+  return results;
 }
