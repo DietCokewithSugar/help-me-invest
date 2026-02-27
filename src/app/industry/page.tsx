@@ -113,6 +113,7 @@ export default function IndustryPage() {
     if (sectors.length === 0) return {};
     const isDark = theme === 'dark';
     return {
+      backgroundColor: isDark ? '#121212' : 'transparent',
       tooltip: {
         trigger: 'item',
         backgroundColor: isDark ? '#121212' : '#ffffff',
@@ -291,7 +292,7 @@ export default function IndustryPage() {
                   style={{ width: '100%', height: 420 }}
                   onEvents={{ click: handleTreemapClick }}
                   opts={{ renderer: 'canvas' }}
-                  theme={theme === 'dark' ? 'dark' : undefined}
+                  notMerge
                 />
               </div>
               {/* Legend */}
