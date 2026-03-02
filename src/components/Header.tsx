@@ -86,6 +86,9 @@ export default function Header({
                                         </span>
                                     )}
                                 </Link>
+                                <Link href="/asset-allocation" className="text-[11px] md:text-sm text-mist-400 hover:text-glacier-400 transition-colors whitespace-nowrap">
+                                    {t.header.allocation}
+                                </Link>
                                 <button onClick={showContactModal} className="text-[11px] md:text-sm text-mist-400 hover:text-glacier-400 transition-colors whitespace-nowrap">
                                     {t.header.contact}
                                 </button>
