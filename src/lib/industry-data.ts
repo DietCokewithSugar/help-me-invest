@@ -8,14 +8,33 @@ export interface SupplyChainData {
   upstream: SupplyChainNode[];
   midstream: SupplyChainNode[];
   downstream: SupplyChainNode[];
+  layerLabels?: {
+    upstream: { zh: string; en: string };
+    midstream: { zh: string; en: string };
+    downstream: { zh: string; en: string };
+  };
 }
 
 export const SECTOR_SUPPLY_CHAINS: Record<string, SupplyChainData> = {
   Technology: {
+    layerLabels: {
+      upstream: { zh: '半导体与半导体设备', en: 'Semiconductors & Equipment' },
+      midstream: { zh: '软件与服务', en: 'Software & Services' },
+      downstream: { zh: '技术硬件与设备', en: 'Tech Hardware & Equipment' },
+    },
     upstream: [
       {
-        id: 'semiconductor-materials',
-        name: { zh: '半导体材料与设备', en: 'Semiconductor Materials & Equipment' },
+        id: 'eda-ip',
+        name: { zh: 'EDA软件与IP授权', en: 'EDA Software & IP Licensing' },
+        companies: [
+          { symbol: 'SNPS', name: 'Synopsys', share: 'large' },
+          { symbol: 'CDNS', name: 'Cadence Design', share: 'large' },
+          { symbol: 'ARM', name: 'ARM Holdings', share: 'large' },
+        ],
+      },
+      {
+        id: 'semi-equipment',
+        name: { zh: '半导体设备与材料', en: 'Semiconductor Equipment & Materials' },
         companies: [
           { symbol: 'ASML', name: 'ASML', share: 'large' },
           { symbol: 'AMAT', name: 'Applied Materials', share: 'large' },
@@ -24,19 +43,8 @@ export const SECTOR_SUPPLY_CHAINS: Record<string, SupplyChainData> = {
         ],
       },
       {
-        id: 'chip-foundry',
-        name: { zh: '晶圆制造', en: 'Chip Foundry' },
-        companies: [
-          { symbol: 'TSM', name: 'TSMC', share: 'large' },
-          { symbol: 'INTC', name: 'Intel', share: 'medium' },
-          { symbol: 'GFS', name: 'GlobalFoundries', share: 'small' },
-        ],
-      },
-    ],
-    midstream: [
-      {
         id: 'chip-design',
-        name: { zh: '芯片设计', en: 'Chip Design' },
+        name: { zh: '芯片设计 (Fabless)', en: 'Chip Design (Fabless)' },
         companies: [
           { symbol: 'NVDA', name: 'NVIDIA', share: 'large' },
           { symbol: 'AMD', name: 'AMD', share: 'large' },
@@ -45,33 +53,96 @@ export const SECTOR_SUPPLY_CHAINS: Record<string, SupplyChainData> = {
         ],
       },
       {
-        id: 'software-infra',
-        name: { zh: '基础软件与云', en: 'Software Infrastructure & Cloud' },
+        id: 'analog-mixed-signal',
+        name: { zh: '模拟与混合信号芯片', en: 'Analog & Mixed-Signal ICs' },
+        companies: [
+          { symbol: 'TXN', name: 'Texas Instruments', share: 'large' },
+          { symbol: 'ADI', name: 'Analog Devices', share: 'large' },
+          { symbol: 'MCHP', name: 'Microchip Technology', share: 'medium' },
+        ],
+      },
+      {
+        id: 'memory',
+        name: { zh: '存储芯片', en: 'Memory & Storage ICs' },
+        companies: [
+          { symbol: 'MU', name: 'Micron Technology', share: 'large' },
+          { symbol: 'WDC', name: 'Western Digital', share: 'medium' },
+        ],
+      },
+      {
+        id: 'foundry-idm',
+        name: { zh: '晶圆代工与IDM', en: 'Foundry & IDM' },
+        companies: [
+          { symbol: 'TSM', name: 'TSMC', share: 'large' },
+          { symbol: 'INTC', name: 'Intel', share: 'medium' },
+        ],
+      },
+    ],
+    midstream: [
+      {
+        id: 'cybersecurity',
+        name: { zh: '网络安全', en: 'Cybersecurity' },
+        companies: [
+          { symbol: 'PANW', name: 'Palo Alto Networks', share: 'large' },
+          { symbol: 'CRWD', name: 'CrowdStrike', share: 'large' },
+          { symbol: 'FTNT', name: 'Fortinet', share: 'medium' },
+          { symbol: 'NET', name: 'Cloudflare', share: 'medium' },
+        ],
+      },
+      {
+        id: 'system-infra-software',
+        name: { zh: '系统与基础设施软件', en: 'System & Infrastructure Software' },
         companies: [
           { symbol: 'MSFT', name: 'Microsoft', share: 'large' },
           { symbol: 'ORCL', name: 'Oracle', share: 'large' },
-          { symbol: 'CRM', name: 'Salesforce', share: 'medium' },
-          { symbol: 'NOW', name: 'ServiceNow', share: 'medium' },
+          { symbol: 'DDOG', name: 'Datadog', share: 'medium' },
+        ],
+      },
+      {
+        id: 'application-saas',
+        name: { zh: '应用软件 (SaaS)', en: 'Application Software (SaaS)' },
+        companies: [
+          { symbol: 'CRM', name: 'Salesforce', share: 'large' },
+          { symbol: 'ADBE', name: 'Adobe', share: 'large' },
+          { symbol: 'INTU', name: 'Intuit', share: 'medium' },
+          { symbol: 'NOW', name: 'ServiceNow', share: 'large' },
+        ],
+      },
+      {
+        id: 'it-consulting-data',
+        name: { zh: 'IT咨询与数据服务', en: 'IT Consulting & Data Services' },
+        companies: [
+          { symbol: 'ACN', name: 'Accenture', share: 'large' },
+          { symbol: 'IBM', name: 'IBM', share: 'medium' },
+          { symbol: 'IT', name: 'Gartner', share: 'medium' },
         ],
       },
     ],
     downstream: [
       {
-        id: 'consumer-tech',
-        name: { zh: '消费科技', en: 'Consumer Tech' },
+        id: 'networking-equipment',
+        name: { zh: '通信与网络设备', en: 'Communications & Networking Equipment' },
         companies: [
-          { symbol: 'AAPL', name: 'Apple', share: 'large' },
-          { symbol: 'GOOGL', name: 'Alphabet', share: 'large' },
-          { symbol: 'META', name: 'Meta', share: 'large' },
+          { symbol: 'CSCO', name: 'Cisco Systems', share: 'large' },
+          { symbol: 'ANET', name: 'Arista Networks', share: 'large' },
         ],
       },
       {
-        id: 'enterprise-solutions',
-        name: { zh: '企业解决方案', en: 'Enterprise Solutions' },
+        id: 'computing-hardware',
+        name: { zh: '计算硬件、存储与外设', en: 'Computing Hardware, Storage & Peripherals' },
         companies: [
-          { symbol: 'ACN', name: 'Accenture', share: 'large' },
-          { symbol: 'IBM', name: 'IBM', share: 'medium' },
-          { symbol: 'PLTR', name: 'Palantir', share: 'small' },
+          { symbol: 'AAPL', name: 'Apple', share: 'large' },
+          { symbol: 'DELL', name: 'Dell Technologies', share: 'medium' },
+          { symbol: 'HPQ', name: 'HP Inc', share: 'medium' },
+          { symbol: 'SMCI', name: 'Super Micro Computer', share: 'medium' },
+        ],
+      },
+      {
+        id: 'electronic-components',
+        name: { zh: '电子设备与元器件', en: 'Electronic Devices & Components' },
+        companies: [
+          { symbol: 'APH', name: 'Amphenol', share: 'large' },
+          { symbol: 'TEL', name: 'TE Connectivity', share: 'large' },
         ],
       },
     ],
