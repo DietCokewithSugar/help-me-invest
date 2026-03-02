@@ -2,9 +2,12 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Header from '@/components/Header';
+import ExportModal from '@/components/ExportModal';
+import AllocationCharts from '@/components/AllocationCharts';
 import { useLanguage } from '@/contexts/LanguageContext';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Download } from 'lucide-react';
 
 const TOTAL_STEPS = 5;
 
@@ -61,8 +64,11 @@ export default function AssetAllocationPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
   const [recommendation, setRecommendation] = useState<string | null>(null);
+  const [chartData, setChartData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
+  const reportRef = useRef<HTMLDivElement>(null);
 
   const [formData, setFormData] = useState<FormData>({
     assetTypes: [],
@@ -140,6 +146,7 @@ export default function AssetAllocationPage() {
     setError(null);
     setIsGenerating(true);
     setRecommendation(null);
+    setChartData(null);
 
     try {
       const res = await fetch('/api/asset-allocation', {
@@ -165,6 +172,7 @@ export default function AssetAllocationPage() {
 
       const data = await res.json();
       setRecommendation(data.recommendation);
+      if (data.chartData) setChartData(data.chartData);
       setTimeout(() => {
         resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 100);
@@ -189,6 +197,7 @@ export default function AssetAllocationPage() {
     });
     setCurrentStep(1);
     setRecommendation(null);
+    setChartData(null);
     setError(null);
   };
 
@@ -564,6 +573,13 @@ export default function AssetAllocationPage() {
               </h2>
               <div className="flex gap-2">
                 <button
+                  onClick={() => setIsExportModalOpen(true)}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-md border border-glacier-500/30 hover:border-glacier-500/60 hover:bg-glacier-500/10 text-xs transition-all text-glacier-500"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  {locale === 'zh' ? '导出图片' : 'Export'}
+                </button>
+                <button
                   onClick={handleGenerate}
                   disabled={isGenerating}
                   className="px-4 py-2 rounded-md border border-white/10 hover:border-white/20 hover:bg-white/5 text-xs transition-all"
@@ -580,7 +596,10 @@ export default function AssetAllocationPage() {
                 </button>
               </div>
             </div>
-            <div className="gemini-card p-6 md:p-8">
+            <div ref={reportRef} className="gemini-card p-6 md:p-8">
+              {chartData && (
+                <AllocationCharts chartData={chartData} theme={theme} currency={formData.currency} />
+              )}
               <div className="prose-gemini text-sm leading-relaxed">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {recommendation}
@@ -592,6 +611,13 @@ export default function AssetAllocationPage() {
             </p>
           </div>
         )}
+
+        <ExportModal
+          isOpen={isExportModalOpen}
+          onClose={() => setIsExportModalOpen(false)}
+          targetRef={reportRef as React.RefObject<HTMLDivElement>}
+          fileName={locale === 'zh' ? '资产配置方案' : 'Asset_Allocation_Plan'}
+        />
       </div>
 
       {/* Contact modal placeholder */}
