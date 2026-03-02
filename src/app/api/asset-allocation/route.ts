@@ -121,7 +121,19 @@ export async function POST(request: NextRequest) {
     const response = await result.response;
     const text = response.text();
 
-    return NextResponse.json({ recommendation: text });
+    let chartData = null;
+    const jsonMatch = text.match(/```json\s*\n([\s\S]*?)\n```/);
+    if (jsonMatch) {
+      try {
+        chartData = JSON.parse(jsonMatch[1]);
+      } catch {
+        // JSON parse failed, skip chart data
+      }
+    }
+
+    const cleanedText = text.replace(/```json\s*\n[\s\S]*?\n```/, '').trim();
+
+    return NextResponse.json({ recommendation: cleanedText, chartData });
   } catch (error: any) {
     console.error('Asset allocation error:', error);
     return NextResponse.json(
@@ -190,6 +202,22 @@ ${p.interests ? `- **特别关注的方向**：${p.interests}` : ''}
 
 分步骤告诉用户如何开始执行这份配置方案（开户、定投时间、调仓频率等）。
 
+### 📦 结构化数据（必须提供）
+
+在 Markdown 内容的最末尾，请输出一个 JSON 代码块（用 \`\`\`json 和 \`\`\` 包裹），包含以下结构：
+\`\`\`json
+{
+  "allocation": [
+    { "name": "资产类别名称", "percentage": 数字, "amount": 数字, "color": "#hex色值" }
+  ],
+  "riskReturn": [
+    { "name": "资产类别名称", "risk": 1到10的数字, "expectedReturn": 年化收益率百分比数字 }
+  ]
+}
+\`\`\`
+- allocation 是资产配置比例数组，percentage 为百分比数字（不带%），amount 为金额数字，color 为不同的十六进制颜色。请用这些颜色：#88ABDA, #98B6C2, #C0D09D, #CB523E, #DFD6B8, #EAE4D1, #8B5CF6, #F59E0B, #EC4899, #06B6D4。
+- riskReturn 是各资产类别的风险收益散点图数据，risk 为 1-10 的风险等级，expectedReturn 为预期年化收益百分比数字。
+
 请使用中文回答，Markdown 格式。关键数据用 **加粗** 标注。`;
 }
 
@@ -239,6 +267,22 @@ Specific risks for this plan and mitigation strategies.
 ### 🎯 Execution Guide
 
 Step-by-step instructions for implementing this plan (account setup, DCA schedule, rebalancing frequency, etc.).
+
+### 📦 Structured Data (Required)
+
+At the very end of the Markdown content, output a JSON code block (wrapped in \`\`\`json and \`\`\`), with the following structure:
+\`\`\`json
+{
+  "allocation": [
+    { "name": "Asset Class Name", "percentage": number, "amount": number, "color": "#hexcolor" }
+  ],
+  "riskReturn": [
+    { "name": "Asset Class Name", "risk": 1to10number, "expectedReturn": annualReturnPercentNumber }
+  ]
+}
+\`\`\`
+- allocation is an array of asset allocation ratios. percentage is a number without %, amount is the dollar/yuan amount, color is a distinct hex color. Please use these colors: #88ABDA, #98B6C2, #C0D09D, #CB523E, #DFD6B8, #EAE4D1, #8B5CF6, #F59E0B, #EC4899, #06B6D4.
+- riskReturn is scatter plot data for each asset class. risk is 1-10 risk level, expectedReturn is expected annual return percent number.
 
 Please respond in English, Markdown format. Bold **key data points**.`;
 }
