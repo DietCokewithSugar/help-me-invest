@@ -148,6 +148,11 @@ export const SECTOR_SUPPLY_CHAINS: Record<string, SupplyChainData> = {
     ],
   },
   Healthcare: {
+    layerLabels: {
+      upstream: { zh: '研发与生物技术', en: 'R&D & Biotechnology' },
+      midstream: { zh: '制药与器械', en: 'Pharma & Devices' },
+      downstream: { zh: '医疗服务与流通', en: 'Services & Distribution' },
+    },
     upstream: [
       {
         id: 'pharma-rd',
@@ -162,6 +167,8 @@ export const SECTOR_SUPPLY_CHAINS: Record<string, SupplyChainData> = {
         id: 'biotech-platform',
         name: { zh: '生物技术平台', en: 'Biotech Platform' },
         companies: [
+          { symbol: 'AMGN', name: 'Amgen', share: 'large' },
+          { symbol: 'GILD', name: 'Gilead Sciences', share: 'medium' },
           { symbol: 'ILMN', name: 'Illumina', share: 'medium' },
           { symbol: 'CRSP', name: 'CRISPR Therapeutics', share: 'small' },
         ],
@@ -172,19 +179,22 @@ export const SECTOR_SUPPLY_CHAINS: Record<string, SupplyChainData> = {
         id: 'pharma-mfg',
         name: { zh: '制药生产', en: 'Pharmaceutical Manufacturing' },
         companies: [
-          { symbol: 'JNJ', name: 'Johnson & Johnson', share: 'large' },
-          { symbol: 'PFE', name: 'Pfizer', share: 'large' },
           { symbol: 'LLY', name: 'Eli Lilly', share: 'large' },
+          { symbol: 'JNJ', name: 'Johnson & Johnson', share: 'large' },
+          { symbol: 'ABBV', name: 'AbbVie', share: 'large' },
           { symbol: 'MRK', name: 'Merck', share: 'large' },
+          { symbol: 'PFE', name: 'Pfizer', share: 'medium' },
+          { symbol: 'AZN', name: 'AstraZeneca', share: 'large' },
         ],
       },
       {
         id: 'medtech',
         name: { zh: '医疗器械', en: 'Medical Devices' },
         companies: [
-          { symbol: 'MDT', name: 'Medtronic', share: 'large' },
           { symbol: 'ABT', name: 'Abbott', share: 'large' },
+          { symbol: 'MDT', name: 'Medtronic', share: 'large' },
           { symbol: 'SYK', name: 'Stryker', share: 'medium' },
+          { symbol: 'ISRG', name: 'Intuitive Surgical', share: 'medium' },
         ],
       },
     ],
@@ -203,13 +213,18 @@ export const SECTOR_SUPPLY_CHAINS: Record<string, SupplyChainData> = {
         name: { zh: '医药流通', en: 'Pharma Distribution' },
         companies: [
           { symbol: 'MCK', name: 'McKesson', share: 'large' },
-          { symbol: 'CAH', name: 'Cardinal Health', share: 'medium' },
           { symbol: 'CVS', name: 'CVS Health', share: 'large' },
+          { symbol: 'CAH', name: 'Cardinal Health', share: 'medium' },
         ],
       },
     ],
   },
   'Financial Services': {
+    layerLabels: {
+      upstream: { zh: '金融基础设施与支付', en: 'Infrastructure & Payments' },
+      midstream: { zh: '银行与保险', en: 'Banking & Insurance' },
+      downstream: { zh: '资管与金融科技', en: 'Asset Mgmt & Fintech' },
+    },
     upstream: [
       {
         id: 'fintech-infra',
@@ -273,6 +288,11 @@ export const SECTOR_SUPPLY_CHAINS: Record<string, SupplyChainData> = {
     ],
   },
   Energy: {
+    layerLabels: {
+      upstream: { zh: '勘探与服务', en: 'Exploration & Services' },
+      midstream: { zh: '管道运输与储存', en: 'Pipeline & Storage' },
+      downstream: { zh: '炼化与新能源', en: 'Refining & Renewables' },
+    },
     upstream: [
       {
         id: 'exploration',
@@ -280,6 +300,7 @@ export const SECTOR_SUPPLY_CHAINS: Record<string, SupplyChainData> = {
         companies: [
           { symbol: 'XOM', name: 'ExxonMobil', share: 'large' },
           { symbol: 'CVX', name: 'Chevron', share: 'large' },
+          { symbol: 'SHEL', name: 'Shell', share: 'large' },
           { symbol: 'COP', name: 'ConocoPhillips', share: 'medium' },
         ],
       },
@@ -298,6 +319,7 @@ export const SECTOR_SUPPLY_CHAINS: Record<string, SupplyChainData> = {
         id: 'pipeline-transport',
         name: { zh: '管道运输与储存', en: 'Pipeline & Storage' },
         companies: [
+          { symbol: 'ENB', name: 'Enbridge', share: 'large' },
           { symbol: 'WMB', name: 'Williams Companies', share: 'large' },
           { symbol: 'KMI', name: 'Kinder Morgan', share: 'medium' },
           { symbol: 'ET', name: 'Energy Transfer', share: 'medium' },
@@ -318,18 +340,22 @@ export const SECTOR_SUPPLY_CHAINS: Record<string, SupplyChainData> = {
         id: 'renewable-energy',
         name: { zh: '新能源', en: 'Renewable Energy' },
         companies: [
-          { symbol: 'NEE', name: 'NextEra Energy', share: 'large' },
-          { symbol: 'ENPH', name: 'Enphase', share: 'small' },
           { symbol: 'FSLR', name: 'First Solar', share: 'small' },
+          { symbol: 'ENPH', name: 'Enphase', share: 'small' },
         ],
       },
     ],
   },
   'Consumer Cyclical': {
+    layerLabels: {
+      upstream: { zh: '原材料与零部件', en: 'Raw Materials & Parts' },
+      midstream: { zh: '制造与品牌', en: 'Manufacturing & Brands' },
+      downstream: { zh: '零售与服务', en: 'Retail & Services' },
+    },
     upstream: [
       {
-        id: 'raw-materials-textiles',
-        name: { zh: '原材料与纺织', en: 'Raw Materials & Textiles' },
+        id: 'auto-parts',
+        name: { zh: '汽车零部件', en: 'Auto Parts & Suppliers' },
         companies: [
           { symbol: 'IP', name: 'International Paper', share: 'medium' },
         ],
@@ -341,17 +367,19 @@ export const SECTOR_SUPPLY_CHAINS: Record<string, SupplyChainData> = {
         name: { zh: '汽车制造', en: 'Auto Manufacturing' },
         companies: [
           { symbol: 'TSLA', name: 'Tesla', share: 'large' },
+          { symbol: 'TM', name: 'Toyota', share: 'large' },
           { symbol: 'GM', name: 'General Motors', share: 'medium' },
           { symbol: 'F', name: 'Ford', share: 'medium' },
         ],
       },
       {
         id: 'consumer-brands',
-        name: { zh: '消费品牌', en: 'Consumer Brands' },
+        name: { zh: '消费品牌与餐饮', en: 'Consumer Brands & Restaurants' },
         companies: [
-          { symbol: 'NKE', name: 'Nike', share: 'large' },
-          { symbol: 'SBUX', name: 'Starbucks', share: 'large' },
           { symbol: 'MCD', name: "McDonald's", share: 'large' },
+          { symbol: 'NKE', name: 'Nike', share: 'large' },
+          { symbol: 'SBUX', name: 'Starbucks', share: 'medium' },
+          { symbol: 'TJX', name: 'TJX Companies', share: 'medium' },
         ],
       },
     ],
@@ -361,7 +389,9 @@ export const SECTOR_SUPPLY_CHAINS: Record<string, SupplyChainData> = {
         name: { zh: '电商与零售', en: 'E-commerce & Retail' },
         companies: [
           { symbol: 'AMZN', name: 'Amazon', share: 'large' },
+          { symbol: 'BABA', name: 'Alibaba', share: 'large' },
           { symbol: 'HD', name: 'Home Depot', share: 'large' },
+          { symbol: 'LOW', name: "Lowe's", share: 'medium' },
           { symbol: 'TGT', name: 'Target', share: 'medium' },
         ],
       },
@@ -377,6 +407,11 @@ export const SECTOR_SUPPLY_CHAINS: Record<string, SupplyChainData> = {
     ],
   },
   'Consumer Defensive': {
+    layerLabels: {
+      upstream: { zh: '农业与原料', en: 'Agriculture & Materials' },
+      midstream: { zh: '消费品制造', en: 'Consumer Goods Manufacturing' },
+      downstream: { zh: '商超零售', en: 'Grocery & Retail' },
+    },
     upstream: [
       {
         id: 'agriculture',
@@ -392,8 +427,8 @@ export const SECTOR_SUPPLY_CHAINS: Record<string, SupplyChainData> = {
         id: 'food-beverage-mfg',
         name: { zh: '食品饮料制造', en: 'Food & Beverage Mfg' },
         companies: [
-          { symbol: 'PEP', name: 'PepsiCo', share: 'large' },
           { symbol: 'KO', name: 'Coca-Cola', share: 'large' },
+          { symbol: 'PEP', name: 'PepsiCo', share: 'large' },
           { symbol: 'MDLZ', name: 'Mondelez', share: 'medium' },
         ],
       },
@@ -403,7 +438,15 @@ export const SECTOR_SUPPLY_CHAINS: Record<string, SupplyChainData> = {
         companies: [
           { symbol: 'PG', name: 'Procter & Gamble', share: 'large' },
           { symbol: 'CL', name: 'Colgate-Palmolive', share: 'medium' },
-          { symbol: 'EL', name: 'Estée Lauder', share: 'medium' },
+          { symbol: 'UL', name: 'Unilever', share: 'medium' },
+        ],
+      },
+      {
+        id: 'tobacco',
+        name: { zh: '烟草', en: 'Tobacco' },
+        companies: [
+          { symbol: 'PM', name: 'Philip Morris', share: 'large' },
+          { symbol: 'MO', name: 'Altria', share: 'medium' },
         ],
       },
     ],
@@ -420,6 +463,11 @@ export const SECTOR_SUPPLY_CHAINS: Record<string, SupplyChainData> = {
     ],
   },
   'Communication Services': {
+    layerLabels: {
+      upstream: { zh: '通信基础设施', en: 'Telecom Infrastructure' },
+      midstream: { zh: '内容与平台', en: 'Content & Platforms' },
+      downstream: { zh: '分发与变现', en: 'Distribution & Monetization' },
+    },
     upstream: [
       {
         id: 'telecom-infra',
@@ -429,17 +477,18 @@ export const SECTOR_SUPPLY_CHAINS: Record<string, SupplyChainData> = {
           { symbol: 'CCI', name: 'Crown Castle', share: 'medium' },
         ],
       },
-    ],
-    midstream: [
       {
         id: 'telecom-operators',
         name: { zh: '电信运营商', en: 'Telecom Operators' },
         companies: [
-          { symbol: 'T', name: 'AT&T', share: 'large' },
+          { symbol: 'TMUS', name: 'T-Mobile', share: 'large' },
           { symbol: 'VZ', name: 'Verizon', share: 'large' },
-          { symbol: 'TMUS', name: 'T-Mobile', share: 'medium' },
+          { symbol: 'T', name: 'AT&T', share: 'large' },
+          { symbol: 'CMCSA', name: 'Comcast', share: 'medium' },
         ],
       },
+    ],
+    midstream: [
       {
         id: 'media-entertainment',
         name: { zh: '媒体与娱乐', en: 'Media & Entertainment' },
@@ -447,7 +496,16 @@ export const SECTOR_SUPPLY_CHAINS: Record<string, SupplyChainData> = {
           { symbol: 'GOOGL', name: 'Alphabet', share: 'large' },
           { symbol: 'META', name: 'Meta', share: 'large' },
           { symbol: 'DIS', name: 'Disney', share: 'large' },
-          { symbol: 'NFLX', name: 'Netflix', share: 'medium' },
+          { symbol: 'NFLX', name: 'Netflix', share: 'large' },
+        ],
+      },
+      {
+        id: 'streaming-audio',
+        name: { zh: '流媒体与音频', en: 'Streaming & Audio' },
+        companies: [
+          { symbol: 'NFLX', name: 'Netflix', share: 'large' },
+          { symbol: 'SPOT', name: 'Spotify', share: 'medium' },
+          { symbol: 'DIS', name: 'Disney', share: 'large' },
         ],
       },
     ],
@@ -465,14 +523,26 @@ export const SECTOR_SUPPLY_CHAINS: Record<string, SupplyChainData> = {
         id: 'gaming',
         name: { zh: '游戏', en: 'Gaming' },
         companies: [
-          { symbol: 'ATVI', name: 'Activision Blizzard', share: 'large' },
-          { symbol: 'EA', name: 'EA', share: 'medium' },
-          { symbol: 'TTWO', name: 'Take-Two', share: 'medium' },
+          { symbol: 'EA', name: 'Electronic Arts', share: 'medium' },
+          { symbol: 'TTWO', name: 'Take-Two Interactive', share: 'medium' },
+        ],
+      },
+      {
+        id: 'social-local',
+        name: { zh: '社交与本地服务', en: 'Social & Local Services' },
+        companies: [
+          { symbol: 'META', name: 'Meta', share: 'large' },
+          { symbol: 'DASH', name: 'DoorDash', share: 'medium' },
         ],
       },
     ],
   },
   Industrials: {
+    layerLabels: {
+      upstream: { zh: '工业材料与零部件', en: 'Materials & Components' },
+      midstream: { zh: '制造与装备', en: 'Manufacturing & Equipment' },
+      downstream: { zh: '物流与服务', en: 'Logistics & Services' },
+    },
     upstream: [
       {
         id: 'industrial-materials',
@@ -480,6 +550,15 @@ export const SECTOR_SUPPLY_CHAINS: Record<string, SupplyChainData> = {
         companies: [
           { symbol: 'HON', name: 'Honeywell', share: 'large' },
           { symbol: 'EMR', name: 'Emerson Electric', share: 'medium' },
+          { symbol: 'ETN', name: 'Eaton Corporation', share: 'medium' },
+        ],
+      },
+      {
+        id: 'industrial-machinery',
+        name: { zh: '工业机械', en: 'Industrial Machinery' },
+        companies: [
+          { symbol: 'PH', name: 'Parker-Hannifin', share: 'medium' },
+          { symbol: 'ROK', name: 'Rockwell Automation', share: 'medium' },
         ],
       },
     ],
@@ -488,15 +567,15 @@ export const SECTOR_SUPPLY_CHAINS: Record<string, SupplyChainData> = {
         id: 'aerospace-defense',
         name: { zh: '航空航天与国防', en: 'Aerospace & Defense' },
         companies: [
-          { symbol: 'RTX', name: 'RTX Corp', share: 'large' },
-          { symbol: 'LMT', name: 'Lockheed Martin', share: 'large' },
-          { symbol: 'BA', name: 'Boeing', share: 'large' },
           { symbol: 'GE', name: 'GE Aerospace', share: 'large' },
+          { symbol: 'RTX', name: 'RTX Corp', share: 'large' },
+          { symbol: 'BA', name: 'Boeing', share: 'large' },
+          { symbol: 'LMT', name: 'Lockheed Martin', share: 'large' },
         ],
       },
       {
         id: 'machinery',
-        name: { zh: '工程机械', en: 'Machinery' },
+        name: { zh: '工程机械与农机', en: 'Construction & Agricultural Machinery' },
         companies: [
           { symbol: 'CAT', name: 'Caterpillar', share: 'large' },
           { symbol: 'DE', name: 'Deere & Co', share: 'large' },
@@ -508,8 +587,8 @@ export const SECTOR_SUPPLY_CHAINS: Record<string, SupplyChainData> = {
         id: 'logistics',
         name: { zh: '物流运输', en: 'Logistics & Transport' },
         companies: [
-          { symbol: 'UPS', name: 'UPS', share: 'large' },
           { symbol: 'UNP', name: 'Union Pacific', share: 'large' },
+          { symbol: 'UPS', name: 'UPS', share: 'large' },
           { symbol: 'FDX', name: 'FedEx', share: 'medium' },
         ],
       },
@@ -524,13 +603,29 @@ export const SECTOR_SUPPLY_CHAINS: Record<string, SupplyChainData> = {
     ],
   },
   'Basic Materials': {
+    layerLabels: {
+      upstream: { zh: '矿业与原材料', en: 'Mining & Raw Materials' },
+      midstream: { zh: '化工与加工', en: 'Chemicals & Processing' },
+      downstream: { zh: '特种材料与应用', en: 'Specialty Materials & Applications' },
+    },
     upstream: [
       {
         id: 'mining',
         name: { zh: '矿业', en: 'Mining' },
         companies: [
-          { symbol: 'FCX', name: 'Freeport-McMoRan', share: 'large' },
+          { symbol: 'BHP', name: 'BHP Group', share: 'large' },
+          { symbol: 'RIO', name: 'Rio Tinto', share: 'large' },
           { symbol: 'NEM', name: 'Newmont', share: 'large' },
+          { symbol: 'FCX', name: 'Freeport-McMoRan', share: 'large' },
+          { symbol: 'SCCO', name: 'Southern Copper', share: 'medium' },
+        ],
+      },
+      {
+        id: 'precious-metals',
+        name: { zh: '贵金属', en: 'Precious Metals' },
+        companies: [
+          { symbol: 'NEM', name: 'Newmont', share: 'large' },
+          { symbol: 'AEM', name: 'Agnico Eagle', share: 'medium' },
         ],
       },
     ],
@@ -558,25 +653,52 @@ export const SECTOR_SUPPLY_CHAINS: Record<string, SupplyChainData> = {
     ],
   },
   'Real Estate': {
+    layerLabels: {
+      upstream: { zh: '建设开发', en: 'Construction & Development' },
+      midstream: { zh: '不动产投资信托', en: 'REITs' },
+      downstream: { zh: '物业管理与服务', en: 'Property Management' },
+    },
     upstream: [
       {
         id: 'construction-dev',
         name: { zh: '建设开发', en: 'Construction & Development' },
         companies: [
-          { symbol: 'LEN', name: 'Lennar', share: 'medium' },
           { symbol: 'DHI', name: 'D.R. Horton', share: 'medium' },
+          { symbol: 'LEN', name: 'Lennar', share: 'medium' },
         ],
       },
     ],
     midstream: [
       {
-        id: 'reits',
-        name: { zh: 'REITs', en: 'REITs' },
+        id: 'reits-industrial',
+        name: { zh: '产业与物流REITs', en: 'Industrial & Logistics REITs' },
         companies: [
           { symbol: 'PLD', name: 'Prologis', share: 'large' },
-          { symbol: 'AMT', name: 'American Tower', share: 'large' },
+          { symbol: 'PSA', name: 'Public Storage', share: 'medium' },
+        ],
+      },
+      {
+        id: 'reits-digital',
+        name: { zh: '数据中心与通信REITs', en: 'Data Center & Telecom REITs' },
+        companies: [
           { symbol: 'EQIX', name: 'Equinix', share: 'large' },
+          { symbol: 'AMT', name: 'American Tower', share: 'large' },
+          { symbol: 'DLR', name: 'Digital Realty', share: 'medium' },
+        ],
+      },
+      {
+        id: 'reits-healthcare',
+        name: { zh: '医疗REITs', en: 'Healthcare REITs' },
+        companies: [
+          { symbol: 'WELL', name: 'Welltower', share: 'large' },
+        ],
+      },
+      {
+        id: 'reits-retail',
+        name: { zh: '零售REITs', en: 'Retail REITs' },
+        companies: [
           { symbol: 'SPG', name: 'Simon Property', share: 'medium' },
+          { symbol: 'O', name: 'Realty Income', share: 'medium' },
         ],
       },
     ],
@@ -592,14 +714,28 @@ export const SECTOR_SUPPLY_CHAINS: Record<string, SupplyChainData> = {
     ],
   },
   Utilities: {
+    layerLabels: {
+      upstream: { zh: '发电与能源转换', en: 'Power Generation' },
+      midstream: { zh: '电网与输配', en: 'Grid & Transmission' },
+      downstream: { zh: '公用事业配送', en: 'Utility Distribution' },
+    },
     upstream: [
       {
         id: 'power-generation',
-        name: { zh: '发电', en: 'Power Generation' },
+        name: { zh: '传统发电', en: 'Conventional Power Generation' },
         companies: [
           { symbol: 'NEE', name: 'NextEra Energy', share: 'large' },
           { symbol: 'DUK', name: 'Duke Energy', share: 'large' },
           { symbol: 'SO', name: 'Southern Co', share: 'large' },
+        ],
+      },
+      {
+        id: 'renewable-generation',
+        name: { zh: '可再生能源发电', en: 'Renewable Power Generation' },
+        companies: [
+          { symbol: 'GEV', name: 'GE Vernova', share: 'large' },
+          { symbol: 'CEG', name: 'Constellation Energy', share: 'large' },
+          { symbol: 'VST', name: 'Vistra Corp', share: 'medium' },
         ],
       },
     ],
@@ -616,10 +752,16 @@ export const SECTOR_SUPPLY_CHAINS: Record<string, SupplyChainData> = {
     downstream: [
       {
         id: 'utility-distribution',
-        name: { zh: '公用事业配送', en: 'Utility Distribution' },
+        name: { zh: '电力与天然气配送', en: 'Electric & Gas Distribution' },
         companies: [
           { symbol: 'SRE', name: 'Sempra', share: 'medium' },
           { symbol: 'D', name: 'Dominion Energy', share: 'medium' },
+        ],
+      },
+      {
+        id: 'water-utilities',
+        name: { zh: '水务', en: 'Water Utilities' },
+        companies: [
           { symbol: 'AWK', name: 'American Water', share: 'small' },
         ],
       },

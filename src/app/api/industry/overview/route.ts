@@ -20,31 +20,31 @@ const SECTOR_KEYS = [
 ];
 
 const FALLBACK_SECTOR_WEIGHTS: Record<string, number> = {
-  Technology: 32,
-  Healthcare: 12,
-  'Financial Services': 13,
-  'Consumer Cyclical': 11,
-  'Communication Services': 9,
-  Industrials: 8,
-  'Consumer Defensive': 6,
+  Technology: 40,
+  Healthcare: 10,
+  'Financial Services': 10,
+  'Consumer Cyclical': 13,
+  'Communication Services': 4,
+  Industrials: 6,
+  'Consumer Defensive': 8,
   Energy: 4,
   'Basic Materials': 2,
-  'Real Estate': 2,
-  Utilities: 2,
+  'Real Estate': 1.5,
+  Utilities: 2.5,
 };
 
 const FALLBACK_LEADING_COMPANIES: Record<string, { symbol: string; name: string }> = {
-  Technology: { symbol: 'AAPL', name: 'Apple' },
+  Technology: { symbol: 'NVDA', name: 'NVIDIA' },
   Healthcare: { symbol: 'LLY', name: 'Eli Lilly' },
-  'Financial Services': { symbol: 'JPM', name: 'JPMorgan' },
+  'Financial Services': { symbol: 'BRK-B', name: 'Berkshire Hathaway' },
   'Consumer Cyclical': { symbol: 'AMZN', name: 'Amazon' },
-  'Communication Services': { symbol: 'GOOGL', name: 'Alphabet' },
+  'Communication Services': { symbol: 'NFLX', name: 'Netflix' },
   Industrials: { symbol: 'GE', name: 'GE Aerospace' },
   'Consumer Defensive': { symbol: 'WMT', name: 'Walmart' },
   Energy: { symbol: 'XOM', name: 'ExxonMobil' },
   'Basic Materials': { symbol: 'LIN', name: 'Linde' },
-  'Real Estate': { symbol: 'PLD', name: 'Prologis' },
-  Utilities: { symbol: 'NEE', name: 'NextEra' },
+  'Real Estate': { symbol: 'WELL', name: 'Welltower' },
+  Utilities: { symbol: 'GEV', name: 'GE Vernova' },
 };
 
 interface SectorSnapshot {
