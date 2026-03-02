@@ -273,6 +273,25 @@ export default function IndustryDetailPage() {
     };
   }, [data, isDark, locale, t]);
 
+  const hasPillarLabels = !!data?.supplyChain?.layerLabels;
+
+  const layerLabels = useMemo(() => {
+    const chain = data?.supplyChain;
+    if (chain?.layerLabels) {
+      const ll = chain.layerLabels;
+      return {
+        upstream: stripEmoji(locale === 'zh' ? ll.upstream.zh : ll.upstream.en),
+        midstream: stripEmoji(locale === 'zh' ? ll.midstream.zh : ll.midstream.en),
+        downstream: stripEmoji(locale === 'zh' ? ll.downstream.zh : ll.downstream.en),
+      };
+    }
+    return {
+      upstream: stripEmoji(t.industry.detail.upstream),
+      midstream: stripEmoji(t.industry.detail.midstream),
+      downstream: stripEmoji(t.industry.detail.downstream),
+    };
+  }, [data, locale, t]);
+
   const supplyChainFlowOption = useMemo(() => {
     if (!data?.supplyChain) return {};
     const chain = data.supplyChain;
@@ -280,9 +299,9 @@ export default function IndustryDetailPage() {
     const nodes: { name: string; itemStyle?: any }[] = [];
     const links: { source: string; target: string; value: number }[] = [];
 
-    const upLabel = stripEmoji(t.industry.detail.upstream);
-    const midLabel = stripEmoji(t.industry.detail.midstream);
-    const downLabel = stripEmoji(t.industry.detail.downstream);
+    const upLabel = layerLabels.upstream;
+    const midLabel = layerLabels.midstream;
+    const downLabel = layerLabels.downstream;
 
     nodes.push({ name: upLabel, itemStyle: { color: '#88ABDA' } });
     nodes.push({ name: midLabel, itemStyle: { color: '#C0D09D' } });
@@ -334,7 +353,7 @@ export default function IndustryDetailPage() {
         },
       ],
     };
-  }, [data, isDark, locale, t]);
+  }, [data, isDark, locale, layerLabels]);
 
   const Sparkline = ({ growth }: { growth: number }) => {
     const points = useMemo(() => {
@@ -451,7 +470,7 @@ export default function IndustryDetailPage() {
             <div className="flex gap-1 p-1 rounded-md w-fit border" style={isDark ? darkPanelStyle : { backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
               {(['chain', 'companies', 'news'] as const).map((tab) => {
                 const labels = {
-                  chain: t.industry.detail.supplyChain,
+                  chain: hasPillarLabels ? t.industry.detail.supplyChainPillar : t.industry.detail.supplyChain,
                   companies: t.industry.detail.companyProfile,
                   news: t.industry.detail.news,
                 };
@@ -477,20 +496,22 @@ export default function IndustryDetailPage() {
                 {data.supplyChain && (
                   <section className="gemini-card p-4 md:p-6" style={isDark ? darkPanelStyle : undefined}>
                     <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--text-heading)' }}>
-                      {t.industry.detail.supplyChain}
+                      {hasPillarLabels ? t.industry.detail.supplyChainPillar : t.industry.detail.supplyChain}
                     </h3>
-                    <p className="text-xs text-mist-500 mb-4">{t.industry.detail.supplyChainDesc}</p>
+                    <p className="text-xs text-mist-500 mb-4">
+                      {hasPillarLabels ? t.industry.detail.supplyChainDescPillar : t.industry.detail.supplyChainDesc}
+                    </p>
                     <div
                       className="rounded-sm p-2"
                       style={{
-                        minHeight: 320,
+                        minHeight: hasPillarLabels ? 480 : 320,
                         backgroundColor: isDark ? '#121212' : 'transparent',
                         border: isDark ? '1px solid rgba(255,255,255,0.08)' : undefined,
                       }}
                     >
                       <ReactECharts
                         option={supplyChainFlowOption}
-                        style={{ width: '100%', height: 320 }}
+                        style={{ width: '100%', height: hasPillarLabels ? 480 : 320 }}
                         opts={{ renderer: 'canvas' }}
                         notMerge
                       />
@@ -503,12 +524,12 @@ export default function IndustryDetailPage() {
                   <section className="gemini-card overflow-hidden" style={isDark ? darkPanelStyle : undefined}>
                     <div className="p-4 md:p-6 pb-0">
                       <h3 className="text-sm font-semibold" style={{ color: 'var(--text-heading)' }}>
-                        {t.industry.detail.nodeCompanies}
+                        {hasPillarLabels ? t.industry.detail.pillarCompanies : t.industry.detail.nodeCompanies}
                       </h3>
                     </div>
                     <div className="p-4 md:p-6 space-y-2">
                       {(['upstream', 'midstream', 'downstream'] as const).map((layer) => {
-                        const layerLabel = stripEmoji(t.industry.detail[layer]);
+                        const layerLabel = layerLabels[layer];
                         const nodes = data.supplyChain![layer];
                         return (
                           <div key={layer}>
