@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
+import ContactModal from '@/components/ContactModal';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getTrendColor } from '@/lib/industry-data';
 import { stripEmoji } from '@/lib/text-utils';
@@ -413,14 +414,15 @@ export default function IndustryPage() {
         )}
       </main>
 
-      {showContactModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50" onClick={() => setShowContactModal(false)}>
-          <div className="p-6 rounded-md max-w-sm text-center" style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)' }} onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-heading)' }}>{t.home.contact.title}</h3>
-            <p className="text-sm text-mist-400">{t.home.contact.lookForward}</p>
-          </div>
-        </div>
-      )}
+      <ContactModal
+        isOpen={showContactModal}
+        onClose={() => setShowContactModal(false)}
+        title={t.home.contact.title}
+        scanQr={t.home.contact.scanQr}
+        lookForward={t.home.contact.lookForward}
+        wechatLabel={t.home.faq.wechat}
+        emailLabel={t.home.faq.email}
+      />
     </div>
   );
 }

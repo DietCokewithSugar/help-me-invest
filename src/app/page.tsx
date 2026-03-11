@@ -32,6 +32,7 @@ import {
   SearchIcon,
 } from '@/components/Icons';
 import Header from '@/components/Header';
+import ContactModal from '@/components/ContactModal';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 // 懒加载组件
@@ -1694,70 +1695,15 @@ function HomeContent() {
         </div>
       )}
 
-      {/* 联系我们弹窗 */}
-      <AnimatePresence>
-        {showContactModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-            onClick={() => setShowContactModal(false)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="relative bg-gradient-to-br from-arctic-800 to-arctic-900 rounded-2xl p-6 md:p-8 border border-white/10 shadow-2xl max-w-sm mx-4"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* 关闭按钮 */}
-              <button
-                onClick={() => setShowContactModal(false)}
-                className="absolute top-4 right-4 p-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors"
-              >
-                <XIcon size={18} className="text-mist-400" />
-              </button>
-
-              {/* 标题 */}
-              <h3 className="text-xl font-semibold text-white mb-2 text-center">{t.home.contact.title}</h3>
-              <p className="text-sm text-mist-400 mb-6 text-center">{t.home.contact.scanQr}</p>
-
-              {/* 联系信息 */}
-              <div className="text-center space-y-4">
-                {/* WeChat QR code */}
-                <div className="flex justify-center">
-                  <img
-                    src="/wechat-qr.jpg"
-                    alt="WeChat QR"
-                    className="w-64 h-64 object-contain rounded-lg"
-                  />
-                </div>
-
-                {/* WeChat ID */}
-                <div className="flex items-center justify-center gap-2 text-sm">
-                  <span className="text-mist-400">{t.home.faq.wechat}</span>
-                  <span className="font-mono text-text-primary select-all">wkzSteven</span>
-                </div>
-
-                {/* Email */}
-                <div className="flex items-center justify-center gap-2 text-sm">
-                  <span className="text-mist-400">{t.home.faq.email}</span>
-                  <a href="mailto:wangkaizhou2016@gmail.com" className="font-mono text-glacier-500 hover:underline">
-                    wangkaizhou2016@gmail.com
-                  </a>
-                </div>
-              </div>
-
-              {/* 提示文字 */}
-              <p className="text-xs text-mist-500 mt-4 text-center">
-                {t.home.contact.lookForward}
-              </p>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ContactModal
+        isOpen={showContactModal}
+        onClose={() => setShowContactModal(false)}
+        title={t.home.contact.title}
+        scanQr={t.home.contact.scanQr}
+        lookForward={t.home.contact.lookForward}
+        wechatLabel={t.home.faq.wechat}
+        emailLabel={t.home.faq.email}
+      />
 
       {/* Company Filter Modal */}
       <CompanyFilterModal

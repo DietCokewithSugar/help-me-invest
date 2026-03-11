@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Header from '@/components/Header';
+import ContactModal from '@/components/ContactModal';
 import ExportModal from '@/components/ExportModal';
 import AllocationCharts from '@/components/AllocationCharts';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -620,17 +621,15 @@ export default function AssetAllocationPage() {
         />
       </div>
 
-      {/* Contact modal placeholder */}
-      {showContactModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowContactModal(false)}>
-          <div className="glass-card p-6 rounded-md max-w-sm" onClick={e => e.stopPropagation()}>
-            <p style={{ color: 'var(--text-primary)' }}>{t.common.contactUs}</p>
-            <button onClick={() => setShowContactModal(false)} className="mt-4 px-4 py-2 bg-glacier-500 text-white rounded-md text-sm">
-              {t.common.close}
-            </button>
-          </div>
-        </div>
-      )}
+      <ContactModal
+        isOpen={showContactModal}
+        onClose={() => setShowContactModal(false)}
+        title={t.home.contact.title}
+        scanQr={t.home.contact.scanQr}
+        lookForward={t.home.contact.lookForward}
+        wechatLabel={t.home.faq.wechat}
+        emailLabel={t.home.faq.email}
+      />
     </div>
   );
 }
