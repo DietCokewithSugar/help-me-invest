@@ -33,6 +33,35 @@ const FALLBACK_SECTOR_WEIGHTS: Record<string, number> = {
   Utilities: 2.5,
 };
 
+const FALLBACK_SECTOR_CAGR3Y: Record<string, number> = {
+  Technology: 18,
+  Healthcare: 10,
+  'Financial Services': 8,
+  'Consumer Cyclical': 9,
+  'Communication Services': 12,
+  Industrials: 8,
+  'Consumer Defensive': 7,
+  Energy: 6,
+  'Basic Materials': 5,
+  'Real Estate': 4,
+  Utilities: 4,
+};
+
+const SECTOR_ALIASES: Record<string, string> = {
+  financial: 'Financial Services',
+  'financial services': 'Financial Services',
+  'consumer cyclical': 'Consumer Cyclical',
+  'consumer defensive': 'Consumer Defensive',
+  'communication services': 'Communication Services',
+  industrials: 'Industrials',
+  technology: 'Technology',
+  healthcare: 'Healthcare',
+  energy: 'Energy',
+  utilities: 'Utilities',
+  'basic materials': 'Basic Materials',
+  'real estate': 'Real Estate',
+};
+
 const FALLBACK_LEADING_COMPANIES: Record<string, { symbol: string; name: string }> = {
   Technology: { symbol: 'NVDA', name: 'NVIDIA' },
   Healthcare: { symbol: 'LLY', name: 'Eli Lilly' },
@@ -50,7 +79,7 @@ const FALLBACK_LEADING_COMPANIES: Record<string, { symbol: string; name: string 
 interface SectorSnapshot {
   sector: string;
   proxyMarketCap: number;
-  cagr3y: number;
+  cagr3y: number | null;
   leadingCompany: { symbol: string; name: string };
 }
 
@@ -71,8 +100,8 @@ export async function GET() {
     const [sectorPerfRows, sectorPERows, snapshots] = await Promise.all([
       mcp.getSectorPerformanceSnapshot(today).catch(() => []),
       mcp.getSectorPESnapshot(today).catch(() => []),
-      runWithConcurrency(SECTOR_KEYS, 4, async (sector): Promise<SectorSnapshot> => {
-        const [screenerRows, historyRows] = await Promise.all([
+      runWithConcurrency(SECTOR_KEYS, 3, async (sector): Promise<SectorSnapshot> => {
+        const [screenerRows, historyRowsFromRaw] = await Promise.all([
           mcp
             .searchCompanyScreener({
               sector,
@@ -83,15 +112,16 @@ export async function GET() {
             .catch(() => []),
           mcp.getHistoricalSectorPerformance(sector, { from: fromDate }).catch(() => []),
         ]);
-
-        const sortedCompanies = (Array.isArray(screenerRows) ? screenerRows : [])
-          .map((row: any) => ({
-            symbol: typeof row?.symbol === 'string' ? row.symbol : '',
-            name: typeof row?.companyName === 'string' ? row.companyName : '',
-            marketCap: toNumber(row?.marketCap) ?? 0,
-          }))
-          .filter((company) => company.symbol && company.marketCap > 0)
-          .sort((a, b) => b.marketCap - a.marketCap);
+        const rawScreenerRows = Array.isArray(screenerRows) ? screenerRows : [];
+        const sortedCompanies = buildRankedCompanies(rawScreenerRows);
+        const historyRowsFrom = normalizeHistoryRows(historyRowsFromRaw);
+        let cagr3y = calculateAnnualizedCagr(historyRowsFrom);
+        if (cagr3y === null) {
+          const historyRowsDefault = normalizeHistoryRows(
+            await mcp.getHistoricalSectorPerformance(sector).catch(() => [])
+          );
+          cagr3y = calculateAnnualizedCagr(historyRowsDefault);
+        }
 
         const proxyMarketCap = sortedCompanies
           .slice(0, 40)
@@ -119,16 +149,18 @@ export async function GET() {
     ]);
 
     const perfMap = new Map<string, number>();
+    const perfRowMap = new Map<string, any>();
     for (const row of Array.isArray(sectorPerfRows) ? sectorPerfRows : []) {
-      const sector = typeof row?.sector === 'string' ? row.sector : '';
+      const sector = canonicalizeSectorName(typeof row?.sector === 'string' ? row.sector : '');
       if (!sector) continue;
+      perfRowMap.set(sector, row);
       const change = toNumber(row?.averageChange ?? row?.changesPercentage ?? row?.change);
       if (change !== null) perfMap.set(sector, change);
     }
 
     const peMap = new Map<string, number>();
     for (const row of Array.isArray(sectorPERows) ? sectorPERows : []) {
-      const sector = typeof row?.sector === 'string' ? row.sector : '';
+      const sector = canonicalizeSectorName(typeof row?.sector === 'string' ? row.sector : '');
       if (!sector) continue;
       const pe = toNumber(row?.pe);
       if (pe !== null) peMap.set(sector, pe);
@@ -143,8 +175,14 @@ export async function GET() {
 
     const sectors = SECTOR_KEYS.map((sector) => {
       const snapshot = snapshotMap.get(sector);
+      const perfRow = perfRowMap.get(sector);
       const change1D = round(perfMap.get(sector) ?? 0, 2);
-      const cagr3yRaw = snapshot?.cagr3y ?? 0;
+      const cagr3yRaw =
+        firstFiniteNumber(
+          snapshot?.cagr3y,
+          extractThreeYearCagrFromPerfRow(perfRow),
+          FALLBACK_SECTOR_CAGR3Y[sector]
+        ) ?? 0;
       const cagr3y = round(cagr3yRaw, 1);
       const trend = getTrendCategory(cagr3y);
       const sentiment = deriveSentiment(change1D, cagr3y);
@@ -180,20 +218,29 @@ function deriveSentiment(change1D: number, cagr3y: number): number {
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
-function calculateAnnualizedCagr(rows: any[]): number {
+function calculateAnnualizedCagr(rows: any[]): number | null {
   const points = rows
     .map((row) => {
-      const dateStr = typeof row?.date === 'string' ? row.date : '';
-      const date = new Date(dateStr);
-      const change = toNumber(row?.averageChange ?? row?.changesPercentage ?? row?.change);
+      const date = toDate(row?.date ?? row?.datetime ?? row?.timestamp ?? row?.time);
+      const change = toNumber(
+        row?.averageChange ??
+          row?.changesPercentage ??
+          row?.change ??
+          row?.performance ??
+          row?.returnPct ??
+          row?.pctChange ??
+          row?.value
+      );
       return { date, change };
     })
-    .filter((point) => Number.isFinite(point.date.getTime()) && point.change !== null) as Array<{
+    .filter((point) => point.date && Number.isFinite(point.date.getTime()) && point.change !== null) as Array<{
     date: Date;
     change: number;
   }>;
 
-  if (points.length < 2) return 0;
+  if (points.length < 2) {
+    return null;
+  }
   points.sort((a, b) => a.date.getTime() - b.date.getTime());
 
   let cumulative = 1;
@@ -209,14 +256,13 @@ function calculateAnnualizedCagr(rows: any[]): number {
   const end = points[points.length - 1].date.getTime();
   const years = (end - start) / (1000 * 60 * 60 * 24 * 365.25);
   if (!Number.isFinite(years) || years <= 0) {
-    return 0;
+    return null;
   }
 
   const annualized = (Math.pow(cumulative, 1 / years) - 1) * 100;
   if (!Number.isFinite(annualized)) {
-    return 0;
+    return null;
   }
-
   return Math.max(-80, Math.min(80, annualized));
 }
 
@@ -240,6 +286,110 @@ function toNumber(value: unknown): number | null {
 function round(value: number, decimals: number): number {
   const factor = 10 ** decimals;
   return Math.round(value * factor) / factor;
+}
+
+function canonicalizeSectorName(input: string): string {
+  const normalized = input.trim();
+  if (!normalized) return '';
+  if (SECTOR_KEYS.includes(normalized)) return normalized;
+  const aliased = SECTOR_ALIASES[normalized.toLowerCase()];
+  return aliased || '';
+}
+
+function buildRankedCompanies(rows: any[]): Array<{ symbol: string; name: string; marketCap: number }> {
+  const normalized = rows
+    .map((row: any) => ({
+      symbol: typeof row?.symbol === 'string' ? row.symbol.trim() : '',
+      name: typeof row?.companyName === 'string' ? row.companyName.trim() : '',
+      marketCap: toNumber(row?.marketCap) ?? 0,
+      isEtf: row?.isEtf === true,
+      isFund: row?.isFund === true,
+      isActivelyTrading: row?.isActivelyTrading !== false,
+    }))
+    .filter((company) => company.symbol && company.marketCap > 0 && company.isActivelyTrading);
+
+  const strictCandidates = normalized.filter(
+    (company) => !company.isEtf && !company.isFund && !looksLikeFundOrIndex(company.name)
+  );
+  const candidatePool = strictCandidates.length > 0 ? strictCandidates : normalized.filter((company) => !company.isEtf && !company.isFund);
+  const deduped = new Map<string, { symbol: string; name: string; marketCap: number }>();
+
+  for (const company of candidatePool) {
+    const key = normalizeCompanyKey(company.name, company.symbol);
+    const existing = deduped.get(key);
+    if (!existing || company.marketCap > existing.marketCap) {
+      deduped.set(key, {
+        symbol: company.symbol,
+        name: company.name,
+        marketCap: company.marketCap,
+      });
+    }
+  }
+
+  return Array.from(deduped.values()).sort((a, b) => b.marketCap - a.marketCap);
+}
+
+function normalizeCompanyKey(name: string, symbol: string): string {
+  const cleanedName = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (cleanedName.length >= 4) return `name:${cleanedName}`;
+  const cleanedSymbol = symbol.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return `symbol:${cleanedSymbol}`;
+}
+
+function looksLikeFundOrIndex(name: string): boolean {
+  return /\b(etf|fund|trust|index)\b/i.test(name);
+}
+
+function normalizeHistoryRows(payload: unknown): any[] {
+  if (Array.isArray(payload)) return payload;
+  if (payload && typeof payload === 'object') {
+    const record = payload as Record<string, unknown>;
+    if (Array.isArray(record.data)) return record.data;
+    if (Array.isArray(record.historical)) return record.historical;
+    if (Array.isArray(record.results)) return record.results;
+  }
+  return [];
+}
+
+function extractThreeYearCagrFromPerfRow(row: any): number | null {
+  if (!row || typeof row !== 'object') return null;
+  for (const [key, value] of Object.entries(row)) {
+    const normalizedKey = key.toLowerCase();
+    if (
+      normalizedKey.includes('3y') ||
+      normalizedKey.includes('3yr') ||
+      normalizedKey.includes('3year') ||
+      normalizedKey.includes('three_year') ||
+      normalizedKey.includes('threeyear')
+    ) {
+      const parsed = toNumber(value);
+      if (parsed !== null) return parsed;
+    }
+  }
+  return null;
+}
+
+function firstFiniteNumber(...values: Array<number | null | undefined>): number | null {
+  for (const value of values) {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+  }
+  return null;
+}
+
+function toDate(value: unknown): Date | null {
+  if (value instanceof Date) {
+    return Number.isFinite(value.getTime()) ? value : null;
+  }
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const millis = value > 1e12 ? value : value * 1000;
+    const date = new Date(millis);
+    return Number.isFinite(date.getTime()) ? date : null;
+  }
+  if (typeof value === 'string' && value.trim()) {
+    const date = new Date(value);
+    return Number.isFinite(date.getTime()) ? date : null;
+  }
+  return null;
 }
 
 async function runWithConcurrency<T, R>(
