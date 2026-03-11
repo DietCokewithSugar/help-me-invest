@@ -4,12 +4,31 @@ import TextSelectionMenu from '@/components/TextSelectionMenu';
 import { UnitModeProvider } from '@/lib/UnitModeContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { CompareProvider } from '@/contexts/CompareContext';
+import { defaultMetadata, siteName, siteUrl } from '@/lib/seo';
 import './globals.css';
 
-export const metadata: Metadata = {
-  title: '智投研究 | AI Investment Research',
-  description: '看透财务，见证商业逻辑。将海量数据转化为你的投资决断。支持美股、A股、港股、日股的 AI 智能投资研究助手。',
-  keywords: ['投资研究', 'AI分析', '股票分析', '财务报告', '企业研究', '智投研究', '投研助理'],
+export const metadata: Metadata = defaultMetadata;
+
+const websiteStructuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: siteName,
+  url: siteUrl,
+  description: 'AI-powered investment research platform for global public equities.',
+  inLanguage: ['en', 'zh'],
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: `${siteUrl}/?symbol={search_term_string}`,
+    'query-input': 'required name=search_term_string',
+  },
+};
+
+const organizationStructuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: siteName,
+  url: siteUrl,
+  logo: `${siteUrl}/icon.png`,
 };
 
 export default function RootLayout({
@@ -18,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="zh-CN">
+    <html lang="en">
       <head>
         {/* 字体预加载 */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -29,6 +48,14 @@ export default function RootLayout({
         />
         {/* Favicon - Next.js automatically uses src/app/icon.png */}
         <meta name="theme-color" content="#0A0A0B" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteStructuredData) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationStructuredData) }}
+        />
       </head>
       <body className="antialiased">
         <LanguageProvider>
