@@ -47,6 +47,20 @@ const FALLBACK_SECTOR_CAGR3Y: Record<string, number> = {
   Utilities: 4,
 };
 
+const SECTOR_BENCHMARK_ETFS: Record<string, string> = {
+  Technology: 'XLK',
+  Healthcare: 'XLV',
+  'Financial Services': 'XLF',
+  'Consumer Cyclical': 'XLY',
+  'Communication Services': 'XLC',
+  Industrials: 'XLI',
+  'Consumer Defensive': 'XLP',
+  Energy: 'XLE',
+  'Basic Materials': 'XLB',
+  'Real Estate': 'XLRE',
+  Utilities: 'XLU',
+};
+
 const SECTOR_ALIASES: Record<string, string> = {
   financial: 'Financial Services',
   'financial services': 'Financial Services',
@@ -101,21 +115,26 @@ export async function GET() {
       mcp.getSectorPerformanceSnapshot(today).catch(() => []),
       mcp.getSectorPESnapshot(today).catch(() => []),
       runWithConcurrency(SECTOR_KEYS, 3, async (sector): Promise<SectorSnapshot> => {
-        const [screenerRows, historyRowsFromRaw] = await Promise.all([
+        const etfSymbol = SECTOR_BENCHMARK_ETFS[sector];
+        const [screenerRows, historyRowsFromRaw, etfPriceRows] = await Promise.all([
           mcp
             .searchCompanyScreener({
               sector,
-              limit: 80,
+              limit: 500,
               isActivelyTrading: true,
               includeAllShareClasses: false,
             })
             .catch(() => []),
           mcp.getHistoricalSectorPerformance(sector, { from: fromDate }).catch(() => []),
+          etfSymbol ? fetchHistoricalEtfRows(etfSymbol, fromDate, today, fmpApiKey).catch(() => []) : Promise.resolve([]),
         ]);
         const rawScreenerRows = Array.isArray(screenerRows) ? screenerRows : [];
         const sortedCompanies = buildRankedCompanies(rawScreenerRows);
         const historyRowsFrom = normalizeHistoryRows(historyRowsFromRaw);
-        let cagr3y = calculateAnnualizedCagr(historyRowsFrom);
+        let cagr3y = calculatePriceCagr(etfPriceRows);
+        if (cagr3y === null) {
+          cagr3y = calculateAnnualizedCagr(historyRowsFrom);
+        }
         if (cagr3y === null) {
           const historyRowsDefault = normalizeHistoryRows(
             await mcp.getHistoricalSectorPerformance(sector).catch(() => [])
@@ -124,20 +143,13 @@ export async function GET() {
         }
 
         const proxyMarketCap = sortedCompanies
-          .slice(0, 40)
+          .slice(0, 120)
           .reduce((sum, company) => sum + company.marketCap, 0);
 
         const topCompany = sortedCompanies[0];
         const leadingCompany = topCompany
           ? { symbol: topCompany.symbol, name: topCompany.name || topCompany.symbol }
           : FALLBACK_LEADING_COMPANIES[sector] || { symbol: '', name: '' };
-
-        const historyArray = Array.isArray(historyRows) ? historyRows : [];
-        const cagr3y = calculateAnnualizedCagr(historyArray);
-
-        if (historyArray.length === 0) {
-          console.warn(`[industry-overview] No historical data for sector: ${sector}`);
-        }
 
         return {
           sector,
@@ -266,6 +278,41 @@ function calculateAnnualizedCagr(rows: any[]): number | null {
   return Math.max(-80, Math.min(80, annualized));
 }
 
+function calculatePriceCagr(rows: any[]): number | null {
+  const points = rows
+    .map((row) => {
+      const date = toDate(row?.date ?? row?.datetime ?? row?.timestamp ?? row?.time);
+      const close = toNumber(row?.close ?? row?.adjClose ?? row?.price ?? row?.value);
+      return { date, close };
+    })
+    .filter((point) => point.date && Number.isFinite(point.date.getTime()) && point.close !== null) as Array<{
+    date: Date;
+    close: number;
+  }>;
+
+  if (points.length < 2) {
+    return null;
+  }
+
+  points.sort((a, b) => a.date.getTime() - b.date.getTime());
+  const start = points[0];
+  const end = points[points.length - 1];
+  if (start.close <= 0 || end.close <= 0) {
+    return null;
+  }
+
+  const years = (end.date.getTime() - start.date.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+  if (!Number.isFinite(years) || years <= 0) {
+    return null;
+  }
+
+  const annualized = (Math.pow(end.close / start.close, 1 / years) - 1) * 100;
+  if (!Number.isFinite(annualized)) {
+    return null;
+  }
+  return Math.max(-80, Math.min(80, annualized));
+}
+
 function getDateYearsAgo(years: number): string {
   const date = new Date();
   date.setFullYear(date.getFullYear() - years);
@@ -346,6 +393,39 @@ function normalizeHistoryRows(payload: unknown): any[] {
     const record = payload as Record<string, unknown>;
     if (Array.isArray(record.data)) return record.data;
     if (Array.isArray(record.historical)) return record.historical;
+    if (Array.isArray(record.results)) return record.results;
+  }
+  return [];
+}
+
+async function fetchHistoricalEtfRows(
+  symbol: string,
+  from: string,
+  to: string,
+  apiKey: string
+): Promise<any[]> {
+  const params = new URLSearchParams({
+    symbol,
+    from,
+    to,
+    apikey: apiKey,
+  });
+  const response = await fetch(`https://financialmodelingprep.com/stable/historical-price-eod/full?${params.toString()}`, {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    return [];
+  }
+
+  const payload = await response.json();
+  if (Array.isArray(payload)) return payload;
+  if (payload && typeof payload === 'object') {
+    const record = payload as Record<string, unknown>;
+    if (Array.isArray(record.historical)) return record.historical;
+    if (Array.isArray(record.data)) return record.data;
     if (Array.isArray(record.results)) return record.results;
   }
   return [];
