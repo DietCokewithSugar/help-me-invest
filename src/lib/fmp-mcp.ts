@@ -62,7 +62,36 @@ export class FMPMCPClient {
   }
 
   async getHistoricalSectorPerformance(sector: string, args: HistoricalSectorPerformanceArgs = {}) {
+    const directResult = await this.getHistoricalSectorPerformanceDirect(sector, args);
+    if (Array.isArray(directResult) && directResult.length > 0) {
+      return directResult;
+    }
     return this.callTool<any[]>('historical-sector-performance', { sector, ...args });
+  }
+
+  private async getHistoricalSectorPerformanceDirect(
+    sector: string,
+    args: HistoricalSectorPerformanceArgs = {}
+  ): Promise<any[]> {
+    try {
+      const params = new URLSearchParams({ apikey: this.apiKey, sector });
+      if (args.from) params.set('from', args.from);
+      if (args.to) params.set('to', args.to);
+      if (args.exchange) params.set('exchange', args.exchange);
+
+      const url = `https://financialmodelingprep.com/stable/sector-performance/historical?${params}`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      });
+
+      if (!response.ok) return [];
+
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
   }
 
   async searchCompanyScreener(args: CompanyScreenerArgs) {

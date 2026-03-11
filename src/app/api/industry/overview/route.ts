@@ -102,10 +102,17 @@ export async function GET() {
           ? { symbol: topCompany.symbol, name: topCompany.name || topCompany.symbol }
           : FALLBACK_LEADING_COMPANIES[sector] || { symbol: '', name: '' };
 
+        const historyArray = Array.isArray(historyRows) ? historyRows : [];
+        const cagr3y = calculateAnnualizedCagr(historyArray);
+
+        if (historyArray.length === 0) {
+          console.warn(`[industry-overview] No historical data for sector: ${sector}`);
+        }
+
         return {
           sector,
           proxyMarketCap,
-          cagr3y: calculateAnnualizedCagr(Array.isArray(historyRows) ? historyRows : []),
+          cagr3y,
           leadingCompany,
         };
       }),
