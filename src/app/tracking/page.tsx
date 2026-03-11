@@ -14,6 +14,7 @@ import {
     FilterIcon,
 } from '@/components/Icons';
 import Header from '@/components/Header';
+import ContactModal from '@/components/ContactModal';
 import {
     ChevronLeft as ChevronLeftIcon,
     LayoutGrid as LayoutGridIcon,
@@ -32,6 +33,7 @@ import {
 import { useRouter } from 'next/navigation';
 import ReportModal from '@/components/ReportModal';
 import CompanyOverviewModal from '@/components/CompanyOverviewModal';
+import { useLanguage } from '@/contexts/LanguageContext';
 import type { CompanyDiagnostic } from '@/types';
 import {
     PORTFOLIOS,
@@ -386,6 +388,7 @@ function PositionGroup({
 }
 
 export default function TrackingPage() {
+    const { t } = useLanguage();
     const [selectedPortfolio, setSelectedPortfolio] = useState<Portfolio>(PORTFOLIOS[0]);
     const [stockData, setStockData] = useState<Record<string, any>>({});
     const [loading, setLoading] = useState(true);
@@ -468,7 +471,7 @@ export default function TrackingPage() {
             <Header
                 theme={theme}
                 toggleTheme={toggleTheme}
-                showContactModal={() => setShowContactModal(showContactModal)}
+                showContactModal={() => setShowContactModal(true)}
             />
 
             {/* 二级工具栏 - 视图切换 */}
@@ -689,6 +692,16 @@ export default function TrackingPage() {
                 onClose={() => { setShowOverviewModal(false); setDiagnosticCompany(null); }}
                 currentFilters={{}}
                 onCompanyChange={(newCompany) => setDiagnosticCompany(newCompany)}
+            />
+
+            <ContactModal
+                isOpen={showContactModal}
+                onClose={() => setShowContactModal(false)}
+                title={t.home.contact.title}
+                scanQr={t.home.contact.scanQr}
+                lookForward={t.home.contact.lookForward}
+                wechatLabel={t.home.faq.wechat}
+                emailLabel={t.home.faq.email}
             />
         </main>
     );
