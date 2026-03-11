@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
 import { FMPMCPClient } from '@/lib/fmp-mcp';
 import { getTrendCategory } from '@/lib/industry-data';
 
@@ -81,7 +80,6 @@ interface SectorSnapshot {
   sector: string;
   proxyMarketCap: number;
   cagr3y: number | null;
-  cagrSource: 'historyFrom' | 'historyDefault' | 'missing';
   leadingCompany: { symbol: string; name: string };
 }
 
@@ -98,15 +96,6 @@ export async function GET() {
     const mcp = new FMPMCPClient(fmpApiKey);
     const today = new Date().toISOString().slice(0, 10);
     const fromDate = getDateYearsAgo(3);
-    // #region agent log
-    debugLog({
-      hypothesisId: 'H1',
-      location: 'src/app/api/industry/overview/route.ts:GET:start',
-      message: 'Industry overview request started',
-      data: { today, fromDate, sectorCount: SECTOR_KEYS.length, hasFmpApiKey: Boolean(fmpApiKey) },
-      timestamp: Date.now(),
-    });
-    // #endregion
 
     const [sectorPerfRows, sectorPERows, snapshots] = await Promise.all([
       mcp.getSectorPerformanceSnapshot(today).catch(() => []),
@@ -126,16 +115,12 @@ export async function GET() {
         const rawScreenerRows = Array.isArray(screenerRows) ? screenerRows : [];
         const sortedCompanies = buildRankedCompanies(rawScreenerRows);
         const historyRowsFrom = normalizeHistoryRows(historyRowsFromRaw);
-        let cagrSource: SectorSnapshot['cagrSource'] = 'historyFrom';
-        let cagr3y = calculateAnnualizedCagr(historyRowsFrom, sector);
-        let historyRowsUsed = historyRowsFrom;
+        let cagr3y = calculateAnnualizedCagr(historyRowsFrom);
         if (cagr3y === null) {
           const historyRowsDefault = normalizeHistoryRows(
             await mcp.getHistoricalSectorPerformance(sector).catch(() => [])
           );
-          cagr3y = calculateAnnualizedCagr(historyRowsDefault, sector);
-          historyRowsUsed = historyRowsDefault;
-          cagrSource = cagr3y === null ? 'missing' : 'historyDefault';
+          cagr3y = calculateAnnualizedCagr(historyRowsDefault);
         }
 
         const proxyMarketCap = sortedCompanies
@@ -146,73 +131,15 @@ export async function GET() {
         const leadingCompany = topCompany
           ? { symbol: topCompany.symbol, name: topCompany.name || topCompany.symbol }
           : FALLBACK_LEADING_COMPANIES[sector] || { symbol: '', name: '' };
-        // #region agent log
-        debugLog({
-          hypothesisId: 'H3',
-          location: 'src/app/api/industry/overview/route.ts:GET:sectorWorker',
-          message: 'Sector worker snapshot computed',
-          data: {
-            sector,
-            screenerRowsCount: rawScreenerRows.length,
-            screenerSampleKeys:
-              rawScreenerRows[0] && typeof rawScreenerRows[0] === 'object' ? Object.keys(rawScreenerRows[0]).slice(0, 14) : [],
-            screenerTop5Raw: rawScreenerRows
-              .slice()
-              .sort((a: any, b: any) => (toNumber(b?.marketCap) ?? 0) - (toNumber(a?.marketCap) ?? 0))
-              .slice(0, 5)
-              .map((row: any) => ({
-                symbol: row?.symbol,
-                companyName: row?.companyName,
-                marketCap: toNumber(row?.marketCap),
-                exchangeShortName: row?.exchangeShortName,
-                type: row?.type,
-                isEtf: row?.isEtf,
-                isFund: row?.isFund,
-                isActivelyTrading: row?.isActivelyTrading,
-              })),
-            historyRowsCount: historyRowsUsed.length,
-            historySampleKeys:
-              historyRowsUsed[0] && typeof historyRowsUsed[0] === 'object'
-                ? Object.keys(historyRowsUsed[0]).slice(0, 8)
-                : [],
-            historySource: cagrSource,
-            topSymbol: topCompany?.symbol || null,
-            proxyMarketCap,
-            cagr3y,
-          },
-          timestamp: Date.now(),
-        });
-        // #endregion
 
         return {
           sector,
           proxyMarketCap,
           cagr3y,
-          cagrSource,
           leadingCompany,
         };
       }),
     ]);
-    // #region agent log
-    debugLog({
-      hypothesisId: 'H2',
-      location: 'src/app/api/industry/overview/route.ts:GET:sourceSummary',
-      message: 'Source datasets fetched',
-      data: {
-        sectorPerfRowsCount: Array.isArray(sectorPerfRows) ? sectorPerfRows.length : -1,
-        sectorPERowsCount: Array.isArray(sectorPERows) ? sectorPERows.length : -1,
-        snapshotsCount: Array.isArray(snapshots) ? snapshots.length : -1,
-        perfSampleSectors:
-          Array.isArray(sectorPerfRows) && sectorPerfRows.length > 0
-            ? sectorPerfRows
-                .slice(0, 6)
-                .map((row: any) => (typeof row?.sector === 'string' ? row.sector : ''))
-                .filter(Boolean)
-            : [],
-      },
-      timestamp: Date.now(),
-    });
-    // #endregion
 
     const perfMap = new Map<string, number>();
     const perfRowMap = new Map<string, any>();
@@ -269,35 +196,10 @@ export async function GET() {
         leadingCompany: snapshot?.leadingCompany || FALLBACK_LEADING_COMPANIES[sector] || { symbol: '', name: '' },
       };
     });
-    // #region agent log
-    debugLog({
-      hypothesisId: 'H6',
-      location: 'src/app/api/industry/overview/route.ts:GET:responseSummary',
-      message: 'Industry overview response assembled',
-      data: {
-        sectorsCount: sectors.length,
-        zeroCagrCount: sectors.filter((s) => s.cagr3y === 0).length,
-        top3ByWeight: [...sectors]
-          .sort((a, b) => b.marketCapWeight - a.marketCapWeight)
-          .slice(0, 3)
-          .map((s) => ({ sector: s.sector, marketCapWeight: s.marketCapWeight, leadingCompany: s.leadingCompany.symbol })),
-      },
-      timestamp: Date.now(),
-    });
-    // #endregion
 
     return NextResponse.json({ success: true, data: sectors });
   } catch (error: any) {
     console.error('Industry overview error:', error);
-    // #region agent log
-    debugLog({
-      hypothesisId: 'H7',
-      location: 'src/app/api/industry/overview/route.ts:GET:catch',
-      message: 'Industry overview request failed',
-      data: { errorMessage: error?.message || 'unknown' },
-      timestamp: Date.now(),
-    });
-    // #endregion
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
@@ -309,7 +211,7 @@ function deriveSentiment(change1D: number, cagr3y: number): number {
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
-function calculateAnnualizedCagr(rows: any[], sector: string): number | null {
+function calculateAnnualizedCagr(rows: any[]): number | null {
   const points = rows
     .map((row) => {
       const date = toDate(row?.date ?? row?.datetime ?? row?.timestamp ?? row?.time);
@@ -330,20 +232,6 @@ function calculateAnnualizedCagr(rows: any[], sector: string): number | null {
   }>;
 
   if (points.length < 2) {
-    // #region agent log
-    debugLog({
-      hypothesisId: 'H4',
-      location: 'src/app/api/industry/overview/route.ts:calculateAnnualizedCagr:insufficientPoints',
-      message: 'Not enough historical points for CAGR',
-      data: {
-        sector,
-        rowsCount: Array.isArray(rows) ? rows.length : -1,
-        pointsCount: points.length,
-        sampleKeys: rows[0] && typeof rows[0] === 'object' ? Object.keys(rows[0]).slice(0, 8) : [],
-      },
-      timestamp: Date.now(),
-    });
-    // #endregion
     return null;
   }
   points.sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -368,17 +256,7 @@ function calculateAnnualizedCagr(rows: any[], sector: string): number | null {
   if (!Number.isFinite(annualized)) {
     return null;
   }
-  const clamped = Math.max(-80, Math.min(80, annualized));
-  // #region agent log
-  debugLog({
-    hypothesisId: 'H5',
-    location: 'src/app/api/industry/overview/route.ts:calculateAnnualizedCagr:computed',
-    message: 'CAGR computed from historical rows',
-    data: { sector, pointsCount: points.length, years: round(years, 3), cumulative: round(cumulative, 6), annualized: round(clamped, 3) },
-    timestamp: Date.now(),
-  });
-  // #endregion
-  return clamped;
+  return Math.max(-80, Math.min(80, annualized));
 }
 
 function getDateYearsAgo(years: number): string {
@@ -505,20 +383,6 @@ function toDate(value: unknown): Date | null {
     return Number.isFinite(date.getTime()) ? date : null;
   }
   return null;
-}
-
-function debugLog(payload: {
-  hypothesisId: string;
-  location: string;
-  message: string;
-  data: Record<string, unknown>;
-  timestamp: number;
-}) {
-  try {
-    fs.appendFileSync('/opt/cursor/logs/debug.log', `${JSON.stringify(payload)}\n`);
-  } catch {
-    // Ignore logging failures to avoid breaking the API response.
-  }
 }
 
 async function runWithConcurrency<T, R>(
