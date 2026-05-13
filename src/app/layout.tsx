@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Analytics } from '@vercel/analytics/next';
 import TextSelectionMenu from '@/components/TextSelectionMenu';
+import FeedbackWidget from '@/components/feedback/FeedbackWidget';
 import { UnitModeProvider } from '@/lib/UnitModeContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { CompareProvider } from '@/contexts/CompareContext';
@@ -64,6 +65,7 @@ export default function RootLayout({
               <div className="relative z-10">
                 {children}
               </div>
+              <FeedbackWidget />
               <Analytics />
               <TextSelectionMenu />
             </UnitModeProvider>

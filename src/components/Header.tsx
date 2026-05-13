@@ -16,7 +16,12 @@ interface HeaderProps {
     theme: 'dark' | 'light';
     toggleTheme: () => void;
     onReset?: () => void;
-    showContactModal: () => void;
+    /**
+     * Legacy prop kept for back-compat with the old "Contact" modal. The
+     * navigation now always points to /feedback; this callback (if provided)
+     * runs in addition to the navigation, e.g. for analytics.
+     */
+    showContactModal?: () => void;
 }
 
 export default function Header({
@@ -105,9 +110,13 @@ export default function Header({
                                         ) : null}
                                     </Link>
                                 ))}
-                                <button onClick={showContactModal} className="text-sm text-mist-400 hover:text-glacier-400 transition-colors whitespace-nowrap">
+                                <Link
+                                    href="/feedback"
+                                    onClick={() => showContactModal?.()}
+                                    className="text-sm text-mist-400 hover:text-glacier-400 transition-colors whitespace-nowrap"
+                                >
                                     {t.header.contact}
-                                </button>
+                                </Link>
                             </nav>
 
                             <div className="w-px h-5 bg-white/10" />
@@ -200,12 +209,13 @@ export default function Header({
                                             ) : null}
                                         </Link>
                                     ))}
-                                    <button
-                                        onClick={() => { showContactModal(); setMobileMenuOpen(false); }}
+                                    <Link
+                                        href="/feedback"
+                                        onClick={() => { showContactModal?.(); setMobileMenuOpen(false); }}
                                         className="flex items-center px-3 py-2.5 rounded-md text-sm text-mist-400 hover:text-glacier-400 hover:bg-white/5 transition-colors text-left"
                                     >
                                         {t.header.contact}
-                                    </button>
+                                    </Link>
                                 </nav>
                             </motion.div>
                         )}

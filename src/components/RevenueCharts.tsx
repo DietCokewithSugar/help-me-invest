@@ -4,6 +4,7 @@ import { useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { IncomeStatement } from '@/types';
 import { useUnitMode } from '@/lib/UnitModeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Props {
   incomeStatements: IncomeStatement[];
@@ -15,6 +16,8 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
   const isLight = theme === 'light';
   const [period, setPeriod] = useState<'annual' | 'quarter'>('annual');
   const { unitMode } = useUnitMode();
+  const { t } = useLanguage();
+  const rcT = t.report.revenueCharts;
 
   const activeStatements = period === 'quarter' && incomeStatementsQuarter?.length
     ? incomeStatementsQuarter
@@ -23,7 +26,7 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
   if (!activeStatements || activeStatements.length === 0) {
     return (
       <div className="text-center text-slate-400 p-8">
-        暂无财务数据
+        {rcT.noData}
       </div>
     );
   }
@@ -80,7 +83,7 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
         let result = `<div style="font-weight: 500; margin-bottom: 4px; color: ${TEXT_SECONDARY}; font-size: 11px;">${params[0].axisValue}</div>`;
         result += '<table style="width:100%; border-collapse: collapse;">';
         params.forEach((p: any) => {
-          const isMargin = p.seriesName === '毛利率';
+          const isMargin = p.seriesName === rcT.legend.grossMargin;
           const valueStr = isMargin ? `${p.value.toFixed(1)}%` : `${currencyPrefix}${p.value.toFixed(2)}${chartUnit}`;
           result += `<tr>
             <td style="padding: 2px 8px 2px 0; display: flex; align-items: center;">
@@ -95,7 +98,7 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
       },
     },
     legend: {
-      data: ['营收', '毛利润', '净利润', '毛利率'],
+      data: [rcT.legend.revenue, rcT.legend.grossProfit, rcT.legend.netIncome, rcT.legend.grossMargin],
       textStyle: { color: TEXT_SECONDARY, fontSize: 12 },
       top: 0,
       itemGap: 24,
@@ -152,63 +155,48 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
     ],
     series: [
       {
-        name: '营收',
+        name: rcT.legend.revenue,
         type: 'bar',
         yAxisIndex: 0,
         data: revenues,
         barWidth: '20%',
-        itemStyle: {
-          color: '#88ABDA', // 窈蓝
-          borderRadius: 0
-        },
+        itemStyle: { color: '#88ABDA', borderRadius: 0 },
       },
       {
-        name: '毛利润',
+        name: rcT.legend.grossProfit,
         type: 'bar',
         yAxisIndex: 0,
         data: grossProfits,
         barWidth: '20%',
-        itemStyle: {
-          color: '#98B6C2', // 白青
-          borderRadius: 0
-        },
+        itemStyle: { color: '#98B6C2', borderRadius: 0 },
       },
       {
-        name: '净利润',
+        name: rcT.legend.netIncome,
         type: 'bar',
         yAxisIndex: 0,
         data: netIncomes,
         barWidth: '20%',
-        itemStyle: {
-          color: '#C0D09D', // 鞠尘
-          borderRadius: 0
-        },
+        itemStyle: { color: '#C0D09D', borderRadius: 0 },
       },
       {
-        name: '毛利率',
+        name: rcT.legend.grossMargin,
         type: 'line',
         yAxisIndex: 1,
         data: grossProfitMargins,
         smooth: false,
         symbol: 'none',
-        lineStyle: {
-          color: '#CB523E', // 艳炽
-          width: 1.5,
-        },
-        itemStyle: {
-          color: '#CB523E',
-        },
+        lineStyle: { color: '#CB523E', width: 1.5 },
+        itemStyle: { color: '#CB523E' },
       },
     ],
   };
 
-  // 饼图 - 成本结构
   const latestIncome = activeStatements[0];
   const pieData = latestIncome ? [
-    { name: '营业成本', value: latestIncome.costOfRevenue || 0 },
-    { name: '研发', value: latestIncome.researchAndDevelopmentExpenses || 0 },
-    { name: '销售管理', value: latestIncome.sellingGeneralAndAdministrativeExpenses || 0 },
-    { name: '净利润', value: latestIncome.netIncome || 0 },
+    { name: rcT.pie.costOfRevenue, value: latestIncome.costOfRevenue || 0 },
+    { name: rcT.pie.rd, value: latestIncome.researchAndDevelopmentExpenses || 0 },
+    { name: rcT.pie.sga, value: latestIncome.sellingGeneralAndAdministrativeExpenses || 0 },
+    { name: rcT.pie.netIncome, value: latestIncome.netIncome || 0 },
   ].filter(d => d.value > 0) : [];
 
   const pieOption = {
@@ -306,7 +294,7 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
               : 'text-mist-500 hover:text-mist-200'
               }`}
           >
-            年度
+            {rcT.annual}
           </button>
           <button
             onClick={() => setPeriod('quarter')}
@@ -315,14 +303,14 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
               : 'text-mist-500 hover:text-mist-200'
               }`}
           >
-            季度
+            {rcT.quarter}
           </button>
         </div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white/5 rounded-sm p-4 border border-white/10">
           <h4 className="text-xs font-mono font-medium text-mist-500 mb-4 uppercase tracking-wider">
-            {period === 'quarter' ? '季度' : '年度'}营收趋势
+            {period === 'quarter' ? rcT.quarter : rcT.annual} {rcT.revenueTrendSuffix}
           </h4>
           <ReactECharts
             option={barOption}
@@ -332,7 +320,7 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
         </div>
         <div className="bg-white/5 rounded-sm p-4 border border-white/10">
           <h4 className="text-xs font-mono font-medium text-mist-500 mb-4 uppercase tracking-wider">
-            成本结构 ({currencyPrefix}{(pieData[0]?.value / chartScale).toFixed(1)}{chartUnit}+)
+            {rcT.costStructure} ({currencyPrefix}{(pieData[0]?.value / chartScale).toFixed(1)}{chartUnit}+)
           </h4>
           <ReactECharts
             option={pieOption}

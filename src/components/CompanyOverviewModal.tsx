@@ -11,6 +11,11 @@ import {
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCompare } from '@/contexts/CompareContext';
 import type { CompanyDiagnostic, CompanyFilterRequest } from '@/types';
+import {
+    getLocalizedDiagnostic,
+    getLocalizedReasoning,
+    type DiagnosticDimensionField,
+} from '@/i18n/diagnosticTags';
 
 const DIMENSION_KEYS = [
     'strategicPositioning',
@@ -22,7 +27,7 @@ const DIMENSION_KEYS = [
     'profitModel',
 ] as const;
 
-const DIMENSION_FIELD_MAP: Record<string, string> = {
+const DIMENSION_FIELD_MAP: Record<typeof DIMENSION_KEYS[number], DiagnosticDimensionField> = {
     strategicPositioning: 'strategic_positioning',
     marketCapSize: 'market_cap_size',
     cyclicalNature: 'cyclical_nature',
@@ -80,7 +85,7 @@ export default function CompanyOverviewModal({
     onCompanyChange,
 }: CompanyOverviewModalProps) {
     const router = useRouter();
-    const { t } = useLanguage();
+    const { t, locale } = useLanguage();
     const { addCompany, isInCompare, isFull } = useCompare();
     const [relatedCompanies, setRelatedCompanies] = useState<CompanyDiagnostic[]>([]);
     const [loadingRelated, setLoadingRelated] = useState(false);
@@ -140,12 +145,19 @@ export default function CompanyOverviewModal({
         }
     };
 
-    const getDimensionValue = (dimKey: string) => {
+    // Returns both the localized display label and the legacy Chinese value.
+    // The Chinese value drives the DIMENSION_VALUE_COLORS color lookup so that
+    // colors stay stable across languages.
+    const getDimensionValue = (dimKey: typeof DIMENSION_KEYS[number]) => {
         if (!company) return null;
-        const fieldName = DIMENSION_FIELD_MAP[dimKey] || dimKey;
-        const value = company[fieldName as keyof CompanyDiagnostic];
-        return value as string | null;
+        const fieldName = DIMENSION_FIELD_MAP[dimKey];
+        const colorKey = (company[fieldName as keyof CompanyDiagnostic] as string | null) || null;
+        const display = getLocalizedDiagnostic(company, fieldName, locale);
+        if (!display && !colorKey) return null;
+        return { display: display || colorKey || '', colorKey: colorKey || '' };
     };
+
+    const localizedReasoning = getLocalizedReasoning(company, locale);
 
     if (!company) return null;
 
@@ -235,7 +247,7 @@ export default function CompanyOverviewModal({
                                     {DIMENSION_KEYS.map((dimKey) => {
                                         const value = getDimensionValue(dimKey);
                                         if (!value) return null;
-                                        const colorClass = DIMENSION_VALUE_COLORS[value] || 'bg-white/10 text-text-secondary border-white/10';
+                                        const colorClass = DIMENSION_VALUE_COLORS[value.colorKey] || 'bg-white/10 text-text-secondary border-white/10';
                                         return (
                                             <div
                                                 key={dimKey}
@@ -246,7 +258,7 @@ export default function CompanyOverviewModal({
                                                     <div className="text-[10px] text-text-muted">{t.companyOverviewModal.dimDescs[dimKey]}</div>
                                                 </div>
                                                 <span className={`px-2.5 py-1 text-xs font-medium rounded-sm border ${colorClass}`}>
-                                                    {value}
+                                                    {value.display}
                                                 </span>
                                             </div>
                                         );
@@ -255,7 +267,7 @@ export default function CompanyOverviewModal({
                             </div>
 
                             {/* AI 分析摘要 */}
-                            {company.ai_reasoning && (
+                            {localizedReasoning && (
                                 <div>
                                     <h3 className="text-sm font-bold text-text-primary mb-4 flex items-center gap-2">
                                         <span className="w-1 h-4 bg-accent rounded-full"></span>
@@ -263,7 +275,7 @@ export default function CompanyOverviewModal({
                                     </h3>
                                     <div className="bg-white/[0.02] p-4 rounded-sm border border-white/5">
                                         <p className="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">
-                                            {company.ai_reasoning}
+                                            {localizedReasoning}
                                         </p>
                                     </div>
                                 </div>

@@ -13,6 +13,7 @@ import {
     ActivityIcon,
 } from '@/components/Icons';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { getLocalizedDiagnostic } from '@/i18n/diagnosticTags';
 import type { CompanyDiagnostic, CompanyFilterRequest } from '@/types';
 
 interface CompanyFilterModalProps {
@@ -65,7 +66,7 @@ export default function CompanyFilterModal({
     onClose,
     onSelectCompany,
 }: CompanyFilterModalProps) {
-    const { t } = useLanguage();
+    const { t, locale } = useLanguage();
     const [filters, setFilters] = useState<CompanyFilterRequest>({
         page: 1,
         limit: 50,
@@ -296,13 +297,13 @@ export default function CompanyFilterModal({
                                             <h4 className="text-sm font-semibold text-mist-300 mb-3">{t.companyFilterModal.sevenDimDiagnosis}</h4>
                                             <div className="grid grid-cols-1 gap-3">
                                                 {[
-                                                    { label: t.companies.dimensions.strategicPositioning, value: selectedCompany.strategic_positioning },
-                                                    { label: t.companies.dimensions.marketCapSize, value: selectedCompany.market_cap_size },
-                                                    { label: t.companies.dimensions.cyclicalNature, value: selectedCompany.cyclical_nature },
-                                                    { label: t.companies.dimensions.cashFlowStatus, value: selectedCompany.cash_flow_status },
-                                                    { label: t.companies.dimensions.debtStructure, value: selectedCompany.debt_structure },
-                                                    { label: t.companies.dimensions.externalSensitivity, value: selectedCompany.external_sensitivity },
-                                                    { label: t.companies.dimensions.profitModel, value: selectedCompany.profit_model },
+                                                    { label: t.companies.dimensions.strategicPositioning, value: getLocalizedDiagnostic(selectedCompany, 'strategic_positioning', locale) },
+                                                    { label: t.companies.dimensions.marketCapSize, value: getLocalizedDiagnostic(selectedCompany, 'market_cap_size', locale) },
+                                                    { label: t.companies.dimensions.cyclicalNature, value: getLocalizedDiagnostic(selectedCompany, 'cyclical_nature', locale) },
+                                                    { label: t.companies.dimensions.cashFlowStatus, value: getLocalizedDiagnostic(selectedCompany, 'cash_flow_status', locale) },
+                                                    { label: t.companies.dimensions.debtStructure, value: getLocalizedDiagnostic(selectedCompany, 'debt_structure', locale) },
+                                                    { label: t.companies.dimensions.externalSensitivity, value: getLocalizedDiagnostic(selectedCompany, 'external_sensitivity', locale) },
+                                                    { label: t.companies.dimensions.profitModel, value: getLocalizedDiagnostic(selectedCompany, 'profit_model', locale) },
                                                 ].map((dim, idx) => (
                                                     <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10">
                                                         <span className="text-sm text-mist-400">{dim.label}</span>
@@ -381,16 +382,22 @@ export default function CompanyFilterModal({
                                                             </div>
                                                         </div>
                                                         <div className="flex flex-wrap gap-2">
-                                                            {company.strategic_positioning && (
-                                                                <span className="px-2 py-1 text-xs rounded-md bg-glacier-500/20 text-glacier-400 border border-glacier-500/30">
-                                                                    {company.strategic_positioning}
-                                                                </span>
-                                                            )}
-                                                            {company.market_cap_size && (
-                                                                <span className="px-2 py-1 text-xs rounded-md bg-gemini-blue/20 text-gemini-blue border border-gemini-blue/30">
-                                                                    {company.market_cap_size}
-                                                                </span>
-                                                            )}
+                                                            {(() => {
+                                                                const sp = getLocalizedDiagnostic(company, 'strategic_positioning', locale);
+                                                                return sp ? (
+                                                                    <span className="px-2 py-1 text-xs rounded-md bg-glacier-500/20 text-glacier-400 border border-glacier-500/30">
+                                                                        {sp}
+                                                                    </span>
+                                                                ) : null;
+                                                            })()}
+                                                            {(() => {
+                                                                const mc = getLocalizedDiagnostic(company, 'market_cap_size', locale);
+                                                                return mc ? (
+                                                                    <span className="px-2 py-1 text-xs rounded-md bg-gemini-blue/20 text-gemini-blue border border-gemini-blue/30">
+                                                                        {mc}
+                                                                    </span>
+                                                                ) : null;
+                                                            })()}
                                                         </div>
                                                     </button>
                                                 ))}

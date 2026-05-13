@@ -202,21 +202,35 @@ export async function POST(request: NextRequest) {
       const gemini = new GeminiClient(deepseekApiKey);
       const aiResult = await gemini.suggestSymbol(trimmedQuery, marketHint, lang);
       const rawSuggestions = Array.isArray(aiResult?.suggestions) ? aiResult.suggestions : [];
-      const suggestions = rawSuggestions
+      const aiSuggestions = rawSuggestions
         .map(normalizeSuggestion)
-        .filter(Boolean)
-        .slice(0, 5);
+        .filter(Boolean) as Array<{ symbol: string; market: MarketType; name: string; nameCn: string; confidence?: number }>;
 
-      // 如果 AI 返回了结果，直接使用
+      // 如果 AI 返回的候选数太少（<3），用本地搜索补齐，方便用户在多个公司间选择
+      if (aiSuggestions.length > 0 && aiSuggestions.length < 3) {
+        const seen = new Set(aiSuggestions.map(s => `${s.market}-${s.symbol}`));
+        const localResults = localSearch(trimmedQuery, marketHint || undefined);
+        for (const item of localResults) {
+          const key = `${item.market}-${item.symbol}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            aiSuggestions.push(item);
+            if (aiSuggestions.length >= 5) break;
+          }
+        }
+      }
+
+      const suggestions = aiSuggestions.slice(0, 5);
+
       if (suggestions.length > 0) {
         return NextResponse.json({
           query: trimmedQuery,
           suggestions,
-          source: 'ai',
+          source: rawSuggestions.length === suggestions.length ? 'ai' : 'ai+local',
         });
       }
 
-      // AI 没有返回结果，尝试本地搜索作为补充
+      // AI 没有返回任何结果，回退本地搜索
       const localResults = localSearch(trimmedQuery, marketHint || undefined);
       return NextResponse.json({
         query: trimmedQuery,

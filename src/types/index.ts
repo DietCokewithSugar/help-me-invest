@@ -579,7 +579,7 @@ export interface CompanyDiagnostic {
   is_fund: boolean | null;
   is_actively_trading: boolean | null;
 
-  // 7 Diagnostic Dimensions
+  // 7 Diagnostic Dimensions (legacy Chinese columns, kept for filtering/coloring)
   strategic_positioning: string | null;
   market_cap_size: string | null;
   cyclical_nature: string | null;
@@ -588,11 +588,64 @@ export interface CompanyDiagnostic {
   external_sensitivity: string | null;
   profit_model: string | null;
 
+  // 7 Diagnostic Dimensions (bilingual columns produced by the updated pipeline)
+  strategic_positioning_zh?: string | null;
+  strategic_positioning_en?: string | null;
+  market_cap_size_zh?: string | null;
+  market_cap_size_en?: string | null;
+  cyclical_nature_zh?: string | null;
+  cyclical_nature_en?: string | null;
+  cash_flow_status_zh?: string | null;
+  cash_flow_status_en?: string | null;
+  debt_structure_zh?: string | null;
+  debt_structure_en?: string | null;
+  external_sensitivity_zh?: string | null;
+  external_sensitivity_en?: string | null;
+  profit_model_zh?: string | null;
+  profit_model_en?: string | null;
+
   // AI Analysis Meta
   ai_reasoning: string | null;
+  ai_reasoning_zh?: string | null;
+  ai_reasoning_en?: string | null;
   sources: string[] | null;
   processed_at: string | null;
 }
+
+// ==================== Feedback Board ====================
+
+export type FeedbackCategory = 'bug' | 'ux' | 'feature' | 'other';
+
+export interface FeedbackIssue {
+  id: string;
+  author_id: string;
+  author_name: string | null;
+  title: string;
+  body: string;
+  language: string | null;
+  category: FeedbackCategory;
+  upvotes: number;
+  downvotes: number;
+  comment_count: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FeedbackComment {
+  id: string;
+  issue_id: string;
+  parent_id: string | null;
+  author_id: string;
+  author_name: string | null;
+  body: string;
+  language: string | null;
+  upvotes: number;
+  downvotes: number;
+  created_at: string;
+}
+
+export type FeedbackVote = -1 | 0 | 1;
 
 export interface CompanyFilterRequest {
   strategicPositioning?: string[];

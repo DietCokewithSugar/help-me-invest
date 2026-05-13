@@ -9,7 +9,7 @@ import Header from '@/components/Header';
 import ContactModal from '@/components/ContactModal';
 import CompanyOverviewModal from '@/components/CompanyOverviewModal';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { translateDiagnosticTag } from '@/i18n/diagnosticTags';
+import { getLocalizedDiagnostic } from '@/i18n/diagnosticTags';
 import {
     SearchIcon,
     FilterIcon,
@@ -870,21 +870,30 @@ export default function CompaniesPage() {
 
                                             {/* Diagnostic Tags */}
                                             <div className="flex flex-wrap gap-1.5 mb-4">
-                                                {company.strategic_positioning && (
-                                                    <span className="px-1.5 py-0.5 text-[10px] rounded-sm bg-white/5 text-text-secondary border border-white/10">
-                                                        {translateDiagnosticTag(company.strategic_positioning, locale)}
-                                                    </span>
-                                                )}
-                                                {company.market_cap_size && (
-                                                    <span className="px-1.5 py-0.5 text-[10px] rounded-sm bg-white/5 text-text-secondary border border-white/10">
-                                                        {translateDiagnosticTag(company.market_cap_size, locale)}
-                                                    </span>
-                                                )}
-                                                {company.profit_model && (
-                                                    <span className="px-1.5 py-0.5 text-[10px] rounded-sm bg-white/5 text-text-secondary border border-white/10">
-                                                        {translateDiagnosticTag(company.profit_model, locale)}
-                                                    </span>
-                                                )}
+                                                {(() => {
+                                                    const sp = getLocalizedDiagnostic(company, 'strategic_positioning', locale);
+                                                    return sp ? (
+                                                        <span className="px-1.5 py-0.5 text-[10px] rounded-sm bg-white/5 text-text-secondary border border-white/10">
+                                                            {sp}
+                                                        </span>
+                                                    ) : null;
+                                                })()}
+                                                {(() => {
+                                                    const mc = getLocalizedDiagnostic(company, 'market_cap_size', locale);
+                                                    return mc ? (
+                                                        <span className="px-1.5 py-0.5 text-[10px] rounded-sm bg-white/5 text-text-secondary border border-white/10">
+                                                            {mc}
+                                                        </span>
+                                                    ) : null;
+                                                })()}
+                                                {(() => {
+                                                    const pm = getLocalizedDiagnostic(company, 'profit_model', locale);
+                                                    return pm ? (
+                                                        <span className="px-1.5 py-0.5 text-[10px] rounded-sm bg-white/5 text-text-secondary border border-white/10">
+                                                            {pm}
+                                                        </span>
+                                                    ) : null;
+                                                })()}
                                             </div>
 
                                             <div className="flex items-center justify-between text-[11px] text-accent opacity-0 group-hover:opacity-100 transition-opacity border-t border-white/5 pt-3">
