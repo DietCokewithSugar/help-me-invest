@@ -1,7 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export const maxDuration = 120;
+
+async function generateDeepSeekContent(apiKey: string, prompt: string): Promise<string> {
+  const response = await fetch('https://api.deepseek.com/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'deepseek-chat',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.8,
+      top_p: 0.95,
+      max_tokens: 8192,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`DeepSeek API error (${response.status}): ${errorText}`);
+  }
+
+  const data = await response.json();
+  const content = data?.choices?.[0]?.message?.content;
+  if (typeof content !== 'string' || content.trim().length === 0) {
+    throw new Error('DeepSeek returned empty content');
+  }
+
+  return content;
+}
 
 interface AllocationRequest {
   assetTypes: string[];
@@ -36,12 +65,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const googleApiKey = process.env.GOOGLE_API_KEY;
-    if (!googleApiKey) {
-      return NextResponse.json({ error: 'Google API key not configured' }, { status: 500 });
+    const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
+    if (!deepseekApiKey) {
+      return NextResponse.json({ error: 'DeepSeek API key not configured' }, { status: 500 });
     }
-
-    const genAI = new GoogleGenerativeAI(googleApiKey);
 
     const isZh = language === 'zh';
     const currencyLabel = currency === 'CNY' ? (isZh ? '万元人民币' : '0,000 CNY') : (isZh ? '万美元' : '0,000 USD');
@@ -107,19 +134,7 @@ export async function POST(request: NextRequest) {
       interests,
     });
 
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-3-flash-preview',
-      generationConfig: {
-        temperature: 0.8,
-        topP: 0.95,
-        maxOutputTokens: 16384,
-      },
-      tools: [{ googleSearch: {} }] as any,
-    });
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const text = await generateDeepSeekContent(deepseekApiKey, prompt);
 
     let chartData = null;
     const jsonMatch = text.match(/```json\s*\n([\s\S]*?)\n```/);
