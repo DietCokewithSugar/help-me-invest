@@ -3,6 +3,7 @@
 import ReactECharts from 'echarts-for-react';
 import type { SankeyData } from '@/types';
 import { useUnitMode } from '@/lib/UnitModeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface SankeyProps {
   data: SankeyData;
@@ -12,6 +13,22 @@ interface SankeyProps {
 export default function SankeyChart({ data, theme = 'dark' }: SankeyProps) {
   const isLight = theme === 'light';
   const { unitMode } = useUnitMode();
+  const { t } = useLanguage();
+  const sankeyT = t.report.sankey;
+  // Map the Chinese node IDs (defined in sankey-utils.ts) to localized labels.
+  const nodeLabelMap: Record<string, string> = {
+    '主营业务收入': sankeyT.nodes.mainRevenue,
+    '其他收入': sankeyT.nodes.otherRevenue,
+    '总营收': sankeyT.nodes.totalRevenue,
+    '营业成本': sankeyT.nodes.costOfRevenue,
+    '毛利润': sankeyT.nodes.grossProfit,
+    '研发费用': sankeyT.nodes.rdExpenses,
+    '销售及管理费用': sankeyT.nodes.sgaExpenses,
+    '营业利润': sankeyT.nodes.operatingIncome,
+    '税费及其他': sankeyT.nodes.taxesAndOther,
+    '净利润': sankeyT.nodes.netIncome,
+  };
+  const localizeNode = (id: string) => nodeLabelMap[id] || id;
 
   const formatValue = (value: number) => {
     if (unitMode === 'zh') {
@@ -76,10 +93,10 @@ export default function SankeyChart({ data, theme = 'dark' }: SankeyProps) {
       },
       formatter: (params: any) => {
         if (params.dataType === 'edge') {
-          return `<div style="font-weight: 500; font-size: 11px; color: ${SUB_TEXT_COLOR}; margin-bottom: 4px;">${params.data.source} → ${params.data.target}</div>
+          return `<div style="font-weight: 500; font-size: 11px; color: ${SUB_TEXT_COLOR}; margin-bottom: 4px;">${localizeNode(params.data.source)} → ${localizeNode(params.data.target)}</div>
                   <div style="color: ${TEXT_COLOR}; font-size: 13px; font-weight: 600;">${formatValue(params.data.value)}</div>`;
         }
-        return `<div style="font-weight: 600; color: ${TEXT_COLOR};">${params.name}</div>`;
+        return `<div style="font-weight: 600; color: ${TEXT_COLOR};">${localizeNode(params.name)}</div>`;
       },
     },
     series: [
@@ -120,7 +137,7 @@ export default function SankeyChart({ data, theme = 'dark' }: SankeyProps) {
               .filter((link) => link.source === params.name)
               .reduce((sum, link) => sum + link.value, 0);
             const nodeValue = Math.max(incoming, outgoing);
-            return `${params.name}\n${formatValue(nodeValue)}`;
+            return `${localizeNode(params.name)}\n${formatValue(nodeValue)}`;
           },
         },
         data: data.nodes.map((node) => {
@@ -154,7 +171,7 @@ export default function SankeyChart({ data, theme = 'dark' }: SankeyProps) {
   if (!data.links || data.links.length === 0) {
     return (
       <div className="bg-white/5 border border-white/10 rounded-sm p-8 text-center text-slate-500 font-mono text-xs">
-        <p>暂无足够的财务数据生成桑基图</p>
+        <p>{sankeyT.noData}</p>
       </div>
     );
   }

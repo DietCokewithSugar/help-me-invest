@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import ReactECharts from 'echarts-for-react';
-import { FileSpreadsheet, TrendingUp, TrendingDown, DollarSign, Wallet, ArrowRightLeft } from 'lucide-react';
+import { FileSpreadsheet } from 'lucide-react';
 import type { IncomeStatement, BalanceSheet, CashFlowStatement } from '@/types';
 import { useUnitMode } from '@/lib/UnitModeContext';
-import { formatNumber as formatNumberUtil, formatChartValue, type UnitMode } from '@/lib/format-number';
+import { formatNumber as formatNumberUtil } from '@/lib/format-number';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Props {
   incomeStatements: IncomeStatement[];
@@ -33,22 +34,25 @@ export default function FinancialStatements({
   const [activeTab, setActiveTab] = useState<TabType>('income');
   const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart');
 
-  // Use unit mode from context
   const { unitMode } = useUnitMode();
+  const { t } = useLanguage();
+  const fsT = t.report.financialStatements;
+  const incomeT = fsT.income;
+  const balanceT = fsT.balance;
+  const cashflowT = fsT.cashflow;
 
   const formatNumber = (num: number | undefined | null) => {
     if (num === undefined || num === null) return 'N/A';
     return formatNumberUtil(num, unitMode);
   };
 
-  // Get unit suffix for chart labels based on mode
   const getChartUnit = () => unitMode === 'zh' ? '亿' : 'B';
   const getChartScale = () => unitMode === 'zh' ? 1e8 : 1e9;
 
   const tabs: { key: TabType; label: string }[] = [
-    { key: 'income', label: '利润表' },
-    { key: 'balance', label: '资产负债表' },
-    { key: 'cashflow', label: '现金流量表' },
+    { key: 'income', label: fsT.tabs.income },
+    { key: 'balance', label: fsT.tabs.balance },
+    { key: 'cashflow', label: fsT.tabs.cashflow },
   ];
 
   const activeIncome = period === 'quarter' && incomeStatementsQuarter?.length ? incomeStatementsQuarter : incomeStatements;
@@ -114,7 +118,7 @@ export default function FinancialStatements({
         },
       },
       legend: {
-        data: ['营收', '毛利润', '营业利润', '净利润'],
+        data: [incomeT.legend.revenue, incomeT.legend.grossProfit, incomeT.legend.operatingIncome, incomeT.legend.netIncome],
         textStyle: { color: TEXT_SECONDARY, fontSize: 12 },
         top: 0,
         itemGap: 24,
@@ -137,35 +141,35 @@ export default function FinancialStatements({
       },
       series: [
         {
-          name: '营收',
+          name: incomeT.legend.revenue,
           type: 'bar',
           data: revenues,
           barWidth: '20%',
-          itemStyle: { color: '#88ABDA', borderRadius: 0 }, // 窈蓝
+          itemStyle: { color: '#88ABDA', borderRadius: 0 },
           label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `${currencyPrefix}${params.value.toFixed(1)}${chartUnit}` },
         },
         {
-          name: '毛利润',
+          name: incomeT.legend.grossProfit,
           type: 'bar',
           data: grossProfits,
           barWidth: '20%',
-          itemStyle: { color: '#98B6C2', borderRadius: 0 }, // 白青
+          itemStyle: { color: '#98B6C2', borderRadius: 0 },
           label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `${currencyPrefix}${params.value.toFixed(1)}${chartUnit}` },
         },
         {
-          name: '营业利润',
+          name: incomeT.legend.operatingIncome,
           type: 'bar',
           data: operatingIncomes,
           barWidth: '20%',
-          itemStyle: { color: '#CB523E', borderRadius: 0 }, // 黄润
+          itemStyle: { color: '#CB523E', borderRadius: 0 },
           label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `${currencyPrefix}${params.value.toFixed(1)}${chartUnit}` },
         },
         {
-          name: '净利润',
+          name: incomeT.legend.netIncome,
           type: 'bar',
           data: netIncomes,
           barWidth: '20%',
-          itemStyle: { color: '#C0D09D', borderRadius: 0 }, // 鞠尘
+          itemStyle: { color: '#C0D09D', borderRadius: 0 },
           label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `${currencyPrefix}${params.value.toFixed(1)}${chartUnit}` },
         },
       ],
@@ -226,7 +230,7 @@ export default function FinancialStatements({
         },
       },
       legend: {
-        data: ['总资产', '总负债', '股东权益', '总债务', '现金'],
+        data: [balanceT.legend.totalAssets, balanceT.legend.totalLiabilities, balanceT.legend.totalEquity, balanceT.legend.totalDebt, balanceT.legend.cash],
         textStyle: { color: TEXT_SECONDARY, fontSize: 12 },
         top: 0,
         itemGap: 20,
@@ -248,11 +252,11 @@ export default function FinancialStatements({
         splitLine: { lineStyle: { color: SPLIT_LINE_COLOR, type: 'dashed', opacity: isLight ? 0.8 : 0.5 } },
       },
       series: [
-        { name: '总资产', type: 'line', data: totalAssets, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#88ABDA' }, symbol: 'none', label: { show: true, position: 'top', color: TEXT_MUTED, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
-        { name: '总负债', type: 'line', data: totalLiabilities, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#CB523E' }, symbol: 'none', label: { show: true, position: 'bottom', color: '#CB523E', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
-        { name: '股东权益', type: 'line', data: totalEquity, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#C0D09D' }, symbol: 'none', label: { show: true, position: 'top', color: '#C0D09D', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
-        { name: '总债务', type: 'line', data: totalDebt, smooth: false, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: '#EAE4D1' }, symbol: 'none', label: { show: true, position: 'bottom', color: '#EAE4D1', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
-        { name: '现金', type: 'line', data: cash, smooth: false, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: TEXT_SECONDARY }, symbol: 'none', label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
+        { name: balanceT.legend.totalAssets, type: 'line', data: totalAssets, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#88ABDA' }, symbol: 'none', label: { show: true, position: 'top', color: TEXT_MUTED, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
+        { name: balanceT.legend.totalLiabilities, type: 'line', data: totalLiabilities, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#CB523E' }, symbol: 'none', label: { show: true, position: 'bottom', color: '#CB523E', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
+        { name: balanceT.legend.totalEquity, type: 'line', data: totalEquity, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#C0D09D' }, symbol: 'none', label: { show: true, position: 'top', color: '#C0D09D', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
+        { name: balanceT.legend.totalDebt, type: 'line', data: totalDebt, smooth: false, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: '#EAE4D1' }, symbol: 'none', label: { show: true, position: 'bottom', color: '#EAE4D1', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
+        { name: balanceT.legend.cash, type: 'line', data: cash, smooth: false, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: TEXT_SECONDARY }, symbol: 'none', label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
       ],
     };
 
@@ -311,7 +315,7 @@ export default function FinancialStatements({
         },
       },
       legend: {
-        data: ['经营现金流', '投资现金流', '融资现金流', '自由现金流', '资本开支'],
+        data: [cashflowT.legend.operatingCF, cashflowT.legend.investingCF, cashflowT.legend.financingCF, cashflowT.legend.freeCF, cashflowT.legend.capex],
         textStyle: { color: TEXT_SECONDARY, fontSize: 12 },
         top: 0,
         itemGap: 16,
@@ -333,11 +337,11 @@ export default function FinancialStatements({
         splitLine: { lineStyle: { color: SPLIT_LINE_COLOR, type: 'dashed', opacity: isLight ? 0.8 : 0.5 } },
       },
       series: [
-        { name: '经营现金流', type: 'bar', data: operatingCF, barWidth: '18%', itemStyle: { color: '#C0D09D', borderRadius: 0 }, label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
-        { name: '投资现金流', type: 'bar', data: investingCF, barWidth: '18%', itemStyle: { color: '#CB523E', borderRadius: 0 }, label: { show: true, position: 'bottom', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
-        { name: '融资现金流', type: 'bar', data: financingCF, barWidth: '18%', itemStyle: { color: '#EAE4D1', borderRadius: 0 }, label: { show: true, position: 'bottom', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
-        { name: '自由现金流', type: 'line', data: freeCF, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#98B6C2' }, symbol: 'none', label: { show: true, position: 'top', color: '#98B6C2', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
-        { name: '资本开支', type: 'line', data: capex, smooth: false, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: TEXT_SECONDARY }, symbol: 'none', label: { show: true, position: 'bottom', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
+        { name: cashflowT.legend.operatingCF, type: 'bar', data: operatingCF, barWidth: '18%', itemStyle: { color: '#C0D09D', borderRadius: 0 }, label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
+        { name: cashflowT.legend.investingCF, type: 'bar', data: investingCF, barWidth: '18%', itemStyle: { color: '#CB523E', borderRadius: 0 }, label: { show: true, position: 'bottom', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
+        { name: cashflowT.legend.financingCF, type: 'bar', data: financingCF, barWidth: '18%', itemStyle: { color: '#EAE4D1', borderRadius: 0 }, label: { show: true, position: 'bottom', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
+        { name: cashflowT.legend.freeCF, type: 'line', data: freeCF, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#98B6C2' }, symbol: 'none', label: { show: true, position: 'top', color: '#98B6C2', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
+        { name: cashflowT.legend.capex, type: 'line', data: capex, smooth: false, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: TEXT_SECONDARY }, symbol: 'none', label: { show: true, position: 'bottom', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
       ],
     };
 
@@ -350,7 +354,7 @@ export default function FinancialStatements({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-white/10">
-            <th className="text-left py-3 px-4 text-slate-400 font-medium whitespace-nowrap">指标</th>
+            <th className="text-left py-3 px-4 text-slate-400 font-medium whitespace-nowrap">{fsT.metricHeader}</th>
             {activeIncome.map((s, i) => (
               <th key={i} className="text-right py-3 px-4 text-slate-400 font-mono whitespace-nowrap">
                 {period === 'quarter' ? `${s.fiscalYear} ${s.period}` : s.date?.split('-')[0]}
@@ -360,17 +364,17 @@ export default function FinancialStatements({
         </thead>
         <tbody>
           {[
-            { label: '营收', key: 'revenue' },
-            { label: '营业成本', key: 'costOfRevenue' },
-            { label: '毛利润', key: 'grossProfit' },
-            { label: '研发费用', key: 'researchAndDevelopmentExpenses' },
-            { label: '销售管理费用', key: 'sellingGeneralAndAdministrativeExpenses' },
-            { label: '营业利润', key: 'operatingIncome' },
-            { label: 'EBITDA', key: 'ebitda' },
-            { label: '税前利润', key: 'incomeBeforeTax' },
-            { label: '所得税', key: 'incomeTaxExpense' },
-            { label: '净利润', key: 'netIncome' },
-            { label: 'EPS (稀释)', key: 'epsdiluted' },
+            { label: incomeT.rows.revenue, key: 'revenue' },
+            { label: incomeT.rows.costOfRevenue, key: 'costOfRevenue' },
+            { label: incomeT.rows.grossProfit, key: 'grossProfit' },
+            { label: incomeT.rows.researchAndDevelopmentExpenses, key: 'researchAndDevelopmentExpenses' },
+            { label: incomeT.rows.sellingGeneralAndAdministrativeExpenses, key: 'sellingGeneralAndAdministrativeExpenses' },
+            { label: incomeT.rows.operatingIncome, key: 'operatingIncome' },
+            { label: incomeT.rows.ebitda, key: 'ebitda' },
+            { label: incomeT.rows.incomeBeforeTax, key: 'incomeBeforeTax' },
+            { label: incomeT.rows.incomeTaxExpense, key: 'incomeTaxExpense' },
+            { label: incomeT.rows.netIncome, key: 'netIncome' },
+            { label: incomeT.rows.epsdiluted, key: 'epsdiluted' },
           ].map((row) => (
             <tr key={row.key} className="border-b border-white/5 hover:bg-white/5 transition-colors">
               <td className="py-3 px-4 text-slate-300 whitespace-nowrap">{row.label}</td>
@@ -391,7 +395,7 @@ export default function FinancialStatements({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-white/10">
-            <th className="text-left py-3 px-4 text-slate-400 font-medium whitespace-nowrap">指标</th>
+            <th className="text-left py-3 px-4 text-slate-400 font-medium whitespace-nowrap">{fsT.metricHeader}</th>
             {activeBalance.map((s, i) => (
               <th key={i} className="text-right py-3 px-4 text-slate-400 font-mono whitespace-nowrap">
                 {period === 'quarter' ? `${s.fiscalYear} ${s.period}` : s.date?.split('-')[0]}
@@ -401,24 +405,24 @@ export default function FinancialStatements({
         </thead>
         <tbody>
           {[
-            { label: '现金及等价物', key: 'cashAndCashEquivalents', section: '资产' },
-            { label: '短期投资', key: 'shortTermInvestments', section: '资产' },
-            { label: '应收账款', key: 'netReceivables', section: '资产' },
-            { label: '存货', key: 'inventory', section: '资产' },
-            { label: '流动资产合计', key: 'totalCurrentAssets', section: '资产' },
-            { label: '固定资产净值', key: 'propertyPlantEquipmentNet', section: '资产' },
-            { label: '商誉', key: 'goodwill', section: '资产' },
-            { label: '总资产', key: 'totalAssets', section: '资产' },
-            { label: '应付账款', key: 'accountPayables', section: '负债' },
-            { label: '短期债务', key: 'shortTermDebt', section: '负债' },
-            { label: '流动负债合计', key: 'totalCurrentLiabilities', section: '负债' },
-            { label: '长期债务', key: 'longTermDebt', section: '负债' },
-            { label: '总负债', key: 'totalLiabilities', section: '负债' },
-            { label: '留存收益', key: 'retainedEarnings', section: '权益' },
-            { label: '股东权益', key: 'totalStockholdersEquity', section: '权益' },
-            { label: '总债务', key: 'totalDebt', section: '其他' },
-            { label: '净债务', key: 'netDebt', section: '其他' },
-          ].map((row, idx) => (
+            { label: balanceT.rows.cashAndCashEquivalents, key: 'cashAndCashEquivalents' },
+            { label: balanceT.rows.shortTermInvestments, key: 'shortTermInvestments' },
+            { label: balanceT.rows.netReceivables, key: 'netReceivables' },
+            { label: balanceT.rows.inventory, key: 'inventory' },
+            { label: balanceT.rows.totalCurrentAssets, key: 'totalCurrentAssets' },
+            { label: balanceT.rows.propertyPlantEquipmentNet, key: 'propertyPlantEquipmentNet' },
+            { label: balanceT.rows.goodwill, key: 'goodwill' },
+            { label: balanceT.rows.totalAssets, key: 'totalAssets' },
+            { label: balanceT.rows.accountPayables, key: 'accountPayables' },
+            { label: balanceT.rows.shortTermDebt, key: 'shortTermDebt' },
+            { label: balanceT.rows.totalCurrentLiabilities, key: 'totalCurrentLiabilities' },
+            { label: balanceT.rows.longTermDebt, key: 'longTermDebt' },
+            { label: balanceT.rows.totalLiabilities, key: 'totalLiabilities' },
+            { label: balanceT.rows.retainedEarnings, key: 'retainedEarnings' },
+            { label: balanceT.rows.totalStockholdersEquity, key: 'totalStockholdersEquity' },
+            { label: balanceT.rows.totalDebt, key: 'totalDebt' },
+            { label: balanceT.rows.netDebt, key: 'netDebt' },
+          ].map((row) => (
             <tr key={row.key} className={`border-b border-white/5 hover:bg-white/5 transition-colors ${row.key === 'totalCurrentAssets' || row.key === 'totalAssets' ||
               row.key === 'totalCurrentLiabilities' || row.key === 'totalLiabilities' ||
               row.key === 'totalStockholdersEquity' ? 'bg-white/5 font-semibold' : ''
@@ -442,7 +446,7 @@ export default function FinancialStatements({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-white/10">
-            <th className="text-left py-3 px-4 text-slate-400 font-medium whitespace-nowrap">指标</th>
+            <th className="text-left py-3 px-4 text-slate-400 font-medium whitespace-nowrap">{fsT.metricHeader}</th>
             {activeCashFlow.map((s, i) => (
               <th key={i} className="text-right py-3 px-4 text-slate-400 font-mono whitespace-nowrap">
                 {period === 'quarter' ? `${s.fiscalYear} ${s.period}` : s.date?.split('-')[0]}
@@ -452,21 +456,21 @@ export default function FinancialStatements({
         </thead>
         <tbody>
           {[
-            { label: '净利润', key: 'netIncome', section: '经营' },
-            { label: '折旧摊销', key: 'depreciationAndAmortization', section: '经营' },
-            { label: '股权激励', key: 'stockBasedCompensation', section: '经营' },
-            { label: '营运资本变动', key: 'changeInWorkingCapital', section: '经营' },
-            { label: '经营活动现金流', key: 'netCashProvidedByOperatingActivities', section: '经营' },
-            { label: '资本开支', key: 'capitalExpenditure', section: '投资' },
-            { label: '收购净额', key: 'acquisitionsNet', section: '投资' },
-            { label: '投资购买', key: 'purchasesOfInvestments', section: '投资' },
-            { label: '投资活动现金流', key: 'netCashUsedForInvestingActivites', section: '投资' },
-            { label: '债务偿还', key: 'debtRepayment', section: '融资' },
-            { label: '股票回购', key: 'commonStockRepurchased', section: '融资' },
-            { label: '股息支付', key: 'dividendsPaid', section: '融资' },
-            { label: '融资活动现金流', key: 'netCashUsedProvidedByFinancingActivities', section: '融资' },
-            { label: '现金净变动', key: 'netChangeInCash', section: '汇总' },
-            { label: '自由现金流', key: 'freeCashFlow', section: '汇总' },
+            { label: cashflowT.rows.netIncome, key: 'netIncome' },
+            { label: cashflowT.rows.depreciationAndAmortization, key: 'depreciationAndAmortization' },
+            { label: cashflowT.rows.stockBasedCompensation, key: 'stockBasedCompensation' },
+            { label: cashflowT.rows.changeInWorkingCapital, key: 'changeInWorkingCapital' },
+            { label: cashflowT.rows.netCashProvidedByOperatingActivities, key: 'netCashProvidedByOperatingActivities' },
+            { label: cashflowT.rows.capitalExpenditure, key: 'capitalExpenditure' },
+            { label: cashflowT.rows.acquisitionsNet, key: 'acquisitionsNet' },
+            { label: cashflowT.rows.purchasesOfInvestments, key: 'purchasesOfInvestments' },
+            { label: cashflowT.rows.netCashUsedForInvestingActivites, key: 'netCashUsedForInvestingActivites' },
+            { label: cashflowT.rows.debtRepayment, key: 'debtRepayment' },
+            { label: cashflowT.rows.commonStockRepurchased, key: 'commonStockRepurchased' },
+            { label: cashflowT.rows.dividendsPaid, key: 'dividendsPaid' },
+            { label: cashflowT.rows.netCashUsedProvidedByFinancingActivities, key: 'netCashUsedProvidedByFinancingActivities' },
+            { label: cashflowT.rows.netChangeInCash, key: 'netChangeInCash' },
+            { label: cashflowT.rows.freeCashFlow, key: 'freeCashFlow' },
           ].map((row) => (
             <tr key={row.key} className={`border-b border-white/5 hover:bg-white/5 transition-colors ${row.key.includes('netCash') || row.key === 'freeCashFlow' ? 'bg-white/5 font-semibold' : ''
               }`}>
@@ -498,12 +502,11 @@ export default function FinancialStatements({
             </div>
           </div>
           <div>
-            <h2 className="text-base font-semibold text-white uppercase tracking-wider">三大财务报表</h2>
-            <p className="text-xs text-mist-500 mt-0.5 font-mono">近5{period === 'quarter' ? '季度' : '年度'}财务数据分析</p>
+            <h2 className="text-base font-semibold text-white uppercase tracking-wider">{fsT.title}</h2>
+            <p className="text-xs text-mist-500 mt-0.5 font-mono">{period === 'quarter' ? fsT.subtitleQuarter : fsT.subtitleAnnual}</p>
           </div>
         </div>
 
-        {/* 周期及视图切换 */}
         <div className="flex items-center gap-4">
           <div className="flex p-0.5 bg-white/5 border border-white/10 rounded-sm">
             <button
@@ -513,7 +516,7 @@ export default function FinancialStatements({
                 : 'text-mist-500 hover:text-mist-200'
                 }`}
             >
-              年度
+              {fsT.period.annual}
             </button>
             <button
               onClick={() => setPeriod('quarter')}
@@ -522,7 +525,7 @@ export default function FinancialStatements({
                 : 'text-mist-500 hover:text-mist-200'
                 }`}
             >
-              季度
+              {fsT.period.quarter}
             </button>
           </div>
 
@@ -532,14 +535,14 @@ export default function FinancialStatements({
               className={`px-3 py-1.5 text-xs font-medium rounded-sm transition-colors ${viewMode === 'chart' ? 'bg-white/10 text-white' : 'text-mist-500 hover:text-mist-300'
                 }`}
             >
-              图表
+              {fsT.view.chart}
             </button>
             <button
               onClick={() => setViewMode('table')}
               className={`px-3 py-1.5 text-xs font-medium rounded-sm transition-colors ${viewMode === 'table' ? 'bg-white/10 text-white' : 'text-mist-500 hover:text-mist-300'
                 }`}
             >
-              表格
+              {fsT.view.table}
             </button>
           </div>
         </div>
