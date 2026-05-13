@@ -108,6 +108,7 @@ const MARKET_NAMES: Record<MarketType, string> = {
   CN: 'A股（中国大陆）',
   HK: '港股（香港）',
   JP: '日股（日本）',
+  KR: '韩股（韩国）',
 };
 
 interface ModelConfigInput {
@@ -361,12 +362,13 @@ export class GeminiClient {
 
 要求：
 1. 只返回 JSON，不要包含任何 Markdown 或解释性文字。
-2. 市场只能是 US / CN / HK / JP。
+2. 市场只能是 US / CN / HK / JP / KR。
 3. 返回的 symbol 必须是可用于 FMP 的格式：
    - US: 例如 AAPL, TSLA, BRK.B
    - CN: 6 位数字 + .SS 或 .SZ
    - HK: 4-5 位数字 + .HK（不足位补零）
    - JP: 4 位数字 + .T
+   - KR: 6 位数字 + .KS（KOSPI 主板）或 .KQ（KOSDAQ 创业板），例如 005930.KS (三星电子)、035720.KS (Kakao)
 4. 优先返回最相关的 1-5 个候选，confidence 为 0-1 之间的小数。
 5. 如果无法确定，suggestions 为空数组。
 ${nameInstruction}

@@ -82,6 +82,7 @@ export const zh = {
       aShare: 'A股',
       hkStock: '港股',
       jpStock: '日股',
+      krStock: '韩股',
     },
     testimonials: {
       title: '用户如是说',
@@ -150,6 +151,8 @@ export const zh = {
       '0700.HK': '腾讯控股',
       '9988.HK': '阿里巴巴',
       '7203.T': '丰田汽车',
+      '005930.KS': '三星电子',
+      '035720.KS': 'Kakao',
     },
   },
   companies: {
@@ -632,15 +635,18 @@ export const zh = {
     cn: 'A股',
     hk: '港股',
     jp: '日股',
+    kr: '韩股',
     usLong: '美股',
     cnLong: 'A股（中国大陆）',
     hkLong: '港股（香港）',
     jpLong: '日股（日本）',
+    krLong: '韩股（韩国）',
     symbolFormat: {
       us: '直接输入股票代码',
       cn: '股票代码 + 交易所后缀',
       hk: '股票代码 + .HK 后缀',
       jp: '股票代码 + .T 后缀',
+      kr: '股票代码 + .KS / .KQ 后缀',
     },
   },
   sectors: {

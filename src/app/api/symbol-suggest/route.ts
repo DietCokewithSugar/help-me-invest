@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GeminiClient } from '@/lib/gemini';
 import { formatSymbolForMarket, type MarketType } from '@/lib/markets';
 
-const VALID_MARKETS: MarketType[] = ['US', 'CN', 'HK', 'JP'];
+const VALID_MARKETS: MarketType[] = ['US', 'CN', 'HK', 'JP', 'KR'];
 
 // 本地常见股票库 - 当 AI API 失败时作为备用
 const LOCAL_STOCKS = [
@@ -75,6 +75,22 @@ const LOCAL_STOCKS = [
   { symbol: '6902.T', market: 'JP', name: 'Denso Corporation', nameCn: '电装', keywords: ['电装', 'denso'] },
   { symbol: '4063.T', market: 'JP', name: 'Shin-Etsu Chemical', nameCn: '信越化学', keywords: ['信越', 'shin-etsu'] },
   { symbol: '7974.T', market: 'JP', name: 'Nintendo Co., Ltd.', nameCn: '任天堂', keywords: ['任天堂', 'nintendo'] },
+  // 韩股
+  { symbol: '005930.KS', market: 'KR', name: 'Samsung Electronics', nameCn: '三星电子', keywords: ['三星', 'samsung', '삼성', '삼성전자'] },
+  { symbol: '000660.KS', market: 'KR', name: 'SK Hynix', nameCn: 'SK海力士', keywords: ['海力士', 'hynix', 'sk hynix', '하이닉스'] },
+  { symbol: '035420.KS', market: 'KR', name: 'NAVER Corporation', nameCn: 'NAVER', keywords: ['naver', '네이버'] },
+  { symbol: '035720.KS', market: 'KR', name: 'Kakao Corp', nameCn: 'Kakao', keywords: ['kakao', '카카오', '카카오톡'] },
+  { symbol: '005380.KS', market: 'KR', name: 'Hyundai Motor', nameCn: '现代汽车', keywords: ['现代', 'hyundai', '현대', '현대차'] },
+  { symbol: '000270.KS', market: 'KR', name: 'Kia Corporation', nameCn: '起亚汽车', keywords: ['起亚', 'kia', '기아'] },
+  { symbol: '051910.KS', market: 'KR', name: 'LG Chem', nameCn: 'LG化学', keywords: ['lg化学', 'lg chem', 'lg화학'] },
+  { symbol: '006400.KS', market: 'KR', name: 'Samsung SDI', nameCn: '三星SDI', keywords: ['三星sdi', 'samsung sdi', '삼성sdi'] },
+  { symbol: '207940.KS', market: 'KR', name: 'Samsung Biologics', nameCn: '三星生物制剂', keywords: ['三星生物', 'samsung biologics', '삼성바이오로직스'] },
+  { symbol: '068270.KS', market: 'KR', name: 'Celltrion', nameCn: 'Celltrion', keywords: ['celltrion', '셀트리온'] },
+  { symbol: '105560.KS', market: 'KR', name: 'KB Financial Group', nameCn: 'KB金融集团', keywords: ['kb', 'kb financial', 'kb금융'] },
+  { symbol: '055550.KS', market: 'KR', name: 'Shinhan Financial Group', nameCn: '新韩金融', keywords: ['新韩', 'shinhan', '신한'] },
+  { symbol: '012330.KS', market: 'KR', name: 'Hyundai Mobis', nameCn: '现代摩比斯', keywords: ['mobis', '모비스', 'hyundai mobis'] },
+  { symbol: '028260.KS', market: 'KR', name: 'Samsung C&T', nameCn: '三星物产', keywords: ['三星物产', 'samsung c&t', '삼성물산'] },
+  { symbol: '066570.KS', market: 'KR', name: 'LG Electronics', nameCn: 'LG电子', keywords: ['lg电子', 'lg electronics', 'lg전자'] },
 ];
 
 // 本地搜索函数
@@ -110,6 +126,7 @@ const MARKET_SYMBOL_REGEX: Record<MarketType, RegExp> = {
   CN: /^\d{6}\.(SS|SZ)$/,
   HK: /^\d{4,5}\.HK$/,
   JP: /^\d{4}\.T$/,
+  KR: /^\d{6}\.(KS|KQ)$/,
 };
 
 function normalizeSuggestion(item: any) {
@@ -129,6 +146,9 @@ function normalizeSuggestion(item: any) {
     }
     if (market === 'JP' && /^\d{1,4}$/.test(symbol)) {
       symbol = symbol.padStart(4, '0');
+    }
+    if (market === 'KR' && /^\d{1,6}$/.test(symbol)) {
+      symbol = symbol.padStart(6, '0');
     }
     symbol = formatSymbolForMarket(symbol, market);
   }

@@ -1,5 +1,5 @@
 // 支持的市场类型
-export type MarketType = 'US' | 'CN' | 'HK' | 'JP';
+export type MarketType = 'US' | 'CN' | 'HK' | 'JP' | 'KR';
 
 // 市场配置接口
 export interface MarketConfig {
@@ -226,6 +226,51 @@ export const MARKET_CONFIGS: Record<MarketType, MarketConfig> = {
       { symbol: '4502.T', name: '武田药品' },
     ],
   },
+  KR: {
+    id: 'KR',
+    name: 'Korea Stock',
+    nameCn: '韩股',
+    currency: 'KRW',
+    currencySymbol: '₩',
+    exchanges: ['KRX'], // KOSPI（主板）+ KOSDAQ（创业板）
+    symbolFormat: '股票代码 + .KS / .KQ 后缀',
+    symbolExample: '005930.KS (三星电子), 035420.KS (NAVER)',
+    symbolSuffix: '.KS/.KQ',
+    supportedFeatures: {
+      profile: true,
+      quote: true,
+      peers: false,
+      incomeStatement: true,
+      balanceSheet: true,
+      cashFlow: true,
+      keyMetrics: true,
+      financialRatios: true,
+      financialGrowth: true,
+      dcf: true,
+      enterpriseValue: true,
+      earningsCalendar: false,
+      dividendHistory: true,
+      stockSplits: true,
+      institutionalHolders: false,
+      insiderTrading: false,
+      mutualFundHolders: false,
+      etfHolders: false,
+      news: false,
+      earningsTranscript: false,
+      historicalPrices: true,
+      analystRatings: false,
+    },
+    featuredStocks: [
+      { symbol: '005930.KS', name: '三星电子' },
+      { symbol: '000660.KS', name: 'SK海力士' },
+      { symbol: '035420.KS', name: 'NAVER' },
+      { symbol: '035720.KS', name: 'Kakao' },
+      { symbol: '005380.KS', name: '现代汽车' },
+      { symbol: '051910.KS', name: 'LG化学' },
+      { symbol: '207940.KS', name: '三星生物制剂' },
+      { symbol: '068270.KS', name: 'Celltrion' },
+    ],
+  },
 };
 
 // 根据股票代码检测市场类型
@@ -240,6 +285,9 @@ export function detectMarketFromSymbol(symbol: string): MarketType {
   }
   if (upperSymbol.endsWith('.T')) {
     return 'JP';
+  }
+  if (upperSymbol.endsWith('.KS') || upperSymbol.endsWith('.KQ')) {
+    return 'KR';
   }
   
   // 默认美股
@@ -271,6 +319,10 @@ export function formatSymbolForMarket(symbol: string, market: MarketType): strin
       return `${upperSymbol}.HK`;
     case 'JP':
       return `${upperSymbol}.T`;
+    case 'KR':
+      // 韩股大多在 KOSPI 主板（.KS），KOSDAQ（.KQ）需用户显式带后缀
+      // 这里默认补 .KS，保留 6 位数字标准格式
+      return `${upperSymbol}.KS`;
     case 'US':
     default:
       return upperSymbol;

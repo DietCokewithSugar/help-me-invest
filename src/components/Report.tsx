@@ -99,6 +99,7 @@ const MarketBadge = ({ market }: { market: MarketType }) => {
     CN: { name: 'A股', abbr: 'CN' },
     HK: { name: '港股', abbr: 'HK' },
     JP: { name: '日股', abbr: 'JP' },
+    KR: { name: '韩股', abbr: 'KR' },
   };
   const info = marketInfo[market] || marketInfo.US;
   return (

@@ -28,7 +28,7 @@ export function getPositionSize(portfolioPercent: number | undefined): PositionS
 export interface TrackedCompany {
     symbol: string;
     name: string;
-    market: 'US' | 'CN' | 'HK' | 'JP';
+    market: 'US' | 'CN' | 'HK' | 'JP' | 'KR';
     shares?: number;
     portfolioPercent?: number;
     marketValue?: number;
