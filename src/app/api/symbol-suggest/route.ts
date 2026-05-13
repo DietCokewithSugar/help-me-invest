@@ -4,7 +4,7 @@ import { formatSymbolForMarket, type MarketType } from '@/lib/markets';
 
 const VALID_MARKETS: MarketType[] = ['US', 'CN', 'HK', 'JP'];
 
-// 本地常见股票库 - 当 Gemini API 失败时作为备用
+// 本地常见股票库 - 当 AI API 失败时作为备用
 const LOCAL_STOCKS = [
   // 美股
   { symbol: 'AAPL', market: 'US', name: 'Apple Inc.', nameCn: '苹果', keywords: ['苹果', 'apple', 'iphone'] },
@@ -164,11 +164,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ query: trimmedQuery, suggestions: [] });
     }
 
-    const googleApiKey = process.env.GOOGLE_API_KEY;
+    const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
 
     // 如果没有 API Key，直接使用本地搜索
-    if (!googleApiKey) {
-      console.log('No Google API key, using local search fallback');
+    if (!deepseekApiKey) {
+      console.log('No DeepSeek API key, using local search fallback');
       const localResults = localSearch(trimmedQuery, marketHint || undefined);
       return NextResponse.json({
         query: trimmedQuery,
@@ -178,8 +178,8 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // 尝试使用 Gemini AI 搜索
-      const gemini = new GeminiClient(googleApiKey);
+      // 尝试使用 AI 搜索
+      const gemini = new GeminiClient(deepseekApiKey);
       const aiResult = await gemini.suggestSymbol(trimmedQuery, marketHint, lang);
       const rawSuggestions = Array.isArray(aiResult?.suggestions) ? aiResult.suggestions : [];
       const suggestions = rawSuggestions
@@ -205,8 +205,8 @@ export async function POST(request: NextRequest) {
       });
 
     } catch (aiError: any) {
-      // Gemini API 调用失败（网络问题等），回退到本地搜索
-      console.log('Gemini API failed, falling back to local search:', aiError?.message || aiError);
+      // AI API 调用失败（网络问题等），回退到本地搜索
+      console.log('AI API failed, falling back to local search:', aiError?.message || aiError);
       const localResults = localSearch(trimmedQuery, marketHint || undefined);
 
       return NextResponse.json({

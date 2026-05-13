@@ -1,4 +1,3 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { MarketType } from '@/lib/markets';
 
 // ============================================================================
@@ -111,37 +110,75 @@ const MARKET_NAMES: Record<MarketType, string> = {
   JP: '日股（日本）',
 };
 
+interface ModelConfigInput {
+  temperature?: number;
+  topP?: number;
+  maxOutputTokens?: number;
+  tools?: any[];
+  thinkingConfig?: {
+    thinkingLevel?: 'low' | 'medium' | 'high';
+    includeThoughts?: boolean;
+  };
+}
+
+interface ModelRuntimeConfig {
+  model: string;
+  temperature: number;
+  topP: number;
+  maxOutputTokens: number;
+}
+
+interface GenerateContentResult {
+  response: Promise<{
+    text: () => string;
+  }>;
+}
+
+interface StreamChunk {
+  text: () => string;
+}
+
+interface GenerateContentStreamResult {
+  stream: AsyncGenerator<StreamChunk, void, unknown>;
+}
+
+interface DeepSeekModelAdapter {
+  generateContent: (prompt: string) => Promise<GenerateContentResult>;
+  generateContentStream: (prompt: string) => Promise<GenerateContentStreamResult>;
+}
+
 // 模型分级策略
 // - lite: 简单任务，速度优先（股票联想、财报摘要）
 // - standard: 复杂推理任务（公司深度分析）
-// - search: 需要 Google Search Grounding 的任务（联网新闻）
-// - pro: 专业版深度分析，使用 Gemini 3 Flash 带思考能力
+// - search: 搜索类分析（通过提示词要求模型整合公开信息）
+// - pro: 专业版深度分析，优先使用推理模型
 type ModelTier = 'lite' | 'standard' | 'search' | 'pro';
 
 const MODEL_CONFIG: Record<ModelTier, { model: string; description: string }> = {
   lite: {
-    model: 'gemini-2.5-flash',
+    model: 'deepseek-chat',
     description: '轻量快速模型，适合简单任务',
   },
   standard: {
-    model: 'gemini-2.5-flash',
+    model: 'deepseek-chat',
     description: '标准模型，适合复杂推理',
   },
   search: {
-    model: 'gemini-3-flash-preview',
-    description: '搜索模型，支持 Google Search Grounding',
+    model: 'deepseek-chat',
+    description: '搜索分析模型，通过提示词补充公开信息',
   },
   pro: {
-    model: 'gemini-3-flash-preview',
-    description: '专业模型，支持深度思考和 Google Search Grounding',
+    model: 'deepseek-reasoner',
+    description: '专业模型，支持深度思考',
   },
 };
 
 export class GeminiClient {
-  private genAI: GoogleGenerativeAI;
+  private readonly apiKey: string;
+  private readonly baseUrl = 'https://api.deepseek.com';
 
   constructor(apiKey: string) {
-    this.genAI = new GoogleGenerativeAI(apiKey);
+    this.apiKey = apiKey;
   }
 
   private getLanguageInstruction(language: string = 'zh'): {
@@ -163,31 +200,136 @@ export class GeminiClient {
     };
   }
 
-  // 根据任务类型获取对应的模型实例
-  private getModel(
-    tier: ModelTier,
-    config?: {
-      temperature?: number;
-      topP?: number;
-      maxOutputTokens?: number;
-      tools?: any[];
-      thinkingConfig?: {
-        thinkingLevel?: 'low' | 'medium' | 'high';
-        includeThoughts?: boolean;
-      };
-    }
-  ) {
-    const modelName = MODEL_CONFIG[tier].model;
-    return this.genAI.getGenerativeModel({
-      model: modelName,
-      ...(config?.tools ? { tools: config.tools } : {}),
-      generationConfig: {
-        temperature: config?.temperature ?? 0.7,
-        topP: config?.topP ?? 0.95,
-        maxOutputTokens: config?.maxOutputTokens ?? 8192,
-        ...(config?.thinkingConfig ? { thinkingConfig: config.thinkingConfig } : {}),
-      } as any,
+  private resolveModelConfig(tier: ModelTier, config?: ModelConfigInput): ModelRuntimeConfig {
+    return {
+      model: MODEL_CONFIG[tier].model,
+      temperature: config?.temperature ?? 0.7,
+      topP: config?.topP ?? 0.95,
+      maxOutputTokens: config?.maxOutputTokens ?? 8192,
+    };
+  }
+
+  private async callDeepSeek(
+    prompt: string,
+    config: ModelRuntimeConfig,
+    stream: boolean
+  ): Promise<Response> {
+    const payload = {
+      model: config.model,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: config.temperature,
+      top_p: config.topP,
+      max_tokens: config.maxOutputTokens,
+      stream,
+    };
+
+    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify(payload),
     });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`DeepSeek API 请求失败 (${response.status}): ${errorText}`);
+    }
+
+    return response;
+  }
+
+  private parseDeepSeekStream(body: ReadableStream<Uint8Array>): AsyncGenerator<StreamChunk, void, unknown> {
+    async function* iterator() {
+      const reader = body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      const consumeLine = async function* (line: string): AsyncGenerator<StreamChunk, void, unknown> {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith('data:')) return;
+
+        const data = trimmed.slice(5).trim();
+        if (!data || data === '[DONE]') return;
+
+        try {
+          const payload = JSON.parse(data);
+          const deltaText = payload?.choices?.[0]?.delta?.content;
+          if (typeof deltaText === 'string' && deltaText.length > 0) {
+            yield { text: () => deltaText };
+          }
+        } catch (error: any) {
+          console.warn('DeepSeek stream parse warning:', error?.message || error);
+        }
+      };
+
+      try {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          let lineBreakIndex = buffer.indexOf('\n');
+
+          while (lineBreakIndex !== -1) {
+            const line = buffer.slice(0, lineBreakIndex);
+            buffer = buffer.slice(lineBreakIndex + 1);
+            lineBreakIndex = buffer.indexOf('\n');
+            yield* consumeLine(line);
+          }
+        }
+
+        const finalLine = buffer.trim();
+        if (finalLine) {
+          yield* consumeLine(finalLine);
+        }
+      } finally {
+        reader.releaseLock();
+      }
+    }
+
+    return iterator();
+  }
+
+  private async generateContentWithDeepSeek(
+    prompt: string,
+    config: ModelRuntimeConfig
+  ): Promise<GenerateContentResult> {
+    const response = await this.callDeepSeek(prompt, config, false);
+    const data = await response.json();
+    const text = typeof data?.choices?.[0]?.message?.content === 'string'
+      ? data.choices[0].message.content
+      : '';
+
+    return {
+      response: Promise.resolve({
+        text: () => text,
+      }),
+    };
+  }
+
+  private async generateContentStreamWithDeepSeek(
+    prompt: string,
+    config: ModelRuntimeConfig
+  ): Promise<GenerateContentStreamResult> {
+    const response = await this.callDeepSeek(prompt, config, true);
+    if (!response.body) {
+      throw new Error('DeepSeek stream body is empty');
+    }
+
+    return {
+      stream: this.parseDeepSeekStream(response.body as ReadableStream<Uint8Array>),
+    };
+  }
+
+  // 根据任务类型获取对应的模型实例
+  private getModel(tier: ModelTier, config?: ModelConfigInput): DeepSeekModelAdapter {
+    const resolvedConfig = this.resolveModelConfig(tier, config);
+    return {
+      generateContent: (prompt: string) => this.generateContentWithDeepSeek(prompt, resolvedConfig),
+      generateContentStream: (prompt: string) => this.generateContentStreamWithDeepSeek(prompt, resolvedConfig),
+    };
   }
 
   async suggestSymbol(
@@ -384,7 +526,7 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
   ): Promise<string> {
     const lang = this.getLanguageInstruction(language);
     void market;
-    // 使用 search 模型：需要 Google Search Grounding 能力
+    // 使用 search 模型：用于搜索类摘要任务
     const modelWithSearch = this.getModel('search', {
       temperature: 0.7,
       topP: 0.95,
@@ -434,7 +576,7 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
     analystViews: string;
   }> {
     const lang = this.getLanguageInstruction(language);
-    // 使用 search 模型：需要 Google Search Grounding 能力
+    // 使用 search 模型：用于搜索类摘要任务
     const modelWithSearch = this.getModel('search', {
       temperature: 0.7,
       topP: 0.95,
@@ -819,22 +961,14 @@ ${transcriptText}
 
   // ============================================================================
   // 专业版报告分析 - 拆分为 7 个独立的并发请求
-  // 使用 Gemini 3 Flash Preview + Thinking + Google Search
   // ============================================================================
 
   // 专业版通用的模型配置
   private getProModel() {
-    return this.genAI.getGenerativeModel({
-      model: 'gemini-3-flash-preview',
-      tools: [{ googleSearch: {} }] as any,
-      generationConfig: {
-        temperature: 0.7,
-        topP: 0.95,
-        maxOutputTokens: 4096,
-        thinkingConfig: {
-          thinkingLevel: 'high',
-        },
-      } as any,
+    return this.getModel('pro', {
+      temperature: 0.7,
+      topP: 0.95,
+      maxOutputTokens: 4096,
     });
   }
 
@@ -1266,16 +1400,10 @@ ${JSON.stringify(quarterlyFinancials, null, 2)}
   ): Promise<AsyncGenerator<string, void, unknown>> {
     const lang = this.getLanguageInstruction(language);
     const marketName = MARKET_NAMES[market] || '美股';
-    const model = this.genAI.getGenerativeModel({
-      model: 'gemini-3-flash-preview',
-      generationConfig: {
-        temperature: 0.7,
-        topP: 0.95,
-        maxOutputTokens: 6144,
-        thinkingConfig: {
-          thinkingLevel: 'high',
-        },
-      } as any,
+    const model = this.getModel('pro', {
+      temperature: 0.7,
+      topP: 0.95,
+      maxOutputTokens: 6144,
     });
 
     const prompt = `根据以下关于 ${companyData.companyName} (${companyData.symbol}) 的完整研究报告，撰写综合投资建议。
@@ -1589,18 +1717,11 @@ ${prevContext}
       fiveYRevenueGrowth: latestGrowth.fiveYRevenueGrowthPerShare,
     };
 
-    // 使用 Gemini 3 Flash Preview 模型，启用思考和联网搜索
-    const model = this.genAI.getGenerativeModel({
-      model: 'gemini-3-flash-preview',
-      tools: [{ googleSearch: {} }] as any,
-      generationConfig: {
-        temperature: 0.7,
-        topP: 0.95,
-        maxOutputTokens: 12288,
-        thinkingConfig: {
-          thinkingLevel: 'high',  // 启用高级思考
-        },
-      } as any,
+    // 使用专业模型生成深度分析
+    const model = this.getModel('pro', {
+      temperature: 0.7,
+      topP: 0.95,
+      maxOutputTokens: 12288,
     });
 
     const today = new Date().toISOString().slice(0, 10);

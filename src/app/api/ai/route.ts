@@ -30,13 +30,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 2. 无缓存，调用 Gemini 生成报告
-    const googleApiKey = process.env.GOOGLE_API_KEY;
-    if (!googleApiKey) {
-      return NextResponse.json({ error: 'Google API 密钥未配置' }, { status: 500 });
+    // 2. 无缓存，调用 AI 生成报告
+    const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
+    if (!deepseekApiKey) {
+      return NextResponse.json({ error: 'DeepSeek API 密钥未配置' }, { status: 500 });
     }
 
-    const gemini = new GeminiClient(googleApiKey);
+    const gemini = new GeminiClient(deepseekApiKey);
 
 
     const defaultAnalysis = {

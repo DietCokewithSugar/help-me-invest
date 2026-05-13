@@ -15,14 +15,14 @@ export async function POST(request: NextRequest) {
     }
 
     const fmpApiKey = process.env.FMP_API_KEY;
-    const googleApiKey = process.env.GOOGLE_API_KEY;
+    const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
 
-    if (!fmpApiKey || !googleApiKey) {
+    if (!fmpApiKey || !deepseekApiKey) {
       return NextResponse.json({ error: 'API密钥未配置' }, { status: 500 });
     }
 
     const fmp = new FMPClient(fmpApiKey);
-    const gemini = new GeminiClient(googleApiKey);
+    const gemini = new GeminiClient(deepseekApiKey);
 
     const upperSymbol = symbol.toUpperCase();
 
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
       aiAnalysis = defaultAnalysis;
     }
 
-    // 使用 Google Search 获取最新新闻和动态
+    // 使用 AI 获取最新新闻和动态
     let searchResults = '';
     try {
       searchResults = await gemini.searchAndAnalyze(
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
         upperSymbol
       );
     } catch (e) {
-      console.log('Google Search not available:', e);
+      console.log('AI search not available:', e);
     }
 
     // 如果有搜索结果，更新最新动态
