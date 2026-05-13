@@ -594,6 +594,41 @@ export interface CompanyDiagnostic {
   processed_at: string | null;
 }
 
+// ==================== Feedback Board ====================
+
+export type FeedbackCategory = 'bug' | 'ux' | 'feature' | 'other';
+
+export interface FeedbackIssue {
+  id: string;
+  author_id: string;
+  author_name: string | null;
+  title: string;
+  body: string;
+  language: string | null;
+  category: FeedbackCategory;
+  upvotes: number;
+  downvotes: number;
+  comment_count: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FeedbackComment {
+  id: string;
+  issue_id: string;
+  parent_id: string | null;
+  author_id: string;
+  author_name: string | null;
+  body: string;
+  language: string | null;
+  upvotes: number;
+  downvotes: number;
+  created_at: string;
+}
+
+export type FeedbackVote = -1 | 0 | 1;
+
 export interface CompanyFilterRequest {
   strategicPositioning?: string[];
   marketCapSize?: string[];
