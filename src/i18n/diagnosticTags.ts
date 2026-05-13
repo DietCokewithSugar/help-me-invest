@@ -75,3 +75,67 @@ export function translateDiagnosticTag(value: string, locale: string): string {
   if (locale === 'zh' || !value) return value;
   return zhToEn[value] || value;
 }
+
+/**
+ * Diagnostic dimension keys (snake_case base name in the DB).
+ */
+export type DiagnosticDimensionField =
+  | 'strategic_positioning'
+  | 'market_cap_size'
+  | 'cyclical_nature'
+  | 'cash_flow_status'
+  | 'debt_structure'
+  | 'external_sensitivity'
+  | 'profit_model';
+
+/**
+ * Read a localized diagnostic dimension value from a company_diagnostics row.
+ *
+ * The DB now exposes both the legacy Chinese column (e.g. `strategic_positioning`)
+ * and explicit bilingual columns (`strategic_positioning_zh` / `_en`). Pick the
+ * column matching the requested locale; fall back to the other locale's column,
+ * then to the legacy column, finally to a hardcoded translation map.
+ */
+export function getLocalizedDiagnostic(
+  company: Record<string, any> | null | undefined,
+  field: DiagnosticDimensionField,
+  locale: string,
+): string | null {
+  if (!company) return null;
+  const wantEn = locale === 'en';
+  const primary = wantEn ? company[`${field}_en`] : company[`${field}_zh`];
+  if (primary) return primary as string;
+
+  const secondary = wantEn ? company[`${field}_zh`] : company[`${field}_en`];
+  const legacy = company[field];
+
+  if (wantEn) {
+    if (legacy) {
+      const translated = zhToEn[legacy as string];
+      if (translated) return translated;
+    }
+    if (secondary) return secondary as string;
+    return (legacy as string) || null;
+  }
+
+  return (legacy as string) || (secondary as string) || null;
+}
+
+/**
+ * Read the localized AI reasoning text from a company_diagnostics row.
+ * Falls back through `_en` / `_zh` / legacy `ai_reasoning` according to locale.
+ */
+export function getLocalizedReasoning(
+  company: Record<string, any> | null | undefined,
+  locale: string,
+): string | null {
+  if (!company) return null;
+  const wantEn = locale === 'en';
+  const primary = wantEn ? company.ai_reasoning_en : company.ai_reasoning_zh;
+  if (primary) return primary as string;
+  const secondary = wantEn ? company.ai_reasoning_zh : company.ai_reasoning_en;
+  if (wantEn) {
+    return (secondary as string) || (company.ai_reasoning as string) || null;
+  }
+  return (company.ai_reasoning as string) || (secondary as string) || null;
+}
