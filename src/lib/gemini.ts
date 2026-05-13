@@ -367,14 +367,19 @@ export class GeminiClient {
    - CN: 6 位数字 + .SS 或 .SZ
    - HK: 4-5 位数字 + .HK（不足位补零）
    - JP: 4 位数字 + .T
-4. 优先返回最相关的 1-5 个候选，confidence 为 0-1 之间的小数。
-5. 如果无法确定，suggestions 为空数组。
+4. **务必返回多个候选**：尽量给出 **3-5 个** 相关公司，按相关性从高到低排序（confidence 0-1 之间的小数）。即使你对最相关的那个非常确定，也请补充：
+   - 同名/相似名公司（例如 "alphabet" → GOOGL + GOOG；"li auto" → LI + 港股 2015.HK）
+   - 同行业的代表性竞品（例如 "tesla" → 也可附带 NIO, XPEV, LI, RIVN 等同行）
+   - 同一公司的不同上市地点（例如阿里巴巴 → BABA + 9988.HK；京东 → JD + 9618.HK）
+   - 中文搜索时如有美股 ADR 和港股/A 股同时上市的公司，把多个市场版本都列出
+   只有在用户输入是非常具体的代码且没有任何相关公司时，才返回 1 个结果；否则不要只返回 1 个。
+5. 如果完全无法确定，suggestions 为空数组。
 ${nameInstruction}
 
 用户输入：${trimmedQuery}
 市场提示：${marketName}
 
-请严格输出以下 JSON 结构：
+请严格输出以下 JSON 结构（注意 suggestions 数组通常包含 3-5 个对象，而不是 1 个）：
 {
   "query": "${trimmedQuery}",
   "suggestions": [
@@ -879,8 +884,35 @@ ${JSON.stringify(companyData, null, 2)}
     market: MarketType,
     language?: string
   ): Promise<AsyncGenerator<string, void, unknown>> {
-    const lang = this.getLanguageInstruction(language);
-    const prompt = `
+    const isEnglish = language === 'en';
+    const prompt = isEnglish
+      ? `
+You are a professional investment research analyst. Based on the following research report about ${companyData.companyName} (${companyData.symbol}), write an "Investment Conclusion" summary.
+
+Existing report content:
+${context}
+
+**CRITICAL LANGUAGE REQUIREMENT**:
+- The entire output MUST be written in **English ONLY**.
+- Do NOT use any Chinese characters, Chinese punctuation, or Chinese phrases anywhere.
+- All section headings, labels, and analysis must be in English.
+
+Requirements:
+- **Do NOT give any buy / sell / hold recommendation**
+- **Do NOT recommend whether to purchase this stock**
+- Objectively analyze only the company's **core strengths** and **key weaknesses / risks**
+- Help investors form a complete picture so they can decide for themselves
+- Length: 200-300 words
+- Format: Markdown, with core strengths and key risks bolded
+
+Output structure (use these exact English headings):
+**Core Strengths**:
+- ...
+
+**Key Weaknesses / Risks**:
+- ...
+`
+      : `
 你是一位专业的投资研究分析师。请根据以下关于 ${companyData.companyName} (${companyData.symbol}) 的研究报告内容，撰写一份“投资建议总结”。
 
 已有报告内容：
@@ -892,7 +924,7 @@ ${context}
 - 只客观分析该公司的**核心优势**和**主要弊端/风险**
 - 帮助投资者全面了解这家公司，让他们自行做出判断
 - 字数 200-300 字
-- ${lang.outputLang}
+- 使用中文
 - 格式：Markdown，核心优势和主要风险点加粗
 
 输出结构：
@@ -912,9 +944,61 @@ ${context}
     symbol: string,
     language?: string
   ): Promise<AsyncGenerator<string, void, unknown>> {
-    const lang = this.getLanguageInstruction(language);
-    const prompt = `
+    const isEnglish = language === 'en';
+    const prompt = isEnglish
+      ? `
+You are a senior sell-side analyst. Based on the following earnings call transcript, generate a concise "Earnings Call Summary".
+
+**CRITICAL LANGUAGE REQUIREMENT**:
+- The entire output MUST be written in **English ONLY**.
+- Do NOT use any Chinese characters, Chinese punctuation, or Chinese phrases anywhere in the response.
+- All section headings, bullet points, labels, and analytical commentary must be in English.
+- If you need to reference common terms, use the English term (e.g. "Gross Margin", "Guidance", "Non-GAAP"), not the Chinese equivalent.
+
+Structure your response strictly around the four areas below, with clear takeaways and judgments for each:
+
+1. Must-Read: Q&A Session
+This is the highest-signal part of the transcript. Analyst questions reflect market concerns; management answers reveal their ability to respond.
+- Pull out the key analyst questions and management's answers.
+- Recurring sharp questions: if two or three analysts ask the same thing (e.g., "Why are margins declining?" or "When will AI monetize?"), even if management deflects, that itself signals the core concern in the market today.
+- Non-answers: watch for evasive answers. If the analyst asks "What is your growth target for next year?" and management replies "We're confident in the long term", that's a classic warning sign that near-term results may be weak or worse.
+- Tone shifts: although you can't hear voices in a transcript, terse, blunt answers or repeated defensive phrasing like "as I said earlier..." usually indicate pressure on management.
+
+2. Core Data: Guidance / Outlook
+This part is typically at the end of the CFO's remarks or in the CEO's closing comments.
+- Forecast revisions: this is the direct catalyst for stock moves. Did they Raise, Lower, or Reiterate full-year targets?
+- Certainty of language: pay attention to modifiers. "Conservative" vs. "strong visibility"? If management says "increasing macro uncertainty", they are usually preparing the market for a future miss.
+
+3. Key Metrics: CFO's Financial Commentary
+The CFO's remarks can be dry but often hold the "key" to interpreting the numbers. Focus on:
+- Margins: search for "Gross Margin" and "Operating Margin". If margins compressed, find the cause—price cuts (bad) or higher R&D investment (potentially good)?
+- One-time items: sometimes a profit spike is from selling a building, or a hit is from a one-off fine. The CFO removes this "noise" here and shows true operating performance (Non-GAAP).
+- Capital Allocation: how do they plan to spend cash? Buybacks (supportive for stock), dividends, or CapEx (e.g., GPU buildouts, new plants)? Heavy CapEx prompts the market to scrutinize the return on those investments.
+
+4. Business Highlights: CEO's Prepared Remarks
+Mostly PR-polished, but one thing is worth watching: changes in strategic priorities.
+- Extract shifts in strategic priorities and meaningful business highlights (avoid generic platitudes).
+
+Output requirements:
+- Structured presentation in **English**, each section with a clear English heading.
+- 3-6 bullet points per section, concise and readable.
+- If a section is not disclosed in the transcript, explicitly write "Not disclosed / Not mentioned".
+- Output content only—do NOT wrap in code block markers.
+- **Formatting**: use Markdown:
+  - Use **bold** to highlight key data, important conclusions, and core takeaways (e.g., specific financial metrics, growth rates, key management statements).
+  - Use bullet lists to organize points.
+  - Key financial data and percentages must be bolded, e.g., **revenue grew 25% YoY**, **gross margin compressed by 3 percentage points**.
+  - Each bullet should contain at least one bolded keyword so readers can quickly scan the highlights.
+
+Company: ${companyName} (${symbol})
+Earnings Call Transcript:
+${transcriptText}
+`
+      : `
 你是一位资深卖方分析师。请根据以下英文电话会议全文，生成中文“财报电话会议精要”。
+
+**语言要求**：整份输出必须使用**简体中文**，不要混用英文段落。专有名词或财务术语可在中文标题后用括号附英文原文。
+
 必须严格围绕用户关心的四个区域输出，并给出清晰的要点与判断：
 
 1. 必读区域：问答环节 (Q&A Session)
@@ -940,7 +1024,7 @@ CFO的发言虽然枯燥，但往往包含了解释数据的“钥匙”。重�
 - 提炼战略优先级变化与业务亮点（避免套话）。
 
 输出要求：
-- ${lang.outputLang}，结构化呈现，每个部分用清晰标题。
+- 使用中文，结构化呈现，每个部分用清晰标题。
 - 每部分 3-6 条要点，简洁、可读。
 - 如果原文未披露某项，明确写“未披露/未提及”。
 - 只输出内容，不要包含任何代码块标记。
@@ -955,7 +1039,6 @@ CFO的发言虽然枯燥，但往往包含了解释数据的“钥匙”。重�
 ${transcriptText}
 `;
 
-    // 使用 lite 模型：财报摘要是结构化提取任务，lite 模型足够
     return this.generateStream(prompt, 'lite');
   }
 
