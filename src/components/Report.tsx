@@ -23,6 +23,7 @@ import {
   UserX,
   Warehouse,
   FileDown,
+  Scale,
 } from 'lucide-react';
 import ReactMarkdown, { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -88,7 +89,6 @@ import { formatNumber as formatNumberUtil } from '@/lib/format-number';
 import UnitModeToggle from './UnitModeToggle';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCompare } from '@/contexts/CompareContext';
-import { ScaleIcon } from '@/components/Icons';
 import { translateDiagnosticTag } from '@/i18n/diagnosticTags';
 import { exportReportToExcel } from '@/lib/export-excel';
 
@@ -821,6 +821,8 @@ export default function Report({
 
   // 获取 section 编号
   const getSectionNumber = (id: string) => sections.find(s => s.id === id)?.number || '';
+  const toolbarButtonClass = 'gemini-btn gemini-btn-secondary h-9 px-3 flex items-center gap-2 text-mist-300 hover:text-mist-200';
+  const toolbarIconClass = 'w-4 h-4 text-current shrink-0';
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
@@ -832,9 +834,9 @@ export default function Report({
         {!isModalView && (
           <button
             onClick={onReset}
-            className="gemini-btn gemini-btn-secondary flex items-center gap-2"
+            className={toolbarButtonClass}
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className={toolbarIconClass} />
             <span className="hidden sm:inline">{t.report.backToSearch}</span>
           </button>
         )}
@@ -870,7 +872,7 @@ export default function Report({
         </div>
 
         {/* 单位切换 */}
-        <UnitModeToggle />
+        <UnitModeToggle className="h-9 px-3 text-mist-300 hover:text-mist-200" />
 
         {/* 右侧按钮组 - 推到右边 */}
         <div className="flex items-center gap-2 md:gap-3 ml-auto">
@@ -891,11 +893,11 @@ export default function Report({
                 });
               }}
               disabled={isInCompare(profile.symbol) || isFull}
-              className="gemini-btn gemini-btn-secondary flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+              className={`${toolbarButtonClass} disabled:opacity-40 disabled:cursor-not-allowed`}
               whileHover={{ scale: isInCompare(profile.symbol) || isFull ? 1 : 1.02 }}
               whileTap={{ scale: isInCompare(profile.symbol) || isFull ? 1 : 0.98 }}
             >
-              <ScaleIcon size={16} />
+              <Scale className={toolbarIconClass} />
               <span className="hidden sm:inline">
                 {isInCompare(profile.symbol) ? t.compare.alreadyInCompare : t.compare.addToCompare}
               </span>
@@ -904,21 +906,21 @@ export default function Report({
 
           <motion.button
             onClick={() => setIsExportModalOpen(true)}
-            className="gemini-btn gemini-btn-secondary flex items-center gap-2"
+            className={toolbarButtonClass}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            <ImageIcon className="w-4 h-4" />
+            <ImageIcon className={toolbarIconClass} />
             <span className="hidden sm:inline">{t.report.exportImage}</span>
           </motion.button>
 
           <motion.button
             onClick={() => exportReportToExcel(data, t)}
-            className="gemini-btn gemini-btn-secondary flex items-center gap-2"
+            className={toolbarButtonClass}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            <FileDown className="w-4 h-4" />
+            <FileDown className={toolbarIconClass} />
             <span className="hidden sm:inline">{t.report.exportExcel}</span>
           </motion.button>
 
@@ -934,11 +936,11 @@ export default function Report({
                 }
               }}
               disabled={isRegenerating || aiLoading}
-              className="gemini-btn gemini-btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`${toolbarButtonClass} disabled:opacity-50 disabled:cursor-not-allowed`}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              <RefreshCw className={`w-4 h-4 ${isRegenerating ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`${toolbarIconClass} ${isRegenerating ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">{isRegenerating ? t.report.generating : t.report.regenerate}</span>
             </motion.button>
           )}
