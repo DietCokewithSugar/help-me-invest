@@ -1950,6 +1950,52 @@ ${JSON.stringify(quarterlyFinancials, null, 2)}
     return streamIterator();
   }
 
+  // 12. 用户反馈翻译（仅前端展示用，不写库）
+  async translateText(
+    text: string,
+    targetLang: 'zh' | 'en',
+    sourceLang: string = 'auto',
+  ): Promise<string> {
+    const trimmed = text.trim();
+    if (!trimmed) return '';
+
+    const targetLabel = targetLang === 'zh' ? 'Simplified Chinese' : 'English';
+    const sourceLabel = sourceLang === 'auto'
+      ? 'the source language (auto-detect)'
+      : sourceLang === 'zh' ? 'Simplified Chinese' : 'English';
+
+    const prompt = `You are a precise translator. Translate the user feedback below from ${sourceLabel} to ${targetLabel}.
+
+Strict requirements:
+- Output ONLY the translated text. No quotes, no notes, no original copy.
+- Preserve Markdown, code blocks, and line breaks as-is.
+- Keep product names, stock symbols, and URLs untouched.
+- If the text is already in ${targetLabel}, return it unchanged.
+
+Text to translate:
+"""
+${trimmed}
+"""`;
+
+    try {
+      const model = this.getModel('lite', {
+        temperature: 0.2,
+        topP: 0.9,
+        maxOutputTokens: 2048,
+      });
+      const result = await globalRateLimiter.enqueue(
+        () => model.generateContent(prompt),
+        'translateText',
+      );
+      const response = await result.response;
+      const raw = response.text();
+      return (raw || trimmed).trim();
+    } catch (error: any) {
+      console.error('translateText error:', error?.message || error);
+      return trimmed;
+    }
+  }
+
   // 11. 智能划词解释
   async explainText(text: string, language?: string): Promise<string> {
     const lang = this.getLanguageInstruction(language);
