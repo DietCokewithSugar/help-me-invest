@@ -108,6 +108,7 @@ const MARKET_NAMES: Record<MarketType, string> = {
   CN: 'A股（中国大陆）',
   HK: '港股（香港）',
   JP: '日股（日本）',
+  KR: '韩股（韩国）',
 };
 
 interface ModelConfigInput {
@@ -361,19 +362,15 @@ export class GeminiClient {
 
 要求：
 1. 只返回 JSON，不要包含任何 Markdown 或解释性文字。
-2. 市场只能是 US / CN / HK / JP。
+2. 市场只能是 US / CN / HK / JP / KR。
 3. 返回的 symbol 必须是可用于 FMP 的格式：
    - US: 例如 AAPL, TSLA, BRK.B
    - CN: 6 位数字 + .SS 或 .SZ
    - HK: 4-5 位数字 + .HK（不足位补零）
    - JP: 4 位数字 + .T
-4. **务必返回多个候选**：尽量给出 **3-5 个** 相关公司，按相关性从高到低排序（confidence 0-1 之间的小数）。即使你对最相关的那个非常确定，也请补充：
-   - 同名/相似名公司（例如 "alphabet" → GOOGL + GOOG；"li auto" → LI + 港股 2015.HK）
-   - 同行业的代表性竞品（例如 "tesla" → 也可附带 NIO, XPEV, LI, RIVN 等同行）
-   - 同一公司的不同上市地点（例如阿里巴巴 → BABA + 9988.HK；京东 → JD + 9618.HK）
-   - 中文搜索时如有美股 ADR 和港股/A 股同时上市的公司，把多个市场版本都列出
-   只有在用户输入是非常具体的代码且没有任何相关公司时，才返回 1 个结果；否则不要只返回 1 个。
-5. 如果完全无法确定，suggestions 为空数组。
+   - KR: 6 位数字 + .KS（KOSPI 主板）或 .KQ（KOSDAQ 创业板），例如 005930.KS (三星电子)、035720.KS (Kakao)
+4. 优先返回最相关的 1-5 个候选，confidence 为 0-1 之间的小数。
+5. 如果无法确定，suggestions 为空数组。
 ${nameInstruction}
 
 用户输入：${trimmedQuery}

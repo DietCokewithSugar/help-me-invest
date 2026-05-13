@@ -166,6 +166,7 @@ export const en: TranslationKeys = {
       aShare: 'A-Share',
       hkStock: 'HK',
       jpStock: 'Japan',
+      krStock: 'Korea',
     },
     testimonials: {
       title: 'What Users Say',
@@ -234,6 +235,8 @@ export const en: TranslationKeys = {
       '0700.HK': 'Tencent',
       '9988.HK': 'Alibaba',
       '7203.T': 'Toyota',
+      '005930.KS': 'Samsung Electronics',
+      '035720.KS': 'Kakao',
     },
   },
   companies: {
@@ -1063,15 +1066,18 @@ export const en: TranslationKeys = {
     cn: 'A-Share',
     hk: 'HK',
     jp: 'Japan',
+    kr: 'Korea',
     usLong: 'US Stocks',
     cnLong: 'A-Shares (China)',
     hkLong: 'HK Stocks (Hong Kong)',
     jpLong: 'Japan Stocks',
+    krLong: 'Korea Stocks',
     symbolFormat: {
       us: 'Enter stock symbol directly',
       cn: 'Stock code + exchange suffix',
       hk: 'Stock code + .HK suffix',
       jp: 'Stock code + .T suffix',
+      kr: 'Stock code + .KS / .KQ suffix',
     },
   },
   sectors: {
