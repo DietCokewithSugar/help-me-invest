@@ -367,14 +367,19 @@ export class GeminiClient {
    - CN: 6 位数字 + .SS 或 .SZ
    - HK: 4-5 位数字 + .HK（不足位补零）
    - JP: 4 位数字 + .T
-4. 优先返回最相关的 1-5 个候选，confidence 为 0-1 之间的小数。
-5. 如果无法确定，suggestions 为空数组。
+4. **务必返回多个候选**：尽量给出 **3-5 个** 相关公司，按相关性从高到低排序（confidence 0-1 之间的小数）。即使你对最相关的那个非常确定，也请补充：
+   - 同名/相似名公司（例如 "alphabet" → GOOGL + GOOG；"li auto" → LI + 港股 2015.HK）
+   - 同行业的代表性竞品（例如 "tesla" → 也可附带 NIO, XPEV, LI, RIVN 等同行）
+   - 同一公司的不同上市地点（例如阿里巴巴 → BABA + 9988.HK；京东 → JD + 9618.HK）
+   - 中文搜索时如有美股 ADR 和港股/A 股同时上市的公司，把多个市场版本都列出
+   只有在用户输入是非常具体的代码且没有任何相关公司时，才返回 1 个结果；否则不要只返回 1 个。
+5. 如果完全无法确定，suggestions 为空数组。
 ${nameInstruction}
 
 用户输入：${trimmedQuery}
 市场提示：${marketName}
 
-请严格输出以下 JSON 结构：
+请严格输出以下 JSON 结构（注意 suggestions 数组通常包含 3-5 个对象，而不是 1 个）：
 {
   "query": "${trimmedQuery}",
   "suggestions": [
