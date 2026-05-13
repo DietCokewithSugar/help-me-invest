@@ -823,6 +823,8 @@ export default function Report({
   const getSectionNumber = (id: string) => sections.find(s => s.id === id)?.number || '';
   const toolbarButtonClass = 'gemini-btn gemini-btn-secondary h-9 px-3 flex items-center gap-2 text-mist-300 hover:text-mist-200';
   const toolbarIconClass = 'w-4 h-4 text-current shrink-0';
+  // DeepSeek 暂不支持在线研究，普通版先隐藏“最新发展动态”卡片
+  const showRecentDevelopmentsInStandard = false;
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
@@ -1219,19 +1221,21 @@ export default function Report({
                 </AnalysisCard>
               </div>
 
-              {/* 最新动态 */}
-              <AnalysisCard title={t.report.analysis.recentDevelopments} onShare={handleShareModule}>
-                {aiAnalysis?.recentDevelopments ? (
-                  <div className="prose prose-gemini max-w-none prose-p:text-mist-300 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-300 prose-a:text-glacier-500 prose-a:no-underline hover:prose-a:underline text-sm">
-                    <ReactMarkdown>{aiAnalysis.recentDevelopments}</ReactMarkdown>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 text-mist-500 text-sm">
-                    <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
-                    <span>{t.report.analysis.recentDevelopmentsLoading}</span>
-                  </div>
-                )}
-              </AnalysisCard>
+              {/* 最新动态：DeepSeek 暂不支持在线研究，普通版暂不展示 */}
+              {showRecentDevelopmentsInStandard && (
+                <AnalysisCard title={t.report.analysis.recentDevelopments} onShare={handleShareModule}>
+                  {aiAnalysis?.recentDevelopments ? (
+                    <div className="prose prose-gemini max-w-none prose-p:text-mist-300 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-300 prose-a:text-glacier-500 prose-a:no-underline hover:prose-a:underline text-sm">
+                      <ReactMarkdown>{aiAnalysis.recentDevelopments}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-mist-500 text-sm">
+                      <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                      <span>{t.report.analysis.recentDevelopmentsLoading}</span>
+                    </div>
+                  )}
+                </AnalysisCard>
+              )}
 
               {/* 财报电话会议精要 */}
               {(earningsCallSummary || aiLoading) && (
