@@ -1671,7 +1671,10 @@ function HomeContent() {
             onRegenerate={async () => {
               if (!reportData) return;
               const symbolToRegenerate = reportData.profile.symbol;
-              const marketToRegenerate = reportData.market || 'US';
+              const marketToRegenerate =
+                reportData.market ||
+                (reportData.profile as any)?.market ||
+                detectMarketFromSymbol(symbolToRegenerate);
 
               try {
                 await fetch(`/api/cache?symbol=${encodeURIComponent(symbolToRegenerate)}&market=${marketToRegenerate}&language=${locale}&type=${reportType === 'pro' ? 'professional' : reportType}`, {

@@ -16,6 +16,8 @@ export interface CompanyProfile {
   changePercentage: number;
   exchange: string;
   exchangeFullName: string;
+  currency?: string;
+  reportedCurrency?: string;
   mktCap?: number;
   changes?: number;
   changesPercentage?: string;

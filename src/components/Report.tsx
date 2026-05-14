@@ -82,15 +82,15 @@ import HoldingsAnalysis from './HoldingsAnalysis';
 import ExportModal from './ExportModal';
 import ShareExportModal from './ShareExportModal';
 import type { ReportData, MarketType } from '@/types';
-import { getMarketConfig } from '@/lib/markets';
+import { detectMarketFromSymbol, getMarketConfig } from '@/lib/markets';
 import { buildSankeyData } from '@/lib/sankey-utils';
 import { useUnitMode } from '@/lib/UnitModeContext';
 import { formatNumber as formatNumberUtil } from '@/lib/format-number';
-import UnitModeToggle from './UnitModeToggle';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCompare } from '@/contexts/CompareContext';
 import { translateDiagnosticTag } from '@/i18n/diagnosticTags';
 import { exportReportToExcel } from '@/lib/export-excel';
+import { resolveReportCurrency } from '@/lib/currency';
 
 // 市场标识徽章 - 极简设计，无 emoji，直角
 const MarketBadge = ({ market }: { market: MarketType }) => {
@@ -674,7 +674,7 @@ export default function Report({
     earningsTranscripts = [],
     earningsCallSummary = '',
     sankeyData: initialSankeyData,
-    market = 'US' as MarketType,
+    market,
   } = data;
 
   // 根据选择的年份动态构建桑基图数据
@@ -699,10 +699,27 @@ export default function Report({
     }));
   }, [incomeStatements, t]);
 
+  const resolvedMarket: MarketType = useMemo(() => {
+    const profileMarket = (profile as any)?.market as MarketType | undefined;
+    return market || profileMarket || detectMarketFromSymbol(profile?.symbol || '');
+  }, [market, profile]);
+
   // 获取市场配置
-  const marketConfig = getMarketConfig(market);
-  const isUSMarket = market === 'US';
+  const marketConfig = getMarketConfig(resolvedMarket);
+  const isUSMarket = resolvedMarket === 'US';
   const features = marketConfig.supportedFeatures;
+
+  const currency = useMemo(
+    () =>
+      resolveReportCurrency({
+        market: resolvedMarket,
+        profile: profile as any,
+        incomeStatements,
+        balanceSheets,
+        cashFlowStatements,
+      }),
+    [resolvedMarket, profile, incomeStatements, balanceSheets, cashFlowStatements]
+  );
 
   // 检查数据可用性
   const hasHoldingsData = (institutionalHolders.length > 0 || insiderTrading.length > 0) && features.institutionalHolders;
@@ -817,8 +834,9 @@ export default function Report({
   // 为侧边导航准备的 sections
   const navSections = sections.map((s) => ({ id: s.id, label: s.label, number: s.number }));
 
-  // 货币符号
-  const currencySymbol = marketConfig.currencySymbol;
+  // 货币符号（优先使用报表返回币种，其次按市场兜底）
+  const currencySymbol = currency.symbol;
+  const currencyCode = currency.code;
 
   // 获取 section 编号
   const getSectionNumber = (id: string) => sections.find(s => s.id === id)?.number || '';
@@ -874,9 +892,6 @@ export default function Report({
           })}
         </div>
 
-        {/* 单位切换 */}
-        <UnitModeToggle className="h-9 px-3 text-mist-300 hover:text-mist-200" />
-
         {/* 右侧按钮组 - 推到右边 */}
         <div className="flex items-center gap-2 md:gap-3 ml-auto">
           {/* 加入对比按钮 */}
@@ -886,7 +901,7 @@ export default function Report({
                 addCompany({
                   symbol: profile.symbol,
                   companyName: profile.companyName,
-                  market: data.market || 'US',
+                  market: resolvedMarket,
                   image: profile.image,
                   price: profile.price,
                   changePercentage: profile.changesPercentage ? parseFloat(profile.changesPercentage) : profile.changePercentage,
@@ -965,9 +980,12 @@ export default function Report({
                 <span className="px-2 py-0.5 rounded-sm bg-white/5 border border-white/10 text-mist-300 text-sm font-mono font-semibold">
                   {profile.symbol}
                 </span>
-                <MarketBadge market={market} />
+                <MarketBadge market={resolvedMarket} />
                 <span className="px-2 py-0.5 bg-white/5 text-mist-400 rounded-sm text-xs border border-white/10 font-mono">
                   {exchangeName}
+                </span>
+                <span className="px-2 py-0.5 bg-white/5 text-mist-400 rounded-sm text-xs border border-white/10 font-mono">
+                  {currencyCode}
                 </span>
               </div>
 
@@ -1338,6 +1356,7 @@ export default function Report({
                 <RevenueCharts
                   incomeStatements={incomeStatements}
                   incomeStatementsQuarter={data.incomeStatementsQuarter}
+                  currencySymbol={currencySymbol}
                   theme={theme}
                 />
               </div>
@@ -1350,6 +1369,7 @@ export default function Report({
                 incomeStatementsQuarter={data.incomeStatementsQuarter}
                 balanceSheetsQuarter={data.balanceSheetsQuarter}
                 cashFlowStatementsQuarter={data.cashFlowStatementsQuarter}
+                currencySymbol={currencySymbol}
                 theme={theme}
               />
             </div>
@@ -1473,6 +1493,7 @@ export default function Report({
                 financialRatios={financialRatios}
                 financialRatiosTTM={financialRatiosTTM}
                 financialScores={data.financialScores}
+                currencySymbol={currencySymbol}
                 theme={theme}
               />
             </div>
