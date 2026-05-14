@@ -504,7 +504,7 @@ export interface SankeyData {
 // ==================== 完整报告数据结构 ====================
 
 // 市场类型
-export type MarketType = 'US' | 'CN' | 'HK' | 'JP' | 'KR';
+export type MarketType = 'US' | 'CN' | 'HK' | 'JP' | 'KR' | 'AU';
 
 export interface ReportData {
   profile: CompanyProfile;

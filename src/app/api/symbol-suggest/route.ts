@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GeminiClient } from '@/lib/gemini';
 import { formatSymbolForMarket, type MarketType } from '@/lib/markets';
 
-const VALID_MARKETS: MarketType[] = ['US', 'CN', 'HK', 'JP', 'KR'];
+const VALID_MARKETS: MarketType[] = ['US', 'CN', 'HK', 'JP', 'KR', 'AU'];
 
 // 本地常见股票库 - 当 AI API 失败时作为备用
 const LOCAL_STOCKS = [
@@ -91,6 +91,15 @@ const LOCAL_STOCKS = [
   { symbol: '012330.KS', market: 'KR', name: 'Hyundai Mobis', nameCn: '现代摩比斯', keywords: ['mobis', '모비스', 'hyundai mobis'] },
   { symbol: '028260.KS', market: 'KR', name: 'Samsung C&T', nameCn: '三星物产', keywords: ['三星物产', 'samsung c&t', '삼성물산'] },
   { symbol: '066570.KS', market: 'KR', name: 'LG Electronics', nameCn: 'LG电子', keywords: ['lg电子', 'lg electronics', 'lg전자'] },
+  // 澳股
+  { symbol: 'CBA.AX', market: 'AU', name: 'Commonwealth Bank of Australia', nameCn: '澳洲联邦银行', keywords: ['cba', 'commonwealth bank', '澳洲联邦银行', '联邦银行'] },
+  { symbol: 'BHP.AX', market: 'AU', name: 'BHP Group Ltd', nameCn: '必和必拓', keywords: ['bhp', '必和必拓', '矿业'] },
+  { symbol: 'CSL.AX', market: 'AU', name: 'CSL Limited', nameCn: 'CSL', keywords: ['csl', '生物制药', '血液制品'] },
+  { symbol: 'WBC.AX', market: 'AU', name: 'Westpac Banking Corporation', nameCn: '西太平洋银行', keywords: ['wbc', 'westpac', '西太平洋银行'] },
+  { symbol: 'NAB.AX', market: 'AU', name: 'National Australia Bank', nameCn: '澳洲国民银行', keywords: ['nab', 'national australia bank', '澳洲国民银行'] },
+  { symbol: 'ANZ.AX', market: 'AU', name: 'ANZ Group Holdings', nameCn: '澳新银行', keywords: ['anz', '澳新银行'] },
+  { symbol: 'WES.AX', market: 'AU', name: 'Wesfarmers Limited', nameCn: 'Wesfarmers', keywords: ['wes', 'wesfarmers'] },
+  { symbol: 'RIO.AX', market: 'AU', name: 'Rio Tinto Limited', nameCn: '力拓', keywords: ['rio', 'rio tinto', '力拓'] },
 ];
 
 // 本地搜索函数
@@ -127,6 +136,7 @@ const MARKET_SYMBOL_REGEX: Record<MarketType, RegExp> = {
   HK: /^\d{4,5}\.HK$/,
   JP: /^\d{4}\.T$/,
   KR: /^\d{6}\.(KS|KQ)$/,
+  AU: /^[A-Z0-9]{2,6}\.AX$/,
 };
 
 function normalizeSuggestion(item: any) {
