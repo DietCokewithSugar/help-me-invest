@@ -93,13 +93,6 @@ export async function POST(request: NextRequest) {
             query = query.or(`symbol.ilike.%${q}%,company_name.ilike.%${q}%`);
         }
 
-        // 只返回活跃交易的股票
-        query = query.eq('is_actively_trading', true);
-
-        // 排除 ETF 和基金
-        query = query.eq('is_etf', false);
-        query = query.eq('is_fund', false);
-
         // 分页
         const pageLimit = Math.min(limit, 100); // 最多返回 100 条
         const offset = (page - 1) * pageLimit;
