@@ -641,6 +641,7 @@ export default function Report({
 }: ReportProps) {
   const reportRef = useRef<HTMLDivElement>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isSharePickerOpen, setIsSharePickerOpen] = useState(false);
   const [shareNotice, setShareNotice] = useState('');
   const [showTranscript, setShowTranscript] = useState(false);
   const [activeSection, setActiveSection] = useState('');
@@ -954,6 +955,17 @@ export default function Report({
     }
   }, [getShareUrl]);
 
+  React.useEffect(() => {
+    if (!isSharePickerOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsSharePickerOpen(false);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isSharePickerOpen]);
+
   // 获取 section 编号
   const getSectionNumber = (id: string) => sections.find(s => s.id === id)?.number || '';
   // DeepSeek 暂不支持在线研究，普通版先隐藏“最新发展动态”卡片
@@ -990,90 +1002,12 @@ export default function Report({
     </div>
   );
 
-  const ShareActionMenuButton = () => {
-    const [open, setOpen] = useState(false);
-    const menuRef = useRef<HTMLDivElement>(null);
-
-    React.useEffect(() => {
-      if (!open) return;
-
-      const handleClickOutside = (event: MouseEvent) => {
-        if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-          setOpen(false);
-        }
-      };
-
-      const handleEscape = (event: KeyboardEvent) => {
-        if (event.key === 'Escape') {
-          setOpen(false);
-        }
-      };
-
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleEscape);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-        document.removeEventListener('keydown', handleEscape);
-      };
-    }, [open]);
-
-    const runAction = async (action: () => void | Promise<void>) => {
-      try {
-        await action();
-      } finally {
-        setOpen(false);
-      }
-    };
-
-    return (
-      <div className="relative" ref={menuRef}>
-        <IconActionButton
-          icon={Share2}
-          tooltip={t.common.share}
-          onClick={() => setOpen(prev => !prev)}
-        />
-
-        {open && (
-          <div className="absolute right-0 top-11 z-50 w-48 rounded-sm border border-white/10 bg-surface p-1 shadow-xl">
-            <button
-              onClick={() => runAction(handleShareAsImage)}
-              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-xs text-mist-300 transition-colors hover:bg-white/10 hover:text-white"
-            >
-              <ImageIcon className="h-3.5 w-3.5" />
-              {t.report.shareActions.image}
-            </button>
-            <button
-              onClick={() => runAction(handleShareAsExcel)}
-              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-xs text-mist-300 transition-colors hover:bg-white/10 hover:text-white"
-            >
-              <FileDown className="h-3.5 w-3.5" />
-              {t.report.shareActions.excel}
-            </button>
-            <button
-              onClick={() => runAction(handleShareLink)}
-              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-xs text-mist-300 transition-colors hover:bg-white/10 hover:text-white"
-            >
-              <Link2 className="h-3.5 w-3.5" />
-              {t.report.shareActions.link}
-            </button>
-            <button
-              onClick={() => runAction(handleShareToWeChat)}
-              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-xs text-mist-300 transition-colors hover:bg-white/10 hover:text-white"
-            >
-              <MessageCircle className="h-3.5 w-3.5" />
-              {t.report.shareActions.wechat}
-            </button>
-            <button
-              onClick={() => runAction(handleShareToFacebook)}
-              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-xs text-mist-300 transition-colors hover:bg-white/10 hover:text-white"
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-              {t.report.shareActions.facebook}
-            </button>
-          </div>
-        )}
-      </div>
-    );
+  const runShareAction = async (action: () => void | Promise<void>) => {
+    try {
+      await action();
+    } finally {
+      setIsSharePickerOpen(false);
+    }
   };
 
   const renderActionIcons = () => (
@@ -1099,7 +1033,11 @@ export default function Report({
         />
       )}
 
-      <ShareActionMenuButton />
+      <IconActionButton
+        icon={Share2}
+        tooltip={t.common.share}
+        onClick={() => setIsSharePickerOpen(true)}
+      />
 
       {onRegenerate && (
         <IconActionButton
@@ -1853,6 +1791,56 @@ export default function Report({
           </p>
         </footer>
       </div>
+
+      {isSharePickerOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <button
+            className="absolute inset-0 bg-black/70"
+            aria-label="close-share-picker"
+            onClick={() => setIsSharePickerOpen(false)}
+          />
+          <div className="relative w-full max-w-sm rounded-md border border-white/10 bg-surface p-4">
+            <h3 className="mb-3 text-sm font-semibold text-white">{t.common.share}</h3>
+            <div className="space-y-1">
+              <button
+                onClick={() => runShareAction(handleShareAsImage)}
+                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm text-mist-300 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <ImageIcon className="h-4 w-4" />
+                {t.report.shareActions.image}
+              </button>
+              <button
+                onClick={() => runShareAction(handleShareAsExcel)}
+                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm text-mist-300 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <FileDown className="h-4 w-4" />
+                {t.report.shareActions.excel}
+              </button>
+              <button
+                onClick={() => runShareAction(handleShareLink)}
+                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm text-mist-300 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <Link2 className="h-4 w-4" />
+                {t.report.shareActions.link}
+              </button>
+              <button
+                onClick={() => runShareAction(handleShareToWeChat)}
+                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm text-mist-300 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <MessageCircle className="h-4 w-4" />
+                {t.report.shareActions.wechat}
+              </button>
+              <button
+                onClick={() => runShareAction(handleShareToFacebook)}
+                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm text-mist-300 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <ExternalLink className="h-4 w-4" />
+                {t.report.shareActions.facebook}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 导出模态框 */}
       <ExportModal
