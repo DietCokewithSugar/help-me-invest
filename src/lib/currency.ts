@@ -1,4 +1,5 @@
 import { getMarketConfig, type MarketType } from '@/lib/markets';
+import { formatNumber as formatNumberUtil, type UnitMode } from '@/lib/format-number';
 
 export interface CurrencyContext {
   code: string;
@@ -69,4 +70,40 @@ export function resolveReportCurrency(params: {
     code,
     symbol: getCurrencySymbol(code, marketConfig.currencySymbol),
   };
+}
+
+export function getUnitModeByLocale(locale?: string): UnitMode {
+  return locale === 'zh' ? 'zh' : 'en';
+}
+
+export function getChartScaleByLocale(locale?: string): number {
+  return getUnitModeByLocale(locale) === 'zh' ? 1e8 : 1e9;
+}
+
+export function getChartUnitByLocale(locale?: string): string {
+  return getUnitModeByLocale(locale) === 'zh' ? '亿' : 'B';
+}
+
+export function formatCurrencyCompact(num: number | null | undefined, params: {
+  locale?: string;
+  currencySymbol: string;
+  currencyCode: string;
+}): string {
+  if (num === undefined || num === null || Number.isNaN(num)) return 'N/A';
+  const unitMode = getUnitModeByLocale(params.locale);
+  const compact = formatNumberUtil(num, unitMode);
+  return `${params.currencySymbol}${compact} ${params.currencyCode}`;
+}
+
+export function formatCurrencyFixed(
+  num: number | null | undefined,
+  params: {
+    currencySymbol: string;
+    currencyCode: string;
+    decimals?: number;
+  }
+): string {
+  if (num === undefined || num === null || Number.isNaN(num)) return 'N/A';
+  const decimals = params.decimals ?? 2;
+  return `${params.currencySymbol}${num.toFixed(decimals)} ${params.currencyCode}`;
 }

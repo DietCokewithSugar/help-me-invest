@@ -4,19 +4,31 @@ import { useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { Calendar, TrendingUp, TrendingDown, DollarSign, Scissors, Clock, CheckCircle, XCircle } from 'lucide-react';
 import type { EarningsCalendar, DividendCalendar, StockSplit } from '@/types';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatNumber as formatNumberUtil } from '@/lib/format-number';
 
 interface Props {
   earningsCalendar: EarningsCalendar[];
   dividendHistory: DividendCalendar[];
   stockSplits: StockSplit[];
+  currencySymbol?: string;
+  currencyCode?: string;
   theme?: 'dark' | 'light';
 }
 
 type TabType = 'earnings' | 'dividends' | 'splits';
 
-export default function EventCalendar({ earningsCalendar, dividendHistory, stockSplits, theme = 'dark' }: Props) {
+export default function EventCalendar({
+  earningsCalendar,
+  dividendHistory,
+  stockSplits,
+  currencySymbol = '$',
+  currencyCode = 'USD',
+  theme = 'dark',
+}: Props) {
   const isLight = theme === 'light';
   const [activeTab, setActiveTab] = useState<TabType>('earnings');
+  const { locale } = useLanguage();
 
   const formatDate = (dateStr: string) => {
     try {
@@ -32,9 +44,13 @@ export default function EventCalendar({ earningsCalendar, dividendHistory, stock
 
   const formatNumber = (num: number | undefined | null) => {
     if (num === undefined || num === null || isNaN(num)) return 'N/A';
-    if (Math.abs(num) >= 1e9) return '$' + (num / 1e9).toFixed(2) + 'B';
-    if (Math.abs(num) >= 1e6) return '$' + (num / 1e6).toFixed(2) + 'M';
-    return '$' + num.toFixed(2);
+    const compact = formatNumberUtil(num, locale === 'zh' ? 'zh' : 'en');
+    return `${currencySymbol}${compact} ${currencyCode}`;
+  };
+
+  const formatFixedAmount = (num: number | undefined | null, digits = 2) => {
+    if (num === undefined || num === null || isNaN(num)) return 'N/A';
+    return `${currencySymbol}${num.toFixed(digits)} ${currencyCode}`;
   };
 
   const tabs: { key: TabType; label: string; icon: React.ReactNode; count: number }[] = [
@@ -99,10 +115,10 @@ export default function EventCalendar({ earningsCalendar, dividendHistory, stock
                 },
                 yAxis: {
                   type: 'value',
-                  name: 'EPS ($)',
+                  name: `EPS (${currencyCode})`,
                   nameTextStyle: { color: isLight ? '#64748b' : '#64748b' },
                   axisLine: { show: false },
-                  axisLabel: { color: isLight ? '#64748b' : '#64748b', formatter: (v: number) => `$${v.toFixed(2)}` },
+                  axisLabel: { color: isLight ? '#64748b' : '#64748b', formatter: (v: number) => `${currencySymbol}${v.toFixed(2)} ${currencyCode}` },
                   splitLine: { lineStyle: { color: isLight ? '#f1f5f9' : '#1e293b', type: 'dashed' } },
                 },
                 series: [
@@ -156,13 +172,13 @@ export default function EventCalendar({ earningsCalendar, dividendHistory, stock
                   <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                     <td className="py-3 px-4 text-white font-mono">{formatDate(e.date)}</td>
                     <td className="text-right py-3 px-4 font-mono text-slate-400">
-                      ${e.epsEstimated?.toFixed(2) || 'N/A'}
+                      {formatFixedAmount(e.epsEstimated, 2)}
                     </td>
                     <td className={`text-right py-3 px-4 font-mono font-semibold ${beat ? (isLight ? 'text-emerald-600' : 'text-green-400') :
                         miss ? (isLight ? 'text-red-600' : 'text-red-400') :
                           'text-white'
                       }`}>
-                      ${e.epsActual?.toFixed(2) || 'N/A'}
+                      {formatFixedAmount(e.epsActual, 2)}
                     </td>
                     <td className="text-right py-3 px-4 font-mono text-slate-400">
                       {formatNumber(e.revenueEstimated)}
@@ -222,13 +238,13 @@ export default function EventCalendar({ earningsCalendar, dividendHistory, stock
           <div className="bg-green-500/10 rounded-lg p-4 text-center">
             <p className="text-sm text-slate-400 mb-1">最新分红</p>
             <p className="text-2xl font-bold font-mono text-green-400">
-              ${dividendHistory[0]?.dividend?.toFixed(4) || 'N/A'}
+              {formatFixedAmount(dividendHistory[0]?.dividend, 4)}
             </p>
           </div>
           <div className="bg-aurora-500/10 rounded-lg p-4 text-center">
             <p className="text-sm text-slate-400 mb-1">年度分红 ({years[years.length - 1]})</p>
             <p className="text-2xl font-bold font-mono text-aurora-400">
-              ${dividends[dividends.length - 1]?.toFixed(2) || 'N/A'}
+              {formatFixedAmount(dividends[dividends.length - 1], 2)}
             </p>
           </div>
         </div>
@@ -256,10 +272,10 @@ export default function EventCalendar({ earningsCalendar, dividendHistory, stock
                 },
                 yAxis: {
                   type: 'value',
-                  name: '分红 ($)',
+                  name: `分红 (${currencyCode})`,
                   nameTextStyle: { color: isLight ? '#64748b' : '#64748b' },
                   axisLine: { show: false },
-                  axisLabel: { color: isLight ? '#64748b' : '#64748b', formatter: (v: number) => `$${v.toFixed(2)}` },
+                  axisLabel: { color: isLight ? '#64748b' : '#64748b', formatter: (v: number) => `${currencySymbol}${v.toFixed(2)} ${currencyCode}` },
                   splitLine: { lineStyle: { color: isLight ? '#f1f5f9' : '#1e293b', type: 'dashed' } },
                 },
                 series: [
@@ -281,7 +297,7 @@ export default function EventCalendar({ earningsCalendar, dividendHistory, stock
                       show: true,
                       position: 'top',
                       color: isLight ? '#475569' : '#94a3b8',
-                      formatter: (params: any) => `$${params.value.toFixed(2)}`,
+                      formatter: (params: any) => `${currencySymbol}${params.value.toFixed(2)} ${currencyCode}`,
                     },
                   },
                 ],
@@ -308,10 +324,10 @@ export default function EventCalendar({ earningsCalendar, dividendHistory, stock
                 <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                   <td className="py-3 px-4 text-white font-mono">{formatDate(d.date)}</td>
                   <td className="text-right py-3 px-4 font-mono text-green-400 font-semibold">
-                    ${d.dividend?.toFixed(4) || 'N/A'}
+                    {formatFixedAmount(d.dividend, 4)}
                   </td>
                   <td className="text-right py-3 px-4 font-mono text-slate-400">
-                    ${d.adjDividend?.toFixed(4) || 'N/A'}
+                    {formatFixedAmount(d.adjDividend, 4)}
                   </td>
                   <td className="py-3 px-4 font-mono text-slate-400">{formatDate(d.paymentDate)}</td>
                   <td className="py-3 px-4 font-mono text-slate-400">{formatDate(d.declarationDate)}</td>

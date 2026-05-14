@@ -3,13 +3,13 @@
 import { useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { IncomeStatement } from '@/types';
-import { useUnitMode } from '@/lib/UnitModeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Props {
   incomeStatements: IncomeStatement[];
   incomeStatementsQuarter?: IncomeStatement[];
   currencySymbol?: string;
+  currencyCode?: string;
   theme?: 'dark' | 'light';
 }
 
@@ -17,12 +17,12 @@ export default function RevenueCharts({
   incomeStatements,
   incomeStatementsQuarter,
   currencySymbol = '$',
+  currencyCode = 'USD',
   theme = 'dark',
 }: Props) {
   const isLight = theme === 'light';
   const [period, setPeriod] = useState<'annual' | 'quarter'>('annual');
-  const { unitMode } = useUnitMode();
-  const { t } = useLanguage();
+  const { locale, t } = useLanguage();
   const rcT = t.report.revenueCharts;
 
   const activeStatements = period === 'quarter' && incomeStatementsQuarter?.length
@@ -38,9 +38,11 @@ export default function RevenueCharts({
   }
 
   // Dynamic scale based on unit mode
-  const chartScale = unitMode === 'zh' ? 1e8 : 1e9;
-  const chartUnit = unitMode === 'zh' ? '亿' : 'B';
+  const isZh = locale === 'zh';
+  const chartScale = isZh ? 1e8 : 1e9;
+  const chartUnit = isZh ? '亿' : 'B';
   const currencyPrefix = currencySymbol;
+  const currencySuffix = ` ${currencyCode}`;
 
   // 颜色定义
   const TEXT_PRIMARY = isLight ? '#1e293b' : '#e2e8f0';
@@ -90,7 +92,7 @@ export default function RevenueCharts({
         result += '<table style="width:100%; border-collapse: collapse;">';
         params.forEach((p: any) => {
           const isMargin = p.seriesName === rcT.legend.grossMargin;
-          const valueStr = isMargin ? `${p.value.toFixed(1)}%` : `${currencyPrefix}${p.value.toFixed(2)}${chartUnit}`;
+          const valueStr = isMargin ? `${p.value.toFixed(1)}%` : `${currencyPrefix}${p.value.toFixed(2)}${chartUnit}${currencySuffix}`;
           result += `<tr>
             <td style="padding: 2px 8px 2px 0; display: flex; align-items: center;">
               <span style="width: 6px; height: 6px; background: ${p.color}; margin-right: 6px; display: inline-block;"></span>
@@ -136,7 +138,7 @@ export default function RevenueCharts({
           color: TEXT_MUTED,
           fontSize: 10,
           fontFamily: 'JetBrains Mono, monospace',
-          formatter: (value: number) => `${value}`,
+          formatter: (value: number) => `${currencyPrefix}${value}${chartUnit}${currencySuffix}`,
         },
         splitLine: {
           lineStyle: {
@@ -217,7 +219,7 @@ export default function RevenueCharts({
         const value = params.value / chartScale;
         return `<div style="font-weight: 600; color: ${TEXT_PRIMARY};">${params.name}</div>
                 <div style="margin-top: 4px;">
-                  <span style="color: ${ACCENT_COLOR}; font-size: 16px; font-weight: 600;">${currencyPrefix}${value.toFixed(2)}${chartUnit}</span>
+                  <span style="color: ${ACCENT_COLOR}; font-size: 16px; font-weight: 600;">${currencyPrefix}${value.toFixed(2)}${chartUnit}${currencySuffix}</span>
                   <span style="color: ${TEXT_MUTED}; margin-left: 8px;">(${params.percent}%)</span>
                 </div>`;
       },
@@ -235,7 +237,7 @@ export default function RevenueCharts({
           const value = item.value / chartScale;
           const total = pieData.reduce((sum, d) => sum + d.value, 0);
           const percent = ((item.value / total) * 100).toFixed(1);
-          return `{name|${name}}\n{value|${currencyPrefix}${value.toFixed(1)}${chartUnit}} {percent|(${percent}%)}`;
+          return `{name|${name}}\n{value|${currencyPrefix}${value.toFixed(1)}${chartUnit}${currencySuffix}} {percent|(${percent}%)}`;
         }
         return name;
       },
@@ -326,7 +328,7 @@ export default function RevenueCharts({
         </div>
         <div className="bg-white/5 rounded-sm p-4 border border-white/10">
           <h4 className="text-xs font-mono font-medium text-mist-500 mb-4 uppercase tracking-wider">
-            {rcT.costStructure} ({currencyPrefix}{(pieData[0]?.value / chartScale).toFixed(1)}{chartUnit}+)
+            {rcT.costStructure} ({currencyPrefix}{(pieData[0]?.value / chartScale).toFixed(1)}{chartUnit}{currencySuffix}+)
           </h4>
           <ReactECharts
             option={pieOption}

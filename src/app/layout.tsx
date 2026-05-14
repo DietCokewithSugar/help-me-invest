@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { Analytics } from '@vercel/analytics/next';
+import Link from 'next/link';
+import { Home } from 'lucide-react';
 import TextSelectionMenu from '@/components/TextSelectionMenu';
 import FeedbackWidget from '@/components/feedback/FeedbackWidget';
 import { UnitModeProvider } from '@/lib/UnitModeContext';
@@ -65,6 +67,14 @@ export default function RootLayout({
               <div className="relative z-10">
                 {children}
               </div>
+              <Link
+                href="/"
+                aria-label="返回首页"
+                title="返回首页"
+                className="fixed bottom-5 left-5 z-[95] inline-flex h-10 w-10 items-center justify-center rounded-sm border border-white/10 bg-surface text-mist-300 shadow-lg transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <Home className="h-4 w-4" />
+              </Link>
               <FeedbackWidget />
               <Analytics />
               <TextSelectionMenu />

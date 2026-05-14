@@ -5,6 +5,7 @@ import type { KeyMetrics, CompanyProfile, FinancialRatios, FinancialScores } fro
 import { useState } from 'react';
 import FinancialScoresDisplay from './FinancialScoresDisplay';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { formatNumber as formatNumberUtil } from '@/lib/format-number';
 
 interface Props {
   profile: CompanyProfile;
@@ -14,6 +15,7 @@ interface Props {
   financialRatiosTTM?: any[];
   financialScores?: FinancialScores | null;
   currencySymbol?: string;
+  currencyCode?: string;
   theme?: 'dark' | 'light';
 }
 
@@ -49,22 +51,18 @@ export default function ProfessionalValuationMetrics({
   financialRatiosTTM = [],
   financialScores,
   currencySymbol = '$',
+  currencyCode = 'USD',
   theme = 'dark',
 }: Props) {
   const [hoveredMetric, setHoveredMetric] = useState<string | null>(null);
-  const { t } = useLanguage();
+  const { locale, t } = useLanguage();
   const proValuation = t.report.proValuation;
   const metricLabels = proValuation.metrics;
   const descriptions = proValuation.descriptions;
 
   const formatNumber = (num: number | undefined | null) => {
     if (num === undefined || num === null || isNaN(num)) return 'N/A';
-    const absNum = Math.abs(num);
-    if (absNum >= 1e12) return (num / 1e12).toFixed(2) + 'T';
-    if (absNum >= 1e9) return (num / 1e9).toFixed(2) + 'B';
-    if (absNum >= 1e6) return (num / 1e6).toFixed(2) + 'M';
-    if (absNum >= 1e3) return (num / 1e3).toFixed(2) + 'K';
-    return num.toFixed(2);
+    return formatNumberUtil(num, locale === 'zh' ? 'zh' : 'en');
   };
 
   const formatPercent = (num: number | undefined | null) => {
@@ -85,7 +83,7 @@ export default function ProfessionalValuationMetrics({
 
   const formatCurrency = (num: number | undefined | null) => {
     if (num === undefined || num === null || isNaN(num)) return 'N/A';
-    return currencySymbol + formatNumber(num);
+    return `${currencySymbol}${formatNumber(num)} ${currencyCode}`;
   };
 
   if (!keyMetrics || keyMetrics.length === 0) {

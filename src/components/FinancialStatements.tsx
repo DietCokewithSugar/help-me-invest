@@ -4,7 +4,6 @@ import { useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { FileSpreadsheet } from 'lucide-react';
 import type { IncomeStatement, BalanceSheet, CashFlowStatement } from '@/types';
-import { useUnitMode } from '@/lib/UnitModeContext';
 import { formatNumber as formatNumberUtil } from '@/lib/format-number';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -16,6 +15,7 @@ interface Props {
   balanceSheetsQuarter?: BalanceSheet[];
   cashFlowStatementsQuarter?: CashFlowStatement[];
   currencySymbol?: string;
+  currencyCode?: string;
   theme?: 'dark' | 'light';
 }
 
@@ -29,6 +29,7 @@ export default function FinancialStatements({
   balanceSheetsQuarter,
   cashFlowStatementsQuarter,
   currencySymbol = '$',
+  currencyCode = 'USD',
   theme = 'dark'
 }: Props) {
   const isLight = theme === 'light';
@@ -36,8 +37,7 @@ export default function FinancialStatements({
   const [activeTab, setActiveTab] = useState<TabType>('income');
   const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart');
 
-  const { unitMode } = useUnitMode();
-  const { t } = useLanguage();
+  const { locale, t } = useLanguage();
   const fsT = t.report.financialStatements;
   const incomeT = fsT.income;
   const balanceT = fsT.balance;
@@ -45,12 +45,13 @@ export default function FinancialStatements({
 
   const formatNumber = (num: number | undefined | null) => {
     if (num === undefined || num === null) return 'N/A';
-    return formatNumberUtil(num, unitMode);
+    return formatNumberUtil(num, locale === 'zh' ? 'zh' : 'en');
   };
 
-  const getChartUnit = () => unitMode === 'zh' ? '亿' : 'B';
-  const getChartScale = () => unitMode === 'zh' ? 1e8 : 1e9;
+  const getChartUnit = () => locale === 'zh' ? '亿' : 'B';
+  const getChartScale = () => locale === 'zh' ? 1e8 : 1e9;
   const currencyPrefix = currencySymbol;
+  const currencySuffix = ` ${currencyCode}`;
 
   const tabs: { key: TabType; label: string }[] = [
     { key: 'income', label: fsT.tabs.income },
@@ -111,7 +112,7 @@ export default function FinancialStatements({
                 <span style="width: 6px; height: 6px; background: ${p.color}; margin-right: 6px; display: inline-block;"></span>
                 <span style="color: ${TEXT_SECONDARY}; font-size: 12px;">${p.seriesName}</span>
               </td>
-              <td style="padding: 2px 0 2px 8px; text-align: right; color: ${TEXT_PRIMARY}; font-weight: 500;">${currencyPrefix}${p.value.toFixed(2)}${chartUnit}</td>
+              <td style="padding: 2px 0 2px 8px; text-align: right; color: ${TEXT_PRIMARY}; font-weight: 500;">${currencyPrefix}${p.value.toFixed(2)}${chartUnit}${currencySuffix}</td>
             </tr>`;
           });
           result += '</table>';
@@ -137,7 +138,7 @@ export default function FinancialStatements({
         name: '',
         nameTextStyle: { color: TEXT_MUTED, fontSize: 11, padding: [0, 0, 8, 0] },
         axisLine: { show: false },
-        axisLabel: { color: TEXT_MUTED, fontSize: 11, formatter: (v: number) => `${currencyPrefix}${v}${chartUnit}` },
+        axisLabel: { color: TEXT_MUTED, fontSize: 11, formatter: (v: number) => `${currencyPrefix}${v}${chartUnit}${currencySuffix}` },
         splitLine: { lineStyle: { color: SPLIT_LINE_COLOR, type: 'dashed', opacity: isLight ? 0.8 : 0.5 } },
       },
       series: [
@@ -147,7 +148,7 @@ export default function FinancialStatements({
           data: revenues,
           barWidth: '20%',
           itemStyle: { color: '#88ABDA', borderRadius: 0 },
-          label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `${currencyPrefix}${params.value.toFixed(1)}${chartUnit}` },
+          label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `${currencyPrefix}${params.value.toFixed(1)}${chartUnit}${currencySuffix}` },
         },
         {
           name: incomeT.legend.grossProfit,
@@ -155,7 +156,7 @@ export default function FinancialStatements({
           data: grossProfits,
           barWidth: '20%',
           itemStyle: { color: '#98B6C2', borderRadius: 0 },
-          label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `${currencyPrefix}${params.value.toFixed(1)}${chartUnit}` },
+          label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `${currencyPrefix}${params.value.toFixed(1)}${chartUnit}${currencySuffix}` },
         },
         {
           name: incomeT.legend.operatingIncome,
@@ -163,7 +164,7 @@ export default function FinancialStatements({
           data: operatingIncomes,
           barWidth: '20%',
           itemStyle: { color: '#CB523E', borderRadius: 0 },
-          label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `${currencyPrefix}${params.value.toFixed(1)}${chartUnit}` },
+          label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `${currencyPrefix}${params.value.toFixed(1)}${chartUnit}${currencySuffix}` },
         },
         {
           name: incomeT.legend.netIncome,
@@ -171,7 +172,7 @@ export default function FinancialStatements({
           data: netIncomes,
           barWidth: '20%',
           itemStyle: { color: '#C0D09D', borderRadius: 0 },
-          label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `${currencyPrefix}${params.value.toFixed(1)}${chartUnit}` },
+          label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `${currencyPrefix}${params.value.toFixed(1)}${chartUnit}${currencySuffix}` },
         },
       ],
     };
@@ -221,7 +222,7 @@ export default function FinancialStatements({
                 <span style="width: 6px; height: 6px; background: ${p.color}; margin-right: 6px; display: inline-block; border-radius: 50%;"></span>
                 <span style="color: ${TEXT_SECONDARY}; font-size: 12px;">${p.seriesName}</span>
               </td>
-              <td style="padding: 2px 0 2px 8px; text-align: right; color: ${TEXT_PRIMARY}; font-weight: 500;">${currencyPrefix}${p.value.toFixed(2)}${chartUnit}</td>
+              <td style="padding: 2px 0 2px 8px; text-align: right; color: ${TEXT_PRIMARY}; font-weight: 500;">${currencyPrefix}${p.value.toFixed(2)}${chartUnit}${currencySuffix}</td>
             </tr>`;
           });
           result += '</table>';
@@ -247,15 +248,15 @@ export default function FinancialStatements({
         name: '',
         nameTextStyle: { color: TEXT_MUTED, fontSize: 11, padding: [0, 0, 8, 0] },
         axisLine: { show: false },
-        axisLabel: { color: TEXT_MUTED, fontSize: 11, formatter: (v: number) => `${currencyPrefix}${v}${chartUnit}` },
+        axisLabel: { color: TEXT_MUTED, fontSize: 11, formatter: (v: number) => `${currencyPrefix}${v}${chartUnit}${currencySuffix}` },
         splitLine: { lineStyle: { color: SPLIT_LINE_COLOR, type: 'dashed', opacity: isLight ? 0.8 : 0.5 } },
       },
       series: [
-        { name: balanceT.legend.totalAssets, type: 'line', data: totalAssets, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#88ABDA' }, symbol: 'none', label: { show: true, position: 'top', color: TEXT_MUTED, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
-        { name: balanceT.legend.totalLiabilities, type: 'line', data: totalLiabilities, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#CB523E' }, symbol: 'none', label: { show: true, position: 'bottom', color: '#CB523E', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
-        { name: balanceT.legend.totalEquity, type: 'line', data: totalEquity, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#C0D09D' }, symbol: 'none', label: { show: true, position: 'top', color: '#C0D09D', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
-        { name: balanceT.legend.totalDebt, type: 'line', data: totalDebt, smooth: false, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: '#EAE4D1' }, symbol: 'none', label: { show: true, position: 'bottom', color: '#EAE4D1', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
-        { name: balanceT.legend.cash, type: 'line', data: cash, smooth: false, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: TEXT_SECONDARY }, symbol: 'none', label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
+        { name: balanceT.legend.totalAssets, type: 'line', data: totalAssets, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#88ABDA' }, symbol: 'none', label: { show: true, position: 'top', color: TEXT_MUTED, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
+        { name: balanceT.legend.totalLiabilities, type: 'line', data: totalLiabilities, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#CB523E' }, symbol: 'none', label: { show: true, position: 'bottom', color: '#CB523E', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
+        { name: balanceT.legend.totalEquity, type: 'line', data: totalEquity, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#C0D09D' }, symbol: 'none', label: { show: true, position: 'top', color: '#C0D09D', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
+        { name: balanceT.legend.totalDebt, type: 'line', data: totalDebt, smooth: false, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: '#EAE4D1' }, symbol: 'none', label: { show: true, position: 'bottom', color: '#EAE4D1', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
+        { name: balanceT.legend.cash, type: 'line', data: cash, smooth: false, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: TEXT_SECONDARY }, symbol: 'none', label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
       ],
     };
 
@@ -304,7 +305,7 @@ export default function FinancialStatements({
                 <span style="width: 6px; height: 6px; background: ${p.color}; margin-right: 6px; display: inline-block;"></span>
                 <span style="color: ${TEXT_SECONDARY}; font-size: 12px;">${p.seriesName}</span>
               </td>
-              <td style="padding: 2px 0 2px 8px; text-align: right; color: ${TEXT_PRIMARY}; font-weight: 500;">${currencyPrefix}${p.value.toFixed(2)}${chartUnit}</td>
+              <td style="padding: 2px 0 2px 8px; text-align: right; color: ${TEXT_PRIMARY}; font-weight: 500;">${currencyPrefix}${p.value.toFixed(2)}${chartUnit}${currencySuffix}</td>
             </tr>`;
           });
           result += '</table>';
@@ -330,15 +331,15 @@ export default function FinancialStatements({
         name: '',
         nameTextStyle: { color: TEXT_MUTED, fontSize: 11, padding: [0, 0, 8, 0] },
         axisLine: { show: false },
-        axisLabel: { color: TEXT_MUTED, fontSize: 11, formatter: (v: number) => `${currencyPrefix}${v}${chartUnit}` },
+        axisLabel: { color: TEXT_MUTED, fontSize: 11, formatter: (v: number) => `${currencyPrefix}${v}${chartUnit}${currencySuffix}` },
         splitLine: { lineStyle: { color: SPLIT_LINE_COLOR, type: 'dashed', opacity: isLight ? 0.8 : 0.5 } },
       },
       series: [
-        { name: cashflowT.legend.operatingCF, type: 'bar', data: operatingCF, barWidth: '18%', itemStyle: { color: '#C0D09D', borderRadius: 0 }, label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
-        { name: cashflowT.legend.investingCF, type: 'bar', data: investingCF, barWidth: '18%', itemStyle: { color: '#CB523E', borderRadius: 0 }, label: { show: true, position: 'bottom', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
-        { name: cashflowT.legend.financingCF, type: 'bar', data: financingCF, barWidth: '18%', itemStyle: { color: '#EAE4D1', borderRadius: 0 }, label: { show: true, position: 'bottom', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
-        { name: cashflowT.legend.freeCF, type: 'line', data: freeCF, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#98B6C2' }, symbol: 'none', label: { show: true, position: 'top', color: '#98B6C2', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
-        { name: cashflowT.legend.capex, type: 'line', data: capex, smooth: false, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: TEXT_SECONDARY }, symbol: 'none', label: { show: true, position: 'bottom', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}` } },
+        { name: cashflowT.legend.operatingCF, type: 'bar', data: operatingCF, barWidth: '18%', itemStyle: { color: '#C0D09D', borderRadius: 0 }, label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
+        { name: cashflowT.legend.investingCF, type: 'bar', data: investingCF, barWidth: '18%', itemStyle: { color: '#CB523E', borderRadius: 0 }, label: { show: true, position: 'bottom', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
+        { name: cashflowT.legend.financingCF, type: 'bar', data: financingCF, barWidth: '18%', itemStyle: { color: '#EAE4D1', borderRadius: 0 }, label: { show: true, position: 'bottom', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
+        { name: cashflowT.legend.freeCF, type: 'line', data: freeCF, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#98B6C2' }, symbol: 'none', label: { show: true, position: 'top', color: '#98B6C2', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
+        { name: cashflowT.legend.capex, type: 'line', data: capex, smooth: false, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: TEXT_SECONDARY }, symbol: 'none', label: { show: true, position: 'bottom', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
       ],
     };
 
@@ -378,8 +379,8 @@ export default function FinancialStatements({
               {activeIncome.map((s: any, i) => (
                 <td key={i} className={`text-right py-3 px-4 font-mono whitespace-nowrap ${isLight ? 'text-slate-900' : 'text-white'}`}>
                   {row.key === 'epsdiluted'
-                    ? `${currencyPrefix}${s[row.key]?.toFixed(2) || 'N/A'}`
-                    : `${currencyPrefix}${formatNumber(s[row.key])}`}
+                    ? `${currencyPrefix}${s[row.key]?.toFixed(2) || 'N/A'}${currencySuffix}`
+                    : `${currencyPrefix}${formatNumber(s[row.key])}${currencySuffix}`}
                 </td>
               ))}
             </tr>
@@ -430,7 +431,7 @@ export default function FinancialStatements({
               {activeBalance.map((s: any, i) => (
                 <td key={i} className={`text-right py-3 px-4 font-mono whitespace-nowrap ${s[row.key] < 0 ? (isLight ? 'text-red-600' : 'text-red-400') : (isLight ? 'text-slate-900' : 'text-white')
                   }`}>
-                  {currencyPrefix}{formatNumber(s[row.key])}
+                  {currencyPrefix}{formatNumber(s[row.key])}{currencySuffix}
                 </td>
               ))}
             </tr>
@@ -477,7 +478,7 @@ export default function FinancialStatements({
               {activeCashFlow.map((s: any, i) => (
                 <td key={i} className={`text-right py-3 px-4 font-mono whitespace-nowrap ${s[row.key] < 0 ? (isLight ? 'text-red-600' : 'text-red-400') : (isLight ? 'text-slate-900' : 'text-white')
                   }`}>
-                  {currencyPrefix}{formatNumber(s[row.key])}
+                  {currencyPrefix}{formatNumber(s[row.key])}{currencySuffix}
                 </td>
               ))}
             </tr>

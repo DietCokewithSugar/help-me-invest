@@ -7,26 +7,43 @@ import {
   ExternalLink, Briefcase, UserCheck
 } from 'lucide-react';
 import type { InstitutionalHolder, InsiderTrading } from '@/types';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatNumber as formatNumberUtil } from '@/lib/format-number';
 
 interface Props {
   institutionalHolders: InstitutionalHolder[];
   insiderTrading: InsiderTrading[];
+  currencySymbol?: string;
+  currencyCode?: string;
   theme?: 'dark' | 'light';
 }
 
 type TabType = 'institutional' | 'insider';
 
-export default function HoldingsAnalysis({ institutionalHolders, insiderTrading, theme = 'dark' }: Props) {
+export default function HoldingsAnalysis({
+  institutionalHolders,
+  insiderTrading,
+  currencySymbol = '$',
+  currencyCode = 'USD',
+  theme = 'dark',
+}: Props) {
   const isLight = theme === 'light';
   const [activeTab, setActiveTab] = useState<TabType>('institutional');
+  const { locale } = useLanguage();
 
   const formatNumber = (num: number | undefined | null) => {
     if (num === undefined || num === null || isNaN(num)) return 'N/A';
-    if (Math.abs(num) >= 1e12) return (num / 1e12).toFixed(2) + 'T';
-    if (Math.abs(num) >= 1e9) return (num / 1e9).toFixed(2) + 'B';
-    if (Math.abs(num) >= 1e6) return (num / 1e6).toFixed(2) + 'M';
-    if (Math.abs(num) >= 1e3) return (num / 1e3).toFixed(1) + 'K';
-    return num.toLocaleString();
+    return formatNumberUtil(num, locale === 'zh' ? 'zh' : 'en');
+  };
+
+  const formatCurrency = (num: number | undefined | null) => {
+    if (num === undefined || num === null || isNaN(num)) return 'N/A';
+    return `${currencySymbol}${formatNumber(num)} ${currencyCode}`;
+  };
+
+  const formatCurrencyFixed = (num: number | undefined | null, digits = 2) => {
+    if (num === undefined || num === null || isNaN(num)) return 'N/A';
+    return `${currencySymbol}${num.toFixed(digits)} ${currencyCode}`;
   };
 
   const formatDate = (dateStr: string) => {
@@ -54,7 +71,6 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading,
 
     // 计算统计数据
     const totalShares = institutionalHolders.reduce((sum, h) => sum + (h.shares || 0), 0);
-    const totalValue = institutionalHolders.reduce((sum, h) => sum + (h.value || 0), 0);
     const increases = institutionalHolders.filter(h => h.change > 0).length;
     const decreases = institutionalHolders.filter(h => h.change < 0).length;
 
@@ -174,7 +190,7 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading,
                     </div>
                   </td>
                   <td className="text-right py-3 px-4 font-mono text-white whitespace-nowrap">{formatNumber(h.shares)}</td>
-                  <td className="text-right py-3 px-4 font-mono text-aurora-400 whitespace-nowrap">${formatNumber(h.value)}</td>
+                  <td className="text-right py-3 px-4 font-mono text-aurora-400 whitespace-nowrap">{formatCurrency(h.value)}</td>
                   <td className={`text-right py-3 px-4 font-mono whitespace-nowrap ${h.change > 0 ? (isLight ? 'text-emerald-600' : 'text-green-400') :
                       h.change < 0 ? (isLight ? 'text-red-600' : 'text-red-400') :
                         'text-slate-400'
@@ -238,8 +254,10 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading,
     });
 
     const months = Object.keys(monthlyData).sort().slice(-12);
-    const buyValues = months.map(m => monthlyData[m].buys / 1e6);
-    const sellValues = months.map(m => monthlyData[m].sells / 1e6);
+    const amountScale = locale === 'zh' ? 1e8 : 1e6;
+    const amountUnit = locale === 'zh' ? '亿' : 'M';
+    const buyValues = months.map(m => monthlyData[m].buys / amountScale);
+    const sellValues = months.map(m => monthlyData[m].sells / amountScale);
 
     return (
       <div className="space-y-4">
@@ -262,7 +280,7 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading,
             <p className="text-sm text-slate-400 mb-1">净买入金额</p>
             <p className={`font-bold font-mono ${totalBuyValue > totalSellValue ? (isLight ? 'text-emerald-600' : 'text-green-400') : (isLight ? 'text-red-600' : 'text-red-400')
               } whitespace-nowrap text-xl md:text-2xl`}>
-              ${formatNumber(totalBuyValue - totalSellValue)}
+              {formatCurrency(totalBuyValue - totalSellValue)}
             </p>
           </div>
         </div>
@@ -295,10 +313,10 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading,
                 },
                 yAxis: {
                   type: 'value',
-                  name: '金额 (百万美元)',
+                  name: `金额 (${currencyCode})`,
                   nameTextStyle: { color: isLight ? '#64748b' : '#64748b' },
                   axisLine: { show: false },
-                  axisLabel: { color: isLight ? '#64748b' : '#64748b', formatter: (v: number) => `$${v.toFixed(1)}M` },
+                  axisLabel: { color: isLight ? '#64748b' : '#64748b', formatter: (v: number) => `${currencySymbol}${v.toFixed(1)}${amountUnit} ${currencyCode}` },
                   splitLine: { lineStyle: { color: isLight ? '#f1f5f9' : '#1e293b', type: 'dashed' } },
                 },
                 series: [
@@ -371,11 +389,11 @@ export default function HoldingsAnalysis({ institutionalHolders, insiderTrading,
                       {formatNumber(t.securitiesTransacted)}
                     </td>
                     <td className="text-right py-3 px-4 font-mono text-slate-400 whitespace-nowrap">
-                      ${t.price?.toFixed(2) || 'N/A'}
+                      {formatCurrencyFixed(t.price, 2)}
                     </td>
                     <td className={`text-right py-3 px-4 font-mono font-semibold whitespace-nowrap ${isBuy ? (isLight ? 'text-emerald-600' : 'text-green-400') : (isLight ? 'text-red-600' : 'text-red-400')
                       }`}>
-                      ${formatNumber(value)}
+                      {formatCurrency(value)}
                     </td>
                   </tr>
                 );
