@@ -13,7 +13,6 @@ import {
     Smartphone,
     QrCode,
     Type,
-    Sparkles,
     Sun,
     Moon,
 } from 'lucide-react';
@@ -320,25 +319,11 @@ const ExportCard = React.forwardRef<
                     style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '12px',
                         marginBottom: '20px',
                         paddingBottom: '16px',
                         borderBottom: `1px solid ${theme.headerBorder}`,
                     }}
                 >
-                    <div
-                        style={{
-                            width: '36px',
-                            height: '36px',
-                            borderRadius: '8px',
-                            background: 'linear-gradient(135deg, #14b8a6 0%, #3b82f6 100%)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                        }}
-                    >
-                        <Sparkles style={{ width: '18px', height: '18px', color: 'white' }} />
-                    </div>
                     <div>
                         <h2
                             style={{
@@ -436,18 +421,20 @@ const ExportCard = React.forwardRef<
                 )}
             </div>
 
-            {/* Watermark */}
-            <div
-                style={{
-                    marginTop: '12px',
-                    textAlign: 'center',
-                    fontSize: '10px',
-                    color: theme.watermark,
-                    fontFamily: '"JetBrains Mono", monospace',
-                }}
-            >
-                智投研究 · help-me-invest.com · AI Powered
-            </div>
+            {/* Watermark: 仅在未展示二维码时显示，避免信息重复 */}
+            {!settings.showQRCode && (
+                <div
+                    style={{
+                        marginTop: '12px',
+                        textAlign: 'center',
+                        fontSize: '10px',
+                        color: theme.watermark,
+                        fontFamily: '"JetBrains Mono", monospace',
+                    }}
+                >
+                    智投研究 · help-me-invest.com · AI Powered
+                </div>
+            )}
         </div>
     );
 });
