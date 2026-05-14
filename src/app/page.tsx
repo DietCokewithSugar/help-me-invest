@@ -1069,7 +1069,7 @@ function HomeContent() {
                       />
                       {/* 动态 placeholder */}
                       {!symbol && (
-                        <div className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none overflow-hidden h-6">
+                        <div className="absolute left-5 right-5 top-1/2 -translate-y-1/2 pointer-events-none overflow-hidden h-6">
                           <div
                             className="transition-transform duration-500 ease-in-out"
                             style={{ transform: `translateY(-${currentStockIndex * 24}px)` }}
@@ -1077,11 +1077,11 @@ function HomeContent() {
                             {featuredStocks.map((stock, index) => (
                               <div
                                 key={index}
-                                className="h-6 flex items-center text-mist-600 text-base md:text-lg"
+                                className="h-6 flex items-center whitespace-nowrap text-mist-600 text-base md:text-lg"
                               >
-                                <span className="font-mono">{stock.symbol}</span>
-                                <span className="mx-2 text-mist-700">·</span>
-                                <span className="text-mist-600">{stock.name}</span>
+                                <span className="font-mono shrink-0">{stock.symbol}</span>
+                                <span className="mx-2 text-mist-700 shrink-0">·</span>
+                                <span className="text-mist-600 truncate">{stock.name}</span>
                               </div>
                             ))}
                           </div>
@@ -1257,7 +1257,7 @@ function HomeContent() {
                               </span>
                             </div>
                             {stock.company_name && (
-                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded-lg bg-[#1a1a24] border border-white/[0.06] text-xs text-mist-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">
+                              <div className="hidden sm:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded-lg bg-[#1a1a24] border border-white/[0.06] text-xs text-mist-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">
                                 {stock.company_name}
                               </div>
                             )}
