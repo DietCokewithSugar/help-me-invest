@@ -877,6 +877,91 @@ export default function Report({
   // DeepSeek 暂不支持在线研究，普通版先隐藏“最新发展动态”卡片
   const showRecentDevelopmentsInStandard = false;
 
+  const renderReportVersionSwitcher = () => (
+    <div className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 p-1">
+      {(['beginner', 'standard', 'professional'] as const).map((ver) => {
+        const labels = {
+          beginner: t.report.beginnerReport,
+          standard: t.report.basicVersion,
+          professional: t.report.proVersion,
+        };
+        const isActive = reportVersion === ver;
+        return (
+          <button
+            key={ver}
+            onClick={() => {
+              setReportVersion(ver);
+              if (onVersionChange) {
+                onVersionChange(ver);
+              }
+            }}
+            className={`min-w-[96px] rounded-sm px-3 py-2 text-center transition-all ${
+              isActive
+                ? 'border border-accent/30 bg-accent/20 text-accent'
+                : 'border border-transparent text-mist-400 hover:bg-white/10 hover:text-mist-200'
+            }`}
+          >
+            <div className="text-xs font-semibold uppercase tracking-wide">{labels[ver]}</div>
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  const renderActionIcons = () => (
+    <>
+      {profile && (
+        <IconActionButton
+          icon={Scale}
+          tooltip={isInCompare(profile.symbol) ? t.compare.alreadyInCompare : t.compare.addToCompare}
+          disabled={isInCompare(profile.symbol) || isFull}
+          onClick={() => {
+            addCompany({
+              symbol: profile.symbol,
+              companyName: profile.companyName,
+              market: resolvedMarket,
+              image: profile.image,
+              price: profile.price,
+              changePercentage: profile.changesPercentage ? parseFloat(profile.changesPercentage) : profile.changePercentage,
+              marketCap: profile.marketCap || profile.mktCap,
+              sector: profile.sector,
+              industry: profile.industry,
+            });
+          }}
+        />
+      )}
+
+      <IconActionButton
+        icon={ImageIcon}
+        tooltip={t.report.exportImage}
+        onClick={() => setIsExportModalOpen(true)}
+      />
+
+      <IconActionButton
+        icon={FileDown}
+        tooltip={t.report.exportExcel}
+        onClick={() => exportReportToExcel(data, t)}
+      />
+
+      {onRegenerate && (
+        <IconActionButton
+          icon={RefreshCw}
+          tooltip={isRegenerating ? t.report.generating : t.report.regenerate}
+          loading={isRegenerating}
+          disabled={isRegenerating || aiLoading}
+          onClick={async () => {
+            setIsRegenerating(true);
+            try {
+              await onRegenerate();
+            } finally {
+              setIsRegenerating(false);
+            }
+          }}
+        />
+      )}
+    </>
+  );
+
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
       {/* 侧边锚点导航 */}
@@ -884,7 +969,25 @@ export default function Report({
 
       {/* 操作栏 */}
       <div className="mb-8 animate-fade-in-up">
-        <div className="grid grid-cols-1 items-center gap-4 lg:grid-cols-[1fr_auto_1fr]">
+        {/* Mobile */}
+        <div className="flex flex-col gap-3 lg:hidden">
+          <div className="flex justify-center">
+            {renderReportVersionSwitcher()}
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {!isModalView && (
+              <IconActionButton
+                icon={ArrowLeft}
+                tooltip={t.report.backToSearch}
+                onClick={onReset}
+              />
+            )}
+            {renderActionIcons()}
+          </div>
+        </div>
+
+        {/* Desktop */}
+        <div className="hidden items-center gap-4 lg:grid lg:grid-cols-[1fr_auto_1fr]">
           <div className="flex items-center gap-2">
             {!isModalView && (
               <IconActionButton
@@ -894,89 +997,8 @@ export default function Report({
               />
             )}
           </div>
-
-          <div className="flex justify-center">
-            <div className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 p-1">
-              {(['beginner', 'standard', 'professional'] as const).map((ver) => {
-                const labels = {
-                  beginner: t.report.beginnerReport,
-                  standard: t.report.basicVersion,
-                  professional: t.report.proVersion,
-                };
-                const isActive = reportVersion === ver;
-                return (
-                  <button
-                    key={ver}
-                    onClick={() => {
-                      setReportVersion(ver);
-                      if (onVersionChange) {
-                        onVersionChange(ver);
-                      }
-                    }}
-                    className={`min-w-[96px] rounded-sm px-3 py-2 text-center transition-all ${
-                      isActive
-                        ? 'border border-accent/30 bg-accent/20 text-accent'
-                        : 'border border-transparent text-mist-400 hover:bg-white/10 hover:text-mist-200'
-                    }`}
-                  >
-                    <div className="text-xs font-semibold uppercase tracking-wide">{labels[ver]}</div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 lg:justify-end">
-            {profile && (
-              <IconActionButton
-                icon={Scale}
-                tooltip={isInCompare(profile.symbol) ? t.compare.alreadyInCompare : t.compare.addToCompare}
-                disabled={isInCompare(profile.symbol) || isFull}
-                onClick={() => {
-                  addCompany({
-                    symbol: profile.symbol,
-                    companyName: profile.companyName,
-                    market: resolvedMarket,
-                    image: profile.image,
-                    price: profile.price,
-                    changePercentage: profile.changesPercentage ? parseFloat(profile.changesPercentage) : profile.changePercentage,
-                    marketCap: profile.marketCap || profile.mktCap,
-                    sector: profile.sector,
-                    industry: profile.industry,
-                  });
-                }}
-              />
-            )}
-
-            <IconActionButton
-              icon={ImageIcon}
-              tooltip={t.report.exportImage}
-              onClick={() => setIsExportModalOpen(true)}
-            />
-
-            <IconActionButton
-              icon={FileDown}
-              tooltip={t.report.exportExcel}
-              onClick={() => exportReportToExcel(data, t)}
-            />
-
-            {onRegenerate && (
-              <IconActionButton
-                icon={RefreshCw}
-                tooltip={isRegenerating ? t.report.generating : t.report.regenerate}
-                loading={isRegenerating}
-                disabled={isRegenerating || aiLoading}
-                onClick={async () => {
-                  setIsRegenerating(true);
-                  try {
-                    await onRegenerate();
-                  } finally {
-                    setIsRegenerating(false);
-                  }
-                }}
-              />
-            )}
-          </div>
+          <div className="flex justify-center">{renderReportVersionSwitcher()}</div>
+          <div className="flex items-center gap-2 justify-end">{renderActionIcons()}</div>
         </div>
       </div>
 
