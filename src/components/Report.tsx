@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useRef, useState, useCallback, useMemo } from 'react';
-import { motion } from 'framer-motion';
 import {
   Building2, TrendingUp, Target, Shield, Newspaper,
   ArrowLeft, Users, AlertTriangle, Sparkles,
@@ -84,13 +83,11 @@ import ShareExportModal from './ShareExportModal';
 import type { ReportData, MarketType } from '@/types';
 import { detectMarketFromSymbol, getMarketConfig } from '@/lib/markets';
 import { buildSankeyData } from '@/lib/sankey-utils';
-import { useUnitMode } from '@/lib/UnitModeContext';
-import { formatNumber as formatNumberUtil } from '@/lib/format-number';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCompare } from '@/contexts/CompareContext';
 import { translateDiagnosticTag } from '@/i18n/diagnosticTags';
 import { exportReportToExcel } from '@/lib/export-excel';
-import { resolveReportCurrency } from '@/lib/currency';
+import { formatCurrencyCompact, formatCurrencyFixed, resolveReportCurrency } from '@/lib/currency';
 
 // 市场标识徽章 - 极简设计，无 emoji，直角
 const MarketBadge = ({ market }: { market: MarketType }) => {
@@ -385,6 +382,37 @@ function StatCard({
         )}
       </div>
     </div>
+  );
+}
+
+function IconActionButton({
+  icon: Icon,
+  tooltip,
+  onClick,
+  disabled = false,
+  loading = false,
+  className = '',
+}: {
+  icon: any;
+  tooltip: string;
+  onClick: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+  className?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`group relative inline-flex h-9 w-9 items-center justify-center rounded-sm border border-white/10 bg-white/5 text-mist-300 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 ${className}`}
+      aria-label={tooltip}
+      title={tooltip}
+    >
+      <Icon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+      <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-sm border border-white/10 bg-surface px-2 py-1 text-[10px] text-mist-300 opacity-0 transition-opacity group-hover:opacity-100">
+        {tooltip}
+      </span>
+    </button>
   );
 }
 
@@ -733,13 +761,19 @@ export default function Report({
     }));
   };
 
-  // Use unit mode from context
-  const { unitMode } = useUnitMode();
+  const formatAmountCompact = (num: number | null | undefined) =>
+    formatCurrencyCompact(num, {
+      locale,
+      currencySymbol: currency.symbol,
+      currencyCode: currency.code,
+    });
 
-  const formatNumber = (num: number) => {
-    if (!num) return 'N/A';
-    return formatNumberUtil(num, unitMode);
-  };
+  const formatAmountFixed = (num: number | null | undefined, decimals = 2) =>
+    formatCurrencyFixed(num, {
+      currencySymbol: currency.symbol,
+      currencyCode: currency.code,
+      decimals,
+    });
 
   const formatDate = (dateStr: string) => {
     try {
@@ -840,8 +874,6 @@ export default function Report({
 
   // 获取 section 编号
   const getSectionNumber = (id: string) => sections.find(s => s.id === id)?.number || '';
-  const toolbarButtonClass = 'gemini-btn gemini-btn-secondary h-9 px-3 flex items-center gap-2 text-mist-300 hover:text-mist-200';
-  const toolbarIconClass = 'w-4 h-4 text-current shrink-0';
   // DeepSeek 暂不支持在线研究，普通版先隐藏“最新发展动态”卡片
   const showRecentDevelopmentsInStandard = false;
 
@@ -851,117 +883,100 @@ export default function Report({
       <SideAnchorNav sections={navSections} activeSection={activeSection} />
 
       {/* 操作栏 */}
-      <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-8 animate-fade-in-up">
-        {!isModalView && (
-          <button
-            onClick={onReset}
-            className={toolbarButtonClass}
-          >
-            <ArrowLeft className={toolbarIconClass} />
-            <span className="hidden sm:inline">{t.report.backToSearch}</span>
-          </button>
-        )}
+      <div className="mb-8 animate-fade-in-up">
+        <div className="grid grid-cols-1 items-center gap-4 lg:grid-cols-[1fr_auto_1fr]">
+          <div className="flex items-center gap-2">
+            {!isModalView && (
+              <IconActionButton
+                icon={ArrowLeft}
+                tooltip={t.report.backToSearch}
+                onClick={onReset}
+              />
+            )}
+          </div>
 
-        {/* Report version switcher - 3 options */}
-        <div className="flex items-center gap-1 bg-white/5 rounded-sm p-0.5">
-          {(['beginner', 'standard', 'professional'] as const).map((ver) => {
-            const labels = {
-              beginner: t.report.beginnerReport,
-              standard: t.report.basicVersion,
-              professional: t.report.proVersion,
-            };
-            const isActive = reportVersion === ver;
-            return (
-              <button
-                key={ver}
+          <div className="flex justify-center">
+            <div className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 p-1">
+              {(['beginner', 'standard', 'professional'] as const).map((ver) => {
+                const labels = {
+                  beginner: t.report.beginnerReport,
+                  standard: t.report.basicVersion,
+                  professional: t.report.proVersion,
+                };
+                const isActive = reportVersion === ver;
+                return (
+                  <button
+                    key={ver}
+                    onClick={() => {
+                      setReportVersion(ver);
+                      if (onVersionChange) {
+                        onVersionChange(ver);
+                      }
+                    }}
+                    className={`min-w-[96px] rounded-sm px-3 py-2 text-center transition-all ${
+                      isActive
+                        ? 'border border-accent/30 bg-accent/20 text-accent'
+                        : 'border border-transparent text-mist-400 hover:bg-white/10 hover:text-mist-200'
+                    }`}
+                  >
+                    <div className="text-xs font-semibold uppercase tracking-wide">{labels[ver]}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 lg:justify-end">
+            {profile && (
+              <IconActionButton
+                icon={Scale}
+                tooltip={isInCompare(profile.symbol) ? t.compare.alreadyInCompare : t.compare.addToCompare}
+                disabled={isInCompare(profile.symbol) || isFull}
                 onClick={() => {
-                  setReportVersion(ver);
-                  if (onVersionChange) {
-                    onVersionChange(ver);
+                  addCompany({
+                    symbol: profile.symbol,
+                    companyName: profile.companyName,
+                    market: resolvedMarket,
+                    image: profile.image,
+                    price: profile.price,
+                    changePercentage: profile.changesPercentage ? parseFloat(profile.changesPercentage) : profile.changePercentage,
+                    marketCap: profile.marketCap || profile.mktCap,
+                    sector: profile.sector,
+                    industry: profile.industry,
+                  });
+                }}
+              />
+            )}
+
+            <IconActionButton
+              icon={ImageIcon}
+              tooltip={t.report.exportImage}
+              onClick={() => setIsExportModalOpen(true)}
+            />
+
+            <IconActionButton
+              icon={FileDown}
+              tooltip={t.report.exportExcel}
+              onClick={() => exportReportToExcel(data, t)}
+            />
+
+            {onRegenerate && (
+              <IconActionButton
+                icon={RefreshCw}
+                tooltip={isRegenerating ? t.report.generating : t.report.regenerate}
+                loading={isRegenerating}
+                disabled={isRegenerating || aiLoading}
+                onClick={async () => {
+                  setIsRegenerating(true);
+                  try {
+                    await onRegenerate();
+                  } finally {
+                    setIsRegenerating(false);
                   }
                 }}
-                className={`px-3 py-1.5 text-xs rounded-sm transition-all ${
-                  isActive
-                    ? 'bg-accent/20 text-accent font-medium'
-                    : 'text-text-muted hover:text-text-secondary'
-                }`}
-              >
-                {labels[ver]}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* 右侧按钮组 - 推到右边 */}
-        <div className="flex items-center gap-2 md:gap-3 ml-auto">
-          {/* 加入对比按钮 */}
-          {profile && (
-            <motion.button
-              onClick={() => {
-                addCompany({
-                  symbol: profile.symbol,
-                  companyName: profile.companyName,
-                  market: resolvedMarket,
-                  image: profile.image,
-                  price: profile.price,
-                  changePercentage: profile.changesPercentage ? parseFloat(profile.changesPercentage) : profile.changePercentage,
-                  marketCap: profile.marketCap || profile.mktCap,
-                  sector: profile.sector,
-                  industry: profile.industry,
-                });
-              }}
-              disabled={isInCompare(profile.symbol) || isFull}
-              className={`${toolbarButtonClass} disabled:opacity-40 disabled:cursor-not-allowed`}
-              whileHover={{ scale: isInCompare(profile.symbol) || isFull ? 1 : 1.02 }}
-              whileTap={{ scale: isInCompare(profile.symbol) || isFull ? 1 : 0.98 }}
-            >
-              <Scale className={toolbarIconClass} />
-              <span className="hidden sm:inline">
-                {isInCompare(profile.symbol) ? t.compare.alreadyInCompare : t.compare.addToCompare}
-              </span>
-            </motion.button>
-          )}
-
-          <motion.button
-            onClick={() => setIsExportModalOpen(true)}
-            className={toolbarButtonClass}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <ImageIcon className={toolbarIconClass} />
-            <span className="hidden sm:inline">{t.report.exportImage}</span>
-          </motion.button>
-
-          <motion.button
-            onClick={() => exportReportToExcel(data, t)}
-            className={toolbarButtonClass}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <FileDown className={toolbarIconClass} />
-            <span className="hidden sm:inline">{t.report.exportExcel}</span>
-          </motion.button>
-
-          {/* 重新生成按钮 */}
-          {onRegenerate && (
-            <motion.button
-              onClick={async () => {
-                setIsRegenerating(true);
-                try {
-                  await onRegenerate();
-                } finally {
-                  setIsRegenerating(false);
-                }
-              }}
-              disabled={isRegenerating || aiLoading}
-              className={`${toolbarButtonClass} disabled:opacity-50 disabled:cursor-not-allowed`}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <RefreshCw className={`${toolbarIconClass} ${isRegenerating ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">{isRegenerating ? t.report.generating : t.report.regenerate}</span>
-            </motion.button>
-          )}
+              />
+            )}
+          </div>
         </div>
       </div>
 
@@ -1009,13 +1024,13 @@ export default function Report({
                 <div className="flex items-center gap-2">
                   <DollarSign className="w-3.5 h-3.5 text-mist-600" />
                   <span className="text-mist-500 text-xs">{t.common.marketCap}</span>
-                  <span className="font-mono font-medium text-white">{currencySymbol}{formatNumber(marketCap)}</span>
+                  <span className="font-mono font-medium text-white">{formatAmountCompact(marketCap)}</span>
                 </div>
                 <span className="text-mist-700">·</span>
                 <div className="flex items-center gap-2">
                   <TrendingUp className="w-3.5 h-3.5 text-mist-600" />
                   <span className="text-mist-500 text-xs">{t.common.price}</span>
-                  <span className="font-mono font-medium text-white">{currencySymbol}{profile.price?.toFixed(2) || 'N/A'}</span>
+                  <span className="font-mono font-medium text-white">{formatAmountFixed(profile.price, 2)}</span>
                   <span className={`text-xs font-mono px-1.5 py-0.5 rounded ${priceChange >= 0 ? 'text-growth bg-growth/10' : 'text-decay bg-decay/10'}`}>
                     {priceChange >= 0 ? '+' : ''}{priceChangePercent}
                   </span>
@@ -1348,7 +1363,12 @@ export default function Report({
                         </div>
                       )}
                     </div>
-                    <SankeyChart data={currentSankeyData} theme={theme} />
+                    <SankeyChart
+                      data={currentSankeyData}
+                      currencySymbol={currencySymbol}
+                      currencyCode={currencyCode}
+                      theme={theme}
+                    />
                   </div>
                 )}
 
@@ -1357,6 +1377,7 @@ export default function Report({
                   incomeStatements={incomeStatements}
                   incomeStatementsQuarter={data.incomeStatementsQuarter}
                   currencySymbol={currencySymbol}
+                  currencyCode={currencyCode}
                   theme={theme}
                 />
               </div>
@@ -1370,6 +1391,7 @@ export default function Report({
                 balanceSheetsQuarter={data.balanceSheetsQuarter}
                 cashFlowStatementsQuarter={data.cashFlowStatementsQuarter}
                 currencySymbol={currencySymbol}
+                currencyCode={currencyCode}
                 theme={theme}
               />
             </div>
@@ -1494,6 +1516,7 @@ export default function Report({
                 financialRatiosTTM={financialRatiosTTM}
                 financialScores={data.financialScores}
                 currencySymbol={currencySymbol}
+                currencyCode={currencyCode}
                 theme={theme}
               />
             </div>
@@ -1516,6 +1539,8 @@ export default function Report({
                 earningsCalendar={earningsCalendar}
                 dividendHistory={dividendHistory}
                 stockSplits={stockSplits}
+                currencySymbol={currencySymbol}
+                currencyCode={currencyCode}
                 theme={theme}
               />
             </div>
@@ -1537,6 +1562,8 @@ export default function Report({
               <HoldingsAnalysis
                 institutionalHolders={institutionalHolders}
                 insiderTrading={insiderTrading}
+                currencySymbol={currencySymbol}
+                currencyCode={currencyCode}
                 theme={theme}
               />
             </div>

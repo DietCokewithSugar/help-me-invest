@@ -2,18 +2,23 @@
 
 import ReactECharts from 'echarts-for-react';
 import type { SankeyData } from '@/types';
-import { useUnitMode } from '@/lib/UnitModeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface SankeyProps {
   data: SankeyData;
+  currencySymbol?: string;
+  currencyCode?: string;
   theme?: 'dark' | 'light';
 }
 
-export default function SankeyChart({ data, theme = 'dark' }: SankeyProps) {
+export default function SankeyChart({
+  data,
+  currencySymbol = '$',
+  currencyCode = 'USD',
+  theme = 'dark',
+}: SankeyProps) {
   const isLight = theme === 'light';
-  const { unitMode } = useUnitMode();
-  const { t } = useLanguage();
+  const { locale, t } = useLanguage();
   const sankeyT = t.report.sankey;
   // Map the Chinese node IDs (defined in sankey-utils.ts) to localized labels.
   const nodeLabelMap: Record<string, string> = {
@@ -31,16 +36,19 @@ export default function SankeyChart({ data, theme = 'dark' }: SankeyProps) {
   const localizeNode = (id: string) => nodeLabelMap[id] || id;
 
   const formatValue = (value: number) => {
-    if (unitMode === 'zh') {
-      // Chinese units: 亿, 万
-      if (Math.abs(value) >= 1e8) return `¥${(value / 1e8).toFixed(1)}亿`;
-      if (Math.abs(value) >= 1e4) return `¥${(value / 1e4).toFixed(1)}万`;
-      return `¥${value.toLocaleString()}`;
+    const absValue = Math.abs(value);
+    const isZh = locale === 'zh';
+
+    if (isZh) {
+      if (absValue >= 1e8) return `${currencySymbol}${(value / 1e8).toFixed(1)}亿 ${currencyCode}`;
+      if (absValue >= 1e4) return `${currencySymbol}${(value / 1e4).toFixed(1)}万 ${currencyCode}`;
+      return `${currencySymbol}${value.toLocaleString()} ${currencyCode}`;
     }
-    // English units
-    if (value >= 1e9) return `$${(value / 1e9).toFixed(1)}B`;
-    if (value >= 1e6) return `$${(value / 1e6).toFixed(1)}M`;
-    return `$${value.toLocaleString()}`;
+
+    if (absValue >= 1e9) return `${currencySymbol}${(value / 1e9).toFixed(1)}B ${currencyCode}`;
+    if (absValue >= 1e6) return `${currencySymbol}${(value / 1e6).toFixed(1)}M ${currencyCode}`;
+    if (absValue >= 1e3) return `${currencySymbol}${(value / 1e3).toFixed(1)}K ${currencyCode}`;
+    return `${currencySymbol}${value.toLocaleString()} ${currencyCode}`;
   };
 
   // 实用主义风格配色
