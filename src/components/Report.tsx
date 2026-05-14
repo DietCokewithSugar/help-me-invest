@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState, useCallback, useMemo } from 'react';
+import { toPng } from 'html-to-image';
 import {
   Building2, TrendingUp, Target, Shield, Newspaper,
   ArrowLeft, Users, AlertTriangle, Sparkles,
@@ -80,7 +81,6 @@ import ValuationMetrics from './ValuationMetrics';
 import ProfessionalValuationMetrics from './ProfessionalValuationMetrics';
 import EventCalendar from './EventCalendar';
 import HoldingsAnalysis from './HoldingsAnalysis';
-import ExportModal from './ExportModal';
 import ShareExportModal from './ShareExportModal';
 import type { ReportData, MarketType } from '@/types';
 import { detectMarketFromSymbol, getMarketConfig } from '@/lib/markets';
@@ -640,7 +640,6 @@ export default function Report({
   initialReportVersion = 'standard',
 }: ReportProps) {
   const reportRef = useRef<HTMLDivElement>(null);
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isSharePickerOpen, setIsSharePickerOpen] = useState(false);
   const [shareNotice, setShareNotice] = useState('');
   const [showTranscript, setShowTranscript] = useState(false);
@@ -911,9 +910,40 @@ export default function Report({
     }
   }, []);
 
-  const handleShareAsImage = useCallback(() => {
-    setIsExportModalOpen(true);
-  }, []);
+  const handleShareAsImage = useCallback(async () => {
+    try {
+      if (!reportRef.current) {
+        showShareNotice(t.shareModal.notFound);
+        return;
+      }
+
+      if (document.fonts && document.fonts.ready) {
+        await document.fonts.ready;
+      }
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+      const dataUrl = await toPng(reportRef.current, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: theme === 'light' ? '#f8fafc' : '#0a0a0f',
+        cacheBust: false,
+        skipFonts: true,
+        style: { transform: 'none' },
+      });
+
+      const link = document.createElement('a');
+      link.download = `${profile.symbol}_${t.shareExportCard.investReport}.png`;
+      link.href = dataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      showShareNotice(t.shareModal.success);
+    } catch (error) {
+      console.error('Direct image export failed:', error);
+      showShareNotice(t.shareModal.failed);
+    }
+  }, [profile.symbol, showShareNotice, t, theme]);
 
   const handleShareAsExcel = useCallback(() => {
     exportReportToExcel(data, t);
@@ -1841,14 +1871,6 @@ export default function Report({
           </div>
         </div>
       )}
-
-      {/* 导出模态框 */}
-      <ExportModal
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-        targetRef={reportRef}
-        fileName={`${profile.symbol}_投资研究报告`}
-      />
 
       {/* 分享模块模态框 */}
       <ShareExportModal
