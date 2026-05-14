@@ -185,9 +185,9 @@ export default function SankeyChart({
   }
 
   return (
-    <div className="bg-white/5 border border-white/10 rounded-sm p-4 overflow-x-auto">
+    <div className="bg-white/5 border border-white/10 rounded-sm p-4 max-w-full overflow-x-auto">
       {/* 移动端：高度窄、可横向滚动查看完整图表 */}
-      <div className="md:hidden" style={{ minWidth: '580px' }}>
+      <div className="md:hidden" style={{ width: '560px' }}>
         <ReactECharts
           option={option}
           style={{ height: '260px', width: '100%' }}

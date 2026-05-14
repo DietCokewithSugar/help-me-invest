@@ -963,7 +963,7 @@ export default function Report({
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
+    <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 overflow-x-hidden">
       {/* 侧边锚点导航 */}
       <SideAnchorNav sections={navSections} activeSection={activeSection} />
 
