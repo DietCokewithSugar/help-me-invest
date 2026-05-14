@@ -94,7 +94,7 @@ const LOADING_STEPS_META = [
 const FEATURED_STOCK_SYMBOLS = [
   'AAPL', 'NVDA', 'TSLA', 'MSFT', 'GOOGL',
   '600519.SS', '000858.SZ', '0700.HK', '9988.HK', '7203.T',
-  '005930.KS', '035720.KS',
+  '005930.KS', '035720.KS', 'CBA.AX', 'BHP.AX',
 ];
 
 
@@ -1383,13 +1383,14 @@ function HomeContent() {
                     </p>
 
                     {/* 市场列表 */}
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 max-w-4xl mx-auto">
+                    <div className="grid grid-cols-2 md:grid-cols-6 gap-4 max-w-4xl mx-auto">
                       {[
                         { name: t.markets.us, code: 'NYSE / NASDAQ', color: '#4285f4' },
                         { name: t.markets.cn, code: 'SSE / SZSE', color: '#ea4335' },
                         { name: t.markets.hk, code: 'HKEX', color: '#fbbc04' },
                         { name: t.markets.jp, code: 'TSE', color: '#34a853' },
                         { name: t.markets.kr, code: 'KRX', color: '#a855f7' },
+                        { name: t.markets.au, code: 'ASX', color: '#00acc1' },
                       ].map((market) => (
                         <div key={market.name} className="flex items-center justify-center gap-3 p-4 rounded-xl bg-white/5 border border-white/5 text-left hover:bg-white/10 transition-colors">
                           <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: market.color }} />

@@ -1,5 +1,5 @@
 // 支持的市场类型
-export type MarketType = 'US' | 'CN' | 'HK' | 'JP' | 'KR';
+export type MarketType = 'US' | 'CN' | 'HK' | 'JP' | 'KR' | 'AU';
 
 // 市场配置接口
 export interface MarketConfig {
@@ -271,6 +271,49 @@ export const MARKET_CONFIGS: Record<MarketType, MarketConfig> = {
       { symbol: '068270.KS', name: 'Celltrion' },
     ],
   },
+  AU: {
+    id: 'AU',
+    name: 'Australia Stock',
+    nameCn: '澳股',
+    currency: 'AUD',
+    currencySymbol: 'A$',
+    exchanges: ['ASX'], // 澳大利亚证券交易所
+    symbolFormat: '股票代码 + .AX 后缀',
+    symbolExample: 'CBA.AX (澳洲联邦银行), BHP.AX (必和必拓)',
+    symbolSuffix: '.AX',
+    supportedFeatures: {
+      profile: true,
+      quote: true,
+      peers: false,
+      incomeStatement: true,
+      balanceSheet: true,
+      cashFlow: true,
+      keyMetrics: true,
+      financialRatios: true,
+      financialGrowth: true,
+      dcf: true,
+      enterpriseValue: true,
+      earningsCalendar: false,
+      dividendHistory: true,
+      stockSplits: true,
+      institutionalHolders: false,
+      insiderTrading: false,
+      mutualFundHolders: false,
+      etfHolders: false,
+      news: false,
+      earningsTranscript: false,
+      historicalPrices: true,
+      analystRatings: false,
+    },
+    featuredStocks: [
+      { symbol: 'CBA.AX', name: '澳洲联邦银行' },
+      { symbol: 'BHP.AX', name: '必和必拓' },
+      { symbol: 'CSL.AX', name: 'CSL' },
+      { symbol: 'WBC.AX', name: '西太平洋银行' },
+      { symbol: 'NAB.AX', name: '澳洲国民银行' },
+      { symbol: 'ANZ.AX', name: '澳新银行' },
+    ],
+  },
 };
 
 // 根据股票代码检测市场类型
@@ -288,6 +331,9 @@ export function detectMarketFromSymbol(symbol: string): MarketType {
   }
   if (upperSymbol.endsWith('.KS') || upperSymbol.endsWith('.KQ')) {
     return 'KR';
+  }
+  if (upperSymbol.endsWith('.AX')) {
+    return 'AU';
   }
   
   // 默认美股
@@ -323,6 +369,8 @@ export function formatSymbolForMarket(symbol: string, market: MarketType): strin
       // 韩股大多在 KOSPI 主板（.KS），KOSDAQ（.KQ）需用户显式带后缀
       // 这里默认补 .KS，保留 6 位数字标准格式
       return `${upperSymbol}.KS`;
+    case 'AU':
+      return `${upperSymbol}.AX`;
     case 'US':
     default:
       return upperSymbol;
