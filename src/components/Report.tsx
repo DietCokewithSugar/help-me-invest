@@ -11,6 +11,8 @@ import {
   Info,
   RefreshCw,
   Share2,
+  Link2,
+  MessageCircle,
   Tag,
   Zap,
   Crown,
@@ -639,6 +641,7 @@ export default function Report({
 }: ReportProps) {
   const reportRef = useRef<HTMLDivElement>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [shareNotice, setShareNotice] = useState('');
   const [showTranscript, setShowTranscript] = useState(false);
   const [activeSection, setActiveSection] = useState('');
   const [isRegenerating, setIsRegenerating] = useState(false);
@@ -677,6 +680,13 @@ export default function Report({
       title,
       contentHtml: contentElement.innerHTML,
     });
+  }, []);
+
+  const showShareNotice = useCallback((message: string) => {
+    setShareNotice(message);
+    window.setTimeout(() => {
+      setShareNotice('');
+    }, 2200);
   }, []);
 
   const {
@@ -873,6 +883,77 @@ export default function Report({
   const currencySymbol = currency.symbol;
   const currencyCode = currency.code;
 
+  const getShareUrl = useCallback(() => {
+    if (typeof window === 'undefined') return '';
+    return `${window.location.origin}/?symbol=${encodeURIComponent(profile.symbol)}`;
+  }, [profile.symbol]);
+
+  const copyToClipboard = useCallback(async (text: string) => {
+    if (!text) return false;
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        const copied = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        return copied;
+      } catch {
+        return false;
+      }
+    }
+  }, []);
+
+  const handleShareAsImage = useCallback(() => {
+    setIsExportModalOpen(true);
+  }, []);
+
+  const handleShareAsExcel = useCallback(() => {
+    exportReportToExcel(data, t);
+  }, [data, t]);
+
+  const handleShareLink = useCallback(async () => {
+    const link = getShareUrl();
+    const copied = await copyToClipboard(link);
+    showShareNotice(copied ? t.report.shareActions.copyLinkSuccess : t.shareModal.failed);
+  }, [copyToClipboard, getShareUrl, showShareNotice, t]);
+
+  const handleShareToWeChat = useCallback(async () => {
+    const link = getShareUrl();
+    const title = `${profile.companyName} (${profile.symbol})`;
+
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      try {
+        await navigator.share({
+          title,
+          text: title,
+          url: link,
+        });
+        showShareNotice(t.shareModal.success);
+        return;
+      } catch (error: any) {
+        if (error?.name === 'AbortError') return;
+      }
+    }
+
+    const copied = await copyToClipboard(link);
+    showShareNotice(copied ? t.report.shareActions.wechatCopyHint : t.report.shareActions.shareUnavailable);
+  }, [copyToClipboard, getShareUrl, profile.companyName, profile.symbol, showShareNotice, t]);
+
+  const handleShareToFacebook = useCallback(() => {
+    const link = getShareUrl();
+    if (typeof window !== 'undefined') {
+      const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`;
+      window.open(fbUrl, '_blank', 'noopener,noreferrer');
+    }
+  }, [getShareUrl]);
+
   // 获取 section 编号
   const getSectionNumber = (id: string) => sections.find(s => s.id === id)?.number || '';
   // DeepSeek 暂不支持在线研究，普通版先隐藏“最新发展动态”卡片
@@ -909,6 +990,92 @@ export default function Report({
     </div>
   );
 
+  const ShareActionMenuButton = () => {
+    const [open, setOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+      if (!open) return;
+
+      const handleClickOutside = (event: MouseEvent) => {
+        if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+          setOpen(false);
+        }
+      };
+
+      const handleEscape = (event: KeyboardEvent) => {
+        if (event.key === 'Escape') {
+          setOpen(false);
+        }
+      };
+
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleEscape);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('keydown', handleEscape);
+      };
+    }, [open]);
+
+    const runAction = async (action: () => void | Promise<void>) => {
+      try {
+        await action();
+      } finally {
+        setOpen(false);
+      }
+    };
+
+    return (
+      <div className="relative" ref={menuRef}>
+        <IconActionButton
+          icon={Share2}
+          tooltip={t.common.share}
+          onClick={() => setOpen(prev => !prev)}
+        />
+
+        {open && (
+          <div className="absolute right-0 top-11 z-50 w-48 rounded-sm border border-white/10 bg-surface p-1 shadow-xl">
+            <button
+              onClick={() => runAction(handleShareAsImage)}
+              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-xs text-mist-300 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <ImageIcon className="h-3.5 w-3.5" />
+              {t.report.shareActions.image}
+            </button>
+            <button
+              onClick={() => runAction(handleShareAsExcel)}
+              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-xs text-mist-300 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <FileDown className="h-3.5 w-3.5" />
+              {t.report.shareActions.excel}
+            </button>
+            <button
+              onClick={() => runAction(handleShareLink)}
+              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-xs text-mist-300 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <Link2 className="h-3.5 w-3.5" />
+              {t.report.shareActions.link}
+            </button>
+            <button
+              onClick={() => runAction(handleShareToWeChat)}
+              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-xs text-mist-300 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+              {t.report.shareActions.wechat}
+            </button>
+            <button
+              onClick={() => runAction(handleShareToFacebook)}
+              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-xs text-mist-300 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              {t.report.shareActions.facebook}
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderActionIcons = () => (
     <>
       {profile && (
@@ -932,17 +1099,7 @@ export default function Report({
         />
       )}
 
-      <IconActionButton
-        icon={ImageIcon}
-        tooltip={t.report.exportImage}
-        onClick={() => setIsExportModalOpen(true)}
-      />
-
-      <IconActionButton
-        icon={FileDown}
-        tooltip={t.report.exportExcel}
-        onClick={() => exportReportToExcel(data, t)}
-      />
+      <ShareActionMenuButton />
 
       {onRegenerate && (
         <IconActionButton
@@ -1001,6 +1158,10 @@ export default function Report({
           <div className="flex justify-center">{renderReportVersionSwitcher()}</div>
           <div className="flex items-center gap-2 justify-end">{renderActionIcons()}</div>
         </div>
+
+        {shareNotice && (
+          <div className="mt-3 text-center text-xs text-glacier-500">{shareNotice}</div>
+        )}
       </div>
 
       <div ref={reportRef} className="space-y-6 bg-obsidian py-4">
