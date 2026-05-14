@@ -9,10 +9,16 @@ import { useLanguage } from '@/contexts/LanguageContext';
 interface Props {
   incomeStatements: IncomeStatement[];
   incomeStatementsQuarter?: IncomeStatement[];
+  currencySymbol?: string;
   theme?: 'dark' | 'light';
 }
 
-export default function RevenueCharts({ incomeStatements, incomeStatementsQuarter, theme = 'dark' }: Props) {
+export default function RevenueCharts({
+  incomeStatements,
+  incomeStatementsQuarter,
+  currencySymbol = '$',
+  theme = 'dark',
+}: Props) {
   const isLight = theme === 'light';
   const [period, setPeriod] = useState<'annual' | 'quarter'>('annual');
   const { unitMode } = useUnitMode();
@@ -34,7 +40,7 @@ export default function RevenueCharts({ incomeStatements, incomeStatementsQuarte
   // Dynamic scale based on unit mode
   const chartScale = unitMode === 'zh' ? 1e8 : 1e9;
   const chartUnit = unitMode === 'zh' ? '亿' : 'B';
-  const currencyPrefix = unitMode === 'zh' ? '¥' : '$';
+  const currencyPrefix = currencySymbol;
 
   // 颜色定义
   const TEXT_PRIMARY = isLight ? '#1e293b' : '#e2e8f0';

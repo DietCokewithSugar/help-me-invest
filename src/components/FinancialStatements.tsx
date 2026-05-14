@@ -15,6 +15,7 @@ interface Props {
   incomeStatementsQuarter?: IncomeStatement[];
   balanceSheetsQuarter?: BalanceSheet[];
   cashFlowStatementsQuarter?: CashFlowStatement[];
+  currencySymbol?: string;
   theme?: 'dark' | 'light';
 }
 
@@ -27,6 +28,7 @@ export default function FinancialStatements({
   incomeStatementsQuarter,
   balanceSheetsQuarter,
   cashFlowStatementsQuarter,
+  currencySymbol = '$',
   theme = 'dark'
 }: Props) {
   const isLight = theme === 'light';
@@ -48,6 +50,7 @@ export default function FinancialStatements({
 
   const getChartUnit = () => unitMode === 'zh' ? '亿' : 'B';
   const getChartScale = () => unitMode === 'zh' ? 1e8 : 1e9;
+  const currencyPrefix = currencySymbol;
 
   const tabs: { key: TabType; label: string }[] = [
     { key: 'income', label: fsT.tabs.income },
@@ -78,8 +81,6 @@ export default function FinancialStatements({
     // Use dynamic scale based on unit mode
     const chartScale = getChartScale();
     const chartUnit = getChartUnit();
-    const currencyPrefix = unitMode === 'zh' ? '¥' : '$';
-
     const revenues = activeIncome.map(i => (i.revenue || 0) / chartScale).reverse();
     const grossProfits = activeIncome.map(i => (i.grossProfit || 0) / chartScale).reverse();
     const operatingIncomes = activeIncome.map(i => (i.operatingIncome || 0) / chartScale).reverse();
@@ -188,8 +189,6 @@ export default function FinancialStatements({
     // Use dynamic scale based on unit mode
     const chartScale = getChartScale();
     const chartUnit = getChartUnit();
-    const currencyPrefix = unitMode === 'zh' ? '¥' : '$';
-
     const totalAssets = activeBalance.map(b => (b.totalAssets || 0) / chartScale).reverse();
     const totalLiabilities = activeBalance.map(b => (b.totalLiabilities || 0) / chartScale).reverse();
     const totalEquity = activeBalance.map(b => (b.totalStockholdersEquity || 0) / chartScale).reverse();
@@ -273,8 +272,6 @@ export default function FinancialStatements({
     // Use dynamic scale based on unit mode
     const chartScale = getChartScale();
     const chartUnit = getChartUnit();
-    const currencyPrefix = unitMode === 'zh' ? '¥' : '$';
-
     const operatingCF = activeCashFlow.map(c => (c.netCashProvidedByOperatingActivities || 0) / chartScale).reverse();
     const investingCF = activeCashFlow.map(c => (c.netCashUsedForInvestingActivites || 0) / chartScale).reverse();
     const financingCF = activeCashFlow.map(c => (c.netCashUsedProvidedByFinancingActivities || 0) / chartScale).reverse();
@@ -380,7 +377,9 @@ export default function FinancialStatements({
               <td className="py-3 px-4 text-slate-300 whitespace-nowrap">{row.label}</td>
               {activeIncome.map((s: any, i) => (
                 <td key={i} className={`text-right py-3 px-4 font-mono whitespace-nowrap ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                  {row.key === 'epsdiluted' ? `$${s[row.key]?.toFixed(2) || 'N/A'}` : `$${formatNumber(s[row.key])}`}
+                  {row.key === 'epsdiluted'
+                    ? `${currencyPrefix}${s[row.key]?.toFixed(2) || 'N/A'}`
+                    : `${currencyPrefix}${formatNumber(s[row.key])}`}
                 </td>
               ))}
             </tr>
@@ -431,7 +430,7 @@ export default function FinancialStatements({
               {activeBalance.map((s: any, i) => (
                 <td key={i} className={`text-right py-3 px-4 font-mono whitespace-nowrap ${s[row.key] < 0 ? (isLight ? 'text-red-600' : 'text-red-400') : (isLight ? 'text-slate-900' : 'text-white')
                   }`}>
-                  ${formatNumber(s[row.key])}
+                  {currencyPrefix}{formatNumber(s[row.key])}
                 </td>
               ))}
             </tr>
@@ -478,7 +477,7 @@ export default function FinancialStatements({
               {activeCashFlow.map((s: any, i) => (
                 <td key={i} className={`text-right py-3 px-4 font-mono whitespace-nowrap ${s[row.key] < 0 ? (isLight ? 'text-red-600' : 'text-red-400') : (isLight ? 'text-slate-900' : 'text-white')
                   }`}>
-                  ${formatNumber(s[row.key])}
+                  {currencyPrefix}{formatNumber(s[row.key])}
                 </td>
               ))}
             </tr>

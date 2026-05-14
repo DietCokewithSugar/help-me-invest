@@ -13,6 +13,7 @@ interface Props {
   financialRatios?: FinancialRatios[];
   financialRatiosTTM?: any[];
   financialScores?: FinancialScores | null;
+  currencySymbol?: string;
   theme?: 'dark' | 'light';
 }
 
@@ -47,6 +48,7 @@ export default function ProfessionalValuationMetrics({
   financialRatios = [],
   financialRatiosTTM = [],
   financialScores,
+  currencySymbol = '$',
   theme = 'dark',
 }: Props) {
   const [hoveredMetric, setHoveredMetric] = useState<string | null>(null);
@@ -83,7 +85,7 @@ export default function ProfessionalValuationMetrics({
 
   const formatCurrency = (num: number | undefined | null) => {
     if (num === undefined || num === null || isNaN(num)) return 'N/A';
-    return '$' + formatNumber(num);
+    return currencySymbol + formatNumber(num);
   };
 
   if (!keyMetrics || keyMetrics.length === 0) {
