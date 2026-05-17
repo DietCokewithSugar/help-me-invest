@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState, useCallback, useMemo } from 'react';
+import { toPng } from 'html-to-image';
 import {
   Building2, TrendingUp, Target, Shield, Newspaper,
   ArrowLeft, Users, AlertTriangle, Sparkles,
@@ -11,6 +12,8 @@ import {
   Info,
   RefreshCw,
   Share2,
+  Link2,
+  MessageCircle,
   Tag,
   Zap,
   Crown,
@@ -78,7 +81,6 @@ import ValuationMetrics from './ValuationMetrics';
 import ProfessionalValuationMetrics from './ProfessionalValuationMetrics';
 import EventCalendar from './EventCalendar';
 import HoldingsAnalysis from './HoldingsAnalysis';
-import ExportModal from './ExportModal';
 import ShareExportModal from './ShareExportModal';
 import type { ReportData, MarketType } from '@/types';
 import { detectMarketFromSymbol, getMarketConfig } from '@/lib/markets';
@@ -638,7 +640,8 @@ export default function Report({
   initialReportVersion = 'standard',
 }: ReportProps) {
   const reportRef = useRef<HTMLDivElement>(null);
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isSharePickerOpen, setIsSharePickerOpen] = useState(false);
+  const [shareNotice, setShareNotice] = useState('');
   const [showTranscript, setShowTranscript] = useState(false);
   const [activeSection, setActiveSection] = useState('');
   const [isRegenerating, setIsRegenerating] = useState(false);
@@ -677,6 +680,13 @@ export default function Report({
       title,
       contentHtml: contentElement.innerHTML,
     });
+  }, []);
+
+  const showShareNotice = useCallback((message: string) => {
+    setShareNotice(message);
+    window.setTimeout(() => {
+      setShareNotice('');
+    }, 2200);
   }, []);
 
   const {
@@ -873,6 +883,119 @@ export default function Report({
   const currencySymbol = currency.symbol;
   const currencyCode = currency.code;
 
+  const getShareUrl = useCallback(() => {
+    if (typeof window === 'undefined') return '';
+    return `${window.location.origin}/?symbol=${encodeURIComponent(profile.symbol)}`;
+  }, [profile.symbol]);
+
+  const copyToClipboard = useCallback(async (text: string) => {
+    if (!text) return false;
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        const copied = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        return copied;
+      } catch {
+        return false;
+      }
+    }
+  }, []);
+
+  const handleShareAsImage = useCallback(async () => {
+    try {
+      if (!reportRef.current) {
+        showShareNotice(t.shareModal.notFound);
+        return;
+      }
+
+      if (document.fonts && document.fonts.ready) {
+        await document.fonts.ready;
+      }
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+      const dataUrl = await toPng(reportRef.current, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: theme === 'light' ? '#f8fafc' : '#0a0a0f',
+        cacheBust: false,
+        skipFonts: true,
+        style: { transform: 'none' },
+      });
+
+      const link = document.createElement('a');
+      link.download = `${profile.symbol}_${t.shareExportCard.investReport}.png`;
+      link.href = dataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      showShareNotice(t.shareModal.success);
+    } catch (error) {
+      console.error('Direct image export failed:', error);
+      showShareNotice(t.shareModal.failed);
+    }
+  }, [profile.symbol, showShareNotice, t, theme]);
+
+  const handleShareAsExcel = useCallback(() => {
+    exportReportToExcel(data, t);
+  }, [data, t]);
+
+  const handleShareLink = useCallback(async () => {
+    const link = getShareUrl();
+    const copied = await copyToClipboard(link);
+    showShareNotice(copied ? t.report.shareActions.copyLinkSuccess : t.shareModal.failed);
+  }, [copyToClipboard, getShareUrl, showShareNotice, t]);
+
+  const handleShareToWeChat = useCallback(async () => {
+    const link = getShareUrl();
+    const title = `${profile.companyName} (${profile.symbol})`;
+
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      try {
+        await navigator.share({
+          title,
+          text: title,
+          url: link,
+        });
+        showShareNotice(t.shareModal.success);
+        return;
+      } catch (error: any) {
+        if (error?.name === 'AbortError') return;
+      }
+    }
+
+    const copied = await copyToClipboard(link);
+    showShareNotice(copied ? t.report.shareActions.wechatCopyHint : t.report.shareActions.shareUnavailable);
+  }, [copyToClipboard, getShareUrl, profile.companyName, profile.symbol, showShareNotice, t]);
+
+  const handleShareToFacebook = useCallback(() => {
+    const link = getShareUrl();
+    if (typeof window !== 'undefined') {
+      const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`;
+      window.open(fbUrl, '_blank', 'noopener,noreferrer');
+    }
+  }, [getShareUrl]);
+
+  React.useEffect(() => {
+    if (!isSharePickerOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsSharePickerOpen(false);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isSharePickerOpen]);
+
   // 获取 section 编号
   const getSectionNumber = (id: string) => sections.find(s => s.id === id)?.number || '';
   // DeepSeek 暂不支持在线研究，普通版先隐藏“最新发展动态”卡片
@@ -909,6 +1032,14 @@ export default function Report({
     </div>
   );
 
+  const runShareAction = async (action: () => void | Promise<void>) => {
+    try {
+      await action();
+    } finally {
+      setIsSharePickerOpen(false);
+    }
+  };
+
   const renderActionIcons = () => (
     <>
       {profile && (
@@ -933,15 +1064,9 @@ export default function Report({
       )}
 
       <IconActionButton
-        icon={ImageIcon}
-        tooltip={t.report.exportImage}
-        onClick={() => setIsExportModalOpen(true)}
-      />
-
-      <IconActionButton
-        icon={FileDown}
-        tooltip={t.report.exportExcel}
-        onClick={() => exportReportToExcel(data, t)}
+        icon={Share2}
+        tooltip={t.common.share}
+        onClick={() => setIsSharePickerOpen(true)}
       />
 
       {onRegenerate && (
@@ -1001,6 +1126,10 @@ export default function Report({
           <div className="flex justify-center">{renderReportVersionSwitcher()}</div>
           <div className="flex items-center gap-2 justify-end">{renderActionIcons()}</div>
         </div>
+
+        {shareNotice && (
+          <div className="mt-3 text-center text-xs text-glacier-500">{shareNotice}</div>
+        )}
       </div>
 
       <div ref={reportRef} className="space-y-6 bg-obsidian py-4">
@@ -1693,13 +1822,55 @@ export default function Report({
         </footer>
       </div>
 
-      {/* 导出模态框 */}
-      <ExportModal
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-        targetRef={reportRef}
-        fileName={`${profile.symbol}_投资研究报告`}
-      />
+      {isSharePickerOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <button
+            className="absolute inset-0 bg-black/70"
+            aria-label="close-share-picker"
+            onClick={() => setIsSharePickerOpen(false)}
+          />
+          <div className="relative w-full max-w-sm rounded-md border border-white/10 bg-surface p-4">
+            <h3 className="mb-3 text-sm font-semibold text-white">{t.common.share}</h3>
+            <div className="space-y-1">
+              <button
+                onClick={() => runShareAction(handleShareAsImage)}
+                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm text-mist-300 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <ImageIcon className="h-4 w-4" />
+                {t.report.shareActions.image}
+              </button>
+              <button
+                onClick={() => runShareAction(handleShareAsExcel)}
+                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm text-mist-300 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <FileDown className="h-4 w-4" />
+                {t.report.shareActions.excel}
+              </button>
+              <button
+                onClick={() => runShareAction(handleShareLink)}
+                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm text-mist-300 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <Link2 className="h-4 w-4" />
+                {t.report.shareActions.link}
+              </button>
+              <button
+                onClick={() => runShareAction(handleShareToWeChat)}
+                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm text-mist-300 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <MessageCircle className="h-4 w-4" />
+                {t.report.shareActions.wechat}
+              </button>
+              <button
+                onClick={() => runShareAction(handleShareToFacebook)}
+                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm text-mist-300 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <ExternalLink className="h-4 w-4" />
+                {t.report.shareActions.facebook}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 分享模块模态框 */}
       <ShareExportModal
