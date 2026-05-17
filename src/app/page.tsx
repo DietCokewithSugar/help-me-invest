@@ -1087,6 +1087,54 @@ function HomeContent() {
                           </div>
                         </div>
                       )}
+
+                      {/* 联想搜索下拉 - 宽度严格跟随输入框 */}
+                      <AnimatePresence>
+                        {showSuggestions && symbol.trim().length >= 2 && (
+                          <motion.div
+                            className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-md border border-white/10 bg-surface/95 shadow-xl backdrop-blur-md"
+                            initial={{ opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -4 }}
+                            transition={{ duration: 0.15 }}
+                          >
+                            <div className="border-b border-white/10 px-4 py-2 text-[11px] font-mono uppercase tracking-wide text-mist-500">
+                              {t.home.search.suggestions}
+                            </div>
+
+                            {suggestLoading && (
+                              <div className="px-4 py-3">
+                                <div className="h-1 w-full overflow-hidden rounded-full bg-white/5">
+                                  <div className="h-full w-1/3 rounded-full bg-glacier-500 animate-bounce-horizontal" />
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="max-h-64 overflow-y-auto">
+                              {suggestions.map((item) => (
+                                <button
+                                  key={`${item.market}-${item.symbol}`}
+                                  onClick={() => handleSelectSuggestion(item)}
+                                  className="group flex w-full items-center gap-3 border-b border-white/5 px-4 py-3 text-left transition-colors hover:bg-white/5 last:border-b-0"
+                                >
+                                  <span className="font-mono text-sm text-mist-200 group-hover:text-white">{item.symbol}</span>
+                                  <span className="rounded-sm border border-white/10 bg-white/5 px-1.5 py-0.5 text-[11px] text-mist-500">
+                                    {MARKET_CONFIGS[item.market]?.nameCn || item.market}
+                                  </span>
+                                  {(item.nameCn || item.name) && (
+                                    <span className="truncate text-sm text-mist-400 group-hover:text-mist-300">
+                                      {locale === 'en' ? (item.name || item.nameCn) : (item.nameCn || item.name)}
+                                    </span>
+                                  )}
+                                </button>
+                              ))}
+                              {suggestions.length === 0 && !suggestLoading && (
+                                <div className="px-4 py-3 text-sm text-mist-500">{t.home.search.noMatch}</div>
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
 
                     <button
@@ -1105,50 +1153,6 @@ function HomeContent() {
                       )}
                     </button>
                   </div>
-
-                  {/* 联想搜索下拉 - 与输入框整合为一体 */}
-                  <AnimatePresence>
-                    {showSuggestions && (suggestLoading || suggestions.length > 0) && (
-                      <motion.div
-                        className="absolute left-0 right-0 sm:right-auto sm:w-[calc(100%-172px)] top-full mt-1 z-30 rounded-xl bg-[#12121a] border border-white/[0.06] shadow-xl shadow-black/40"
-                        initial={{ opacity: 0, y: -4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -4 }}
-                        transition={{ duration: 0.15 }}
-                      >
-                        {/* 加载条 - 仅在加载时显示 */}
-                        {suggestLoading && (
-                          <div className="px-5 py-2 flex items-center justify-center">
-                            <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                              <div className="h-full w-1/3 bg-gradient-to-r from-glacier-400 via-glacier-500 to-glacier-400 rounded-full animate-bounce-horizontal" />
-                            </div>
-                          </div>
-                        )}
-                        <div className="max-h-56 overflow-auto">
-                          {suggestions.map((item) => (
-                            <button
-                              key={`${item.market}-${item.symbol}`}
-                              onClick={() => handleSelectSuggestion(item)}
-                              className="w-full px-5 py-2.5 text-left hover:bg-white/[0.03] transition-colors flex items-center gap-3"
-                            >
-                              <span className="font-mono text-sm text-white">{item.symbol}</span>
-                              <span className="text-xs text-mist-600 px-1.5 py-0.5 rounded bg-white/[0.04]">
-                                {MARKET_CONFIGS[item.market]?.nameCn || item.market}
-                              </span>
-                              {(item.nameCn || item.name) && (
-                                <span className="text-sm text-mist-400 truncate">
-                                  {locale === 'en' ? (item.name || item.nameCn) : (item.nameCn || item.name)}
-                                </span>
-                              )}
-                            </button>
-                          ))}
-                          {suggestions.length === 0 && !suggestLoading && (
-                            <div className="px-5 py-2.5 text-sm text-mist-600">{t.home.search.noMatch}</div>
-                          )}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </div>
 
                 {/* 错误提示 */}

@@ -134,6 +134,7 @@ export const en: TranslationKeys = {
       aiMarketDetect: 'AI auto-detects market · Current: ',
       startAnalysis: 'Start Analysis',
       placeholder: (example: string) => `${example}`,
+      suggestions: 'Suggestions',
       noMatch: 'No matching results found',
       enterSymbol: 'Please enter a stock symbol',
       searchHistory: 'Search History',
