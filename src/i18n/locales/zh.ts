@@ -132,6 +132,7 @@ export const zh = {
       aiMarketDetect: 'AI 自动识别市场 · 当前：',
       startAnalysis: '开始分析',
       placeholder: (example: string) => `${example}`,
+      suggestions: '智能联想',
       noMatch: '暂未找到匹配结果',
       enterSymbol: '请输入股票代码',
       searchHistory: '搜索历史',
