@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aptos Network — Design System Playground</title>
+<style>
+  /* ============ Token Variables ============ */
+  :root {
+    /* Raw palette */
+    --c-pure-white: #fffffa;
+    --c-white:      #f9f9f0;
+    --c-cream:      #efecca;
+    --c-sand:       #ccc5a3;
+    --c-tan:        #9d937c;
+    --c-ash:        #3d3b34;
+    --c-graphite:   #2f2d28;
+    --c-coal:       #21201c;
+    --c-ink:        #171612;
+    --c-black:      #0f0e0b;
+    --c-mint:       #d5fad3;
+    --c-blue:       #badbee;
+    --c-coral:      #ff8866;
+
+    /* Brand (user-modifiable) */
+    --brand: var(--c-black);
+    --brand-accent: var(--c-mint);
+
+    /* Semantic (light) */
+    --bg:        var(--c-white);
+    --surface:   var(--c-cream);
+    --surface-2: var(--c-sand);
+    --text:      var(--c-black);
+    --text-2:    var(--c-ink);
+    --text-muted:#3d3b3499;
+    --border:    rgba(0,0,0,0.15);
+    --border-subtle: rgba(0,0,0,0.08);
+
+    /* Radius */
+    --r-sm: 4px; --r-md: 6px; --r-lg: 12px; --r-xl: 24px; --r-pill: 9999px;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(15,14,11,0.06);
+    --shadow-md: 0 4px 12px rgba(15,14,11,0.08);
+    --shadow-lg: 0 12px 32px rgba(15,14,11,0.12);
+    --shadow-xl: 0 24px 60px rgba(15,14,11,0.16);
+
+    /* Motion */
+    --dur-fast: 0.15s;
+    --dur-normal: 0.3s;
+    --ease-std: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-text-mask: cubic-bezier(0.76, 0, 0.24, 1);
+  }
+
+  [data-theme="dark"] {
+    --bg:        var(--c-black);
+    --surface:   var(--c-ink);
+    --surface-2: var(--c-coal);
+    --text:      var(--c-white);
+    --text-2:    var(--c-cream);
+    --text-muted:#9d937c99;
+    --border:    rgba(255,255,255,0.15);
+    --border-subtle: rgba(255,255,255,0.08);
+    --brand: var(--c-white);
+  }
+
+  /* ============ Base ============ */
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: ui-serif, Georgia, "Times New Roman", serif;
+    font-size: 16px;
+    line-height: 1.5;
+    transition: background-color .2s, color .2s;
+  }
+  .mono { font-family: "JetBrains Mono", "Akkurat Mono", "Courier New", monospace; }
+  .uc   { text-transform: uppercase; letter-spacing: 0.05em; }
+  .small{ font-size: 0.75rem; }
+
+  /* ============ Top Nav ============ */
+  .topnav {
+    position: fixed;
+    top: 16px; left: 50%; transform: translateX(-50%);
+    z-index: 100;
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--r-pill);
+    box-shadow: var(--shadow-md);
+    padding: 6px;
+    backdrop-filter: blur(8px);
+    max-width: calc(100vw - 32px);
+    overflow-x: auto;
+  }
+  .topnav a {
+    color: var(--text);
+    text-decoration: none;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 8px 12px;
+    border-radius: var(--r-pill);
+    white-space: nowrap;
+    transition: background-color var(--dur-fast) var(--ease-std);
+  }
+  .topnav a:hover { background: var(--surface); }
+  .topnav a.brand {
+    background: var(--brand);
+    color: var(--bg);
+    font-family: ui-serif, serif;
+    text-transform: none;
+    letter-spacing: -0.01em;
+    font-size: 13px;
+    padding: 8px 14px;
+  }
+
+  /* ============ Layout ============ */
+  .layout { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; padding-top: 80px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } .sidebar { position: static; height: auto; } }
+
+  .sidebar {
+    position: sticky; top: 80px; align-self: start;
+    height: calc(100vh - 80px);
+    border-right: 1px solid var(--border);
+    padding: 32px 24px;
+    overflow-y: auto;
+  }
+  .sidebar h3 {
+    font-family: "JetBrains Mono", monospace; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--text-muted); margin: 0 0 12px;
+  }
+  .sidebar section { margin-bottom: 28px; }
+
+  .picker-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px; border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+  }
+  .picker-row input[type=color] {
+    width: 36px; height: 36px;
+    border: none; border-radius: var(--r-md);
+    background: transparent; cursor: pointer;
+    padding: 0;
+  }
+  .picker-row .hex { font-family: "JetBrains Mono", monospace; font-size: 13px; }
+
+  .theme-toggle {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-pill);
+    padding: 4px;
+  }
+  .theme-toggle button {
+    border: none; background: transparent; cursor: pointer;
+    color: var(--text);
+    font-family: "JetBrains Mono", monospace; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 8px 14px; border-radius: var(--r-pill);
+    transition: all var(--dur-fast) var(--ease-std);
+  }
+  .theme-toggle button[aria-checked="true"] {
+    background: var(--brand); color: var(--bg);
+  }
+
+  /* ============ Main Content ============ */
+  main { padding: 32px clamp(24px, 5vw, 80px); max-width: 1280px; }
+  section.block { padding: 64px 0; border-bottom: 1px solid var(--border-subtle); }
+  section.block:last-child { border-bottom: none; }
+  .kicker {
+    font-family: "JetBrains Mono", monospace; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--text-muted); margin-bottom: 12px;
+  }
+  h2.title {
+    font-family: ui-serif, "Times New Roman", serif;
+    font-size: clamp(2rem, 4vw, 3.4rem);
+    line-height: 1.05; letter-spacing: -0.02em;
+    margin: 0 0 16px;
+  }
+  p.lede { font-size: 1.125rem; color: var(--text-2); max-width: 60ch; margin: 0 0 28px; line-height: 1.5; }
+
+  /* Tag */
+  .tag {
+    display: inline-block; padding: 4px 10px; border-radius: var(--r-pill);
+    border: 1px solid var(--border);
+    font-family: "JetBrains Mono", monospace; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin: 0 6px 6px 0;
+  }
+  .tag.solid { background: var(--brand); color: var(--bg); border-color: var(--brand); }
+
+  /* Color swatches */
+  .swatch-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+  .swatch {
+    border: 1px solid var(--border); border-radius: var(--r-lg);
+    overflow: hidden; cursor: pointer;
+    transition: transform var(--dur-fast) var(--ease-std);
+    background: var(--surface);
+  }
+  .swatch:hover { transform: translateY(-2px); }
+  .swatch .block { height: 80px; }
+  .swatch .meta { padding: 10px 12px; font-family: "JetBrains Mono", monospace; font-size: 11px; }
+  .swatch .meta .name { color: var(--text); }
+  .swatch .meta .hex  { color: var(--text-muted); }
+
+  /* Semantic table */
+  table.sem {
+    width: 100%; border-collapse: collapse; font-family: "JetBrains Mono", monospace; font-size: 12px;
+  }
+  table.sem th, table.sem td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border-subtle); }
+  table.sem th { color: var(--text-muted); font-weight: 400; text-transform: uppercase; letter-spacing: 0.08em; }
+  table.sem .chip { display: inline-block; width: 18px; height: 18px; border-radius: 4px; border: 1px solid var(--border); vertical-align: middle; margin-right: 8px; }
+
+  /* Typography demos */
+  .type-row {
+    display: grid; grid-template-columns: 200px 1fr; gap: 24px;
+    padding: 16px 0; border-bottom: 1px solid var(--border-subtle); align-items: baseline;
+  }
+  .type-meta { font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--text-muted); }
+  .type-meta b { color: var(--text); font-weight: 400; }
+  .type-sample { font-family: ui-serif, serif; }
+
+  /* Spacing visualizer */
+  .spacing-row { display: grid; grid-template-columns: 80px 80px 1fr; gap: 16px; align-items: center; padding: 8px 0; font-family: "JetBrains Mono", monospace; font-size: 12px; }
+  .spacing-bar { height: 16px; background: var(--brand); border-radius: 2px; }
+
+  /* Shadow cards */
+  .shadow-grid { display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); }
+  .shadow-card {
+    background: var(--bg); border-radius: var(--r-lg); padding: 24px;
+    border: 1px solid var(--border-subtle);
+    font-family: "JetBrains Mono", monospace; font-size: 11px;
+  }
+  .shadow-card.sm { box-shadow: var(--shadow-sm); }
+  .shadow-card.md { box-shadow: var(--shadow-md); }
+  .shadow-card.lg { box-shadow: var(--shadow-lg); }
+  .shadow-card.xl { box-shadow: var(--shadow-xl); }
+
+  /* Radius */
+  .radius-grid { display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(120px,1fr)); }
+  .radius-block {
+    aspect-ratio: 1; background: var(--brand);
+    display: flex; align-items: flex-end; justify-content: center;
+    color: var(--bg); padding: 12px;
+    font-family: "JetBrains Mono", monospace; font-size: 11px;
+  }
+
+  /* Opacity */
+  .opacity-row { display: grid; grid-template-columns: 100px 60px 1fr; gap: 16px; align-items: center; padding: 8px 0; font-family: "JetBrains Mono", monospace; font-size: 12px; }
+  .opacity-chip { height: 32px; background: var(--brand); border-radius: var(--r-md); }
+
+  /* Animation demos */
+  .anim-grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); }
+  .anim-card {
+    border: 1px solid var(--border); border-radius: var(--r-lg);
+    padding: 20px; background: var(--surface);
+  }
+  .anim-card h4 { margin: 0 0 8px; font-family: ui-serif, serif; font-size: 18px; }
+  .anim-card .desc { font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; }
+  .anim-stage {
+    height: 80px; background: var(--bg); border-radius: var(--r-md);
+    overflow: hidden; display: flex; align-items: center; justify-content: center;
+    margin-bottom: 12px;
+    border: 1px solid var(--border-subtle);
+  }
+  .anim-stage .target {
+    font-family: ui-serif, serif; font-size: 1.5rem;
+    color: var(--text);
+  }
+  .anim-btn {
+    width: 100%; padding: 8px 14px;
+    background: var(--brand); color: var(--bg);
+    border: none; border-radius: var(--r-pill);
+    font-family: "JetBrains Mono", monospace; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    cursor: pointer;
+  }
+
+  /* @keyframes */
+  @keyframes pg-text-mask-in {
+    0%   { clip-path: polygon(0 0, 0 0, 0 200%, 0 200%); translate: 0; font-variation-settings: "wght" 400; }
+    50%  { clip-path: polygon(0 0, 110% 0, 110% 200%, 0 200%); translate: 50px; }
+    100% { clip-path: polygon(0 0, 110% 0, 110% 200%, 0 200%); translate: 0; font-variation-settings: "wght" 400; }
+  }
+  @keyframes pg-parallax-in {
+    0%   { transform: translateY(20%); opacity: 0; }
+    100% { transform: translateY(0);  opacity: 1; }
+  }
+  @keyframes pg-stackable-shrink {
+    0%   { scale: 1; }
+    100% { scale: 0.8; }
+  }
+  @keyframes pg-marquee {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  @keyframes pg-fade {
+    0% { opacity: 0; } 100% { opacity: 1; }
+  }
+
+  .play-text-mask {
+    animation: pg-text-mask-in 1.5s var(--ease-text-mask) forwards;
+  }
+  .play-parallax { animation: pg-parallax-in 0.8s var(--ease-std) forwards; }
+  .play-shrink   { animation: pg-stackable-shrink 0.6s var(--ease-std) forwards; }
+  .play-fade     { animation: pg-fade 0.6s ease-out forwards; }
+
+  /* Marquee live */
+  .marquee-wrap {
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+            mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    padding: 8px 0;
+  }
+  .marquee-track {
+    display: inline-flex; gap: 32px;
+    animation: pg-marquee 20s linear infinite;
+    white-space: nowrap;
+    font-family: "JetBrains Mono", monospace; font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+
+  /* Components */
+  .comp-block {
+    border: 1px solid var(--border); border-radius: var(--r-lg);
+    padding: 32px; margin-bottom: 24px; background: var(--surface);
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .comp-block h4 { margin: 0; font-family: ui-serif, serif; font-size: 18px; }
+  .comp-meta { font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  /* Pill button (real, uses brand var) */
+  .pill-btn {
+    display: inline-flex; align-items: center;
+    padding: 12px 22px;
+    background: var(--brand); color: var(--bg);
+    border: none; border-radius: var(--r-pill);
+    font-family: "JetBrains Mono", monospace; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: opacity var(--dur-fast) var(--ease-std), transform var(--dur-fast) var(--ease-std);
+  }
+  .pill-btn:hover { opacity: 0.85; }
+  .pill-btn:active { transform: scale(0.97); }
+  .pill-btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+
+  /* Floating nav demo */
+  .nav-demo {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--r-pill);
+    box-shadow: var(--shadow-md);
+    padding: 6px;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .nav-demo a { color: var(--text); text-decoration: none; font-family: "JetBrains Mono", monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; padding: 8px 12px; border-radius: var(--r-pill); }
+  .nav-demo a:hover { background: var(--surface); }
+  .nav-demo .logo  { font-family: ui-serif, serif; text-transform: none; letter-spacing: 0; padding: 8px 14px; }
+  .nav-demo .cta   { background: var(--brand); color: var(--bg); }
+
+  /* Code snippet */
+  pre.code {
+    margin: 0; padding: 16px;
+    background: var(--surface); color: var(--text);
+    border: 1px solid var(--border-subtle); border-radius: var(--r-md);
+    font-family: "JetBrains Mono", monospace; font-size: 12px;
+    line-height: 1.55; overflow-x: auto;
+    position: relative; cursor: pointer;
+  }
+  pre.code::after {
+    content: "COPY"; position: absolute; top: 8px; right: 8px;
+    padding: 2px 8px; font-size: 9px; letter-spacing: 0.1em;
+    background: var(--bg); border: 1px solid var(--border-subtle); border-radius: var(--r-sm);
+    opacity: 0; transition: opacity var(--dur-fast);
+  }
+  pre.code:hover::after { opacity: 0.8; }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(40px);
+    background: var(--text); color: var(--bg);
+    padding: 10px 18px; border-radius: var(--r-pill);
+    font-family: "JetBrains Mono", monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+    opacity: 0; pointer-events: none; transition: all 0.3s var(--ease-std);
+    z-index: 200;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Pattern grid */
+  .pattern-list { display: grid; gap: 20px; }
+  .pattern-card {
+    border: 1px solid var(--border); border-radius: var(--r-lg);
+    padding: 20px; background: var(--surface);
+  }
+  .pattern-card .name { font-family: ui-serif, serif; font-size: 16px; margin: 0 0 6px; }
+  .pattern-card .role { font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+
+<!-- ============ Top Nav ============ -->
+<nav class="topnav" role="navigation" aria-label="Section navigation">
+  <a class="brand" href="#overview">aptos</a>
+  <a href="#palette">Color</a>
+  <a href="#type">Type</a>
+  <a href="#spacing">Spacing</a>
+  <a href="#shadow">Shadow</a>
+  <a href="#radius">Radius</a>
+  <a href="#opacity">Opacity</a>
+  <a href="#motion">Motion</a>
+  <a href="#components">Components</a>
+  <a href="#patterns">Patterns</a>
+</nav>
+
+<div class="layout">
+
+  <!-- ============ Sidebar ============ -->
+  <aside class="sidebar">
+    <section>
+      <h3>Brand Color</h3>
+      <div class="picker-row">
+        <input type="color" id="brandPicker" value="#0f0e0b" aria-label="Pick brand color" />
+        <span class="hex" id="brandHex">#0F0E0B</span>
+      </div>
+      <p class="small mono" style="color:var(--text-muted); margin-top:8px;">改变后实时驱动按钮、Pill、强调元素。</p>
+    </section>
+
+    <section>
+      <h3>Theme</h3>
+      <div class="theme-toggle" role="radiogroup" aria-label="Color scheme">
+        <button role="radio" aria-checked="true" data-theme="light">Light</button>
+        <button role="radio" aria-checked="false" data-theme="dark">Dark</button>
+        <button role="radio" aria-checked="false" data-theme="system">System</button>
+      </div>
+    </section>
+
+    <section>
+      <h3>Source</h3>
+      <a href="https://aptosnetwork.com" target="_blank" class="mono small" style="color:var(--text); text-decoration:underline;">
+        aptosnetwork.com ↗
+      </a>
+    </section>
+  </aside>
+
+  <!-- ============ Main ============ -->
+  <main>
+
+    <!-- ============ Overview ============ -->
+    <section class="block" id="overview">
+      <div class="kicker">01 / Overview</div>
+      <h2 class="title">Aptos Network<br>Design System</h2>
+      <p class="lede">
+        Editorial 极简 × 暖中性 × 可变字体。在 mint / blue / coral 三色高纯度强调下，构建一个克制、文学化、且对动效有强烈表达的 Web3 基础设施品牌系统。
+      </p>
+      <div>
+        <span class="tag solid">editorial</span>
+        <span class="tag">warm-neutral</span>
+        <span class="tag">variable-typography</span>
+        <span class="tag">scroll-driven motion</span>
+        <span class="tag">dual-mode native</span>
+        <span class="tag">pill-shape</span>
+        <span class="tag">no gradient</span>
+      </div>
+    </section>
+
+    <!-- ============ Color Palette ============ -->
+    <section class="block" id="palette">
+      <div class="kicker">02 / Color Palette</div>
+      <h2 class="title">Color</h2>
+      <p class="lede">Aptos 配色 = 一组暖中性灰阶（cream → ink）+ 三色高纯度强调（mint / blue / coral）。点击色块即可复制 HEX。</p>
+
+      <h3 class="kicker" style="margin-top:24px;">Raw Palette</h3>
+      <div class="swatch-grid" id="rawSwatchGrid"></div>
+
+      <h3 class="kicker" style="margin-top:36px;">Semantic Tokens</h3>
+      <table class="sem">
+        <thead><tr><th>Token</th><th>Light</th><th>Dark</th><th>用途</th></tr></thead>
+        <tbody>
+          <tr><td>surface-100</td><td><span class="chip" style="background:#F9F9F0"></span>#F9F9F0</td><td><span class="chip" style="background:#0F0E0B"></span>#0F0E0B</td><td>页面主背景</td></tr>
+          <tr><td>surface-200</td><td><span class="chip" style="background:#EFECCA"></span>#EFECCA</td><td><span class="chip" style="background:#171612"></span>#171612</td><td>卡片表面</td></tr>
+          <tr><td>surface-300</td><td><span class="chip" style="background:#CCC5A3"></span>#CCC5A3</td><td><span class="chip" style="background:#21201C"></span>#21201C</td><td>凸起元素</td></tr>
+          <tr><td>inverted-100</td><td><span class="chip" style="background:#0F0E0B"></span>#0F0E0B</td><td><span class="chip" style="background:#F9F9F0"></span>#F9F9F0</td><td>主文字</td></tr>
+          <tr><td>accent-mint</td><td><span class="chip" style="background:#D5FAD3"></span>#D5FAD3</td><td><span class="chip" style="background:#D5FAD3"></span>#D5FAD3</td><td>Hero 背景</td></tr>
+          <tr><td>accent-blue</td><td><span class="chip" style="background:#BADBEE"></span>#BADBEE</td><td><span class="chip" style="background:#BADBEE"></span>#BADBEE</td><td>信息分区</td></tr>
+          <tr><td>accent-coral</td><td><span class="chip" style="background:#FF8866"></span>#FF8866</td><td><span class="chip" style="background:#FF8866"></span>#FF8866</td><td>CTA / 警示</td></tr>
+          <tr><td>border</td><td><span class="chip" style="background:rgba(0,0,0,0.15);"></span>rgba(0,0,0,.15)</td><td><span class="chip" style="background:rgba(255,255,255,0.15);"></span>rgba(255,255,255,.15)</td><td>1px 描边</td></tr>
+          <tr><td>success</td><td><span class="chip" style="background:#166534"></span>#166534</td><td><span class="chip" style="background:#68D391"></span>#68D391</td><td>成功</td></tr>
+          <tr><td>error</td><td><span class="chip" style="background:#C53030"></span>#C53030</td><td><span class="chip" style="background:#FC8181"></span>#FC8181</td><td>错误</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============ Typography ============ -->
+    <section class="block" id="type">
+      <div class="kicker">03 / Typography</div>
+      <h2 class="title">Typography</h2>
+      <p class="lede">Season Serif（变量字体，<code class="mono">SERF</code> 轴 0 → 70）承担显示与正文；Akkurat Mono 用于 UI 标签、代码与角标。</p>
+
+      <h3 class="kicker" style="margin-top:24px;">Scale</h3>
+
+      <div class="type-row">
+        <div class="type-meta"><b>text-6xl</b><br/>120px · w335 · lh95</div>
+        <div class="type-sample" style="font-size: clamp(2.5rem, 8vw, 7.5rem); line-height: 0.95; letter-spacing: -0.03em; font-weight: 335;">Move Commerce</div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta"><b>text-5xl</b><br/>90px · w335 · lh95</div>
+        <div class="type-sample" style="font-size: clamp(2rem, 6vw, 5.625rem); line-height: 0.95; letter-spacing: -0.02em; font-weight: 335;">Real-World Aptos</div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta"><b>text-4xl</b><br/>55px · w420</div>
+        <div class="type-sample" style="font-size: clamp(1.75rem, 4vw, 3.4rem); letter-spacing: -0.02em; font-weight: 420;">Discover what's being built</div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta"><b>text-3xl</b><br/>36px · w420</div>
+        <div class="type-sample" style="font-size: 2.25rem; letter-spacing: -0.02em; font-weight: 420;">Section heading</div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta"><b>text-2xl</b><br/>24px · w420</div>
+        <div class="type-sample" style="font-size: 1.5rem; letter-spacing: -0.02em; font-weight: 420;">Module title</div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta"><b>text-xl</b><br/>20px · w444</div>
+        <div class="type-sample" style="font-size: 1.25rem; font-weight: 444;">Lead paragraph copy</div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta"><b>text-base</b><br/>16px · w358 · lh140</div>
+        <div class="type-sample" style="font-size: 1rem; font-weight: 358;">Body copy — Aptos is a Layer 1 blockchain for everyday users, powered by the Move language.</div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta"><b>text-sm</b><br/>13px · w358</div>
+        <div class="type-sample" style="font-size: 0.813rem; font-weight: 358;">Small supporting text used in cards and footers.</div>
+      </div>
+      <div class="type-row">
+        <div class="type-meta"><b>text-xs · mono</b><br/>11px · uppercase</div>
+        <div class="type-sample mono uc" style="font-size: 0.688rem;">About · Ecosystem · Build</div>
+      </div>
+
+      <h3 class="kicker" style="margin-top:36px;">Variable Axis Demo</h3>
+      <div style="font-size: 2rem; line-height: 1.2;">
+        <span style="font-weight: 335;">light&nbsp;</span>
+        <span style="font-weight: 420;">regular&nbsp;</span>
+        <span style="font-weight: 444;">medium&nbsp;</span>
+        <span style="font-weight: 600;">bold</span>
+      </div>
+    </section>
+
+    <!-- ============ Spacing ============ -->
+    <section class="block" id="spacing">
+      <div class="kicker">04 / Spacing System</div>
+      <h2 class="title">Spacing</h2>
+      <p class="lede">Base unit <code class="mono">5px</code>。所有数值是 5 的倍数。</p>
+
+      <div id="spacingGrid"></div>
+    </section>
+
+    <!-- ============ Shadow ============ -->
+    <section class="block" id="shadow">
+      <div class="kicker">05 / Shadows & Elevation</div>
+      <h2 class="title">Shadows</h2>
+      <p class="lede">几乎 flat。仅在浮动元素上使用极轻的暖色阴影。</p>
+
+      <div class="shadow-grid">
+        <div class="shadow-card sm">
+          <b>shadow-sm</b><br/>0 1px 2px rgba(15,14,11,0.06)
+        </div>
+        <div class="shadow-card md">
+          <b>shadow-md</b><br/>0 4px 12px rgba(15,14,11,0.08)
+        </div>
+        <div class="shadow-card lg">
+          <b>shadow-lg</b><br/>0 12px 32px rgba(15,14,11,0.12)
+        </div>
+        <div class="shadow-card xl">
+          <b>shadow-xl</b><br/>0 24px 60px rgba(15,14,11,0.16)
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Radius ============ -->
+    <section class="block" id="radius">
+      <div class="kicker">06 / Border Radius</div>
+      <h2 class="title">Radius</h2>
+      <p class="lede">两极分化：卡片 12px / 交互件 9999px（pill）。</p>
+
+      <div class="radius-grid">
+        <div class="radius-block" style="border-radius:4px;">sm · 4px</div>
+        <div class="radius-block" style="border-radius:6px;">md · 6px</div>
+        <div class="radius-block" style="border-radius:12px;">lg · 12px</div>
+        <div class="radius-block" style="border-radius:24px;">xl · 24px</div>
+        <div class="radius-block" style="border-radius:9999px;">pill · 9999</div>
+      </div>
+    </section>
+
+    <!-- ============ Opacity ============ -->
+    <section class="block" id="opacity">
+      <div class="kicker">07 / Opacity & Transparency</div>
+      <h2 class="title">Opacity</h2>
+      <p class="lede">不使用 backdrop-filter。描边一律半透明黑/白。</p>
+
+      <div class="opacity-row"><div>disabled</div><div>0.40</div><div class="opacity-chip" style="opacity:0.4;"></div></div>
+      <div class="opacity-row"><div>muted</div><div>0.60</div><div class="opacity-chip" style="opacity:0.6;"></div></div>
+      <div class="opacity-row"><div>hover</div><div>0.80</div><div class="opacity-chip" style="opacity:0.8;"></div></div>
+      <div class="opacity-row"><div>full</div><div>1.00</div><div class="opacity-chip" style="opacity:1;"></div></div>
+
+      <h3 class="kicker" style="margin-top:24px;">Translucent border</h3>
+      <div style="display:flex; gap:16px; flex-wrap:wrap;">
+        <div style="padding:20px 28px; border-radius:12px; border:1px solid rgba(0,0,0,0.10); font-family:'JetBrains Mono',monospace; font-size:11px;">border 0.10</div>
+        <div style="padding:20px 28px; border-radius:12px; border:1px solid rgba(0,0,0,0.15); font-family:'JetBrains Mono',monospace; font-size:11px;">border 0.15</div>
+        <div style="padding:20px 28px; border-radius:12px; border:1px solid rgba(0,0,0,0.30); font-family:'JetBrains Mono',monospace; font-size:11px;">border 0.30</div>
+      </div>
+    </section>
+
+    <!-- ============ Motion ============ -->
+    <section class="block" id="motion">
+      <div class="kicker">08 / Animations & Transitions</div>
+      <h2 class="title">Motion</h2>
+      <p class="lede">12 个 @keyframes，零 JS 动画库，全部基于 CSS Scroll-Driven Animations。点击每张卡片重放动效。</p>
+
+      <div class="anim-grid">
+        <div class="anim-card" onclick="replay(this, 'play-text-mask')">
+          <h4>text-mask-in</h4>
+          <div class="desc">2s · cubic-bezier(.76,0,.24,1) · 字体形变签名</div>
+          <div class="anim-stage"><span class="target play-text-mask">Move Commerce</span></div>
+          <button class="anim-btn">Replay ▸</button>
+        </div>
+        <div class="anim-card" onclick="replay(this, 'play-parallax')">
+          <h4>parallax-in</h4>
+          <div class="desc">0.8s · scroll-driven · 入场 translateY 20%→0</div>
+          <div class="anim-stage"><span class="target play-parallax">Discover</span></div>
+          <button class="anim-btn">Replay ▸</button>
+        </div>
+        <div class="anim-card" onclick="replay(this, 'play-shrink')">
+          <h4>stackable-shrink</h4>
+          <div class="desc">0.6s · 卡片堆叠后退 scale 1→0.8</div>
+          <div class="anim-stage"><div class="target play-shrink" style="width:80px;height:50px;background:var(--brand);border-radius:8px;"></div></div>
+          <button class="anim-btn">Replay ▸</button>
+        </div>
+        <div class="anim-card" onclick="replay(this, 'play-fade')">
+          <h4>fade</h4>
+          <div class="desc">0.6s · opacity 0→1 · 通用淡入</div>
+          <div class="anim-stage"><span class="target play-fade">Welcome.</span></div>
+          <button class="anim-btn">Replay ▸</button>
+        </div>
+      </div>
+
+      <h3 class="kicker" style="margin-top:36px;">Marquee (实时)</h3>
+      <div class="marquee-wrap">
+        <div class="marquee-track">
+          <span>APTOS LABS</span><span>·</span>
+          <span>MOVE LANGUAGE</span><span>·</span>
+          <span>L1 BLOCKCHAIN</span><span>·</span>
+          <span>REAL-WORLD VALUE</span><span>·</span>
+          <span>BUILD WITH CONFIDENCE</span><span>·</span>
+          <span>APTOS LABS</span><span>·</span>
+          <span>MOVE LANGUAGE</span><span>·</span>
+          <span>L1 BLOCKCHAIN</span><span>·</span>
+          <span>REAL-WORLD VALUE</span><span>·</span>
+          <span>BUILD WITH CONFIDENCE</span><span>·</span>
+        </div>
+      </div>
+
+      <h3 class="kicker" style="margin-top:28px;">Duration × Easing</h3>
+      <table class="sem">
+        <thead><tr><th>token</th><th>value</th><th>用途</th></tr></thead>
+        <tbody>
+          <tr><td>duration-fast</td><td>0.15s</td><td>hover / focus / color 切换</td></tr>
+          <tr><td>duration-normal</td><td>0.30s</td><td>dropdown / accordion</td></tr>
+          <tr><td>duration-slow</td><td>1.00s</td><td>text-mask-out</td></tr>
+          <tr><td>duration-epic</td><td>2.00s</td><td>text-mask-in</td></tr>
+          <tr><td>ease-standard</td><td>cubic-bezier(0.4,0,0.2,1)</td><td>默认</td></tr>
+          <tr><td>ease-text-mask</td><td>cubic-bezier(0.76,0,0.24,1)</td><td>签名 easing — hero</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============ Components ============ -->
+    <section class="block" id="components">
+      <div class="kicker">09 / Component Styles</div>
+      <h2 class="title">Components</h2>
+      <p class="lede">每个组件展示真实状态。所有 pill 元素使用 <code class="mono">--brand</code>，可由左侧 picker 驱动。</p>
+
+      <!-- Pill Navbar -->
+      <div class="comp-block">
+        <div>
+          <h4>Floating Pill Navbar</h4>
+          <div class="comp-meta">surface-100 · border 1px · shadow-md · radius-pill</div>
+        </div>
+        <div style="display:flex; justify-content:center; padding:20px 0;">
+          <div class="nav-demo">
+            <a class="logo" href="#">⌥ Aptos</a>
+            <a href="#">About</a>
+            <a href="#">Ecosystem</a>
+            <a href="#">Build</a>
+            <a class="cta" href="#">Get Started</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Buttons -->
+      <div class="comp-block">
+        <div>
+          <h4>Primary Pill Button — 全状态</h4>
+          <div class="comp-meta">inverted-100 bg · surface-100 fg · font-mono uppercase</div>
+        </div>
+        <div style="display:flex; gap:14px; flex-wrap:wrap; align-items:center;">
+          <button class="pill-btn">Default</button>
+          <button class="pill-btn" style="opacity:0.85;">Hover</button>
+          <button class="pill-btn" style="transform:scale(0.97);">Active</button>
+          <button class="pill-btn" disabled>Disabled</button>
+        </div>
+      </div>
+
+      <!-- Accordion -->
+      <div class="comp-block">
+        <div>
+          <h4>Accordion — 原生 details</h4>
+          <div class="comp-meta">border-bottom 1px · chevron 旋转 0.3s</div>
+        </div>
+        <details style="border-bottom:1px solid var(--border-subtle); padding:12px 0;">
+          <summary style="cursor:pointer; font-family: ui-serif, serif; font-size:18px; list-style:none; display:flex; justify-content:space-between; align-items:center;">
+            What is Aptos? <span class="mono">+</span>
+          </summary>
+          <p style="margin:12px 0 0; font-size:14px; color:var(--text-muted);">Aptos is a Layer 1 blockchain for everyday users, built on the Move language.</p>
+        </details>
+        <details style="border-bottom:1px solid var(--border-subtle); padding:12px 0;">
+          <summary style="cursor:pointer; font-family: ui-serif, serif; font-size:18px; list-style:none; display:flex; justify-content:space-between; align-items:center;">
+            How do I get started? <span class="mono">+</span>
+          </summary>
+          <p style="margin:12px 0 0; font-size:14px; color:var(--text-muted);">Visit aptos.dev to read the docs, or try the Move Playground in your browser.</p>
+        </details>
+      </div>
+
+      <!-- Theme toggle -->
+      <div class="comp-block">
+        <div>
+          <h4>Theme Toggle (三段 Pill)</h4>
+          <div class="comp-meta">radiogroup · 选中态使用 brand</div>
+        </div>
+        <div class="theme-toggle">
+          <button aria-checked="true">System</button>
+          <button aria-checked="false">Light</button>
+          <button aria-checked="false">Dark</button>
+        </div>
+      </div>
+
+      <!-- Card -->
+      <div class="comp-block">
+        <div>
+          <h4>Content Card (image + text)</h4>
+          <div class="comp-meta">grid 2 cols · gap 80px · image radius 12px · grayscale 60%</div>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:32px; align-items:center;">
+          <div>
+            <h3 style="font-family:ui-serif,serif; font-size:1.8rem; margin:0 0 12px; letter-spacing:-0.02em;">Discover what's being built</h3>
+            <p style="font-size:14px; color:var(--text-muted); margin:0 0 16px;">Explore 330+ projects on Aptos: delivering real impact, serving real users, and moving real value every day.</p>
+            <button class="pill-btn">Explore</button>
+          </div>
+          <div style="aspect-ratio:4/3; background:linear-gradient(135deg,var(--c-sand),var(--c-tan)); border-radius:12px; display:flex; align-items:center; justify-content:center; color:var(--c-white); font-family:ui-serif,serif; font-style:italic;">image</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Patterns ============ -->
+    <section class="block" id="patterns">
+      <div class="kicker">10 / Common Patterns (Tailwind 4)</div>
+      <h2 class="title">Patterns</h2>
+      <p class="lede">官网高频 class 组合。点击代码块即可复制。</p>
+
+      <div class="pattern-list">
+        <div class="pattern-card">
+          <h4 class="name">Pill 按钮</h4>
+          <div class="role">primary CTA · navbar right side</div>
+          <pre class="code"><code>inline-flex items-center px-6 py-3 rounded-full
+bg-black text-[#F9F9F0]
+font-mono text-xs uppercase tracking-wider
+hover:opacity-85 active:scale-[0.98]</code></pre>
+        </div>
+
+        <div class="pattern-card">
+          <h4 class="name">Floating Navbar</h4>
+          <div class="role">fixed center pill · always visible</div>
+          <pre class="code"><code>fixed top-5 left-1/2 -translate-x-1/2 z-50
+inline-flex items-center gap-6
+rounded-full bg-[#F9F9F0] border border-black/10
+shadow-[0_4px_12px_rgba(15,14,11,0.08)]
+px-3 py-2</code></pre>
+        </div>
+
+        <div class="pattern-card">
+          <h4 class="name">Editorial Heading</h4>
+          <div class="role">hero / section title</div>
+          <pre class="code"><code>font-serif text-5xl md:text-6xl
+tracking-tight leading-[0.95]
+text-[#0F0E0B]</code></pre>
+        </div>
+
+        <div class="pattern-card">
+          <h4 class="name">Mono Kicker Label</h4>
+          <div class="role">section eyebrow / metadata</div>
+          <pre class="code"><code>font-mono text-xs uppercase tracking-[0.12em]
+text-black/60</code></pre>
+        </div>
+
+        <div class="pattern-card">
+          <h4 class="name">Hero 区块</h4>
+          <div class="role">first viewport · mint background</div>
+          <pre class="code"><code>min-h-screen bg-[#D5FAD3]
+flex items-end pb-20 px-6 md:px-12</code></pre>
+        </div>
+
+        <div class="pattern-card">
+          <h4 class="name">Marquee Container</h4>
+          <div class="role">brand wall · seamless loop</div>
+          <pre class="code"><code>relative overflow-hidden
+[mask-image:linear-gradient(to_right,transparent,
+  black_8%,black_92%,transparent)]</code></pre>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div class="toast" id="toast">已复制 ✓</div>
+
+<script>
+  // -------- Raw color swatches --------
+  const RAW_COLORS = [
+    ['pure-white','#fffffa'],['white','#f9f9f0'],['cream','#efecca'],
+    ['sand','#ccc5a3'],['tan','#9d937c'],['ash','#3d3b34'],
+    ['graphite','#2f2d28'],['coal','#21201c'],['ink','#171612'],
+    ['black','#0f0e0b'],['mint','#d5fad3'],['blue','#badbee'],['coral','#ff8866']
+  ];
+  const grid = document.getElementById('rawSwatchGrid');
+  RAW_COLORS.forEach(([name,hex])=>{
+    const el = document.createElement('div');
+    el.className = 'swatch';
+    el.innerHTML = `<div class="block" style="background:${hex};"></div>
+      <div class="meta"><div class="name">${name}</div><div class="hex">${hex.toUpperCase()}</div></div>`;
+    el.addEventListener('click', ()=> copy(hex.toUpperCase()));
+    grid.appendChild(el);
+  });
+
+  // -------- Spacing rows --------
+  const SPACING = [
+    ['xs', 5], ['sm', 10], ['md', 20], ['lg', 40],
+    ['xl', 80], ['2xl', 120], ['3xl', 200]
+  ];
+  const sg = document.getElementById('spacingGrid');
+  SPACING.forEach(([name,px])=>{
+    const row = document.createElement('div');
+    row.className = 'spacing-row';
+    row.innerHTML = `<div>${name}</div><div>${px}px</div><div class="spacing-bar" style="width:${px}px;"></div>`;
+    sg.appendChild(row);
+  });
+
+  // -------- Brand color picker --------
+  const picker = document.getElementById('brandPicker');
+  const hexLbl = document.getElementById('brandHex');
+  picker.addEventListener('input', e=>{
+    document.documentElement.style.setProperty('--brand', e.target.value);
+    hexLbl.textContent = e.target.value.toUpperCase();
+  });
+
+  // -------- Theme toggle --------
+  const themeBtns = document.querySelectorAll('.sidebar .theme-toggle button');
+  themeBtns.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      themeBtns.forEach(b=>b.setAttribute('aria-checked','false'));
+      btn.setAttribute('aria-checked','true');
+      const mode = btn.dataset.theme;
+      if(mode === 'system'){
+        const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+      } else {
+        document.documentElement.setAttribute('data-theme', mode);
+      }
+    });
+  });
+
+  // -------- Copy --------
+  function copy(text){
+    navigator.clipboard.writeText(text).then(()=>{
+      const t = document.getElementById('toast');
+      t.textContent = `已复制 ${text} ✓`;
+      t.classList.add('show');
+      setTimeout(()=>t.classList.remove('show'), 1600);
+    });
+  }
+  document.querySelectorAll('pre.code').forEach(pre=>{
+    pre.addEventListener('click', ()=> copy(pre.innerText.trim()));
+  });
+  document.querySelectorAll('table.sem td').forEach(td=>{
+    if(/^#[0-9A-Fa-f]{6}$/.test(td.textContent.trim())){
+      td.style.cursor = 'pointer';
+      td.addEventListener('click', ()=> copy(td.textContent.trim()));
+    }
+  });
+
+  // -------- Replay animations --------
+  function replay(card, cls){
+    const target = card.querySelector('.target');
+    target.classList.remove(cls);
+    void target.offsetWidth;
+    target.classList.add(cls);
+  }
+</script>
+</body>
+</html>
