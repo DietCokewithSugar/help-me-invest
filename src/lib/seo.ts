@@ -1,9 +1,17 @@
 import type { Metadata } from 'next';
 
-const rawSiteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ||
-  process.env.SITE_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+/**
+ * Production canonical domain. We intentionally do NOT fall back to
+ * `VERCEL_URL`: that variable always resolves to the per-deploy preview
+ * hostname (e.g. `help-me-invest-n901rvce4-...vercel.app`), which would
+ * leak into every canonical/hreflang/og:url/sitemap entry and tank SEO.
+ *
+ * Override via the `NEXT_PUBLIC_SITE_URL` env var (set in Vercel for all
+ * three environments + locally in `.env.local`).
+ */
+const PRODUCTION_SITE_URL = 'https://www.help-me-invest.com';
+
+const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || PRODUCTION_SITE_URL;
 
 export const siteUrl = rawSiteUrl.startsWith('http') ? rawSiteUrl : `https://${rawSiteUrl}`;
 export const siteName = 'AI Investment Research';

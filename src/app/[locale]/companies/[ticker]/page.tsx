@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useRef, useState } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { notFound, useParams, useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Header from '@/components/Header';
 import ContactModal from '@/components/ContactModal';
@@ -78,6 +78,11 @@ function LinearLoader({
   );
 }
 
+// Mirror of the regex used by the server layout. Defense-in-depth: if the
+// layout ever stops short of calling notFound(), we don't want the report
+// flow to attempt /api/fmp lookups against arbitrary user input.
+const TICKER_REGEX = /^[A-Z0-9.\-=^]{1,12}$/;
+
 function normalizeSymbol(input: string): string {
   let result = '';
   for (let i = 0; i < input.length; i++) {
@@ -103,6 +108,11 @@ function CompanyReportPageContent() {
   // (it's `[ticker]` not `[...ticker]`), already URI-decoded.
   const rawTicker = (Array.isArray(params?.ticker) ? params.ticker[0] : params?.ticker) || '';
   const ticker = decodeURIComponent(String(rawTicker)).toUpperCase();
+  if (!TICKER_REGEX.test(ticker)) {
+    // The layout already 404s for malformed tickers; this is just a final
+    // backstop so the report-generation hook never sees garbage symbols.
+    notFound();
+  }
 
   const initialReportType = (searchParams.get('type') as ReportType | null) || 'standard';
   const [reportType, setReportType] = useState<ReportType>(initialReportType);

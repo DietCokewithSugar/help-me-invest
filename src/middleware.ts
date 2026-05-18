@@ -38,6 +38,12 @@ function resolveLocale(request: NextRequest): SupportedLocale {
   return DEFAULT_LOCALE;
 }
 
+// Legacy report URLs used `/?symbol=AAPL` (and similar with non-empty
+// pathnames that we want to treat as "go home"). Accept letters, digits,
+// dot/dash/equals/caret which cover every market suffix we support
+// (.SS, .SZ, .HK, .T, .KS, .KQ, .AX, plus BRK.B-style class shares).
+const TICKER_REGEX = /^[A-Z0-9.\-=^]{1,15}$/;
+
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
@@ -55,6 +61,27 @@ export function middleware(request: NextRequest) {
     pathname === '/manifest.webmanifest'
   ) {
     return NextResponse.next();
+  }
+
+  // Legacy `?symbol=AAPL` URLs (used by the old home page report flow and by
+  // any back-link/email/RSS that still points there) need to be translated
+  // into the new path `/{locale}/companies/{ticker}` instead of dropping the
+  // ticker on the floor. Only run this when the request is hitting the bare
+  // root, so internal pages with their own `symbol` semantics aren't touched.
+  const symbolParam = request.nextUrl.searchParams.get('symbol');
+  if (symbolParam && (pathname === '/' || pathname === '')) {
+    const cleanSymbol = symbolParam.trim().toUpperCase();
+    const locale = resolveLocale(request);
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.search = '';
+    if (TICKER_REGEX.test(cleanSymbol)) {
+      redirectUrl.pathname = `/${locale}/companies/${encodeURIComponent(cleanSymbol)}`;
+    } else {
+      // Malformed / potentially-malicious symbol → fall through to the locale
+      // home page so we don't render arbitrary user input as a route.
+      redirectUrl.pathname = `/${locale}`;
+    }
+    return NextResponse.redirect(redirectUrl, 308);
   }
 
   // Already locale-prefixed?
