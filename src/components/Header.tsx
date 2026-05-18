@@ -25,6 +25,17 @@ interface HeaderProps {
     showContactModal?: () => void;
 }
 
+/**
+ * Aptos-style floating pill navbar.
+ *
+ * Desktop: a single horizontally-centred pill containing logo · nav links
+ *          (mono uppercase) · language toggle · theme toggle · primary CTA.
+ *          The pill is `position: fixed` and never changes shape on scroll.
+ *
+ * Mobile : the same pill collapses to logo + theme + language + hamburger.
+ *          Tapping the hamburger expands a dropdown sheet anchored to the
+ *          pill, with the same nav links stacked vertically.
+ */
 export default function Header({
     theme,
     toggleTheme,
@@ -72,41 +83,148 @@ export default function Header({
     const feedbackHref = withLocale(locale, '/feedback');
 
     return (
-        <header className="fixed top-0 left-0 right-0 z-50">
-            <div className="mx-4 mt-4">
-                <div ref={menuRef} className="max-w-7xl mx-auto px-4 md:px-6 py-4 glass-card backdrop-blur-2xl rounded-[20px] relative">
-                    <div className="flex items-center justify-between">
-                        {/* Logo */}
-                        <div
-                            className="flex items-center gap-3 cursor-pointer group shrink-0"
-                            onClick={handleLogoClick}
-                        >
-                            <div className="relative">
-                                <div className="w-10 h-10 md:w-11 md:h-11 rounded-2xl overflow-hidden shadow-lg shadow-glacier-500/20 group-hover:shadow-glacier-500/40 transition-shadow">
-                                    <Image
-                                        src="/icon.png"
-                                        alt="智投研究"
-                                        width={44}
-                                        height={44}
-                                        className="w-full h-full object-cover"
-                                    />
-                                </div>
-                                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-glacier-500 to-gemini-blue opacity-40 blur-xl group-hover:opacity-60 transition-opacity" />
-                            </div>
-                            <div>
-                                <h1 className="text-base md:text-lg font-semibold text-white group-hover:text-glacier-400 transition-colors">{t.header.title}</h1>
-                                <p className="text-xs text-mist-500 hidden sm:block">{t.header.subtitle}</p>
-                            </div>
-                        </div>
+        <header className="fixed top-3 md:top-5 left-0 right-0 z-50 px-3 md:px-6">
+            <div
+                ref={menuRef}
+                className="relative mx-auto w-full max-w-6xl glass-card rounded-pill"
+            >
+                <div className="flex items-center justify-between px-3 md:px-3 py-2">
+                    {/* Logo */}
+                    <button
+                        type="button"
+                        onClick={handleLogoClick}
+                        className="group flex items-center gap-2.5 pl-1 pr-3 md:pr-4 py-1 rounded-pill hover:bg-white/5 transition-colors cursor-pointer"
+                    >
+                        <span className="relative inline-flex">
+                            <span className="w-8 h-8 md:w-9 md:h-9 rounded-pill overflow-hidden ring-1 ring-white/15">
+                                <Image
+                                    src="/icon.png"
+                                    alt="智投研究"
+                                    width={36}
+                                    height={36}
+                                    className="w-full h-full object-cover"
+                                />
+                            </span>
+                        </span>
+                        <span className="hidden sm:flex flex-col leading-none">
+                            <span className="font-serif text-[15px] md:text-base text-mist-100 group-hover:text-mist-50 transition-colors tracking-tight">
+                                {t.header.title}
+                            </span>
+                        </span>
+                    </button>
 
-                        {/* Desktop nav */}
-                        <div className="hidden lg:flex items-center gap-3 md:gap-5">
-                            <nav className="flex items-center gap-3 md:gap-5">
+                    {/* Desktop nav (centered) */}
+                    <nav className="hidden lg:flex items-center">
+                        {navLinks.map(link => (
+                            <Link
+                                key={link.href}
+                                href={link.href}
+                                className="relative px-3 xl:px-4 py-2 rounded-pill font-mono text-[11px] uppercase tracking-[0.12em] text-mist-300 hover:text-mist-50 hover:bg-white/5 transition-colors whitespace-nowrap"
+                            >
+                                {link.label}
+                                {link.badge && link.badge > 0 ? (
+                                    <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-pill bg-glacier-500 text-[9px] font-bold text-obsidian flex items-center justify-center">
+                                        {link.badge}
+                                    </span>
+                                ) : null}
+                            </Link>
+                        ))}
+                        <Link
+                            href={feedbackHref}
+                            onClick={() => showContactModal?.()}
+                            className="px-3 xl:px-4 py-2 rounded-pill font-mono text-[11px] uppercase tracking-[0.12em] text-mist-300 hover:text-mist-50 hover:bg-white/5 transition-colors whitespace-nowrap"
+                        >
+                            {t.header.contact}
+                        </Link>
+                    </nav>
+
+                    {/* Right cluster: language · theme · CTA */}
+                    <div className="flex items-center gap-1.5 md:gap-2">
+                        {/* Language toggle */}
+                        <button
+                            onClick={() => setLocale(locale === 'zh' ? 'en' : 'zh')}
+                            className="hidden sm:flex items-center justify-center w-9 h-9 rounded-pill border border-white/10 hover:bg-white/5 hover:border-white/20 transition-all cursor-pointer text-[10px] font-mono uppercase tracking-wider text-mist-200"
+                            title={t.header.language}
+                        >
+                            {locale === 'zh' ? 'EN' : 'ZH'}
+                        </button>
+
+                        {/* Theme toggle */}
+                        <button
+                            onClick={toggleTheme}
+                            className="flex items-center justify-center w-9 h-9 rounded-pill border border-white/10 hover:bg-white/5 hover:border-white/20 transition-all cursor-pointer"
+                            title={theme === 'dark' ? t.header.lightMode : t.header.darkMode}
+                        >
+                            {theme === 'dark' ? (
+                                <SunIcon size={16} className="text-mist-200" />
+                            ) : (
+                                <MoonIcon size={16} className="text-mist-200" />
+                            )}
+                        </button>
+
+                        {/* Mobile hamburger */}
+                        <button
+                            onClick={() => setMobileMenuOpen(prev => !prev)}
+                            className="lg:hidden flex items-center justify-center w-9 h-9 rounded-pill border border-white/10 hover:bg-white/5 transition-all"
+                            aria-label="Toggle menu"
+                            aria-expanded={mobileMenuOpen}
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-mist-200">
+                                {mobileMenuOpen ? (
+                                    <>
+                                        <line x1="18" y1="6" x2="6" y2="18" />
+                                        <line x1="6" y1="6" x2="18" y2="18" />
+                                    </>
+                                ) : (
+                                    <>
+                                        <line x1="4" y1="7" x2="20" y2="7" />
+                                        <line x1="4" y1="12" x2="20" y2="12" />
+                                        <line x1="4" y1="17" x2="20" y2="17" />
+                                    </>
+                                )}
+                            </svg>
+                        </button>
+
+                        {/* Desktop primary CTA — pill */}
+                        <Link
+                            href={feedbackHref}
+                            onClick={() => showContactModal?.()}
+                            className="hidden xl:inline-flex pill-btn !py-2 !px-4 !text-[10px]"
+                        >
+                            {t.header.contact}
+                        </Link>
+                    </div>
+                </div>
+
+                {/* Mobile dropdown sheet */}
+                <AnimatePresence>
+                    {mobileMenuOpen && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                            className="lg:hidden overflow-hidden"
+                        >
+                            <nav className="flex flex-col gap-1 px-3 pt-3 pb-4 border-t border-white/10 mt-1">
+                                <div className="flex items-center justify-between px-2 pb-2">
+                                    <span className="mono-kicker">Menu</span>
+                                    <button
+                                        onClick={() => setLocale(locale === 'zh' ? 'en' : 'zh')}
+                                        className="px-3 h-7 rounded-pill border border-white/10 hover:bg-white/5 text-[10px] font-mono uppercase tracking-wider text-mist-200"
+                                    >
+                                        {locale === 'zh' ? 'EN' : 'ZH'}
+                                    </button>
+                                </div>
                                 {navLinks.map(link => (
-                                    <Link key={link.href} href={link.href} className="relative text-sm text-mist-400 hover:text-glacier-400 transition-colors whitespace-nowrap">
-                                        {link.label}
+                                    <Link
+                                        key={link.href}
+                                        href={link.href}
+                                        className="flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-mono uppercase tracking-[0.12em] text-mist-300 hover:text-mist-50 hover:bg-white/5 transition-colors"
+                                    >
+                                        <span>{link.label}</span>
                                         {link.badge && link.badge > 0 ? (
-                                            <span className="absolute -top-2 -right-3 w-4 h-4 rounded-full bg-glacier-500 text-[9px] font-bold text-white flex items-center justify-center">
+                                            <span className="w-5 h-5 rounded-pill bg-glacier-500 text-[10px] font-bold text-obsidian flex items-center justify-center">
                                                 {link.badge}
                                             </span>
                                         ) : null}
@@ -114,115 +232,15 @@ export default function Header({
                                 ))}
                                 <Link
                                     href={feedbackHref}
-                                    onClick={() => showContactModal?.()}
-                                    className="text-sm text-mist-400 hover:text-glacier-400 transition-colors whitespace-nowrap"
+                                    onClick={() => { showContactModal?.(); setMobileMenuOpen(false); }}
+                                    className="flex items-center px-3 py-2.5 rounded-md text-sm font-mono uppercase tracking-[0.12em] text-mist-300 hover:text-mist-50 hover:bg-white/5 transition-colors text-left"
                                 >
                                     {t.header.contact}
                                 </Link>
                             </nav>
-
-                            <div className="w-px h-5 bg-white/10" />
-
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={() => setLocale(locale === 'zh' ? 'en' : 'zh')}
-                                    className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer text-xs font-mono font-bold text-mist-300"
-                                    title={t.header.language}
-                                >
-                                    {locale === 'zh' ? 'EN' : '中'}
-                                </button>
-                                <button
-                                    onClick={toggleTheme}
-                                    className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-glacier-500/50 transition-all cursor-pointer"
-                                    title={theme === 'dark' ? t.header.lightMode : t.header.darkMode}
-                                >
-                                    {theme === 'dark' ? (
-                                        <SunIcon size={18} className="text-mist-300" />
-                                    ) : (
-                                        <MoonIcon size={18} className="text-mist-300" />
-                                    )}
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Mobile controls */}
-                        <div className="flex lg:hidden items-center gap-2">
-                            <button
-                                onClick={() => setLocale(locale === 'zh' ? 'en' : 'zh')}
-                                className="flex items-center justify-center w-9 h-9 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-xs font-mono font-bold text-mist-300"
-                            >
-                                {locale === 'zh' ? 'EN' : '中'}
-                            </button>
-                            <button
-                                onClick={toggleTheme}
-                                className="flex items-center justify-center w-9 h-9 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
-                            >
-                                {theme === 'dark' ? (
-                                    <SunIcon size={16} className="text-mist-300" />
-                                ) : (
-                                    <MoonIcon size={16} className="text-mist-300" />
-                                )}
-                            </button>
-                            <button
-                                onClick={() => setMobileMenuOpen(prev => !prev)}
-                                className="flex items-center justify-center w-9 h-9 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
-                                aria-label="Toggle menu"
-                            >
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-mist-300">
-                                    {mobileMenuOpen ? (
-                                        <>
-                                            <line x1="18" y1="6" x2="6" y2="18" />
-                                            <line x1="6" y1="6" x2="18" y2="18" />
-                                        </>
-                                    ) : (
-                                        <>
-                                            <line x1="4" y1="7" x2="20" y2="7" />
-                                            <line x1="4" y1="12" x2="20" y2="12" />
-                                            <line x1="4" y1="17" x2="20" y2="17" />
-                                        </>
-                                    )}
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Mobile dropdown menu */}
-                    <AnimatePresence>
-                        {mobileMenuOpen && (
-                            <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: 'auto', opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.2 }}
-                                className="lg:hidden overflow-hidden"
-                            >
-                                <nav className="flex flex-col gap-1 pt-4 mt-4 border-t border-white/10">
-                                    {navLinks.map(link => (
-                                        <Link
-                                            key={link.href}
-                                            href={link.href}
-                                            className="flex items-center justify-between px-3 py-2.5 rounded-md text-sm text-mist-400 hover:text-glacier-400 hover:bg-white/5 transition-colors"
-                                        >
-                                            <span>{link.label}</span>
-                                            {link.badge && link.badge > 0 ? (
-                                                <span className="w-5 h-5 rounded-full bg-glacier-500 text-[10px] font-bold text-white flex items-center justify-center">
-                                                    {link.badge}
-                                                </span>
-                                            ) : null}
-                                        </Link>
-                                    ))}
-                                    <Link
-                                        href={feedbackHref}
-                                        onClick={() => { showContactModal?.(); setMobileMenuOpen(false); }}
-                                        className="flex items-center px-3 py-2.5 rounded-md text-sm text-mist-400 hover:text-glacier-400 hover:bg-white/5 transition-colors text-left"
-                                    >
-                                        {t.header.contact}
-                                    </Link>
-                                </nav>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </header>
     );

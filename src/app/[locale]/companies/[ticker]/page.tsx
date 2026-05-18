@@ -15,10 +15,8 @@ import {
   BarChart3Icon,
   BrainIcon,
   Globe2Icon,
-  SearchIcon,
-  ArrowRightIcon,
 } from '@/components/Icons';
-import { detectMarketFromSymbol, getMarketConfig, formatSymbolForMarket, MARKET_CONFIGS } from '@/lib/markets';
+import { detectMarketFromSymbol, getMarketConfig } from '@/lib/markets';
 import type { MarketType } from '@/types';
 
 const LOADING_STEPS_META = [
@@ -83,21 +81,6 @@ function LinearLoader({
 // flow to attempt /api/fmp lookups against arbitrary user input.
 const TICKER_REGEX = /^[A-Z0-9.\-=^]{1,12}$/;
 
-function normalizeSymbol(input: string): string {
-  let result = '';
-  for (let i = 0; i < input.length; i++) {
-    const code = input.charCodeAt(i);
-    if (code >= 0xff01 && code <= 0xff5e) {
-      result += String.fromCharCode(code - 0xfee0);
-    } else if (code === 0x3000 || code === 0x20) {
-      // skip width-variant spaces
-    } else {
-      result += input[i];
-    }
-  }
-  return result.toUpperCase();
-}
-
 function CompanyReportPageContent() {
   const params = useParams();
   const router = useRouter();
@@ -118,8 +101,6 @@ function CompanyReportPageContent() {
   const [reportType, setReportType] = useState<ReportType>(initialReportType);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [showContactModal, setShowContactModal] = useState(false);
-  const [searchValue, setSearchValue] = useState('');
-  const [isComposing, setIsComposing] = useState(false);
 
   const {
     loading,
@@ -179,28 +160,6 @@ function CompanyReportPageContent() {
     t.home.loading.step5,
   ];
 
-  const navigateToSymbol = (rawSymbol: string) => {
-    const normalized = normalizeSymbol(rawSymbol);
-    if (!normalized) return;
-    let formatted = normalized;
-    if (!normalized.includes('.') && /^\d{6}$/.test(normalized)) {
-      formatted = formatSymbolForMarket(normalized, 'CN');
-    } else if (normalized.includes('.')) {
-      const market = detectMarketFromSymbol(normalized);
-      formatted = formatSymbolForMarket(normalized, market);
-    }
-    const query = reportType !== 'standard' ? `?type=${reportType}` : '';
-    router.push(`${withLocale(locale, '/companies')}/${encodeURIComponent(formatted)}${query}`);
-  };
-
-  const handleSubmit = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (searchValue.trim()) {
-      navigateToSymbol(searchValue);
-      setSearchValue('');
-    }
-  };
-
   const goHome = () => {
     router.push(withLocale(locale, '/'));
   };
@@ -217,76 +176,6 @@ function CompanyReportPageContent() {
         onReset={goHome}
         showContactModal={() => setShowContactModal(true)}
       />
-
-      {/* Sticky compact search bar so users can jump to another ticker without going home */}
-      {!loading && (
-        <section className="pt-28 md:pt-32 pb-4 px-4 md:px-6">
-          <div className="max-w-5xl mx-auto">
-            <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="flex items-center gap-2 text-sm text-mist-500">
-                <Globe2Icon size={14} className="text-glacier-500/70" />
-                <span>
-                  {t.home.search.aiMarketDetect}
-                  {marketConfig.nameCn}
-                </span>
-              </div>
-              <div className="flex flex-1 items-center gap-2">
-                <div className="relative flex-1">
-                  <SearchIcon
-                    size={16}
-                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-mist-500"
-                  />
-                  <input
-                    type="text"
-                    value={searchValue}
-                    onChange={(e) =>
-                      setSearchValue(isComposing ? e.target.value : normalizeSymbol(e.target.value))
-                    }
-                    onCompositionStart={() => setIsComposing(true)}
-                    onCompositionEnd={(e) => {
-                      setIsComposing(false);
-                      setSearchValue(normalizeSymbol(e.currentTarget.value));
-                    }}
-                    placeholder={ticker || t.home.search.placeholder('AAPL')}
-                    className="gemini-input w-full pl-9 pr-4 py-3 text-sm font-mono"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="gemini-btn gemini-btn-secondary flex items-center gap-2 px-4 py-3 text-sm"
-                >
-                  <span>{t.common.search}</span>
-                  <ArrowRightIcon size={14} className="opacity-70" />
-                </button>
-              </div>
-            </form>
-
-            {/* Report type selector */}
-            <div className="mt-4 flex items-center gap-2">
-              {(
-                [
-                  { value: 'beginner', label: t.home.reportTypeSelector.beginner, desc: t.home.reportTypeSelector.beginnerDesc },
-                  { value: 'standard', label: t.home.reportTypeSelector.standard, desc: t.home.reportTypeSelector.standardDesc },
-                  { value: 'pro', label: t.home.reportTypeSelector.pro, desc: t.home.reportTypeSelector.proDesc },
-                ] as { value: ReportType; label: string; desc: string }[]
-              ).map((type) => (
-                <button
-                  key={type.value}
-                  onClick={() => setReportType(type.value)}
-                  className={`px-3 py-1.5 rounded-sm text-xs transition-all border ${
-                    reportType === type.value
-                      ? 'bg-accent/15 border-accent text-accent'
-                      : 'bg-white/5 border-transparent text-text-muted hover:text-text-secondary hover:bg-white/10'
-                  }`}
-                >
-                  <div className="font-medium">{type.label}</div>
-                  <div className="text-[10px] opacity-70 mt-0.5">{type.desc}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* Loading screen */}
       {loading && (
@@ -323,7 +212,7 @@ function CompanyReportPageContent() {
 
       {/* Error panel */}
       {!loading && error && !reportData && (
-        <section className="pt-4 pb-12 px-4 md:px-6">
+        <section className="pt-28 md:pt-32 pb-12 px-4 md:px-6">
           <div className="max-w-3xl mx-auto">
             <motion.div
               className="p-4 rounded-xl bg-red-500/5 border border-red-500/10"
@@ -352,7 +241,7 @@ function CompanyReportPageContent() {
 
       {/* Report */}
       {reportData && (
-        <div className="pt-4">
+        <div className="pt-24 md:pt-28">
           <Report
             data={reportData}
             initialReportVersion={
