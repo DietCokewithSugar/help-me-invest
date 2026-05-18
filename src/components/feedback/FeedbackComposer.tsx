@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useId, useState, FormEvent } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useFeedbackIdentity } from '@/hooks/useFeedbackIdentity';
 import type { FeedbackCategory, FeedbackIssue } from '@/types';
@@ -35,6 +35,14 @@ export default function FeedbackComposer({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nameDraft, setNameDraft] = useState(displayName || '');
+
+  const ids = {
+    title: useId(),
+    body: useId(),
+    name: useId(),
+    error: useId(),
+    categoryGroup: useId(),
+  };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -89,40 +97,52 @@ export default function FeedbackComposer({
   return (
     <form
       onSubmit={handleSubmit}
+      aria-describedby={error ? ids.error : undefined}
       className={`flex flex-col gap-3 ${compact ? '' : 'p-5 rounded-md bg-white/5 border border-white/10'}`}
     >
       <div className="space-y-1">
-        <label className="text-[11px] font-mono text-mist-500 uppercase tracking-wider">{composerT.titleField}</label>
+        <label htmlFor={ids.title} className="text-[11px] font-mono text-mist-500 uppercase tracking-wider">{composerT.titleField}</label>
         <input
+          id={ids.title}
+          name="title"
           type="text"
+          autoComplete="off"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder={composerT.titlePlaceholder}
           maxLength={200}
+          required
+          aria-invalid={!!error && !title.trim()}
           className="w-full px-3 py-2 rounded-sm bg-white/5 border border-white/10 text-sm text-mist-200 placeholder-mist-600 focus:outline-none focus:border-glacier-500/50"
         />
       </div>
 
       <div className="space-y-1">
-        <label className="text-[11px] font-mono text-mist-500 uppercase tracking-wider">{composerT.bodyField}</label>
+        <label htmlFor={ids.body} className="text-[11px] font-mono text-mist-500 uppercase tracking-wider">{composerT.bodyField}</label>
         <textarea
+          id={ids.body}
+          name="body"
           value={body}
           onChange={(e) => setBody(e.target.value)}
           placeholder={composerT.bodyPlaceholder}
           maxLength={8000}
           rows={compact ? 4 : 6}
+          required
+          aria-invalid={!!error && !body.trim()}
           className="w-full px-3 py-2 rounded-sm bg-white/5 border border-white/10 text-sm text-mist-200 placeholder-mist-600 focus:outline-none focus:border-glacier-500/50 resize-y leading-relaxed"
         />
       </div>
 
       <div className={`grid gap-3 ${compact ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
         <div className="space-y-1">
-          <label className="text-[11px] font-mono text-mist-500 uppercase tracking-wider">{composerT.categoryField}</label>
-          <div className="flex flex-wrap gap-2">
+          <span id={ids.categoryGroup} className="text-[11px] font-mono text-mist-500 uppercase tracking-wider">{composerT.categoryField}</span>
+          <div role="radiogroup" aria-labelledby={ids.categoryGroup} className="flex flex-wrap gap-2">
             {CATEGORY_KEYS.map((key) => (
               <button
                 key={key}
                 type="button"
+                role="radio"
+                aria-checked={category === key}
                 onClick={() => setCategory(key)}
                 className={`px-2.5 py-1 text-xs rounded-sm border transition-colors ${
                   category === key
@@ -136,9 +156,12 @@ export default function FeedbackComposer({
           </div>
         </div>
         <div className="space-y-1">
-          <label className="text-[11px] font-mono text-mist-500 uppercase tracking-wider">{composerT.nameField}</label>
+          <label htmlFor={ids.name} className="text-[11px] font-mono text-mist-500 uppercase tracking-wider">{composerT.nameField}</label>
           <input
+            id={ids.name}
+            name="name"
             type="text"
+            autoComplete="nickname"
             value={nameDraft}
             onChange={(e) => setNameDraft(e.target.value)}
             placeholder={composerT.namePlaceholder}
@@ -149,7 +172,14 @@ export default function FeedbackComposer({
       </div>
 
       {error && (
-        <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-sm px-3 py-2">{error}</div>
+        <div
+          id={ids.error}
+          role="alert"
+          aria-live="polite"
+          className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-sm px-3 py-2"
+        >
+          {error}
+        </div>
       )}
 
       <div className="flex items-center justify-end gap-2 pt-1">
