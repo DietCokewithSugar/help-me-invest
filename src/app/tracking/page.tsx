@@ -412,9 +412,9 @@ export default function TrackingPage() {
                     return;
                 }
             }
-            router.push(`/?symbol=${encodeURIComponent(company.symbol)}`);
+            router.push(`/companies/${encodeURIComponent(company.symbol)}`);
         } catch {
-            router.push(`/?symbol=${encodeURIComponent(company.symbol)}`);
+            router.push(`/companies/${encodeURIComponent(company.symbol)}`);
         }
     };
 

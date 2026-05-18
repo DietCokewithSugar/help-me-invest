@@ -21,7 +21,7 @@ const websiteStructuredData = {
   inLanguage: ['en', 'zh'],
   potentialAction: {
     '@type': 'SearchAction',
-    target: `${siteUrl}/?symbol={search_term_string}`,
+    target: `${siteUrl}/companies/{search_term_string}`,
     'query-input': 'required name=search_term_string',
   },
 };

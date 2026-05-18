@@ -885,7 +885,7 @@ export default function Report({
 
   const getShareUrl = useCallback(() => {
     if (typeof window === 'undefined') return '';
-    return `${window.location.origin}/?symbol=${encodeURIComponent(profile.symbol)}`;
+    return `${window.location.origin}/companies/${encodeURIComponent(profile.symbol)}`;
   }, [profile.symbol]);
 
   const copyToClipboard = useCallback(async (text: string) => {

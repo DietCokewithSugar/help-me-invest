@@ -1,0 +1,388 @@
+'use client';
+
+import { Suspense, useEffect, useRef, useState } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { motion } from 'framer-motion';
+import Header from '@/components/Header';
+import ContactModal from '@/components/ContactModal';
+import Report from '@/components/Report';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useCompanyReport, type ReportType } from '@/hooks/useCompanyReport';
+import {
+  TrendingUpIcon,
+  FileTextIcon,
+  BarChart3Icon,
+  BrainIcon,
+  Globe2Icon,
+  SearchIcon,
+  ArrowRightIcon,
+} from '@/components/Icons';
+import { detectMarketFromSymbol, getMarketConfig, formatSymbolForMarket, MARKET_CONFIGS } from '@/lib/markets';
+import type { MarketType } from '@/types';
+
+const LOADING_STEPS_META = [
+  { icon: FileTextIcon, color: 'from-glacier-500 to-glacier-600' },
+  { icon: BarChart3Icon, color: 'from-gemini-purple to-gemini-pink' },
+  { icon: BrainIcon, color: 'from-gemini-blue to-gemini-purple' },
+  { icon: Globe2Icon, color: 'from-glacier-400 to-gemini-blue' },
+  { icon: TrendingUpIcon, color: 'from-gemini-green to-glacier-500' },
+];
+
+function GeminiLoader() {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="w-3 h-3 rounded-full bg-glacier-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+      <div className="w-3 h-3 rounded-full bg-gemini-blue animate-bounce" style={{ animationDelay: '100ms' }} />
+      <div className="w-3 h-3 rounded-full bg-gemini-purple animate-bounce" style={{ animationDelay: '200ms' }} />
+      <div className="w-3 h-3 rounded-full bg-aurora-3 animate-bounce" style={{ animationDelay: '300ms' }} />
+    </div>
+  );
+}
+
+function LinearLoader({
+  step,
+  totalSteps,
+  stepTexts,
+  estimateText,
+}: {
+  step: number;
+  totalSteps: number;
+  stepTexts: string[];
+  estimateText: string;
+}) {
+  const progress = ((step + 1) / totalSteps) * 100;
+  const Icon = LOADING_STEPS_META[step].icon;
+
+  return (
+    <div className="w-full max-w-sm">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-8 h-8 rounded-xl bg-glacier-500/15 flex items-center justify-center">
+          <Icon className="w-4 h-4 text-glacier-500" />
+        </div>
+        <span className="text-sm text-mist-300">{stepTexts[step]}</span>
+      </div>
+      <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-glacier-500 rounded-full transition-all duration-500 ease-out"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+      <div className="flex items-center justify-between mt-3 text-xs text-mist-600">
+        <span>
+          {step + 1} / {totalSteps}
+        </span>
+        <span>{estimateText}</span>
+      </div>
+    </div>
+  );
+}
+
+function normalizeSymbol(input: string): string {
+  let result = '';
+  for (let i = 0; i < input.length; i++) {
+    const code = input.charCodeAt(i);
+    if (code >= 0xff01 && code <= 0xff5e) {
+      result += String.fromCharCode(code - 0xfee0);
+    } else if (code === 0x3000 || code === 0x20) {
+      // skip width-variant spaces
+    } else {
+      result += input[i];
+    }
+  }
+  return result.toUpperCase();
+}
+
+function CompanyReportPageContent() {
+  const params = useParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { locale, t } = useLanguage();
+
+  // Normalize ticker from URL. Next.js gives us `params.ticker` as a string
+  // (it's `[ticker]` not `[...ticker]`), already URI-decoded.
+  const rawTicker = (Array.isArray(params?.ticker) ? params.ticker[0] : params?.ticker) || '';
+  const ticker = decodeURIComponent(String(rawTicker)).toUpperCase();
+
+  const initialReportType = (searchParams.get('type') as ReportType | null) || 'standard';
+  const [reportType, setReportType] = useState<ReportType>(initialReportType);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
+  const [isComposing, setIsComposing] = useState(false);
+
+  const {
+    loading,
+    aiLoading,
+    aiError,
+    error,
+    reportData,
+    loadingStep,
+    setLoadingStep,
+    retryCount,
+    isRetryable,
+    analyze,
+    changeVersion,
+    regenerate,
+  } = useCompanyReport({ locale, t });
+
+  // theme bootstrap (kept consistent with other pages until Task 3 SSR work)
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') as 'dark' | 'light' | null;
+    const initial = savedTheme || 'dark';
+    setTheme(initial);
+    document.documentElement.setAttribute('data-theme', initial);
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+  };
+
+  // 进入页面或切换 ticker / locale 时自动触发分析
+  const lastSignatureRef = useRef<string>('');
+  useEffect(() => {
+    if (!ticker) return;
+    const signature = `${ticker}|${locale}|${reportType}`;
+    if (lastSignatureRef.current === signature) return;
+    lastSignatureRef.current = signature;
+    analyze(ticker, { reportType });
+  }, [ticker, locale, reportType, analyze]);
+
+  // loading step rotator
+  useEffect(() => {
+    if (loading) {
+      const interval = setInterval(() => {
+        setLoadingStep((prev) => (prev + 1) % LOADING_STEPS_META.length);
+      }, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [loading, setLoadingStep]);
+
+  const loadingStepTexts = [
+    t.home.loading.step1,
+    t.home.loading.step2,
+    t.home.loading.step3,
+    t.home.loading.step4,
+    t.home.loading.step5,
+  ];
+
+  const navigateToSymbol = (rawSymbol: string) => {
+    const normalized = normalizeSymbol(rawSymbol);
+    if (!normalized) return;
+    let formatted = normalized;
+    if (!normalized.includes('.') && /^\d{6}$/.test(normalized)) {
+      formatted = formatSymbolForMarket(normalized, 'CN');
+    } else if (normalized.includes('.')) {
+      const market = detectMarketFromSymbol(normalized);
+      formatted = formatSymbolForMarket(normalized, market);
+    }
+    const query = reportType !== 'standard' ? `?type=${reportType}` : '';
+    router.push(`/companies/${encodeURIComponent(formatted)}${query}`);
+  };
+
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (searchValue.trim()) {
+      navigateToSymbol(searchValue);
+      setSearchValue('');
+    }
+  };
+
+  const goHome = () => {
+    router.push('/');
+  };
+
+  // Resolve current market for badge
+  const currentMarket: MarketType = detectMarketFromSymbol(ticker || '');
+  const marketConfig = getMarketConfig(currentMarket);
+
+  return (
+    <main className="min-h-screen">
+      <Header
+        theme={theme}
+        toggleTheme={toggleTheme}
+        onReset={goHome}
+        showContactModal={() => setShowContactModal(true)}
+      />
+
+      {/* Sticky compact search bar so users can jump to another ticker without going home */}
+      {!loading && (
+        <section className="pt-28 md:pt-32 pb-4 px-4 md:px-6">
+          <div className="max-w-5xl mx-auto">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="flex items-center gap-2 text-sm text-mist-500">
+                <Globe2Icon size={14} className="text-glacier-500/70" />
+                <span>
+                  {t.home.search.aiMarketDetect}
+                  {marketConfig.nameCn}
+                </span>
+              </div>
+              <div className="flex flex-1 items-center gap-2">
+                <div className="relative flex-1">
+                  <SearchIcon
+                    size={16}
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-mist-500"
+                  />
+                  <input
+                    type="text"
+                    value={searchValue}
+                    onChange={(e) =>
+                      setSearchValue(isComposing ? e.target.value : normalizeSymbol(e.target.value))
+                    }
+                    onCompositionStart={() => setIsComposing(true)}
+                    onCompositionEnd={(e) => {
+                      setIsComposing(false);
+                      setSearchValue(normalizeSymbol(e.currentTarget.value));
+                    }}
+                    placeholder={ticker || t.home.search.placeholder('AAPL')}
+                    className="gemini-input w-full pl-9 pr-4 py-3 text-sm font-mono"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="gemini-btn gemini-btn-secondary flex items-center gap-2 px-4 py-3 text-sm"
+                >
+                  <span>{t.common.search}</span>
+                  <ArrowRightIcon size={14} className="opacity-70" />
+                </button>
+              </div>
+            </form>
+
+            {/* Report type selector */}
+            <div className="mt-4 flex items-center gap-2">
+              {(
+                [
+                  { value: 'beginner', label: t.home.reportTypeSelector.beginner, desc: t.home.reportTypeSelector.beginnerDesc },
+                  { value: 'standard', label: t.home.reportTypeSelector.standard, desc: t.home.reportTypeSelector.standardDesc },
+                  { value: 'pro', label: t.home.reportTypeSelector.pro, desc: t.home.reportTypeSelector.proDesc },
+                ] as { value: ReportType; label: string; desc: string }[]
+              ).map((type) => (
+                <button
+                  key={type.value}
+                  onClick={() => setReportType(type.value)}
+                  className={`px-3 py-1.5 rounded-sm text-xs transition-all border ${
+                    reportType === type.value
+                      ? 'bg-accent/15 border-accent text-accent'
+                      : 'bg-white/5 border-transparent text-text-muted hover:text-text-secondary hover:bg-white/10'
+                  }`}
+                >
+                  <div className="font-medium">{type.label}</div>
+                  <div className="text-[10px] opacity-70 mt-0.5">{type.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Loading screen */}
+      {loading && (
+        <section className="pt-28 md:pt-32 pb-8 px-4 md:px-6">
+          <div className="max-w-3xl mx-auto">
+            <motion.div
+              className="text-center mt-8 mb-10"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <h2 className="text-2xl md:text-3xl font-light text-white tracking-tight">
+                <span className="font-mono">{ticker}</span>
+                <span className="text-mist-500"> · </span>
+                <span>{marketConfig.nameCn}</span>
+              </h2>
+            </motion.div>
+            <motion.div
+              className="flex justify-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <div className="glass-card p-6 md:p-8 w-full max-w-md">
+                <LinearLoader
+                  step={loadingStep}
+                  totalSteps={LOADING_STEPS_META.length}
+                  stepTexts={loadingStepTexts}
+                  estimateText={t.home.loading.estimate}
+                />
+              </div>
+            </motion.div>
+          </div>
+        </section>
+      )}
+
+      {/* Error panel */}
+      {!loading && error && !reportData && (
+        <section className="pt-4 pb-12 px-4 md:px-6">
+          <div className="max-w-3xl mx-auto">
+            <motion.div
+              className="p-4 rounded-xl bg-red-500/5 border border-red-500/10"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-1.5 h-1.5 bg-red-400 rounded-full mt-2 shrink-0" />
+                <div className="flex-1">
+                  <span className="text-red-400/80 text-sm whitespace-pre-line">{error}</span>
+                  {isRetryable && (
+                    <button
+                      onClick={() => analyze(ticker, { reportType })}
+                      disabled={loading}
+                      className="mt-3 px-4 py-2 text-sm font-medium rounded-lg bg-glacier-500/20 text-glacier-400 hover:bg-glacier-500/30 transition-colors disabled:opacity-50"
+                    >
+                      {retryCount > 0 ? t.home.errors.retryWithCount(retryCount) : t.common.retry}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+      )}
+
+      {/* Report */}
+      {reportData && (
+        <div className="pt-4">
+          <Report
+            data={reportData}
+            initialReportVersion={
+              reportType === 'pro' ? 'professional' : reportType === 'beginner' ? 'beginner' : 'standard'
+            }
+            aiLoading={aiLoading}
+            aiError={aiError}
+            onReset={goHome}
+            theme={theme}
+            onVersionChange={async (newVersion) => {
+              setReportType(newVersion === 'professional' ? 'pro' : newVersion);
+              await changeVersion(newVersion);
+            }}
+            onRegenerate={regenerate}
+          />
+        </div>
+      )}
+
+      <ContactModal
+        isOpen={showContactModal}
+        onClose={() => setShowContactModal(false)}
+        title={t.home.contact.title}
+        scanQr={t.home.contact.scanQr}
+        lookForward={t.home.contact.lookForward}
+        wechatLabel={t.home.faq.wechat}
+        emailLabel={t.home.faq.email}
+      />
+    </main>
+  );
+}
+
+export default function CompanyReportPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[#0A0A0B]">
+          <GeminiLoader />
+        </div>
+      }
+    >
+      <CompanyReportPageContent />
+    </Suspense>
+  );
+}

@@ -133,7 +133,7 @@ export default function CompanyOverviewModal({
 
     // 导航到报告页面
     const handleGenerateReport = (symbol: string) => {
-        router.push(`/?symbol=${symbol}`);
+        router.push(`/companies/${encodeURIComponent(symbol)}`);
         onClose();
     };
 

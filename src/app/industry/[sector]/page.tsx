@@ -153,10 +153,10 @@ export default function IndustryDetailPage() {
         setSelectedCompany(json.data);
         setShowOverviewModal(true);
       } else {
-        router.push(`/?symbol=${symbol}`);
+        router.push(`/companies/${encodeURIComponent(symbol)}`);
       }
     } catch {
-      router.push(`/?symbol=${symbol}`);
+      router.push(`/companies/${encodeURIComponent(symbol)}`);
     } finally {
       setLoadingCompany(null);
     }
