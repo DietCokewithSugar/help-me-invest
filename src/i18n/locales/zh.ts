@@ -38,6 +38,8 @@ export const zh = {
     industry: '产业分析',
     allocation: '资产配置',
     contact: '反馈',
+    openMenu: '打开菜单',
+    closeMenu: '关闭菜单',
   },
   feedback: {
     pageTitle: '用户反馈',

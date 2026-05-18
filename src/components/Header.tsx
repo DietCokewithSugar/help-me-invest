@@ -86,7 +86,18 @@ export default function Header({
         <header className="fixed top-3 md:top-5 left-0 right-0 z-50 px-3 md:px-6">
             <div
                 ref={menuRef}
-                className="relative mx-auto w-full max-w-6xl glass-card rounded-pill"
+                // The pill container also hosts the mobile dropdown panel.
+                // `rounded-pill` resolves to `min(width, height) / 2`, so the
+                // moment the container grows tall enough to fit a vertical
+                // menu the bottom corners curve inward by ~half-the-height
+                // and start clipping menu-item text. Drop the radius to a
+                // sane 24px while the mobile sheet is open. On `lg+` the
+                // sheet never opens, so the pill stays a pill there.
+                // `overflow-hidden` keeps the height transition clean and
+                // prevents children from poking out of the rounded corners.
+                className={`relative mx-auto w-full max-w-6xl glass-card overflow-hidden transition-[border-radius] duration-200 ${
+                    mobileMenuOpen ? 'rounded-3xl lg:rounded-pill' : 'rounded-pill'
+                }`}
             >
                 <div className="flex items-center justify-between px-3 md:px-3 py-2">
                     {/* Logo */}
@@ -164,10 +175,12 @@ export default function Header({
 
                         {/* Mobile hamburger */}
                         <button
+                            type="button"
                             onClick={() => setMobileMenuOpen(prev => !prev)}
                             className="lg:hidden flex items-center justify-center w-9 h-9 rounded-pill border border-white/10 hover:bg-white/5 transition-all"
-                            aria-label="Toggle menu"
+                            aria-label={mobileMenuOpen ? t.header.closeMenu : t.header.openMenu}
                             aria-expanded={mobileMenuOpen}
+                            aria-controls="mobile-nav-sheet"
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-mist-200">
                                 {mobileMenuOpen ? (
@@ -197,21 +210,28 @@ export default function Header({
                 </div>
 
                 {/* Mobile dropdown sheet */}
-                <AnimatePresence>
+                <AnimatePresence initial={false}>
                     {mobileMenuOpen && (
                         <motion.div
+                            id="mobile-nav-sheet"
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: 'auto', opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
                             transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
                             className="lg:hidden overflow-hidden"
                         >
-                            <nav className="flex flex-col gap-1 px-3 pt-3 pb-4 border-t border-white/10 mt-1">
-                                <div className="flex items-center justify-between px-2 pb-2">
+                            {/* Horizontal padding is generous so menu items
+                                clear the 24px corner radius on both sides;
+                                pb-5 keeps the last row well clear of the
+                                bottom curve. */}
+                            <nav className="flex flex-col gap-0.5 px-4 pt-3 pb-5 border-t border-white/10 mt-1">
+                                <div className="flex items-center justify-between px-1 pb-2">
                                     <span className="mono-kicker">Menu</span>
                                     <button
+                                        type="button"
                                         onClick={() => setLocale(locale === 'zh' ? 'en' : 'zh')}
-                                        className="px-3 h-7 rounded-pill border border-white/10 hover:bg-white/5 text-[10px] font-mono uppercase tracking-wider text-mist-200"
+                                        className="inline-flex items-center justify-center min-w-[44px] h-8 px-3 rounded-pill border border-white/10 hover:bg-white/5 text-[10px] font-mono uppercase tracking-wider text-mist-200"
+                                        aria-label={t.header.language}
                                     >
                                         {locale === 'zh' ? 'EN' : 'ZH'}
                                     </button>
@@ -220,11 +240,11 @@ export default function Header({
                                     <Link
                                         key={link.href}
                                         href={link.href}
-                                        className="flex items-center justify-between px-3 py-2.5 rounded-md text-sm font-mono uppercase tracking-[0.12em] text-mist-300 hover:text-mist-50 hover:bg-white/5 transition-colors"
+                                        className="flex items-center justify-between gap-3 px-3 py-3 min-h-[44px] rounded-md text-sm font-mono uppercase tracking-[0.1em] text-mist-300 hover:text-mist-50 hover:bg-white/5 transition-colors"
                                     >
-                                        <span>{link.label}</span>
+                                        <span className="truncate">{link.label}</span>
                                         {link.badge && link.badge > 0 ? (
-                                            <span className="w-5 h-5 rounded-pill bg-glacier-500 text-[10px] font-bold text-obsidian flex items-center justify-center">
+                                            <span className="shrink-0 inline-flex items-center justify-center min-w-[20px] h-5 px-1 rounded-pill bg-glacier-500 text-[10px] font-bold text-obsidian">
                                                 {link.badge}
                                             </span>
                                         ) : null}
@@ -233,9 +253,9 @@ export default function Header({
                                 <Link
                                     href={feedbackHref}
                                     onClick={() => { showContactModal?.(); setMobileMenuOpen(false); }}
-                                    className="flex items-center px-3 py-2.5 rounded-md text-sm font-mono uppercase tracking-[0.12em] text-mist-300 hover:text-mist-50 hover:bg-white/5 transition-colors text-left"
+                                    className="flex items-center px-3 py-3 min-h-[44px] rounded-md text-sm font-mono uppercase tracking-[0.1em] text-mist-300 hover:text-mist-50 hover:bg-white/5 transition-colors text-left"
                                 >
-                                    {t.header.contact}
+                                    <span className="truncate">{t.header.contact}</span>
                                 </Link>
                             </nav>
                         </motion.div>
