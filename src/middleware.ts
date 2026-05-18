@@ -52,6 +52,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
     pathname.startsWith('/static') ||
+    pathname.startsWith('/site-intro/') ||
     pathname === '/favicon.ico' ||
     pathname === '/icon.png' ||
     pathname === '/wechat-qr.jpg' ||

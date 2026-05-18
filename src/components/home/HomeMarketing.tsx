@@ -28,9 +28,24 @@ function MarketingLoader() {
  * subscriptions, lazy imports, and translation hooks.
  */
 export default function HomeMarketing() {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const [reportCount, setReportCount] = useState<number | null>(null);
+
+  const introCopy = locale === 'zh'
+    ? {
+        kicker: 'FIELD NOTE · SWISS · IKB',
+        title: '七页读完，这是什么样的网站',
+        subtitle: '一份瑞士国际主义风格的现场笔记 — ← → 翻页 · B 静态 · ESC 索引',
+        openInNewTab: '在新窗口打开 ↗',
+      }
+    : {
+        kicker: 'FIELD NOTE · SWISS · IKB',
+        title: 'A 7-page tour of what this site does',
+        subtitle: 'A Swiss-international field note. ← → to navigate · B static · ESC for index',
+        openInNewTab: 'Open in new tab ↗',
+      };
+  const introSrc = `/site-intro/${locale}.html`;
 
   const coreAdvantages = [
     {
@@ -111,6 +126,49 @@ export default function HomeMarketing() {
 
   return (
     <>
+      <section className="py-16 md:py-24 px-4 md:px-6">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            className="text-center mb-8 md:mb-10"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-100px' }}
+          >
+            <div className="font-mono text-[11px] tracking-[0.22em] uppercase text-glacier-400 mb-3">
+              {introCopy.kicker}
+            </div>
+            <h3 className="text-2xl md:text-3xl lg:text-4xl font-light text-white mb-3">{introCopy.title}</h3>
+            <p className="text-mist-500 text-sm md:text-base">{introCopy.subtitle}</p>
+          </motion.div>
+          <motion.div
+            className="relative w-full aspect-[16/9] border border-white/10 bg-[#fafaf8] overflow-hidden rounded-sm"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-100px' }}
+            transition={{ duration: 0.5 }}
+          >
+            <iframe
+              key={introSrc}
+              src={introSrc}
+              title={introCopy.title}
+              className="absolute inset-0 w-full h-full"
+              loading="lazy"
+              sandbox="allow-scripts allow-same-origin"
+            />
+          </motion.div>
+          <div className="text-right mt-3">
+            <a
+              href={introSrc}
+              target="_blank"
+              rel="noopener"
+              className="font-mono text-[11px] tracking-[0.16em] uppercase text-mist-500 hover:text-glacier-400 transition-colors"
+            >
+              {introCopy.openInNewTab}
+            </a>
+          </div>
+        </div>
+      </section>
+
       <section className="py-16 md:py-24 px-4 md:px-6">
         <div className="max-w-6xl mx-auto">
           <motion.div
