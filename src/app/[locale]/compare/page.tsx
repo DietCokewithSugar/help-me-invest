@@ -8,6 +8,7 @@ import Header from '@/components/Header';
 import ContactModal from '@/components/ContactModal';
 import { useCompare, type CompareCompany } from '@/contexts/CompareContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { withLocale } from '@/lib/locale-path';
 import { SearchIcon, XIcon } from '@/components/Icons';
 
 interface SuggestionItem {
@@ -298,7 +299,7 @@ export default function ComparePage() {
       <Header
         theme={theme}
         toggleTheme={toggleTheme}
-        onReset={() => router.push('/')}
+        onReset={() => router.push(withLocale(locale, '/'))}
         showContactModal={() => setShowContactModal(true)}
       />
 

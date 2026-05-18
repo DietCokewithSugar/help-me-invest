@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next';
-import { siteUrl } from '@/lib/seo';
+import { siteUrl, buildLocalePath, SUPPORTED_LOCALES, DEFAULT_LOCALE } from '@/lib/seo';
 
 const staticRoutes: Array<{
   path: `/${string}` | '/';
@@ -28,25 +28,47 @@ const industrySectors = [
   'Utilities',
 ];
 
+function buildAlternates(path: string) {
+  const languages: Record<string, string> = {};
+  for (const lc of SUPPORTED_LOCALES) {
+    languages[lc] = new URL(buildLocalePath(lc, path), siteUrl).toString();
+  }
+  languages['x-default'] = new URL(buildLocalePath(DEFAULT_LOCALE, path), siteUrl).toString();
+  return languages;
+}
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
+  const entries: MetadataRoute.Sitemap = [];
 
-  const coreEntries = staticRoutes.map((route) => ({
-    url: new URL(route.path, siteUrl).toString(),
-    lastModified: now,
-    changeFrequency: route.changeFrequency,
-    priority: route.priority,
-  }));
+  // Emit a sitemap entry for every (locale × static-route) combination, each
+  // with `alternates.languages` so search engines can correlate translations.
+  for (const route of staticRoutes) {
+    const languages = buildAlternates(route.path);
+    for (const lc of SUPPORTED_LOCALES) {
+      entries.push({
+        url: new URL(buildLocalePath(lc, route.path), siteUrl).toString(),
+        lastModified: now,
+        changeFrequency: route.changeFrequency,
+        priority: route.priority,
+        alternates: { languages },
+      });
+    }
+  }
 
-  const sectorEntries = industrySectors.map((sector) => {
+  for (const sector of industrySectors) {
     const path = `/industry/${encodeURIComponent(sector)}` as const;
-    return {
-      url: new URL(path, siteUrl).toString(),
-      lastModified: now,
-      changeFrequency: 'daily' as const,
-      priority: 0.7,
-    };
-  });
+    const languages = buildAlternates(path);
+    for (const lc of SUPPORTED_LOCALES) {
+      entries.push({
+        url: new URL(buildLocalePath(lc, path), siteUrl).toString(),
+        lastModified: now,
+        changeFrequency: 'daily',
+        priority: 0.7,
+        alternates: { languages },
+      });
+    }
+  }
 
-  return [...coreEntries, ...sectorEntries];
+  return entries;
 }

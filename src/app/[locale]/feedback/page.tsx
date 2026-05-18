@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Bug, Lightbulb, MessageSquare, MoreHorizontal, ThumbsUp, ThumbsDown, MessageCircle, Plus, X } from 'lucide-react';
 import Header from '@/components/Header';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { withLocale } from '@/lib/locale-path';
 import { useFeedbackIdentity } from '@/hooks/useFeedbackIdentity';
 import FeedbackComposer from '@/components/feedback/FeedbackComposer';
 import TranslatableBody from '@/components/feedback/TranslatableBody';
@@ -166,8 +167,8 @@ export default function FeedbackPage() {
       <Header
         theme={theme}
         toggleTheme={toggleTheme}
-        onReset={() => router.push('/')}
-        showContactModal={() => router.push('/feedback')}
+        onReset={() => router.push(withLocale(locale, '/'))}
+        showContactModal={() => router.push(withLocale(locale, '/feedback'))}
       />
 
       <div className="pt-32 pb-24 px-4 md:px-6">
@@ -316,7 +317,7 @@ export default function FeedbackPage() {
                           </span>
                         </div>
 
-                        <Link href={`/feedback/${issue.id}`} className="block group">
+                        <Link href={withLocale(locale, `/feedback/${issue.id}`)} className="block group">
                           <h3 className="text-base md:text-lg font-semibold text-mist-100 group-hover:text-glacier-300 transition-colors mb-2 break-words">
                             {issue.title}
                           </h3>
@@ -333,7 +334,7 @@ export default function FeedbackPage() {
                             <MessageCircle className="w-3 h-3" />
                             {fbT.detail.commentCount(issue.comment_count)}
                           </span>
-                          <Link href={`/feedback/${issue.id}`} className="ml-auto text-glacier-400 hover:text-glacier-300">
+                          <Link href={withLocale(locale, `/feedback/${issue.id}`)} className="ml-auto text-glacier-400 hover:text-glacier-300">
                             {fbT.open} →
                           </Link>
                         </div>

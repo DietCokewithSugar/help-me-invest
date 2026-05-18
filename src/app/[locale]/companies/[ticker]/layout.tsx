@@ -1,13 +1,20 @@
 import type { Metadata } from 'next';
-import { createPageMetadata } from '@/lib/seo';
+import { createPageMetadata, SUPPORTED_LOCALES, type SupportedLocale } from '@/lib/seo';
 
 interface LayoutProps {
   children: React.ReactNode;
-  params: { ticker: string };
+  params: { locale: string; ticker: string };
 }
 
-export async function generateMetadata({ params }: { params: { ticker: string } }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: { locale: string; ticker: string };
+}): Promise<Metadata> {
   const ticker = decodeURIComponent(params.ticker || '').toUpperCase();
+  const locale = (SUPPORTED_LOCALES as readonly string[]).includes(params.locale)
+    ? (params.locale as SupportedLocale)
+    : undefined;
   return createPageMetadata({
     title: ticker ? `${ticker} - AI Investment Research Report` : 'Company Research Report',
     description: ticker
@@ -15,6 +22,7 @@ export async function generateMetadata({ params }: { params: { ticker: string } 
       : 'AI-generated investment research reports for global equities.',
     path: `/companies/${ticker}`,
     keywords: ticker ? [ticker, `${ticker} stock`, `${ticker} analysis`, `${ticker} report`] : [],
+    locale,
   });
 }
 

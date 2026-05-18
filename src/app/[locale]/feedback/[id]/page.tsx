@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft, Bug, Lightbulb, MessageSquare, MoreHorizontal, ThumbsUp, ThumbsDown, MessageCircle } from 'lucide-react';
 import Header from '@/components/Header';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { withLocale } from '@/lib/locale-path';
 import { useFeedbackIdentity } from '@/hooks/useFeedbackIdentity';
 import TranslatableBody from '@/components/feedback/TranslatableBody';
 import { formatRelativeTime } from '@/lib/relative-time';
@@ -252,14 +253,14 @@ export default function FeedbackDetailPage() {
       <Header
         theme={theme}
         toggleTheme={toggleTheme}
-        onReset={() => router.push('/')}
-        showContactModal={() => router.push('/feedback')}
+        onReset={() => router.push(withLocale(locale, '/'))}
+        showContactModal={() => router.push(withLocale(locale, '/feedback'))}
       />
 
       <div className="pt-32 pb-24 px-4 md:px-6">
         <div className="max-w-3xl mx-auto space-y-5">
           <Link
-            href="/feedback"
+            href={withLocale(locale, '/feedback')}
             className="inline-flex items-center gap-1.5 text-sm text-mist-400 hover:text-glacier-300 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />

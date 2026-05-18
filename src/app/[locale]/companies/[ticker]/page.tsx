@@ -7,6 +7,7 @@ import Header from '@/components/Header';
 import ContactModal from '@/components/ContactModal';
 import Report from '@/components/Report';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { withLocale } from '@/lib/locale-path';
 import { useCompanyReport, type ReportType } from '@/hooks/useCompanyReport';
 import {
   TrendingUpIcon,
@@ -179,7 +180,7 @@ function CompanyReportPageContent() {
       formatted = formatSymbolForMarket(normalized, market);
     }
     const query = reportType !== 'standard' ? `?type=${reportType}` : '';
-    router.push(`/companies/${encodeURIComponent(formatted)}${query}`);
+    router.push(`${withLocale(locale, '/companies')}/${encodeURIComponent(formatted)}${query}`);
   };
 
   const handleSubmit = (e?: React.FormEvent) => {
@@ -191,7 +192,7 @@ function CompanyReportPageContent() {
   };
 
   const goHome = () => {
-    router.push('/');
+    router.push(withLocale(locale, '/'));
   };
 
   // Resolve current market for badge
