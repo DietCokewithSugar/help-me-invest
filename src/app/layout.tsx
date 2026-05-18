@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Analytics } from '@vercel/analytics/next';
 import { headers, cookies } from 'next/headers';
 import TextSelectionMenu from '@/components/TextSelectionMenu';
@@ -11,6 +11,24 @@ import HomeButton from '@/components/HomeButton';
 import './globals.css';
 
 export const metadata: Metadata = defaultMetadata;
+
+/**
+ * Viewport / theme-color is required for correct mobile rendering. Without
+ * width=device-width, iOS Safari falls back to a 980px desktop viewport and
+ * the entire site renders zoomed-out and untappable on phones.
+ *
+ * We allow user-scaling (no maximum-scale) so users with low vision can
+ * still pinch-zoom — disabling zoom is an accessibility anti-pattern.
+ */
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: dark)', color: '#0F0E0B' },
+    { media: '(prefers-color-scheme: light)', color: '#F9F9F0' },
+  ],
+};
 
 const websiteStructuredData = {
   '@context': 'https://schema.org',
@@ -66,7 +84,6 @@ export default function RootLayout({
   // fallback for users hitting cached / non-cookie paths.
   const themeCookie = cookieStore.get('theme')?.value;
   const initialTheme: 'dark' | 'light' = themeCookie === 'light' ? 'light' : 'dark';
-  const themeColor = initialTheme === 'light' ? '#F9F9F0' : '#0F0E0B';
 
   const themeBootstrap = `
     try {
@@ -86,7 +103,6 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..900,0..100,0..1&family=Instrument+Serif:ital@0;1&display=swap"
           rel="stylesheet"
         />
-        <meta name="theme-color" content={themeColor} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteStructuredData) }}
