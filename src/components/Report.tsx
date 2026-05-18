@@ -90,6 +90,7 @@ import { useCompare } from '@/contexts/CompareContext';
 import { translateDiagnosticTag } from '@/i18n/diagnosticTags';
 import { exportReportToExcel } from '@/lib/export-excel';
 import { formatCurrencyCompact, formatCurrencyFixed, resolveReportCurrency } from '@/lib/currency';
+import { useModalA11y } from '@/hooks/useModalA11y';
 
 // 市场标识徽章 - 极简设计，无 emoji，直角
 const MarketBadge = ({ market }: { market: MarketType }) => {
@@ -641,6 +642,10 @@ export default function Report({
 }: ReportProps) {
   const reportRef = useRef<HTMLDivElement>(null);
   const [isSharePickerOpen, setIsSharePickerOpen] = useState(false);
+  const sharePickerA11y = useModalA11y({
+    isOpen: isSharePickerOpen,
+    onClose: () => setIsSharePickerOpen(false),
+  });
   const [shareNotice, setShareNotice] = useState('');
   const [showTranscript, setShowTranscript] = useState(false);
   const [activeSection, setActiveSection] = useState('');
@@ -1826,11 +1831,18 @@ export default function Report({
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
           <button
             className="absolute inset-0 bg-black/70"
-            aria-label="close-share-picker"
+            aria-label={t.common.close || 'Close'}
             onClick={() => setIsSharePickerOpen(false)}
           />
-          <div className="relative w-full max-w-sm rounded-md border border-white/10 bg-surface p-4">
-            <h3 className="mb-3 text-sm font-semibold text-white">{t.common.share}</h3>
+          <div
+            ref={sharePickerA11y.dialogRef as any}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={sharePickerA11y.titleId}
+            tabIndex={-1}
+            className="relative w-full max-w-sm rounded-md border border-white/10 bg-surface p-4 focus:outline-none"
+          >
+            <h3 id={sharePickerA11y.titleId} className="mb-3 text-sm font-semibold text-white">{t.common.share}</h3>
             <div className="space-y-1">
               <button
                 onClick={() => runShareAction(handleShareAsImage)}

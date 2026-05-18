@@ -14,6 +14,7 @@ import {
 } from '@/components/Icons';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getLocalizedDiagnostic } from '@/i18n/diagnosticTags';
+import { useModalA11y } from '@/hooks/useModalA11y';
 import type { CompanyDiagnostic, CompanyFilterRequest } from '@/types';
 
 interface CompanyFilterModalProps {
@@ -78,6 +79,7 @@ export default function CompanyFilterModal({
     const [searchQuery, setSearchQuery] = useState('');
     const [sectors, setSectors] = useState<string[]>([]);
     const [industries, setIndustries] = useState<string[]>([]);
+    const { dialogRef, titleId, descriptionId } = useModalA11y({ isOpen, onClose });
 
     // 获取筛选后的公司列表
     const fetchCompanies = useCallback(async (currentFilters: CompanyFilterRequest, query: string) => {
@@ -174,7 +176,13 @@ export default function CompanyFilterModal({
                 onClick={onClose}
             >
                 <motion.div
-                    className="w-full max-w-6xl max-h-[90vh] bg-gradient-to-br from-obsidian-900/95 to-obsidian-800/95 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col"
+                    ref={dialogRef as any}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby={titleId}
+                    aria-describedby={descriptionId}
+                    tabIndex={-1}
+                    className="w-full max-w-6xl max-h-[90vh] bg-surface rounded-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col focus:outline-none"
                     initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.9, opacity: 0 }}
@@ -187,13 +195,15 @@ export default function CompanyFilterModal({
                                 <FilterIcon className="w-5 h-5 text-glacier-500" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-semibold text-white">{t.companyFilterModal.title}</h2>
-                                <p className="text-sm text-mist-500">{t.companyFilterModal.subtitle}</p>
+                                <h2 id={titleId} className="text-xl font-semibold text-white">{t.companyFilterModal.title}</h2>
+                                <p id={descriptionId} className="text-sm text-mist-500">{t.companyFilterModal.subtitle}</p>
                             </div>
                         </div>
                         <button
+                            type="button"
                             onClick={onClose}
-                            className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+                            className="inline-flex items-center justify-center h-11 w-11 rounded-full bg-white/5 hover:bg-white/10 transition-colors"
+                            aria-label={t.common.close || 'Close'}
                         >
                             <XIcon size={20} className="text-mist-300" />
                         </button>
@@ -330,16 +340,30 @@ export default function CompanyFilterModal({
                                 <>
                                     {/* Search Bar */}
                                     <div className="p-6 border-b border-white/10">
-                                        <div className="relative">
-                                            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-mist-500" />
+                                        <form
+                                            role="search"
+                                            aria-label={t.companyFilterModal.searchPlaceholder}
+                                            onSubmit={(e) => e.preventDefault()}
+                                            className="relative"
+                                        >
+                                            <label htmlFor="filter-modal-search" className="sr-only">
+                                                {t.companyFilterModal.searchPlaceholder}
+                                            </label>
+                                            <SearchIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-mist-500" />
                                             <input
-                                                type="text"
+                                                id="filter-modal-search"
+                                                name="q"
+                                                type="search"
+                                                inputMode="search"
+                                                enterKeyHint="search"
+                                                autoComplete="off"
                                                 value={searchQuery}
                                                 onChange={(e) => handleSearchChange(e.target.value)}
                                                 placeholder={t.companyFilterModal.searchPlaceholder}
+                                                aria-label={t.companyFilterModal.searchPlaceholder}
                                                 className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-mist-600 focus:outline-none focus:border-glacier-500/50"
                                             />
-                                        </div>
+                                        </form>
                                         <div className="mt-2 text-sm text-mist-500">
                                             {t.companyFilterModal.foundCompanies(total)}
                                         </div>

@@ -17,6 +17,7 @@ import {
     Moon,
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useModalA11y } from '@/hooks/useModalA11y';
 
 // ==================== Types ====================
 interface ExportSettings {
@@ -454,6 +455,12 @@ export default function ShareExportModal({
     const cardRef = useRef<HTMLDivElement>(null);
     const { t } = useLanguage();
     const [status, setStatus] = useState<ExportStatus>('idle');
+    const { dialogRef, titleId, descriptionId } = useModalA11y({
+        isOpen,
+        onClose,
+        // Don't let ESC abort an in-flight image export.
+        closeOnEscape: status !== 'exporting',
+    });
     const [errorMessage, setErrorMessage] = useState('');
     const [settings, setSettings] = useState<ExportSettings>({
         fontSize: 'md',
@@ -631,7 +638,13 @@ export default function ShareExportModal({
 
                     {/* Modal */}
                     <motion.div
-                        className="relative w-full max-w-2xl bg-surface border border-white/10 rounded-lg overflow-hidden max-h-[90vh] flex flex-col"
+                        ref={dialogRef as any}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby={titleId}
+                        aria-describedby={descriptionId}
+                        tabIndex={-1}
+                        className="relative w-full max-w-2xl bg-surface border border-white/10 rounded-lg overflow-hidden max-h-[90vh] flex flex-col focus:outline-none"
                         variants={modalVariants}
                         initial="hidden"
                         animate="visible"
@@ -644,16 +657,18 @@ export default function ShareExportModal({
                                     <Share2 className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-semibold text-white">{t.shareModal.title}</h2>
-                                    <p className="text-xs text-mist-500">{companyName ? `${companyName} · ${title}` : title}</p>
+                                    <h2 id={titleId} className="text-lg font-semibold text-white">{t.shareModal.title}</h2>
+                                    <p id={descriptionId} className="text-xs text-mist-500">{companyName ? `${companyName} · ${title}` : title}</p>
                                 </div>
                             </div>
                             <motion.button
-                                className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-mist-400 hover:text-white transition-colors"
+                                type="button"
+                                className="inline-flex h-11 w-11 items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-mist-400 hover:text-white transition-colors disabled:opacity-50"
                                 onClick={onClose}
                                 disabled={status === 'exporting'}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
+                                aria-label={t.common.close || 'Close'}
                             >
                                 <X className="w-4 h-4" />
                             </motion.button>

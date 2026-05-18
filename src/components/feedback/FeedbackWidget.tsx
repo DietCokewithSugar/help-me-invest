@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquarePlus, X } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { withLocale } from '@/lib/locale-path';
+import { useModalA11y } from '@/hooks/useModalA11y';
 import FeedbackComposer from './FeedbackComposer';
 import type { FeedbackIssue } from '@/types';
 
@@ -25,7 +26,15 @@ export default function FeedbackWidget() {
 
   const [open, setOpen] = useState(false);
   const [lastSubmitted, setLastSubmitted] = useState<FeedbackIssue | null>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
+  // Popover-style dialog (no body scroll lock — composer is a non-blocking
+  // helper). We still want role=dialog + ESC + focus restoration.
+  const { dialogRef, titleId, descriptionId } = useModalA11y({
+    isOpen: open,
+    onClose: () => setOpen(false),
+    lockScroll: false,
+  });
+  // Local alias so the outside-click handler can read the same node.
+  const panelRef = dialogRef;
 
   // Match both the legacy /feedback path and the locale-prefixed variants
   // (/zh/feedback, /en/feedback) so the widget hides itself on the feedback board.
@@ -40,15 +49,12 @@ export default function FeedbackWidget() {
         setOpen(false);
       }
     };
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
     document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleKey);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKey);
     };
+    // panelRef is a stable ref from useModalA11y; intentionally not in deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   // Reset the "submitted" state whenever the panel is closed so the next open
@@ -64,22 +70,28 @@ export default function FeedbackWidget() {
       <AnimatePresence>
         {open && (
           <motion.div
-            ref={panelRef}
+            ref={dialogRef as any}
+            role="dialog"
+            aria-modal="false"
+            aria-labelledby={titleId}
+            aria-describedby={descriptionId}
+            tabIndex={-1}
             initial={{ opacity: 0, y: 12, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.96 }}
             transition={{ type: 'spring', damping: 25, stiffness: 320 }}
-            className="w-[min(360px,calc(100vw-2.5rem))] rounded-md bg-surface border border-white/10 shadow-2xl shadow-black/40 overflow-hidden"
+            className="w-[min(360px,calc(100vw-2.5rem))] rounded-md bg-surface border border-white/10 shadow-2xl shadow-black/40 overflow-hidden focus:outline-none"
           >
             <div className="flex items-start justify-between p-4 border-b border-white/5">
               <div>
-                <h3 className="text-sm font-semibold text-mist-100">{widgetT.title}</h3>
-                <p className="text-xs text-mist-500 mt-0.5">{widgetT.subtitle}</p>
+                <h3 id={titleId} className="text-sm font-semibold text-mist-100">{widgetT.title}</h3>
+                <p id={descriptionId} className="text-xs text-mist-500 mt-0.5">{widgetT.subtitle}</p>
               </div>
               <button
+                type="button"
                 onClick={() => setOpen(false)}
-                className="p-1 rounded-sm bg-white/5 hover:bg-white/10 transition-colors"
-                aria-label="Close feedback"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-sm bg-white/5 hover:bg-white/10 transition-colors"
+                aria-label={t.common.close || 'Close'}
               >
                 <X className="w-3.5 h-3.5 text-mist-400" />
               </button>

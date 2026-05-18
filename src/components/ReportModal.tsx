@@ -4,6 +4,7 @@ import { XIcon } from 'lucide-react';
 import Report from '@/components/Report';
 import { useReportAnalysis } from '@/hooks/useReportAnalysis';
 import { LinearLoader, LOADING_STEPS } from '@/components/LinearLoader';
+import { useModalA11y } from '@/hooks/useModalA11y';
 import type { MarketType } from '@/types';
 
 interface ReportModalProps {
@@ -24,6 +25,7 @@ export default function ReportModal({ isOpen, onClose, symbol, market, companyNa
         reset,
         setLoadingStep
     } = useReportAnalysis();
+    const { dialogRef, titleId, descriptionId } = useModalA11y({ isOpen, onClose });
 
     // Trigger analysis when modal opens
     useEffect(() => {
@@ -61,16 +63,22 @@ export default function ReportModal({ isOpen, onClose, symbol, market, companyNa
 
                     {/* Modal Content */}
                     <motion.div
+                        ref={dialogRef as any}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby={titleId}
+                        aria-describedby={descriptionId}
+                        tabIndex={-1}
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="relative w-full max-w-7xl h-full max-h-[90vh] bg-obsidian border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+                        className="relative w-full max-w-7xl h-full max-h-[90vh] bg-obsidian border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col focus:outline-none"
                     >
                         {/* Header */}
                         <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-surface/50 backdrop-blur-md z-10">
                             <div>
-                                <h2 className="text-xl font-medium text-white">{companyName}</h2>
-                                <div className="flex items-center gap-2 text-sm text-mist-500 font-mono">
+                                <h2 id={titleId} className="text-xl font-medium text-white">{companyName}</h2>
+                                <div id={descriptionId} className="flex items-center gap-2 text-sm text-mist-500 font-mono">
                                     <span>{symbol}</span>
                                     <span className="px-1.5 py-0.5 rounded-sm bg-white/5 border border-white/10 text-[10px]">
                                         {market}
@@ -78,8 +86,10 @@ export default function ReportModal({ isOpen, onClose, symbol, market, companyNa
                                 </div>
                             </div>
                             <button
+                                type="button"
                                 onClick={onClose}
-                                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-mist-400 hover:text-white transition-colors"
+                                className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-mist-400 hover:text-white transition-colors"
+                                aria-label="关闭"
                             >
                                 <XIcon className="w-5 h-5" />
                             </button>

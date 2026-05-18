@@ -13,6 +13,7 @@ import {
   AlertCircle,
   Smartphone,
 } from 'lucide-react';
+import { useModalA11y } from '@/hooks/useModalA11y';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -75,6 +76,11 @@ export default function ExportModal({
     typeof navigator.share === 'function' && 
     typeof navigator.canShare === 'function'
   );
+  const { dialogRef, titleId, descriptionId } = useModalA11y({
+    isOpen,
+    onClose,
+    closeOnEscape: status === 'idle',
+  });
 
   // 生成图片
   const generateImage = useCallback(async (): Promise<Blob | null> => {
@@ -223,7 +229,13 @@ export default function ExportModal({
 
           {/* 模态框内容 */}
           <motion.div
-            className="relative w-full max-w-md gemini-card p-8 overflow-hidden"
+            ref={dialogRef as any}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
+            aria-describedby={descriptionId}
+            tabIndex={-1}
+            className="relative w-full max-w-md gemini-card p-8 overflow-hidden focus:outline-none"
             variants={modalVariants}
             initial="hidden"
             animate="visible"
@@ -235,11 +247,13 @@ export default function ExportModal({
 
             {/* 关闭按钮 */}
             <motion.button
-              className="absolute top-4 right-4 w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-mist-400 hover:text-white transition-colors"
+              type="button"
+              className="absolute top-4 right-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 text-mist-400 hover:text-white transition-colors disabled:opacity-50"
               onClick={onClose}
               disabled={status === 'exporting'}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              aria-label="关闭"
             >
               <X className="w-5 h-5" />
             </motion.button>
@@ -254,8 +268,8 @@ export default function ExportModal({
                   <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-gemini-blue to-gemini-pink opacity-40 blur-2xl" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-white">导出报告</h2>
-                  <p className="text-sm text-mist-500 mt-1">将报告保存为高清图片</p>
+                  <h2 id={titleId} className="text-2xl font-bold text-white">导出报告</h2>
+                  <p id={descriptionId} className="text-sm text-mist-500 mt-1">将报告保存为高清图片</p>
                 </div>
               </div>
             </div>

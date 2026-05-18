@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
 import { XIcon } from '@/components/Icons';
+import { useModalA11y } from '@/hooks/useModalA11y';
 
 interface ContactModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ interface ContactModalProps {
   wechatId?: string;
   email?: string;
   qrImageSrc?: string;
+  closeLabel?: string;
 }
 
 export default function ContactModal({
@@ -28,7 +30,10 @@ export default function ContactModal({
   wechatId = 'wkzSteven',
   email = 'wangkaizhou2016@gmail.com',
   qrImageSrc = '/wechat-qr.jpg',
+  closeLabel = '关闭',
 }: ContactModalProps) {
+  const { dialogRef, titleId, descriptionId } = useModalA11y({ isOpen, onClose });
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -40,23 +45,30 @@ export default function ContactModal({
           onClick={onClose}
         >
           <motion.div
+            ref={dialogRef as any}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
+            aria-describedby={descriptionId}
+            tabIndex={-1}
             initial={{ opacity: 0, scale: 0.96, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 12 }}
             transition={{ type: 'spring', damping: 22, stiffness: 280 }}
-            className="relative w-full max-w-sm mx-4 rounded-md border border-white/10 bg-surface p-6 md:p-7"
+            className="relative w-full max-w-sm mx-4 rounded-md border border-white/10 bg-surface p-6 md:p-7 focus:outline-none"
             onClick={(event) => event.stopPropagation()}
           >
             <button
+              type="button"
               onClick={onClose}
-              className="absolute top-3 right-3 p-1.5 rounded-sm border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
-              aria-label="Close contact modal"
+              className="absolute top-3 right-3 inline-flex items-center justify-center h-11 w-11 rounded-sm border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+              aria-label={closeLabel}
             >
               <XIcon size={16} className="text-mist-400" />
             </button>
 
-            <h3 className="text-lg font-semibold text-mist-200 text-center">{title}</h3>
-            <p className="mt-1 text-sm text-mist-400 text-center">{scanQr}</p>
+            <h3 id={titleId} className="text-lg font-semibold text-mist-200 text-center">{title}</h3>
+            <p id={descriptionId} className="mt-1 text-sm text-mist-400 text-center">{scanQr}</p>
 
             <div className="mt-5 text-center space-y-3">
               <div className="flex justify-center">
