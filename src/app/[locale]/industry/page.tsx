@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import ContactModal from '@/components/ContactModal';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { withLocale } from '@/lib/locale-path';
 import { getTrendColor } from '@/lib/industry-data';
 import { stripEmoji } from '@/lib/text-utils';
 import dynamic from 'next/dynamic';
@@ -36,7 +37,7 @@ const darkTableHeaderStyle = {
 
 export default function IndustryPage() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { locale, t } = useLanguage();
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [sectors, setSectors] = useState<SectorData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -210,12 +211,12 @@ export default function IndustryPage() {
   const handleTreemapClick = (params: any) => {
     const sd = params.data?.sectorData;
     if (sd?.sector) {
-      router.push(`/industry/${encodeURIComponent(sd.sector)}`);
+      router.push(`${withLocale(locale, '/industry')}/${encodeURIComponent(sd.sector)}`);
     }
   };
 
   const handleRowClick = (sector: string) => {
-    router.push(`/industry/${encodeURIComponent(sector)}`);
+    router.push(`${withLocale(locale, '/industry')}/${encodeURIComponent(sector)}`);
   };
 
   const SortIcon = ({ active, dir }: { active: boolean; dir: SortDir }) => (

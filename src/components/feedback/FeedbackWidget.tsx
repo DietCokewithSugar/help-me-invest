@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquarePlus, X } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { withLocale } from '@/lib/locale-path';
 import FeedbackComposer from './FeedbackComposer';
 import type { FeedbackIssue } from '@/types';
 
@@ -19,14 +20,18 @@ import type { FeedbackIssue } from '@/types';
 export default function FeedbackWidget() {
   const router = useRouter();
   const pathname = usePathname();
-  const { t } = useLanguage();
+  const { locale, t } = useLanguage();
   const widgetT = t.feedback.widget;
 
   const [open, setOpen] = useState(false);
   const [lastSubmitted, setLastSubmitted] = useState<FeedbackIssue | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const onFeedbackRoute = pathname?.startsWith('/feedback') ?? false;
+  // Match both the legacy /feedback path and the locale-prefixed variants
+  // (/zh/feedback, /en/feedback) so the widget hides itself on the feedback board.
+  const onFeedbackRoute = pathname
+    ? /^\/(?:zh|en)?\/?feedback(?:\/|$)/.test(pathname)
+    : false;
 
   useEffect(() => {
     if (!open) return;
@@ -89,7 +94,7 @@ export default function FeedbackWidget() {
                     <button
                       onClick={() => {
                         setOpen(false);
-                        router.push(`/feedback/${lastSubmitted.id}`);
+                        router.push(withLocale(locale, `/feedback/${lastSubmitted.id}`));
                       }}
                       className="px-3 py-1.5 text-xs rounded-sm bg-glacier-500 hover:bg-glacier-400 text-obsidian font-semibold transition-colors"
                     >

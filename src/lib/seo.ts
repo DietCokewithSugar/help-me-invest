@@ -8,6 +8,10 @@ const rawSiteUrl =
 export const siteUrl = rawSiteUrl.startsWith('http') ? rawSiteUrl : `https://${rawSiteUrl}`;
 export const siteName = 'AI Investment Research';
 
+export const SUPPORTED_LOCALES = ['zh', 'en'] as const;
+export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
+export const DEFAULT_LOCALE: SupportedLocale = 'zh';
+
 const globalKeywords = [
   'AI investment research',
   'stock analysis',
@@ -36,6 +40,11 @@ export const defaultMetadata: Metadata = {
   keywords: globalKeywords,
   alternates: {
     canonical: '/',
+    languages: {
+      zh: '/zh',
+      en: '/en',
+      'x-default': '/zh',
+    },
   },
   category: 'finance',
   robots: {
@@ -65,28 +74,65 @@ export const defaultMetadata: Metadata = {
   },
 };
 
+/**
+ * Build a locale-prefixed path. Idempotent for already-prefixed paths.
+ */
+export function buildLocalePath(locale: SupportedLocale, path: string): string {
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  if (normalized === '/') return `/${locale}`;
+  const parts = normalized.split('/').filter(Boolean);
+  if (parts[0] === 'zh' || parts[0] === 'en') {
+    parts[0] = locale;
+    return `/${parts.join('/')}`;
+  }
+  return `/${locale}${normalized}`;
+}
+
 interface PageMetadataInput {
   title: string;
   description: string;
+  /**
+   * Locale-agnostic path (e.g. `/companies`, `/companies/AAPL`). The helper
+   * will produce locale-prefixed canonical + hreflang alternates.
+   */
   path: `/${string}` | '/';
+  /** The locale this page is being rendered in. */
+  locale?: SupportedLocale;
   keywords?: string[];
 }
 
+/**
+ * Generate page metadata with locale-aware canonical + hreflang alternates.
+ *
+ * Even when `locale` is omitted (legacy callers), the helper still emits
+ * `<link rel="alternate" hreflang>` entries for both supported locales so
+ * search engines can correlate the two versions.
+ */
 export function createPageMetadata(input: PageMetadataInput): Metadata {
-  const { title, description, path, keywords = [] } = input;
+  const { title, description, path, keywords = [], locale } = input;
+
+  const localePaths: Record<string, string> = {};
+  for (const lc of SUPPORTED_LOCALES) {
+    localePaths[lc] = buildLocalePath(lc, path);
+  }
+  // x-default points at the default locale's version of the URL.
+  localePaths['x-default'] = buildLocalePath(DEFAULT_LOCALE, path);
+
+  const canonical = locale ? buildLocalePath(locale, path) : buildLocalePath(DEFAULT_LOCALE, path);
 
   return {
     title,
     description,
     keywords: [...globalKeywords, ...keywords],
     alternates: {
-      canonical: path,
+      canonical,
+      languages: localePaths,
     },
     openGraph: {
       type: 'website',
-      locale: 'en_US',
-      alternateLocale: ['zh_CN'],
-      url: path,
+      locale: locale === 'zh' ? 'zh_CN' : 'en_US',
+      alternateLocale: locale === 'zh' ? ['en_US'] : ['zh_CN'],
+      url: canonical,
       siteName,
       title,
       description,

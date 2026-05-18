@@ -11,6 +11,7 @@ import {
 } from '@/components/Icons';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCompare } from '@/contexts/CompareContext';
+import { withLocale } from '@/lib/locale-path';
 
 interface HeaderProps {
     theme: 'dark' | 'light';
@@ -57,17 +58,18 @@ export default function Header({
         if (onReset) {
             onReset();
         } else {
-            router.push('/');
+            router.push(withLocale(locale, '/'));
         }
     };
 
     const navLinks = [
-        { href: '/companies', label: t.header.discover },
-        { href: '/tracking', label: t.header.portfolio },
-        { href: '/industry', label: t.header.industry },
-        { href: '/compare', label: t.header.compare, badge: compareCompanies.length },
-        { href: '/asset-allocation', label: t.header.allocation },
+        { href: withLocale(locale, '/companies'), label: t.header.discover },
+        { href: withLocale(locale, '/tracking'), label: t.header.portfolio },
+        { href: withLocale(locale, '/industry'), label: t.header.industry },
+        { href: withLocale(locale, '/compare'), label: t.header.compare, badge: compareCompanies.length },
+        { href: withLocale(locale, '/asset-allocation'), label: t.header.allocation },
     ];
+    const feedbackHref = withLocale(locale, '/feedback');
 
     return (
         <header className="fixed top-0 left-0 right-0 z-50">
@@ -111,7 +113,7 @@ export default function Header({
                                     </Link>
                                 ))}
                                 <Link
-                                    href="/feedback"
+                                    href={feedbackHref}
                                     onClick={() => showContactModal?.()}
                                     className="text-sm text-mist-400 hover:text-glacier-400 transition-colors whitespace-nowrap"
                                 >
@@ -210,7 +212,7 @@ export default function Header({
                                         </Link>
                                     ))}
                                     <Link
-                                        href="/feedback"
+                                        href={feedbackHref}
                                         onClick={() => { showContactModal?.(); setMobileMenuOpen(false); }}
                                         className="flex items-center px-3 py-2.5 rounded-md text-sm text-mist-400 hover:text-glacier-400 hover:bg-white/5 transition-colors text-left"
                                     >

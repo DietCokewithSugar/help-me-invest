@@ -1,13 +1,13 @@
 import type { Metadata } from 'next';
 import { Analytics } from '@vercel/analytics/next';
-import Link from 'next/link';
-import { Home } from 'lucide-react';
+import { headers, cookies } from 'next/headers';
 import TextSelectionMenu from '@/components/TextSelectionMenu';
 import FeedbackWidget from '@/components/feedback/FeedbackWidget';
 import { UnitModeProvider } from '@/lib/UnitModeContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { CompareProvider } from '@/contexts/CompareContext';
 import { defaultMetadata, siteName, siteUrl } from '@/lib/seo';
+import HomeButton from '@/components/HomeButton';
 import './globals.css';
 
 export const metadata: Metadata = defaultMetadata;
@@ -21,7 +21,7 @@ const websiteStructuredData = {
   inLanguage: ['en', 'zh'],
   potentialAction: {
     '@type': 'SearchAction',
-    target: `${siteUrl}/?symbol={search_term_string}`,
+    target: `${siteUrl}/companies/{search_term_string}`,
     'query-input': 'required name=search_term_string',
   },
 };
@@ -34,22 +34,57 @@ const organizationStructuredData = {
   logo: `${siteUrl}/icon.png`,
 };
 
+const SUPPORTED_LOCALES = ['zh', 'en'] as const;
+type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
+
+function isSupportedLocale(value: string | undefined | null): value is SupportedLocale {
+  return !!value && (SUPPORTED_LOCALES as readonly string[]).includes(value);
+}
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Locale resolution order:
+  //   1. `x-next-locale` request header (set by middleware after URL prefix check).
+  //   2. `NEXT_LOCALE` cookie (user toggled language client-side).
+  //   3. Default to `zh`.
+  const headerStore = headers();
+  const cookieStore = cookies();
+  const headerLocale = headerStore.get('x-next-locale');
+  const cookieLocale = cookieStore.get('NEXT_LOCALE')?.value;
+  const resolvedLocale: SupportedLocale = isSupportedLocale(headerLocale)
+    ? headerLocale
+    : isSupportedLocale(cookieLocale)
+      ? cookieLocale
+      : 'zh';
+  const htmlLang = resolvedLocale === 'zh' ? 'zh-CN' : 'en';
+
+  // Theme SSR bootstrap: read cookie so we can paint `<html data-theme>`
+  // before any client JS runs. The inline script below is a defensive
+  // fallback for users hitting cached / non-cookie paths.
+  const themeCookie = cookieStore.get('theme')?.value;
+  const initialTheme: 'dark' | 'light' = themeCookie === 'light' ? 'light' : 'dark';
+
+  const themeBootstrap = `
+    try {
+      var stored = localStorage.getItem('theme');
+      if (stored === 'light' || stored === 'dark') {
+        document.documentElement.setAttribute('data-theme', stored);
+      }
+    } catch (e) {}
+  `;
+
   return (
-    <html lang="en">
+    <html lang={htmlLang} data-theme={initialTheme}>
       <head>
-        {/* 字体预加载 */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
           href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
           rel="stylesheet"
         />
-        {/* Favicon - Next.js automatically uses src/app/icon.png */}
         <meta name="theme-color" content="#0A0A0B" />
         <script
           type="application/ld+json"
@@ -59,22 +94,16 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationStructuredData) }}
         />
+        {/* Inline fallback in case the cookie wasn't sent (first paint after
+            a fresh login on a stale cache); avoids a flash of wrong theme. */}
+        <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
       </head>
       <body className="antialiased">
         <LanguageProvider>
           <CompareProvider>
             <UnitModeProvider>
-              <div className="relative z-10">
-                {children}
-              </div>
-              <Link
-                href="/"
-                aria-label="返回首页"
-                title="返回首页"
-                className="fixed bottom-5 left-5 z-[95] inline-flex h-10 w-10 items-center justify-center rounded-sm border border-white/10 bg-surface text-mist-300 shadow-lg transition-colors hover:bg-white/10 hover:text-white"
-              >
-                <Home className="h-4 w-4" />
-              </Link>
+              <div className="relative z-10">{children}</div>
+              <HomeButton />
               <FeedbackWidget />
               <Analytics />
               <TextSelectionMenu />

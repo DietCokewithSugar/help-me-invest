@@ -34,6 +34,7 @@ import { useRouter } from 'next/navigation';
 import ReportModal from '@/components/ReportModal';
 import CompanyOverviewModal from '@/components/CompanyOverviewModal';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { withLocale } from '@/lib/locale-path';
 import type { CompanyDiagnostic } from '@/types';
 import {
     PORTFOLIOS,
@@ -388,7 +389,7 @@ function PositionGroup({
 }
 
 export default function TrackingPage() {
-    const { t } = useLanguage();
+    const { locale, t } = useLanguage();
     const [selectedPortfolio, setSelectedPortfolio] = useState<Portfolio>(PORTFOLIOS[0]);
     const [stockData, setStockData] = useState<Record<string, any>>({});
     const [loading, setLoading] = useState(true);
@@ -412,9 +413,9 @@ export default function TrackingPage() {
                     return;
                 }
             }
-            router.push(`/?symbol=${encodeURIComponent(company.symbol)}`);
+            router.push(`${withLocale(locale, '/companies')}/${encodeURIComponent(company.symbol)}`);
         } catch {
-            router.push(`/?symbol=${encodeURIComponent(company.symbol)}`);
+            router.push(`${withLocale(locale, '/companies')}/${encodeURIComponent(company.symbol)}`);
         }
     };
 

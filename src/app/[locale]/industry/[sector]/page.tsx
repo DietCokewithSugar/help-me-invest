@@ -7,6 +7,7 @@ import Header from '@/components/Header';
 import ContactModal from '@/components/ContactModal';
 import CompanyOverviewModal from '@/components/CompanyOverviewModal';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { withLocale } from '@/lib/locale-path';
 import { formatMarketCap, type SupplyChainData, type SupplyChainNode } from '@/lib/industry-data';
 import { stripEmoji } from '@/lib/text-utils';
 import type { CompanyDiagnostic } from '@/types';
@@ -153,10 +154,10 @@ export default function IndustryDetailPage() {
         setSelectedCompany(json.data);
         setShowOverviewModal(true);
       } else {
-        router.push(`/?symbol=${symbol}`);
+        router.push(`${withLocale(locale, '/companies')}/${encodeURIComponent(symbol)}`);
       }
     } catch {
-      router.push(`/?symbol=${symbol}`);
+      router.push(`${withLocale(locale, '/companies')}/${encodeURIComponent(symbol)}`);
     } finally {
       setLoadingCompany(null);
     }
@@ -427,7 +428,7 @@ export default function IndustryDetailPage() {
       <main className="max-w-7xl mx-auto px-4 md:px-6 pt-28 pb-16">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm mb-6">
-          <Link href="/industry" className="text-glacier-500 hover:text-glacier-400 transition-colors">
+          <Link href={withLocale(locale, '/industry')} className="text-glacier-500 hover:text-glacier-400 transition-colors">
             {t.industry.detail.backToOverview}
           </Link>
           <span className="text-mist-500">/</span>

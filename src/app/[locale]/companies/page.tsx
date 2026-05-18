@@ -9,6 +9,7 @@ import Header from '@/components/Header';
 import ContactModal from '@/components/ContactModal';
 import CompanyOverviewModal from '@/components/CompanyOverviewModal';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { withLocale } from '@/lib/locale-path';
 import { getLocalizedDiagnostic } from '@/i18n/diagnosticTags';
 import {
     SearchIcon,
@@ -601,7 +602,7 @@ export default function CompaniesPage() {
 
     // 导航到报告页面
     const handleGenerateReport = (symbol: string) => {
-        router.push(`/?symbol=${symbol}`);
+        router.push(`${withLocale(locale, '/companies')}/${encodeURIComponent(symbol)}`);
     };
 
     // 打开公司概述浮窗
@@ -630,7 +631,7 @@ export default function CompaniesPage() {
             <Header
                 theme={theme}
                 toggleTheme={toggleTheme}
-                onReset={() => router.push('/')}
+                onReset={() => router.push(withLocale(locale, '/'))}
                 showContactModal={() => setShowContactModal(true)}
             />
 

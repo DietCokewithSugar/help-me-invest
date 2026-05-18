@@ -10,6 +10,7 @@ import {
 } from '@/components/Icons';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCompare } from '@/contexts/CompareContext';
+import { withLocale } from '@/lib/locale-path';
 import type { CompanyDiagnostic, CompanyFilterRequest } from '@/types';
 import {
     getLocalizedDiagnostic,
@@ -133,7 +134,7 @@ export default function CompanyOverviewModal({
 
     // 导航到报告页面
     const handleGenerateReport = (symbol: string) => {
-        router.push(`/?symbol=${symbol}`);
+        router.push(`${withLocale(locale, '/companies')}/${encodeURIComponent(symbol)}`);
         onClose();
     };
 
