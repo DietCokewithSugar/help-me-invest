@@ -1,178 +1,360 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Serif+SC:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..900,0..100,0..1&family=Instrument+Serif:ital@0;1&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Dark mode (default) */
+/* ============================================================
+   APTOS-INSPIRED DESIGN SYSTEM
+   Warm-neutral palette · editorial serif · pill geometry
+   Source reference: design-extractor/ (extracted from aptosnetwork.com)
+   ============================================================ */
+
+/* ---------- Dark Mode (default) ---------- */
 :root,
 [data-theme="dark"] {
-  --bg-obsidian: #0A0A0B;
-  --bg-surface: #121212;
-  --text-primary: #e2e8f0;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --text-heading: #ffffff;
-  --border-color: rgba(255, 255, 255, 0.1);
-  --border-strong: rgba(255, 255, 255, 0.2);
-  --accent-glacier: #14b8a6;
-  --scrollbar-track: #0A0A0B;
-  --scrollbar-thumb: #333;
-  --scrollbar-thumb-hover: #444;
-  --code-bg: rgba(255, 255, 255, 0.1);
-  --glass-bg: rgba(10, 10, 11, 0.8);
-  --glass-border: rgba(255, 255, 255, 0.06);
-  --gradient-text-from: #14b8a6;
-  --gradient-text-to: #3b82f6;
-  --bg-pattern: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-  --bg-pattern-size: 32px 32px;
+  /* Surfaces — warm black, not pure */
+  --bg-obsidian: #0F0E0B;       /* Aptos black */
+  --bg-surface:  #171612;       /* Aptos ink */
+  --bg-elevated: #21201C;       /* Aptos coal */
+  --bg-sand:     #2F2D28;       /* Aptos graphite */
+
+  /* Text — warm whites & creams */
+  --text-heading:   #FFFFFA;
+  --text-primary:   #F9F9F0;
+  --text-secondary: #CCC5A3;    /* sand */
+  --text-muted:     #9D937C;    /* tan */
+  --text-faint:     #3D3B34;    /* ash */
+
+  /* Borders — translucent white */
+  --border-color:    rgba(255, 255, 255, 0.10);
+  --border-strong:   rgba(255, 255, 255, 0.18);
+  --border-subtle:   rgba(255, 255, 255, 0.06);
+
+  /* Accents — Aptos signature trio (do NOT invert in dark mode) */
+  --accent-coral:  #FF8866;
+  --accent-mint:   #D5FAD3;
+  --accent-blue:   #BADBEE;
+  --accent-glacier: #FF8866;    /* Re-mapped: legacy "glacier" = Aptos coral */
+
+  /* Scrollbar */
+  --scrollbar-track:       #0F0E0B;
+  --scrollbar-thumb:       #3D3B34;
+  --scrollbar-thumb-hover: #9D937C;
+
+  /* Code blocks & inline data */
+  --code-bg: rgba(255, 255, 255, 0.06);
+
+  /* Surface variants for headers / floating elements (no blur per Aptos rules) */
+  --glass-bg:     rgba(15, 14, 11, 0.92);
+  --glass-border: rgba(255, 255, 255, 0.10);
+
+  /* Editorial gradient (only used by .gradient-text utility for hero highlight) */
+  --gradient-text-from: #FF8866;
+  --gradient-text-to:   #BADBEE;
+
+  /* No background pattern (Aptos has clean solid backgrounds) */
+  --bg-pattern: none;
+  --bg-pattern-size: auto;
 }
 
-/* Light mode */
+/* ---------- Light Mode ---------- */
 [data-theme="light"] {
-  --bg-obsidian: #f8fafc;
-  --bg-surface: #ffffff;
-  --text-primary: #1e293b;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
-  --text-heading: #0f172a;
-  --border-color: rgba(0, 0, 0, 0.1);
-  --border-strong: rgba(0, 0, 0, 0.2);
-  --accent-glacier: #0d9488;
-  --scrollbar-track: #f1f5f9;
-  --scrollbar-thumb: #cbd5e1;
-  --scrollbar-thumb-hover: #94a3b8;
+  --bg-obsidian: #F9F9F0;       /* Aptos warm white */
+  --bg-surface:  #FFFFFA;       /* Pure-white surface */
+  --bg-elevated: #EFECCA;       /* Cream raised */
+  --bg-sand:     #CCC5A3;       /* Sand */
+
+  --text-heading:   #0F0E0B;
+  --text-primary:   #171612;
+  --text-secondary: #3D3B34;    /* ash */
+  --text-muted:     #9D937C;    /* tan */
+  --text-faint:     #CCC5A3;    /* sand */
+
+  --border-color:    rgba(0, 0, 0, 0.10);
+  --border-strong:   rgba(0, 0, 0, 0.20);
+  --border-subtle:   rgba(0, 0, 0, 0.06);
+
+  --accent-coral:  #FF8866;
+  --accent-mint:   #D5FAD3;
+  --accent-blue:   #BADBEE;
+  --accent-glacier: #E5704F;    /* darker coral for sufficient contrast */
+
+  --scrollbar-track:       #F9F9F0;
+  --scrollbar-thumb:       #CCC5A3;
+  --scrollbar-thumb-hover: #9D937C;
+
   --code-bg: rgba(0, 0, 0, 0.05);
-  --glass-bg: rgba(248, 250, 252, 0.9);
-  --glass-border: rgba(0, 0, 0, 0.08);
-  --gradient-text-from: #0d9488;
-  --gradient-text-to: #2563eb;
-  --bg-pattern: linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
-  --bg-pattern-size: 32px 32px;
+
+  --glass-bg:     rgba(249, 249, 240, 0.92);
+  --glass-border: rgba(0, 0, 0, 0.10);
+
+  --gradient-text-from: #E5704F;
+  --gradient-text-to:   #88ABDA;
+
+  --bg-pattern: none;
+  --bg-pattern-size: auto;
 }
 
+/* ============================================================
+   BASE — body, scrollbar, typography
+   ============================================================ */
 body {
   background-color: var(--bg-obsidian);
   background-image: var(--bg-pattern);
   background-size: var(--bg-pattern-size);
   color: var(--text-primary);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-feature-settings: 'ss01', 'ss02', 'cv11';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.3s ease, color 0.3s ease;
   background-attachment: fixed;
 }
 
-/* Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
-
-::-webkit-scrollbar-track {
-  background: var(--bg-obsidian);
-}
-
+::-webkit-scrollbar-track { background: var(--scrollbar-track); }
 ::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb);
   border-radius: 4px;
 }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover);
-}
-
-/* Utilities */
-.font-mono {
-  font-family: 'JetBrains Mono', monospace;
-  font-variant-numeric: tabular-nums;
+/* Editorial display headings use Fraunces serif by default.
+   Pages can opt out with .font-sans on the heading itself. */
+h1, h2, h3 {
+  font-family: 'Fraunces', 'Instrument Serif', 'Times New Roman', Georgia, serif;
+  font-variation-settings: 'opsz' 144, 'SOFT' 30, 'WONK' 0;
   letter-spacing: -0.02em;
+  font-weight: 420;
 }
 
-.gemini-card {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  /* Sharp corners/minimal radius */
-  transition: border-color 0.2s ease;
+/* ============================================================
+   TYPOGRAPHY UTILITIES
+   ============================================================ */
+.font-mono {
+  font-family: 'JetBrains Mono', 'Akkurat Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 
-/* No hover lift, just border change or subtle bg change */
-.gemini-card:hover {
-  border-color: rgba(255, 255, 255, 0.2);
+/* Mono kicker label (Aptos-style eyebrow) — `MODULE APTOS::` etc. */
+.mono-kicker {
+  font-family: 'JetBrains Mono', 'Akkurat Mono', ui-monospace, monospace;
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  font-weight: 500;
 }
 
-.gemini-btn {
+/* Editorial display title (Hero / section heading) */
+.editorial-title {
+  font-family: 'Fraunces', 'Instrument Serif', serif;
+  font-variation-settings: 'opsz' 144, 'SOFT' 50, 'WONK' 0;
+  letter-spacing: -0.025em;
+  line-height: 0.98;
+  font-weight: 360;
+}
+
+/* ============================================================
+   SHAPE LANGUAGE — pills, cards, inputs
+   ============================================================ */
+
+/* === Aptos pill button (primary) === */
+.pill-btn,
+.gemini-btn,
+.gemini-btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 16px;
-  font-size: 14px;
+  gap: 0.5rem;
+  padding: 12px 22px;
+  border-radius: 9999px;
+  background-color: var(--text-primary);
+  color: var(--bg-obsidian);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
   font-weight: 500;
-  border-radius: 4px;
-  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+              background-color 0.2s ease;
 }
-
-.gemini-btn-primary {
-  background-color: var(--accent-glacier);
-  color: #000;
-  font-weight: 600;
-}
-
+.pill-btn:hover,
+.gemini-btn:hover,
 .gemini-btn-primary:hover {
-  background-color: #0d9488;
-  /* Slightly darker teal */
+  opacity: 0.88;
+}
+.pill-btn:active,
+.gemini-btn:active,
+.gemini-btn-primary:active {
+  transform: scale(0.97);
+}
+.pill-btn[disabled],
+.gemini-btn[disabled],
+.gemini-btn-primary[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
+/* Secondary pill (outline) */
 .gemini-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 11px 21px;
+  border-radius: 9999px;
   background-color: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+.gemini-btn-secondary:hover {
+  border-color: var(--border-strong);
+  background-color: var(--bg-surface);
+}
+
+/* === Aptos flat card === */
+.gemini-card,
+.feature-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 24px;
+  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+.feature-card { padding: 28px; }
+
+.gemini-card:hover,
+.feature-card:hover {
+  border-color: var(--border-strong);
+}
+
+/* Decorative count number inside feature-card (now editorial) */
+.cn-number {
+  font-family: 'Fraunces', 'Instrument Serif', serif;
+  font-variation-settings: 'opsz' 144, 'SOFT' 60, 'WONK' 1;
+  font-size: 2.75rem;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--accent-coral);
+  font-weight: 360;
+}
+
+/* === Inputs (still slightly rounded for usability; not full pill) === */
+.gemini-input {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-family: 'Inter', sans-serif;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.gemini-input:focus {
+  outline: none;
+  border-color: var(--accent-coral);
+  box-shadow: 0 0 0 3px rgba(255, 136, 102, 0.18);
+}
+.gemini-input::placeholder { color: var(--text-muted); }
+
+/* === Aptos "floating navbar" surface ===
+   Replaces the old glassmorphism: solid bg + 1px border + warm shadow.
+   No backdrop-blur (per Aptos rule "no glass"). */
+.glass-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 4px 12px rgba(15, 14, 11, 0.08),
+              0 1px 2px rgba(15, 14, 11, 0.04);
+  backdrop-filter: blur(8px);  /* subtle only — keeps text legible */
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Aptos badge (mono uppercase, pill) */
+.gemini-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background-color: var(--bg-surface);
   border: 1px solid var(--border-color);
   color: var(--text-secondary);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
-.gemini-btn-secondary:hover {
-  border-color: rgba(255, 255, 255, 0.3);
-  color: var(--text-primary);
-  background-color: rgba(255, 255, 255, 0.05);
+/* Divider */
+.gemini-divider {
+  height: 1px;
+  background-color: var(--border-color);
+  border: none;
 }
 
-/* Prose overrides for Markdown */
+/* ============================================================
+   GRADIENT TEXT (used only on hero highlight) — Aptos coral→blue
+   ============================================================ */
+.gradient-text {
+  background: linear-gradient(135deg, var(--gradient-text-from), var(--gradient-text-to));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-family: 'Fraunces', 'Instrument Serif', serif;
+  font-variation-settings: 'opsz' 144, 'SOFT' 70, 'WONK' 1;
+  font-style: italic;
+  font-weight: 360;
+}
+
+/* ============================================================
+   PROSE — Markdown content in reports
+   ============================================================ */
 .prose-gemini {
   color: var(--text-secondary);
   max-width: none;
+  font-family: 'Inter', sans-serif;
 }
-
 .prose-gemini h1,
 .prose-gemini h2,
 .prose-gemini h3,
 .prose-gemini h4 {
-  color: var(--text-primary);
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  color: var(--text-heading);
+  font-family: 'Fraunces', 'Instrument Serif', serif;
+  font-variation-settings: 'opsz' 144, 'SOFT' 30;
+  font-weight: 440;
+  letter-spacing: -0.015em;
 }
-
 .prose-gemini strong {
-  color: var(--text-primary);
+  color: var(--text-heading);
   font-weight: 600;
 }
-
 .prose-gemini a {
-  color: var(--accent-glacier);
+  color: var(--accent-coral);
   text-decoration: none;
 }
-
-.prose-gemini a:hover {
-  text-decoration: underline;
-}
-
+.prose-gemini a:hover { text-decoration: underline; }
 .prose-gemini code {
   color: var(--text-primary);
   background-color: var(--code-bg);
-  padding: 2px 4px;
-  border-radius: 2px;
-  font-family: 'JetBrains Mono', monospace;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 0.9em;
 }
 
@@ -184,151 +366,151 @@ body {
   stroke-linejoin: round;
 }
 
-/* Theme-aware text classes */
-.theme-text-heading {
-  color: var(--text-heading);
-}
+/* ============================================================
+   THEME-AWARE TEXT HELPERS
+   ============================================================ */
+.theme-text-heading   { color: var(--text-heading);   }
+.theme-text-primary   { color: var(--text-primary);   }
+.theme-text-secondary { color: var(--text-secondary); }
+.theme-text-muted     { color: var(--text-muted);     }
 
-.theme-text-primary {
-  color: var(--text-primary);
-}
+/* ============================================================
+   LIGHT-MODE OVERRIDES FOR LEGACY UTILITY CLASSES
+   These keep ~100 components looking right after the rebrand
+   without touching every file.
+   ============================================================ */
 
-.theme-text-secondary {
-  color: var(--text-secondary);
-}
-
-/* Gradient text with theme support */
-.gradient-text {
-  background: linear-gradient(135deg, var(--gradient-text-from), var(--gradient-text-to));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Glass card with theme support */
-.glass-card {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-}
-
-/* Light mode overrides for hardcoded colors */
-[data-theme="light"] .text-white {
+/* Tailwind text-white → text-heading in light mode */
+[data-theme="light"] .text-white:not(.pill-btn *):not(.gemini-btn *):not(.gemini-btn-primary *) {
   color: var(--text-heading) !important;
 }
 
+/* Mist token overrides — light mode */
+[data-theme="light"] .text-mist-50,
+[data-theme="light"] .text-mist-100 { color: var(--text-heading)   !important; }
 [data-theme="light"] .text-mist-200,
-[data-theme="light"] .text-mist-300 {
-  color: var(--text-primary) !important;
-}
-
-[data-theme="light"] .text-mist-400,
-[data-theme="light"] .text-mist-500 {
-  color: var(--text-secondary) !important;
-}
-
+[data-theme="light"] .text-mist-300 { color: var(--text-primary)   !important; }
+[data-theme="light"] .text-mist-400 { color: var(--text-secondary) !important; }
+[data-theme="light"] .text-mist-500 { color: var(--text-muted)     !important; }
 [data-theme="light"] .text-mist-600,
-[data-theme="light"] .text-mist-700 {
-  color: var(--text-muted) !important;
+[data-theme="light"] .text-mist-700 { color: var(--text-faint)     !important; }
+
+/* Slate/Gray overrides */
+[data-theme="light"] .text-slate-300       { color: var(--text-primary)   !important; }
+[data-theme="light"] .text-slate-400       { color: var(--text-secondary) !important; }
+[data-theme="light"] .text-slate-500       { color: var(--text-muted)     !important; }
+[data-theme="light"] .text-gray-300,
+[data-theme="light"] .text-gray-400        { color: var(--text-secondary) !important; }
+[data-theme="light"] .text-gray-500,
+[data-theme="light"] .text-gray-600        { color: var(--text-muted)     !important; }
+
+/* Translucent white text in light mode */
+[data-theme="light"] .text-white\/80 { color: var(--text-heading)   !important; }
+[data-theme="light"] .text-white\/60 { color: var(--text-primary)   !important; }
+[data-theme="light"] .text-white\/40 { color: var(--text-secondary) !important; }
+
+[data-theme="light"] .hover\:text-white:hover,
+[data-theme="light"] .group:hover .group-hover\:text-white,
+[data-theme="light"] .hover\:text-mist-200:hover,
+[data-theme="light"] .hover\:text-mist-300:hover {
+  color: var(--text-heading) !important;
 }
 
-[data-theme="light"] .bg-white\/5,
-[data-theme="light"] .bg-white\/\[0\.03\],
-[data-theme="light"] .bg-white\/\[0\.04\],
-[data-theme="light"] .bg-white\/\[0\.05\] {
-  background-color: rgba(0, 0, 0, 0.05) !important;
-}
+/* Background opacity variants → warm translucent */
+[data-theme="light"] .bg-white\/\[0\.02\] { background-color: rgba(0, 0, 0, 0.02) !important; }
+[data-theme="light"] .bg-white\/\[0\.03\] { background-color: rgba(0, 0, 0, 0.03) !important; }
+[data-theme="light"] .bg-white\/\[0\.04\] { background-color: rgba(0, 0, 0, 0.04) !important; }
+[data-theme="light"] .bg-white\/\[0\.05\] { background-color: rgba(0, 0, 0, 0.04) !important; }
+[data-theme="light"] .bg-white\/\[0\.08\] { background-color: rgba(0, 0, 0, 0.06) !important; }
+[data-theme="light"] .bg-white\/5         { background-color: rgba(0, 0, 0, 0.04) !important; }
+[data-theme="light"] .bg-white\/10        { background-color: rgba(0, 0, 0, 0.07) !important; }
+[data-theme="light"] .bg-black\/30        { background-color: rgba(0, 0, 0, 0.05) !important; }
+[data-theme="light"] .bg-midnight\/30     { background-color: rgba(0, 0, 0, 0.03) !important; }
 
+[data-theme="light"] .hover\:bg-white\/5:hover,
 [data-theme="light"] .hover\:bg-white\/10:hover {
-  background-color: rgba(0, 0, 0, 0.08) !important;
+  background-color: rgba(0, 0, 0, 0.06) !important;
 }
 
+/* Borders */
+[data-theme="light"] .border-white\/5,
 [data-theme="light"] .border-white\/10,
 [data-theme="light"] .border-white\/\[0\.06\] {
   border-color: var(--border-color) !important;
 }
-
+[data-theme="light"] .border-white\/20,
 [data-theme="light"] .hover\:border-white\/20:hover {
   border-color: var(--border-strong) !important;
 }
-
-/* Input styling for light mode */
-.gemini-input {
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-  border-radius: 12px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+[data-theme="light"] .divide-white\/5 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border-color) !important;
 }
 
-.gemini-input:focus {
-  outline: none;
-  border-color: var(--accent-glacier);
-  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
-}
-
-.gemini-input::placeholder {
-  color: var(--text-muted);
-}
-
-/* Card backgrounds for light mode */
-[data-theme="light"] .bg-\[\#12121a\] {
-  background-color: var(--bg-surface) !important;
-}
-
-[data-theme="light"] .bg-surface {
-  background-color: var(--bg-surface) !important;
-}
-
-[data-theme="light"] .shadow-black\/40 {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
-}
-
-/* Light mode: text-slate overrides */
-[data-theme="light"] .text-slate-300 {
-  color: var(--text-primary) !important;
-}
-
-[data-theme="light"] .text-slate-400 {
-  color: var(--text-secondary) !important;
-}
-
-[data-theme="light"] .text-slate-500 {
-  color: var(--text-muted) !important;
-}
-
-/* Light mode: translucent white text */
-[data-theme="light"] .text-white\/80 {
-  color: var(--text-heading) !important;
-}
-
-[data-theme="light"] .text-white\/60 {
-  color: var(--text-primary) !important;
-}
-
-[data-theme="light"] .text-white\/40 {
-  color: var(--text-secondary) !important;
-}
-
-/* Light mode: hardcoded dark backgrounds */
+/* Hardcoded dark backgrounds in components */
+[data-theme="light"] .bg-\[\#12121a\],
 [data-theme="light"] .bg-\[\#1a1a1a\],
 [data-theme="light"] .bg-\[\#1a1a24\] {
   background-color: var(--bg-surface) !important;
   border: 1px solid var(--border-color);
 }
+[data-theme="light"] .bg-obsidian,
+[data-theme="light"] .bg-obsidian-900 { background-color: var(--bg-obsidian) !important; }
+[data-theme="light"] .bg-surface       { background-color: var(--bg-surface)  !important; }
+[data-theme="light"] .bg-surface\/80   { background-color: rgba(255, 255, 255, 0.9) !important; }
 
-[data-theme="light"] .bg-obsidian-900 {
-  background-color: var(--bg-obsidian) !important;
+/* Shadow softening */
+[data-theme="light"] .shadow-black\/40,
+[data-theme="light"] .shadow-xl.shadow-black\/40 {
+  box-shadow: 0 12px 32px rgba(15, 14, 11, 0.10) !important;
 }
 
-/* Light mode: prose overrides for markdown content */
+/* Card / button hover */
+[data-theme="light"] .gemini-card:hover,
+[data-theme="light"] .feature-card:hover { border-color: var(--border-strong); }
+[data-theme="light"] .gemini-btn-secondary:hover {
+  border-color: var(--border-strong);
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+/* Glacier / coral accent backgrounds (light) */
+[data-theme="light"] .bg-glacier-500\/10,
+[data-theme="light"] .bg-glacier-500\/15,
+[data-theme="light"] .bg-glacier-500\/20 { background-color: rgba(255, 136, 102, 0.15) !important; }
+[data-theme="light"] .border-glacier-500\/20,
+[data-theme="light"] .border-glacier-500\/30 { border-color: rgba(229, 112, 79, 0.30) !important; }
+[data-theme="light"] .hover\:border-glacier-500\/50:hover { border-color: rgba(229, 112, 79, 0.55) !important; }
+[data-theme="light"] .border-b-glacier-500 { border-bottom-color: #E5704F !important; }
+
+/* Amber / red / slate accent backgrounds (light) */
+[data-theme="light"] .bg-amber-500\/5  { background-color: rgba(245, 158, 11, 0.08) !important; }
+[data-theme="light"] .bg-amber-500\/20 { background-color: rgba(245, 158, 11, 0.15) !important; }
+[data-theme="light"] .border-amber-500\/20 { border-color: rgba(245, 158, 11, 0.25) !important; }
+[data-theme="light"] .bg-red-500\/10    { background-color: rgba(239, 68, 68, 0.10) !important; }
+[data-theme="light"] .border-red-500\/20 { border-color: rgba(239, 68, 68, 0.20) !important; }
+[data-theme="light"] .bg-slate-500\/10  { background-color: rgba(100, 116, 139, 0.10) !important; }
+[data-theme="light"] .border-slate-500\/20 { border-color: rgba(100, 116, 139, 0.20) !important; }
+
+/* Growth / decay (financial signals) keep convention but darker in light */
+[data-theme="light"] .text-growth      { color: #059669 !important; }
+[data-theme="light"] .bg-growth\/10    { background-color: rgba(5, 150, 105, 0.10) !important; }
+[data-theme="light"] .text-decay       { color: #DC2626 !important; }
+[data-theme="light"] .bg-decay\/10     { background-color: rgba(220, 38, 38, 0.10) !important; }
+
+/* Light mode: text-obsidian (used on glacier-coloured buttons) → white */
+[data-theme="light"] .text-obsidian { color: #FFFFFA !important; }
+
+/* Headings in light mode */
+[data-theme="light"] h1,
+[data-theme="light"] h2,
+[data-theme="light"] h3,
+[data-theme="light"] h4 { color: var(--text-heading) !important; }
+
+/* Prose overrides — light mode */
 [data-theme="light"] .prose-gemini,
 [data-theme="light"] .prose-gemini p,
 [data-theme="light"] .prose-gemini li {
   color: var(--text-secondary) !important;
 }
-
 [data-theme="light"] .prose-gemini h1,
 [data-theme="light"] .prose-gemini h2,
 [data-theme="light"] .prose-gemini h3,
@@ -336,291 +518,74 @@ body {
 [data-theme="light"] .prose-gemini strong {
   color: var(--text-heading) !important;
 }
-
-[data-theme="light"] .prose-p\:text-mist-300 p,
-[data-theme="light"] .prose-li\:text-mist-300 li,
 [data-theme="light"] .prose-p\:text-mist-200 p,
-[data-theme="light"] .prose-li\:text-mist-200 li {
+[data-theme="light"] .prose-p\:text-mist-300 p,
+[data-theme="light"] .prose-li\:text-mist-200 li,
+[data-theme="light"] .prose-li\:text-mist-300 li {
   color: var(--text-secondary) !important;
 }
-
 [data-theme="light"] .prose-headings\:text-white h1,
 [data-theme="light"] .prose-headings\:text-white h2,
 [data-theme="light"] .prose-headings\:text-white h3,
 [data-theme="light"] .prose-headings\:text-white h4,
-[data-theme="light"] .prose-strong\:text-white strong {
-  color: var(--text-heading) !important;
-}
+[data-theme="light"] .prose-strong\:text-white strong { color: var(--text-heading) !important; }
 
-/* Light mode: table headers and cells */
+/* Tables in light mode */
 [data-theme="light"] th.text-slate-400,
-[data-theme="light"] td.text-slate-400 {
-  color: var(--text-muted) !important;
-}
+[data-theme="light"] td.text-slate-400 { color: var(--text-muted) !important; }
+[data-theme="light"] td.text-white      { color: var(--text-heading) !important; }
 
-[data-theme="light"] td.text-white {
-  color: var(--text-heading) !important;
-}
-
-/* Light mode: hover states */
-[data-theme="light"] .hover\:text-white:hover {
-  color: var(--text-heading) !important;
-}
-
-[data-theme="light"] .group-hover\:text-white:hover {
-  color: var(--text-heading) !important;
-}
-
-/* Light mode: gemini card hover */
-[data-theme="light"] .gemini-card:hover {
-  border-color: var(--border-strong);
-}
-
-/* Light mode: button secondary hover */
-[data-theme="light"] .gemini-btn-secondary:hover {
-  border-color: var(--border-strong);
-  color: var(--text-primary);
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-/* Light mode: fix background opacity variations */
-[data-theme="light"] .bg-white\/\[0\.02\] {
-  background-color: rgba(0, 0, 0, 0.02) !important;
-}
-
-[data-theme="light"] .bg-white\/\[0\.08\] {
-  background-color: rgba(0, 0, 0, 0.06) !important;
-}
-
-[data-theme="light"] .bg-white\/10 {
-  background-color: rgba(0, 0, 0, 0.08) !important;
-}
-
-/* Light mode: fix specific dropdown and tooltip backgrounds */
-[data-theme="light"] .shadow-xl.shadow-black\/40 {
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
-}
-
-/* Light mode: subtle hover backgrounds */
-[data-theme="light"] .hover\:bg-white\/5:hover {
-  background-color: rgba(0, 0, 0, 0.05) !important;
-}
-
-/* Light mode: bg-obsidian */
-[data-theme="light"] .bg-obsidian {
-  background-color: var(--bg-obsidian) !important;
-}
-
-/* Light mode: text-obsidian (for buttons with glacier-500 bg) */
-[data-theme="light"] .text-obsidian {
-  color: #ffffff !important;
-}
-
-/* Light mode: Gemini badge */
-[data-theme="light"] .gemini-badge {
-  background-color: rgba(0, 0, 0, 0.06) !important;
-  border-color: var(--border-color) !important;
-  color: var(--text-primary) !important;
-}
-
-/* Light mode: Gemini divider */
-[data-theme="light"] .gemini-divider {
-  background-color: var(--border-color) !important;
-}
-
-/* Light mode: divide-white color */
-[data-theme="light"] .divide-white\/5> :not([hidden])~ :not([hidden]) {
-  border-color: var(--border-color) !important;
-}
-
-/* Light mode: group-hover text */
-[data-theme="light"] .group-hover\:text-white:hover,
-[data-theme="light"] .group:hover .group-hover\:text-white {
-  color: var(--text-heading) !important;
-}
-
-/* Light mode: Additional background opacity variations */
-[data-theme="light"] .bg-black\/30 {
-  background-color: rgba(0, 0, 0, 0.05) !important;
-}
-
-[data-theme="light"] .bg-surface\/80 {
-  background-color: rgba(255, 255, 255, 0.9) !important;
-}
-
-/* Light mode: Border opacity variations */
-[data-theme="light"] .border-white\/5 {
-  border-color: var(--border-color) !important;
-}
-
-[data-theme="light"] .border-white\/20 {
-  border-color: var(--border-strong) !important;
-}
-
-[data-theme="light"] .hover\:border-white\/20:hover {
-  border-color: var(--border-strong) !important;
-}
-
-/* Light mode: Additional background colors */
-[data-theme="light"] .bg-glacier-500\/10,
-[data-theme="light"] .bg-glacier-500\/15,
-[data-theme="light"] .bg-glacier-500\/20 {
-  background-color: rgba(20, 184, 166, 0.12) !important;
-}
-
-[data-theme="light"] .border-glacier-500\/20,
-[data-theme="light"] .border-glacier-500\/30 {
-  border-color: rgba(20, 184, 166, 0.25) !important;
-}
-
-[data-theme="light"] .hover\:border-glacier-500\/50:hover {
-  border-color: rgba(20, 184, 166, 0.5) !important;
-}
-
-/* Light mode: Amber/warning backgrounds */
-[data-theme="light"] .bg-amber-500\/5 {
-  background-color: rgba(245, 158, 11, 0.08) !important;
-}
-
-[data-theme="light"] .border-amber-500\/20 {
-  border-color: rgba(245, 158, 11, 0.25) !important;
-}
-
-[data-theme="light"] .bg-amber-500\/20 {
-  background-color: rgba(245, 158, 11, 0.15) !important;
-}
-
-/* Light mode: Red/error backgrounds */
-[data-theme="light"] .bg-red-500\/10 {
-  background-color: rgba(239, 68, 68, 0.1) !important;
-}
-
-[data-theme="light"] .border-red-500\/20 {
-  border-color: rgba(239, 68, 68, 0.2) !important;
-}
-
-/* Light mode: Slate backgrounds */
-[data-theme="light"] .bg-slate-500\/10 {
-  background-color: rgba(100, 116, 139, 0.1) !important;
-}
-
-[data-theme="light"] .border-slate-500\/20 {
-  border-color: rgba(100, 116, 139, 0.2) !important;
-}
-
-/* Light mode: Fix text colors for various elements */
-[data-theme="light"] .text-gray-300,
-[data-theme="light"] .text-gray-400 {
-  color: var(--text-secondary) !important;
-}
-
-[data-theme="light"] .text-gray-500,
-[data-theme="light"] .text-gray-600 {
-  color: var(--text-muted) !important;
-}
-
-/* Light mode: Growth/decay text colors (keep semantic) */
-[data-theme="light"] .text-growth {
-  color: #059669 !important;
-}
-
-[data-theme="light"] .bg-growth\/10 {
-  background-color: rgba(5, 150, 105, 0.1) !important;
-}
-
-[data-theme="light"] .text-decay {
-  color: #dc2626 !important;
-}
-
-[data-theme="light"] .bg-decay\/10 {
-  background-color: rgba(220, 38, 38, 0.1) !important;
-}
-
-/* Light mode: scroll-mt utility (keep functionality, no visual change needed) */
-
-/* Light mode: Fix hover states for mist colors */
-[data-theme="light"] .hover\:text-mist-200:hover,
-[data-theme="light"] .hover\:text-mist-300:hover {
-  color: var(--text-heading) !important;
-}
-
-/* Light mode: Fix active/selected states */
-[data-theme="light"] .border-b-glacier-500 {
-  border-bottom-color: #0d9488 !important;
-}
-
-/* Light mode: Line clamp text colors */
-[data-theme="light"] .line-clamp-2 {
-  color: var(--text-primary);
-}
-
-/* Light mode: Mist color overrides */
-[data-theme="light"] .text-mist-50,
-[data-theme="light"] .text-mist-100 {
-  color: var(--text-heading) !important;
-}
-
-[data-theme="light"] .text-mist-200,
-[data-theme="light"] .text-mist-300 {
-  color: var(--text-primary) !important;
-}
-
-[data-theme="light"] .text-mist-400,
-[data-theme="light"] .text-mist-500 {
-  color: var(--text-secondary) !important;
-}
-
-[data-theme="light"] .text-mist-600,
-[data-theme="light"] .text-mist-700 {
-  color: var(--text-muted) !important;
-}
-
-/* Light mode: General text visibility fixes */
-[data-theme="light"] h1,
-[data-theme="light"] h2,
-[data-theme="light"] h3,
-[data-theme="light"] h4 {
-  color: var(--text-heading) !important;
-}
-
-/* Specifically for AnalysisCard and CollapsibleSection titles that use .text-white */
-[data-theme="light"] .text-white:not(.gemini-btn-primary *) {
-  color: var(--text-heading) !important;
-}
-
-/* Light mode: Background overrides */
-[data-theme="light"] .bg-midnight\/30 {
-  background-color: rgba(0, 0, 0, 0.03) !important;
-}
-
-[data-theme="light"] .bg-white\/5 {
-  background-color: rgba(0, 0, 0, 0.03) !important;
-}
-
-[data-theme="light"] .bg-white\/10 {
-  background-color: rgba(0, 0, 0, 0.06) !important;
-}
-
-/* Light mode: Transition for smooth theme change */
+/* Smooth color transition on theme change */
 [data-theme="light"] *,
 [data-theme="light"] *::before,
 [data-theme="light"] *::after {
   transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
-/* Horizontal bounce animation for loading bar */
+/* ============================================================
+   APTOS UTILITY HELPERS (theme-agnostic)
+   ============================================================ */
+
+/* Marquee container with edge mask */
+.marquee-mask {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+          mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+}
+
+/* Hero background tints (mint / blue / coral) — for landing pages */
+.bg-aptos-mint  { background-color: #D5FAD3; color: #0F0E0B; }
+.bg-aptos-blue  { background-color: #BADBEE; color: #0F0E0B; }
+.bg-aptos-coral { background-color: #FF8866; color: #0F0E0B; }
+
+/* Variable font axis demos */
+.font-serif-sans  { font-variation-settings: 'opsz' 144, 'SOFT' 100, 'WONK' 0; }
+.font-serif-edit  { font-variation-settings: 'opsz' 144, 'SOFT' 50,  'WONK' 0; }
+.font-serif-classy{ font-variation-settings: 'opsz' 144, 'SOFT' 0,   'WONK' 1; font-style: italic; }
+
+/* ============================================================
+   ANIMATIONS — Aptos signature (scroll-feel without scroll-timeline)
+   ============================================================ */
 @keyframes bounce-horizontal {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(200%); }
+}
+.animate-bounce-horizontal {
+  animation: bounce-horizontal 1.2s ease-in-out infinite;
+}
 
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-
-  50% {
-    transform: translateX(200%);
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
   }
 }
 
-.animate-bounce-horizontal {
-  animation: bounce-horizontal 1.2s ease-in-out infinite;
+/* ============================================================
+   RESPONSIVE TYPE — clamp largest sizes for mobile
+   ============================================================ */
+@media (max-width: 768px) {
+  .editorial-title { letter-spacing: -0.02em; }
 }

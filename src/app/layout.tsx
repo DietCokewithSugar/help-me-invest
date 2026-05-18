@@ -66,6 +66,7 @@ export default function RootLayout({
   // fallback for users hitting cached / non-cookie paths.
   const themeCookie = cookieStore.get('theme')?.value;
   const initialTheme: 'dark' | 'light' = themeCookie === 'light' ? 'light' : 'dark';
+  const themeColor = initialTheme === 'light' ? '#F9F9F0' : '#0F0E0B';
 
   const themeBootstrap = `
     try {
@@ -82,10 +83,10 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..900,0..100,0..1&family=Instrument+Serif:ital@0;1&display=swap"
           rel="stylesheet"
         />
-        <meta name="theme-color" content="#0A0A0B" />
+        <meta name="theme-color" content={themeColor} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteStructuredData) }}
