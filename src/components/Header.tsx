@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     SunIcon,
     MoonIcon,
+    SettingsIcon,
 } from '@/components/Icons';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCompare } from '@/contexts/CompareContext';
@@ -47,23 +48,35 @@ export default function Header({
     const { locale, setLocale, t } = useLanguage();
     const { companies: compareCompanies } = useCompare();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [settingsOpen, setSettingsOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         setMobileMenuOpen(false);
+        setSettingsOpen(false);
     }, [pathname]);
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
             if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
                 setMobileMenuOpen(false);
+                setSettingsOpen(false);
             }
         };
-        if (mobileMenuOpen) {
+        if (mobileMenuOpen || settingsOpen) {
             document.addEventListener('mousedown', handleClickOutside);
         }
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [mobileMenuOpen]);
+    }, [mobileMenuOpen, settingsOpen]);
+
+    useEffect(() => {
+        if (!settingsOpen) return;
+        const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setSettingsOpen(false);
+        };
+        document.addEventListener('keydown', handleEscape);
+        return () => document.removeEventListener('keydown', handleEscape);
+    }, [settingsOpen]);
 
     const handleLogoClick = () => {
         if (onReset) {
@@ -84,8 +97,8 @@ export default function Header({
 
     return (
         <header className="fixed top-3 md:top-5 left-0 right-0 z-50 px-3 md:px-6">
+            <div ref={menuRef} className="relative mx-auto w-full max-w-6xl">
             <div
-                ref={menuRef}
                 // The pill container also hosts the mobile dropdown panel.
                 // `rounded-pill` resolves to `min(width, height) / 2`, so the
                 // moment the container grows tall enough to fit a vertical
@@ -95,7 +108,7 @@ export default function Header({
                 // sheet never opens, so the pill stays a pill there.
                 // `overflow-hidden` keeps the height transition clean and
                 // prevents children from poking out of the rounded corners.
-                className={`relative mx-auto w-full max-w-6xl glass-card overflow-hidden transition-[border-radius] duration-200 ${
+                className={`glass-card overflow-hidden transition-[border-radius] duration-200 ${
                     mobileMenuOpen ? 'rounded-3xl lg:rounded-pill' : 'rounded-pill'
                 }`}
             >
@@ -149,28 +162,19 @@ export default function Header({
                         </Link>
                     </nav>
 
-                    {/* Right cluster: language · theme · CTA */}
+                    {/* Right cluster: settings · CTA */}
                     <div className="flex items-center gap-1.5 md:gap-2">
-                        {/* Language toggle */}
+                        {/* Settings (combines theme + language) */}
                         <button
-                            onClick={() => setLocale(locale === 'zh' ? 'en' : 'zh')}
-                            className="hidden sm:flex items-center justify-center w-9 h-9 rounded-pill border border-white/10 hover:bg-white/5 hover:border-white/20 transition-all cursor-pointer text-[10px] font-mono uppercase tracking-wider text-mist-200"
-                            title={t.header.language}
-                        >
-                            {locale === 'zh' ? 'EN' : 'ZH'}
-                        </button>
-
-                        {/* Theme toggle */}
-                        <button
-                            onClick={toggleTheme}
+                            type="button"
+                            onClick={() => setSettingsOpen(prev => !prev)}
                             className="flex items-center justify-center w-9 h-9 rounded-pill border border-white/10 hover:bg-white/5 hover:border-white/20 transition-all cursor-pointer"
-                            title={theme === 'dark' ? t.header.lightMode : t.header.darkMode}
+                            title={t.header.settings}
+                            aria-label={t.header.settings}
+                            aria-expanded={settingsOpen}
+                            aria-haspopup="menu"
                         >
-                            {theme === 'dark' ? (
-                                <SunIcon size={16} className="text-mist-200" />
-                            ) : (
-                                <MoonIcon size={16} className="text-mist-200" />
-                            )}
+                            <SettingsIcon size={16} className="text-mist-200" />
                         </button>
 
                         {/* Mobile hamburger */}
@@ -209,7 +213,8 @@ export default function Header({
                     </div>
                 </div>
 
-                {/* Mobile dropdown sheet */}
+                {/* Mobile dropdown sheet (lives inside the pill so it shares
+                    the rounded surface and overflow clipping). */}
                 <AnimatePresence initial={false}>
                     {mobileMenuOpen && (
                         <motion.div
@@ -227,14 +232,6 @@ export default function Header({
                             <nav className="flex flex-col gap-0.5 px-4 pt-3 pb-5 border-t border-white/10 mt-1">
                                 <div className="flex items-center justify-between px-1 pb-2">
                                     <span className="mono-kicker">Menu</span>
-                                    <button
-                                        type="button"
-                                        onClick={() => setLocale(locale === 'zh' ? 'en' : 'zh')}
-                                        className="inline-flex items-center justify-center min-w-[44px] h-8 px-3 rounded-pill border border-white/10 hover:bg-white/5 text-[10px] font-mono uppercase tracking-wider text-mist-200"
-                                        aria-label={t.header.language}
-                                    >
-                                        {locale === 'zh' ? 'EN' : 'ZH'}
-                                    </button>
                                 </div>
                                 {navLinks.map(link => (
                                     <Link
@@ -261,6 +258,102 @@ export default function Header({
                         </motion.div>
                     )}
                 </AnimatePresence>
+            </div>
+
+            {/* Settings dropdown — sits outside the pill's overflow-hidden so
+                it can float beneath the navbar without being clipped. */}
+            <AnimatePresence initial={false}>
+                {settingsOpen && (
+                    <motion.div
+                        id="settings-menu"
+                        role="menu"
+                        aria-label={t.header.settings}
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
+                        className="absolute right-2 md:right-3 top-full mt-2 w-[260px] glass-card rounded-2xl shadow-lg p-4 z-10"
+                    >
+                        <div className="space-y-4">
+                            {/* Theme */}
+                            <div>
+                                <div className="mono-kicker mb-2">{t.header.theme}</div>
+                                <div
+                                    role="radiogroup"
+                                    aria-label={t.header.theme}
+                                    className="flex p-1 rounded-pill border border-white/10 bg-white/5"
+                                >
+                                    <button
+                                        type="button"
+                                        role="radio"
+                                        aria-checked={theme === 'light'}
+                                        onClick={() => { if (theme !== 'light') toggleTheme(); }}
+                                        className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-pill text-[11px] font-mono uppercase tracking-[0.12em] transition-colors ${
+                                            theme === 'light'
+                                                ? 'bg-glacier-500 text-obsidian'
+                                                : 'text-mist-300 hover:text-mist-100'
+                                        }`}
+                                    >
+                                        <SunIcon size={13} />
+                                        <span>{t.header.light}</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        role="radio"
+                                        aria-checked={theme === 'dark'}
+                                        onClick={() => { if (theme !== 'dark') toggleTheme(); }}
+                                        className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-pill text-[11px] font-mono uppercase tracking-[0.12em] transition-colors ${
+                                            theme === 'dark'
+                                                ? 'bg-glacier-500 text-obsidian'
+                                                : 'text-mist-300 hover:text-mist-100'
+                                        }`}
+                                    >
+                                        <MoonIcon size={13} />
+                                        <span>{t.header.dark}</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Language */}
+                            <div>
+                                <div className="mono-kicker mb-2">{t.header.language}</div>
+                                <div
+                                    role="radiogroup"
+                                    aria-label={t.header.language}
+                                    className="flex p-1 rounded-pill border border-white/10 bg-white/5"
+                                >
+                                    <button
+                                        type="button"
+                                        role="radio"
+                                        aria-checked={locale === 'zh'}
+                                        onClick={() => { if (locale !== 'zh') setLocale('zh'); setSettingsOpen(false); }}
+                                        className={`flex-1 px-3 py-1.5 rounded-pill text-[11px] font-mono uppercase tracking-[0.12em] transition-colors ${
+                                            locale === 'zh'
+                                                ? 'bg-glacier-500 text-obsidian'
+                                                : 'text-mist-300 hover:text-mist-100'
+                                        }`}
+                                    >
+                                        中文
+                                    </button>
+                                    <button
+                                        type="button"
+                                        role="radio"
+                                        aria-checked={locale === 'en'}
+                                        onClick={() => { if (locale !== 'en') setLocale('en'); setSettingsOpen(false); }}
+                                        className={`flex-1 px-3 py-1.5 rounded-pill text-[11px] font-mono uppercase tracking-[0.12em] transition-colors ${
+                                            locale === 'en'
+                                                ? 'bg-glacier-500 text-obsidian'
+                                                : 'text-mist-300 hover:text-mist-100'
+                                        }`}
+                                    >
+                                        EN
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
             </div>
         </header>
     );
