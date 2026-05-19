@@ -5,9 +5,8 @@ import Header from '@/components/Header';
 import ContactModal from '@/components/ContactModal';
 import ExportModal from '@/components/ExportModal';
 import AllocationCharts from '@/components/AllocationCharts';
+import AssetAllocationReport, { type AssetAllocationReportData } from '@/components/AssetAllocationReport';
 import { useLanguage } from '@/contexts/LanguageContext';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { Download } from 'lucide-react';
 
 const TOTAL_STEPS = 5;
@@ -64,7 +63,7 @@ export default function AssetAllocationPage() {
   const [showContactModal, setShowContactModal] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [recommendation, setRecommendation] = useState<string | null>(null);
+  const [report, setReport] = useState<AssetAllocationReportData | null>(null);
   const [chartData, setChartData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -146,7 +145,7 @@ export default function AssetAllocationPage() {
     }
     setError(null);
     setIsGenerating(true);
-    setRecommendation(null);
+    setReport(null);
     setChartData(null);
 
     try {
@@ -172,7 +171,7 @@ export default function AssetAllocationPage() {
       }
 
       const data = await res.json();
-      setRecommendation(data.recommendation);
+      if (data.report) setReport(data.report);
       if (data.chartData) setChartData(data.chartData);
       setTimeout(() => {
         resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -197,7 +196,7 @@ export default function AssetAllocationPage() {
       interests: '',
     });
     setCurrentStep(1);
-    setRecommendation(null);
+    setReport(null);
     setChartData(null);
     setError(null);
   };
@@ -230,7 +229,7 @@ export default function AssetAllocationPage() {
           </div>
 
           {/* Step indicator */}
-          {!recommendation && (
+          {!report && (
             <div className="flex items-center justify-center gap-2 mb-8">
               {Array.from({ length: TOTAL_STEPS }, (_, i) => {
                 const step = i + 1;
@@ -265,7 +264,7 @@ export default function AssetAllocationPage() {
           )}
 
           {/* Step content */}
-          {!recommendation && !isGenerating && (
+          {!report && !isGenerating && (
             <div className="gemini-card p-6 md:p-8">
               {/* Step 1: Asset Types */}
               {currentStep === 1 && (
@@ -558,7 +557,7 @@ export default function AssetAllocationPage() {
           )}
 
           {/* Error after generate */}
-          {!isGenerating && error && recommendation === null && currentStep === 5 && (
+          {!isGenerating && error && report === null && currentStep === 5 && (
             <div className="mt-4 px-4 py-2 rounded-md bg-decay/10 border border-decay/30 text-decay text-xs text-center">
               {error}
             </div>
@@ -566,7 +565,7 @@ export default function AssetAllocationPage() {
         </div>
 
         {/* Result */}
-        {recommendation && (
+        {report && (
           <div ref={resultRef} className="max-w-4xl mx-auto mt-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
@@ -601,11 +600,7 @@ export default function AssetAllocationPage() {
               {chartData && (
                 <AllocationCharts chartData={chartData} theme={theme} currency={formData.currency} />
               )}
-              <div className="prose-gemini text-sm leading-relaxed">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {recommendation}
-                </ReactMarkdown>
-              </div>
+              <AssetAllocationReport report={report} currency={formData.currency} />
             </div>
             <p className="mt-4 text-xs text-center" style={{ color: 'var(--text-muted, #64748b)' }}>
               {aa.disclaimer}

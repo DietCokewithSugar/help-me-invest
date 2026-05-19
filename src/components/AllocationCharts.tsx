@@ -156,20 +156,20 @@ export default function AllocationCharts({ chartData, theme = 'dark', currency =
   } : null;
 
   return (
-    <div className="space-y-6 mb-6">
+    <div className="space-y-6 mb-8">
       {pieOption && (
         <div className="p-4 rounded-md border" style={{ borderColor: BORDER, backgroundColor: isLight ? '#f8fafc' : 'rgba(255,255,255,0.02)' }}>
-          <h3 className="text-sm font-semibold mb-3" style={{ color: TEXT_PRIMARY }}>
-            {isZh ? '📊 资产配置比例' : '📊 Asset Allocation'}
-          </h3>
+          <div className="mono-kicker mb-3">
+            {isZh ? '资产配置比例' : 'Allocation breakdown'}
+          </div>
           <ReactECharts option={pieOption} style={{ height: 280 }} opts={{ renderer: 'svg' }} />
         </div>
       )}
       {scatterOption && (
         <div className="p-4 rounded-md border" style={{ borderColor: BORDER, backgroundColor: isLight ? '#f8fafc' : 'rgba(255,255,255,0.02)' }}>
-          <h3 className="text-sm font-semibold mb-3" style={{ color: TEXT_PRIMARY }}>
-            {isZh ? '⚖️ 风险收益分布' : '⚖️ Risk-Return Profile'}
-          </h3>
+          <div className="mono-kicker mb-3">
+            {isZh ? '风险收益分布' : 'Risk-return profile'}
+          </div>
           <ReactECharts option={scatterOption} style={{ height: 280 }} opts={{ renderer: 'svg' }} />
         </div>
       )}
