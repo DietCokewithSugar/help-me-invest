@@ -146,7 +146,7 @@ export default function HomeSearchIsland({
 }: HomeSearchIslandProps) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
-  const suggestContainerRef = useRef<HTMLDivElement>(null);
+  const suggestContainerRef = useRef<HTMLFormElement>(null);
 
   const [symbol, setSymbol] = useState('');
   const [isComposing, setIsComposing] = useState(false);
@@ -327,12 +327,33 @@ export default function HomeSearchIsland({
         ))}
       </div>
 
-      <div ref={suggestContainerRef} className="relative mb-6">
+      <form
+        ref={suggestContainerRef}
+        role="search"
+        className="relative mb-6"
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSubmit();
+        }}
+        aria-label={labels.enterSymbol}
+      >
+        <label htmlFor="hero-symbol-input" className="sr-only">
+          {labels.enterSymbol}
+        </label>
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1 relative">
             <input
               ref={inputRef}
-              type="text"
+              id="hero-symbol-input"
+              name="symbol"
+              type="search"
+              role="combobox"
+              inputMode="search"
+              enterKeyHint="search"
+              autoCapitalize="characters"
+              autoCorrect="off"
+              autoComplete="off"
+              spellCheck={false}
               value={symbol}
               onChange={(e) => {
                 const next = e.target.value;
@@ -347,6 +368,9 @@ export default function HomeSearchIsland({
               onKeyDown={handleKeyDown}
               placeholder=""
               aria-label={labels.enterSymbol}
+              aria-autocomplete="list"
+              aria-controls="hero-symbol-suggestions"
+              aria-expanded={showSuggestions && symbol.trim().length >= 2}
               className="gemini-input w-full px-5 py-4 text-base md:text-lg font-mono"
             />
             {/* The very first item is rendered as a real DOM child so the
@@ -375,6 +399,9 @@ export default function HomeSearchIsland({
             <AnimatePresence>
               {showSuggestions && symbol.trim().length >= 2 && (
                 <motion.div
+                  id="hero-symbol-suggestions"
+                  role="listbox"
+                  aria-label={labels.suggestionsHeading}
                   className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-md border border-white/10 bg-surface/95 shadow-xl backdrop-blur-md"
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -395,6 +422,9 @@ export default function HomeSearchIsland({
                     {suggestions.map((item) => (
                       <button
                         key={`${item.market}-${item.symbol}`}
+                        type="button"
+                        role="option"
+                        aria-selected={false}
                         onClick={() => handleSelectSuggestion(item)}
                         className="group flex w-full items-center gap-3 border-b border-white/5 px-4 py-3 text-left transition-colors hover:bg-white/5 last:border-b-0"
                       >
@@ -419,7 +449,7 @@ export default function HomeSearchIsland({
           </div>
 
           <button
-            onClick={handleSubmit}
+            type="submit"
             className="gemini-btn gemini-btn-primary flex items-center justify-center gap-2 md:gap-3 min-w-[140px] md:min-w-[160px] py-4 text-base md:text-lg"
           >
             <TrendingUpIcon size={20} />
@@ -427,7 +457,7 @@ export default function HomeSearchIsland({
             <ArrowRightIcon size={16} className="opacity-70 hidden sm:block" />
           </button>
         </div>
-      </div>
+      </form>
 
       {searchHistory.length > 0 && (
         <div className="mb-4">

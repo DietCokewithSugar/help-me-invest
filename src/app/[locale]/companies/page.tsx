@@ -397,11 +397,18 @@ function MultiSelectDropdown({ label, options, selected, onChange, selectAllLabe
                     >
                         {/* 搜索框 */}
                         <div className="p-2 border-b border-white/5">
+                            <label className="sr-only" htmlFor="multi-select-search">
+                                {searchPlaceholder}
+                            </label>
                             <input
-                                type="text"
+                                id="multi-select-search"
+                                type="search"
+                                inputMode="search"
+                                autoComplete="off"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 placeholder={searchPlaceholder}
+                                aria-label={searchPlaceholder}
                                 className="w-full px-2 py-1.5 text-xs bg-white/5 border border-white/10 rounded-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50"
                                 onClick={(e) => e.stopPropagation()}
                             />
@@ -811,16 +818,33 @@ export default function CompaniesPage() {
                         </div>
 
                         {/* Search Bar */}
-                        <div className="relative">
-                            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
+                        <form
+                            role="search"
+                            aria-label={t.companies.searchPlaceholder}
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                applyFilters();
+                            }}
+                            className="relative"
+                        >
+                            <label htmlFor="companies-search" className="sr-only">
+                                {t.companies.searchPlaceholder}
+                            </label>
+                            <SearchIcon className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
                             <input
-                                type="text"
+                                id="companies-search"
+                                name="q"
+                                type="search"
+                                inputMode="search"
+                                enterKeyHint="search"
+                                autoComplete="off"
                                 value={searchQuery}
                                 onChange={(e) => handleSearchChange(e.target.value)}
                                 placeholder={t.companies.searchPlaceholder}
+                                aria-label={t.companies.searchPlaceholder}
                                 className="w-full pl-12 pr-4 py-4 glass-card border border-white/10 dark:border-white/10 light:border-black/10 rounded-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 transition-colors"
                             />
-                        </div>
+                        </form>
                     </div>
 
                     {/* Results Area */}

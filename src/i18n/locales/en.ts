@@ -40,6 +40,8 @@ export const en: TranslationKeys = {
     industry: 'Industries',
     allocation: 'Allocation',
     contact: 'Feedback',
+    openMenu: 'Open menu',
+    closeMenu: 'Close menu',
   },
   feedback: {
     pageTitle: 'Feedback',

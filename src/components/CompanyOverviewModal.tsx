@@ -11,6 +11,7 @@ import {
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCompare } from '@/contexts/CompareContext';
 import { withLocale } from '@/lib/locale-path';
+import { useModalA11y } from '@/hooks/useModalA11y';
 import type { CompanyDiagnostic, CompanyFilterRequest } from '@/types';
 import {
     getLocalizedDiagnostic,
@@ -90,6 +91,7 @@ export default function CompanyOverviewModal({
     const { addCompany, isInCompare, isFull } = useCompare();
     const [relatedCompanies, setRelatedCompanies] = useState<CompanyDiagnostic[]>([]);
     const [loadingRelated, setLoadingRelated] = useState(false);
+    const { dialogRef, titleId, descriptionId } = useModalA11y({ isOpen, onClose });
 
     // 获取相关公司
     useEffect(() => {
@@ -173,11 +175,17 @@ export default function CompanyOverviewModal({
                     onClick={onClose}
                 >
                     <motion.div
+                        ref={dialogRef as any}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby={titleId}
+                        aria-describedby={descriptionId}
+                        tabIndex={-1}
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
                         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                        className="relative bg-surface rounded-sm border border-white/10 shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+                        className="relative bg-surface rounded-sm border border-white/10 shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col focus:outline-none"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Header */}
@@ -187,11 +195,11 @@ export default function CompanyOverviewModal({
                                     <span className="font-mono text-lg font-bold text-accent bg-accent/10 px-2 py-1 rounded-sm">
                                         {company.symbol}
                                     </span>
-                                    <span className="text-xs text-text-muted bg-white/5 px-2 py-1 rounded-sm">
+                                    <span id={descriptionId} className="text-xs text-text-muted bg-white/5 px-2 py-1 rounded-sm">
                                         {company.exchange_short_name}
                                     </span>
                                 </div>
-                                <h2 className="text-xl font-bold text-text-primary mb-2">
+                                <h2 id={titleId} className="text-xl font-bold text-text-primary mb-2">
                                     {company.company_name}
                                 </h2>
                                 <div className="flex items-center gap-4 text-sm">
@@ -201,8 +209,10 @@ export default function CompanyOverviewModal({
                                 </div>
                             </div>
                             <button
+                                type="button"
                                 onClick={onClose}
-                                className="p-2 rounded-sm bg-white/5 hover:bg-white/10 transition-colors"
+                                className="inline-flex items-center justify-center h-11 w-11 rounded-sm bg-white/5 hover:bg-white/10 transition-colors"
+                                aria-label={t.common.close || 'Close'}
                             >
                                 <XIcon size={18} className="text-text-muted" />
                             </button>
