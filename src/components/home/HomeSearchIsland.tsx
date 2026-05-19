@@ -236,7 +236,7 @@ export default function HomeSearchIsland({
       } finally {
         if (!controller.signal.aborted) setSuggestLoading(false);
       }
-    }, 350);
+    }, 200);
 
     return () => {
       controller.abort();

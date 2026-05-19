@@ -44,7 +44,10 @@ export function useCompanyReport({ locale, t }: UseCompanyReportOptions) {
   const reportTypeRef = useRef<ReportType>('standard');
   const marketRef = useRef<MarketType>('US');
 
-  // Streaming helper - per-section streaming from /api/ai/stream-section
+  // Streaming helper - per-section streaming from /api/ai/stream-section.
+  // Chunks are coalesced via requestAnimationFrame so React renders at most
+  // once per frame (~60fps) instead of on every byte from the network —
+  // dramatically cuts layout thrash when 6-7 sections stream in parallel.
   const streamSection = useCallback(
     async (section: string, payload: any, symbol?: string) => {
       try {
@@ -60,18 +63,19 @@ export function useCompanyReport({ locale, t }: UseCompanyReportOptions) {
         const decoder = new TextDecoder();
         let done = false;
         let text = '';
+        let pendingFrame = 0;
+        let lastFlushed = '';
 
-        while (!done) {
-          const { value, done: doneReading } = await reader.read();
-          done = doneReading;
-          const chunkValue = decoder.decode(value, { stream: !done });
-          text += chunkValue;
-
+        const flush = () => {
+          pendingFrame = 0;
+          if (text === lastFlushed) return;
+          lastFlushed = text;
+          const snapshot = text;
           setReportData((prev) => {
             if (!prev) return prev;
 
             if (section === 'earningsCallSummary') {
-              return { ...prev, earningsCallSummary: text };
+              return { ...prev, earningsCallSummary: snapshot };
             }
 
             const beginnerSections = [
@@ -85,7 +89,7 @@ export function useCompanyReport({ locale, t }: UseCompanyReportOptions) {
                 ...prev,
                 beginnerAiAnalysis: {
                   ...(prev.beginnerAiAnalysis || ({} as any)),
-                  [section]: text,
+                  [section]: snapshot,
                 } as any,
               };
             }
@@ -104,7 +108,7 @@ export function useCompanyReport({ locale, t }: UseCompanyReportOptions) {
                 ...prev,
                 proAiAnalysis: {
                   ...(prev.proAiAnalysis || ({} as any)),
-                  [section]: text,
+                  [section]: snapshot,
                 } as any,
               };
             }
@@ -113,11 +117,34 @@ export function useCompanyReport({ locale, t }: UseCompanyReportOptions) {
               ...prev,
               aiAnalysis: {
                 ...(prev.aiAnalysis || ({} as any)),
-                [section]: text,
+                [section]: snapshot,
               } as any,
             };
           });
+        };
+
+        const scheduleFlush = () => {
+          if (pendingFrame) return;
+          if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
+            flush();
+            return;
+          }
+          pendingFrame = window.requestAnimationFrame(flush);
+        };
+
+        while (!done) {
+          const { value, done: doneReading } = await reader.read();
+          done = doneReading;
+          const chunkValue = decoder.decode(value, { stream: !done });
+          text += chunkValue;
+          scheduleFlush();
         }
+        // Final flush so the last bytes always make it in.
+        if (pendingFrame && typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function') {
+          window.cancelAnimationFrame(pendingFrame);
+          pendingFrame = 0;
+        }
+        flush();
         return text;
       } catch (err) {
         console.error(`Stream error for ${section}:`, err);
