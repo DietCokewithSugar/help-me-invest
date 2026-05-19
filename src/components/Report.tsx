@@ -1339,76 +1339,93 @@ export default function Report({
                   )}
                 </AnalysisCard>
 
-                {/* 行业分析 */}
-                <AnalysisCard title={t.report.analysis.industryAnalysis} onShare={handleShareModule}>
-                  {aiAnalysis?.industryAnalysis ? (
-                    <ReactMarkdown>{aiAnalysis.industryAnalysis}</ReactMarkdown>
-                  ) : (
-                    <div className="flex items-center gap-2 text-mist-500 text-sm">
-                      <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
-                      <span>{t.report.analysis.industryAnalysisLoading}</span>
-                    </div>
-                  )}
-                </AnalysisCard>
-
-                {/* 行业痛点与障碍 */}
-                <AnalysisCard title={t.report.analysis.industryPainPoints} onShare={handleShareModule}>
-                  {aiAnalysis?.industryPainPoints ? (
-                    <ReactMarkdown>{aiAnalysis.industryPainPoints}</ReactMarkdown>
-                  ) : (
-                    <div className="flex items-center gap-2 text-mist-500 text-sm">
-                      <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
-                      <span>{t.report.analysis.industryPainPointsLoading}</span>
-                    </div>
-                  )}
-                </AnalysisCard>
-
-                {/* 竞争格局 */}
-                <AnalysisCard title={t.report.analysis.competitiveLandscape} onShare={handleShareModule}>
-                  {aiAnalysis?.competitors ? (
-                    <>
-                      <ReactMarkdown>{aiAnalysis.competitors}</ReactMarkdown>
-                      {peers && peers.length > 0 && (
-                        <div className="flex flex-wrap gap-2 pt-4 mt-4 border-t border-white/5">
-                          <span className="text-xs text-mist-500 mr-2">{t.report.analysis.mainCompetitors}</span>
-                          {peers.slice(0, 8).map((peer) => (
-                            <span key={peer} className="px-3 py-1 bg-glacier-500/10 border border-glacier-500/20 rounded-full text-glacier-400 text-sm font-mono hover:bg-glacier-500/15 transition-colors cursor-default">
-                              {peer}
-                            </span>
-                          ))}
+                {/* 行业分析（含痛点） — merged */}
+                <AnalysisCard title={t.report.analysis.industryCombined} onShare={handleShareModule}>
+                  <div className="space-y-5">
+                    <div>
+                      <h4 className="text-xs font-mono uppercase tracking-[0.12em] text-mist-400 mb-2">
+                        {t.report.analysis.industryOverviewSub}
+                      </h4>
+                      {aiAnalysis?.industryAnalysis ? (
+                        <ReactMarkdown>{aiAnalysis.industryAnalysis}</ReactMarkdown>
+                      ) : (
+                        <div className="flex items-center gap-2 text-mist-500 text-sm">
+                          <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                          <span>{t.report.analysis.industryAnalysisLoading}</span>
                         </div>
                       )}
-                    </>
-                  ) : (
-                    <div className="flex items-center gap-2 text-mist-500 text-sm">
-                      <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
-                      <span>{t.report.analysis.competitiveLandscapeLoading}</span>
                     </div>
-                  )}
+                    <div className="pt-4 border-t border-white/5">
+                      <h4 className="text-xs font-mono uppercase tracking-[0.12em] text-mist-400 mb-2">
+                        {t.report.analysis.industryPainPointsSub}
+                      </h4>
+                      {aiAnalysis?.industryPainPoints ? (
+                        <ReactMarkdown>{aiAnalysis.industryPainPoints}</ReactMarkdown>
+                      ) : (
+                        <div className="flex items-center gap-2 text-mist-500 text-sm">
+                          <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                          <span>{t.report.analysis.industryPainPointsLoading}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </AnalysisCard>
 
-                {/* 竞争优势 */}
-                <AnalysisCard title={t.report.analysis.competitiveAdvantage} onShare={handleShareModule}>
-                  {aiAnalysis?.competitiveAdvantage ? (
-                    <ReactMarkdown>{aiAnalysis.competitiveAdvantage}</ReactMarkdown>
-                  ) : (
-                    <div className="flex items-center gap-2 text-mist-500 text-sm">
-                      <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
-                      <span>{t.report.analysis.competitiveAdvantageLoading}</span>
+                {/* 竞争格局与护城河 — merged */}
+                <AnalysisCard title={t.report.analysis.competitiveCombined} onShare={handleShareModule}>
+                  <div className="space-y-5">
+                    <div>
+                      <h4 className="text-xs font-mono uppercase tracking-[0.12em] text-mist-400 mb-2">
+                        {t.report.analysis.competitiveLandscapeSub}
+                      </h4>
+                      {aiAnalysis?.competitors ? (
+                        <>
+                          <ReactMarkdown>{aiAnalysis.competitors}</ReactMarkdown>
+                          {peers && peers.length > 0 && (
+                            <div className="flex flex-wrap gap-2 pt-4 mt-4 border-t border-white/5">
+                              <span className="text-xs text-mist-500 mr-2">{t.report.analysis.mainCompetitors}</span>
+                              {peers.slice(0, 8).map((peer) => (
+                                <span key={peer} className="px-3 py-1 bg-glacier-500/10 border border-glacier-500/20 rounded-full text-glacier-400 text-sm font-mono hover:bg-glacier-500/15 transition-colors cursor-default">
+                                  {peer}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="flex items-center gap-2 text-mist-500 text-sm">
+                          <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                          <span>{t.report.analysis.competitiveLandscapeLoading}</span>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </AnalysisCard>
-
-                {/* 核心护城河 */}
-                <AnalysisCard title={t.report.analysis.coreMoat} onShare={handleShareModule}>
-                  {aiAnalysis?.moat ? (
-                    <ReactMarkdown>{aiAnalysis.moat}</ReactMarkdown>
-                  ) : (
-                    <div className="flex items-center gap-2 text-mist-500 text-sm">
-                      <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
-                      <span>{t.report.analysis.coreMoatLoading}</span>
+                    <div className="pt-4 border-t border-white/5">
+                      <h4 className="text-xs font-mono uppercase tracking-[0.12em] text-mist-400 mb-2">
+                        {t.report.analysis.competitiveAdvantageSub}
+                      </h4>
+                      {aiAnalysis?.competitiveAdvantage ? (
+                        <ReactMarkdown>{aiAnalysis.competitiveAdvantage}</ReactMarkdown>
+                      ) : (
+                        <div className="flex items-center gap-2 text-mist-500 text-sm">
+                          <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                          <span>{t.report.analysis.competitiveAdvantageLoading}</span>
+                        </div>
+                      )}
                     </div>
-                  )}
+                    <div className="pt-4 border-t border-white/5">
+                      <h4 className="text-xs font-mono uppercase tracking-[0.12em] text-mist-400 mb-2">
+                        {t.report.analysis.coreMoatSub}
+                      </h4>
+                      {aiAnalysis?.moat ? (
+                        <ReactMarkdown>{aiAnalysis.moat}</ReactMarkdown>
+                      ) : (
+                        <div className="flex items-center gap-2 text-mist-500 text-sm">
+                          <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                          <span>{t.report.analysis.coreMoatLoading}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </AnalysisCard>
               </div>
 
@@ -1567,31 +1584,39 @@ export default function Report({
             onShare={handleShareModule}
           >
             <div className="space-y-6 animate-fade-in">
-              {/* 1. 生意模式分析 */}
-              <AnalysisCard title={t.report.proAnalysis.businessModel} onShare={handleShareModule}>
-                {proAiAnalysis?.proBusinessModel ? (
-                  <ProMarkdown>{proAiAnalysis.proBusinessModel}</ProMarkdown>
-                ) : (
-                  <div className="flex items-center gap-2 text-mist-500 text-sm">
-                    <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
-                    <span>{t.report.proAnalysis.businessModelLoading}</span>
+              {/* 1. 公司与商业模式（合并生意模式 + 运营模式） */}
+              <AnalysisCard title={t.report.proAnalysis.businessAndOperating} onShare={handleShareModule}>
+                <div className="space-y-5">
+                  <div>
+                    <h4 className="text-xs font-mono uppercase tracking-[0.12em] text-mist-400 mb-2">
+                      {t.report.proAnalysis.businessModelSub}
+                    </h4>
+                    {proAiAnalysis?.proBusinessModel ? (
+                      <ProMarkdown>{proAiAnalysis.proBusinessModel}</ProMarkdown>
+                    ) : (
+                      <div className="flex items-center gap-2 text-mist-500 text-sm">
+                        <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                        <span>{t.report.proAnalysis.businessModelLoading}</span>
+                      </div>
+                    )}
                   </div>
-                )}
+                  <div className="pt-4 border-t border-white/5">
+                    <h4 className="text-xs font-mono uppercase tracking-[0.12em] text-mist-400 mb-2">
+                      {t.report.proAnalysis.operatingModelSub}
+                    </h4>
+                    {proAiAnalysis?.proOperatingModel ? (
+                      <ProMarkdown>{proAiAnalysis.proOperatingModel}</ProMarkdown>
+                    ) : (
+                      <div className="flex items-center gap-2 text-mist-500 text-sm">
+                        <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                        <span>{t.report.proAnalysis.operatingModelLoading}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </AnalysisCard>
 
-              {/* 2. 运营模式分析 */}
-              <AnalysisCard title={t.report.proAnalysis.operatingModel} onShare={handleShareModule}>
-                {proAiAnalysis?.proOperatingModel ? (
-                  <ProMarkdown>{proAiAnalysis.proOperatingModel}</ProMarkdown>
-                ) : (
-                  <div className="flex items-center gap-2 text-mist-500 text-sm">
-                    <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
-                    <span>{t.report.proAnalysis.operatingModelLoading}</span>
-                  </div>
-                )}
-              </AnalysisCard>
-
-              {/* 3. 行业前景评估 */}
+              {/* 2. 行业前景评估 */}
               <AnalysisCard title={t.report.proAnalysis.industryOutlook} onShare={handleShareModule}>
                 {proAiAnalysis?.proIndustryOutlook ? (
                   <ProMarkdown>{proAiAnalysis.proIndustryOutlook}</ProMarkdown>

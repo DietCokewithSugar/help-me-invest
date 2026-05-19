@@ -10,6 +10,7 @@ const AIShowcase = lazy(() => import('@/components/AIShowcase'));
 const Testimonials = lazy(() => import('@/components/Testimonials'));
 const FlipCounter = lazy(() => import('@/components/FlipCounter'));
 
+
 function MarketingLoader() {
   return (
     <div className="flex items-center gap-2">
@@ -28,24 +29,9 @@ function MarketingLoader() {
  * subscriptions, lazy imports, and translation hooks.
  */
 export default function HomeMarketing() {
-  const { t, locale } = useLanguage();
+  const { t } = useLanguage();
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const [reportCount, setReportCount] = useState<number | null>(null);
-
-  const introCopy = locale === 'zh'
-    ? {
-        kicker: 'FIELD NOTE · SWISS · IKB',
-        title: '七页读完，这是什么样的网站',
-        subtitle: '一份瑞士国际主义风格的现场笔记 — ← → 翻页 · B 静态 · ESC 索引',
-        openInNewTab: '在新窗口打开 ↗',
-      }
-    : {
-        kicker: 'FIELD NOTE · SWISS · IKB',
-        title: 'A 7-page tour of what this site does',
-        subtitle: 'A Swiss-international field note. ← → to navigate · B static · ESC for index',
-        openInNewTab: 'Open in new tab ↗',
-      };
-  const introSrc = `/site-intro/${locale}.html`;
 
   const coreAdvantages = [
     {
@@ -129,49 +115,6 @@ export default function HomeMarketing() {
       <section className="py-16 md:py-24 px-4 md:px-6">
         <div className="max-w-6xl mx-auto">
           <motion.div
-            className="text-center mb-8 md:mb-10"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-100px' }}
-          >
-            <div className="font-mono text-[11px] tracking-[0.22em] uppercase text-glacier-400 mb-3">
-              {introCopy.kicker}
-            </div>
-            <h3 className="text-2xl md:text-3xl lg:text-4xl font-light text-white mb-3">{introCopy.title}</h3>
-            <p className="text-mist-500 text-sm md:text-base">{introCopy.subtitle}</p>
-          </motion.div>
-          <motion.div
-            className="relative w-full aspect-[16/9] border border-white/10 bg-[#fafaf8] overflow-hidden rounded-sm"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-100px' }}
-            transition={{ duration: 0.5 }}
-          >
-            <iframe
-              key={introSrc}
-              src={introSrc}
-              title={introCopy.title}
-              className="absolute inset-0 w-full h-full"
-              loading="lazy"
-              sandbox="allow-scripts allow-same-origin"
-            />
-          </motion.div>
-          <div className="text-right mt-3">
-            <a
-              href={introSrc}
-              target="_blank"
-              rel="noopener"
-              className="font-mono text-[11px] tracking-[0.16em] uppercase text-mist-500 hover:text-glacier-400 transition-colors"
-            >
-              {introCopy.openInNewTab}
-            </a>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-16 md:py-24 px-4 md:px-6">
-        <div className="max-w-6xl mx-auto">
-          <motion.div
             className="text-center mb-12 md:mb-16"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -223,42 +166,35 @@ export default function HomeMarketing() {
         </div>
       </section>
 
-      <section className="py-16 md:py-24 px-4 md:px-6 overflow-hidden">
-        <div className="max-w-6xl mx-auto">
-          <div className="max-w-4xl mx-auto text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-100px' }}
-              transition={{ duration: 0.6 }}
-            >
-              <h3 className="text-2xl md:text-3xl lg:text-4xl font-light text-white mb-6">{t.home.globalVision.title}</h3>
-              <p className="text-mist-400 leading-relaxed mb-10 text-[15px] md:text-base max-w-2xl mx-auto">
-                {t.home.globalVision.subtitle}
-              </p>
-              <div className="grid grid-cols-2 md:grid-cols-6 gap-4 max-w-4xl mx-auto">
-                {[
-                  { name: t.markets.us, code: 'NYSE / NASDAQ', color: '#4285f4' },
-                  { name: t.markets.cn, code: 'SSE / SZSE', color: '#ea4335' },
-                  { name: t.markets.hk, code: 'HKEX', color: '#fbbc04' },
-                  { name: t.markets.jp, code: 'TSE', color: '#34a853' },
-                  { name: t.markets.kr, code: 'KRX', color: '#a855f7' },
-                  { name: t.markets.au, code: 'ASX', color: '#00acc1' },
-                ].map((market) => (
-                  <div
-                    key={market.name}
-                    className="flex items-center justify-center gap-3 p-4 rounded-xl bg-white/5 border border-white/5 text-left hover:bg-white/10 transition-colors"
-                  >
-                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: market.color }} />
-                    <div>
-                      <div className="text-white font-medium text-sm">{market.name}</div>
-                      <div className="text-mist-600 text-xs">{market.code}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          </div>
+      <section className="py-12 md:py-16 px-4 md:px-6 overflow-hidden">
+        <div className="max-w-4xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-100px' }}
+            transition={{ duration: 0.6 }}
+          >
+            <h3 className="text-xl md:text-2xl font-light text-white mb-6">{t.home.globalVision.title}</h3>
+            <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3">
+              {[
+                { name: t.markets.us, code: 'NYSE/NASDAQ', color: '#4285f4' },
+                { name: t.markets.cn, code: 'SSE/SZSE', color: '#ea4335' },
+                { name: t.markets.hk, code: 'HKEX', color: '#fbbc04' },
+                { name: t.markets.jp, code: 'TSE', color: '#34a853' },
+                { name: t.markets.kr, code: 'KRX', color: '#a855f7' },
+                { name: t.markets.au, code: 'ASX', color: '#00acc1' },
+              ].map((market) => (
+                <div
+                  key={market.name}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-pill bg-white/5 border border-white/10"
+                >
+                  <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: market.color }} />
+                  <span className="text-white text-sm">{market.name}</span>
+                  <span className="text-mist-600 text-xs font-mono">{market.code}</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
         </div>
       </section>
 
