@@ -494,20 +494,20 @@ export default function FinancialStatements({
 
   return (
     <div className="bg-obsidian border-y border-white/10 py-6 animate-fade-in-up">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <div className="relative">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="relative shrink-0">
             <div className="w-8 h-8 rounded-sm bg-white/5 flex items-center justify-center border border-white/10">
               <FileSpreadsheet className="w-4 h-4 text-mist-400" />
             </div>
           </div>
-          <div>
+          <div className="min-w-0">
             <h2 className="text-base font-semibold text-white uppercase tracking-wider">{fsT.title}</h2>
             <p className="text-xs text-mist-500 mt-0.5 font-mono">{period === 'quarter' ? fsT.subtitleQuarter : fsT.subtitleAnnual}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
           <div className="flex p-0.5 bg-white/5 border border-white/10 rounded-sm">
             <button
               onClick={() => setPeriod('annual')}
@@ -548,13 +548,14 @@ export default function FinancialStatements({
         </div>
       </div>
 
-      {/* 标签栏 */}
-      <div className="flex gap-2 mb-6 border-b border-white/5 pb-4">
+      {/* 标签栏 — horizontal scroll on narrow viewports so long labels
+          ("Cash Flow Statement") never wrap or push siblings off-screen. */}
+      <div className="flex gap-2 mb-6 border-b border-white/5 pb-4 overflow-x-auto -mx-1 px-1">
         {tabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-sm transition-all text-sm font-medium ${activeTab === tab.key
+            className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-3 sm:px-4 py-2 rounded-sm transition-all text-sm font-medium ${activeTab === tab.key
               ? 'bg-white/10 text-white border-b-2 border-glacier-500'
               : 'text-mist-500 hover:text-mist-300 hover:bg-white/5'
               }`}
