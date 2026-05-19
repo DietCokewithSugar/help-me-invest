@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const maxDuration = 120;
 
-async function generateDeepSeekContent(apiKey: string, prompt: string): Promise<string> {
+async function generateDeepSeekJSON(apiKey: string, prompt: string): Promise<string> {
   const response = await fetch('https://api.deepseek.com/chat/completions', {
     method: 'POST',
     headers: {
@@ -11,9 +11,17 @@ async function generateDeepSeekContent(apiKey: string, prompt: string): Promise<
     },
     body: JSON.stringify({
       model: 'deepseek-chat',
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.8,
-      top_p: 0.95,
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are a structured-data API. Respond with ONE valid JSON object that matches the schema in the user prompt — no prose, no markdown, no code fences, no emojis, no greetings, no first-person language.',
+        },
+        { role: 'user', content: prompt },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.5,
+      top_p: 0.9,
       max_tokens: 8192,
     }),
   });
@@ -28,7 +36,6 @@ async function generateDeepSeekContent(apiKey: string, prompt: string): Promise<
   if (typeof content !== 'string' || content.trim().length === 0) {
     throw new Error('DeepSeek returned empty content');
   }
-
   return content;
 }
 
@@ -43,6 +50,43 @@ interface AllocationRequest {
   existingAssets: string;
   interests: string;
   language: string;
+}
+
+const ALLOCATION_PALETTE = ['#88ABDA', '#98B6C2', '#C0D09D', '#CB523E', '#DFD6B8', '#EAE4D1', '#FF8866', '#BADBEE', '#F59E0B', '#06B6D4'];
+
+function stripEmoji(input: string): string {
+  // Defense-in-depth: prompt forbids emojis, but if any slip through we drop
+  // them. Iterates by code point and skips emoji-likely ranges (surrogate
+  // pairs in the supplementary plane + BMP symbol blocks + variation
+  // selectors + ZWJ). Avoids the `/u` flag so the regex works under the
+  // project's default TS target.
+  let out = '';
+  for (let i = 0; i < input.length; i++) {
+    const c = input.charCodeAt(i);
+    // ZWJ + variation selectors (kept only when not next to emoji, but easier to drop)
+    if (c === 0x200d || (c >= 0xfe00 && c <= 0xfe0f)) continue;
+    // High surrogate → consume with its low surrogate (most emoji live in plane 1)
+    if (c >= 0xd800 && c <= 0xdbff) { i++; continue; }
+    // BMP symbol blocks commonly used as emoji
+    if ((c >= 0x2300 && c <= 0x23ff) || (c >= 0x2600 && c <= 0x27bf) || (c >= 0x2b00 && c <= 0x2bff)) continue;
+    out += input[i];
+  }
+  return out.replace(/\s+/g, ' ').trim();
+}
+
+function sanitizeReport(raw: any): any {
+  if (!raw || typeof raw !== 'object') return raw;
+  const visit = (node: any): any => {
+    if (typeof node === 'string') return stripEmoji(node);
+    if (Array.isArray(node)) return node.map(visit);
+    if (node && typeof node === 'object') {
+      const out: Record<string, any> = {};
+      for (const k of Object.keys(node)) out[k] = visit(node[k]);
+      return out;
+    }
+    return node;
+  };
+  return visit(raw);
 }
 
 export async function POST(request: NextRequest) {
@@ -71,7 +115,7 @@ export async function POST(request: NextRequest) {
     }
 
     const isZh = language === 'zh';
-    const currencyLabel = currency === 'CNY' ? (isZh ? '万元人民币' : '0,000 CNY') : (isZh ? '万美元' : '0,000 USD');
+    const currencyLabel = currency === 'CNY' ? (isZh ? '万元人民币' : '10k CNY') : (isZh ? '万美元' : '10k USD');
 
     const assetTypeMap: Record<string, string> = {
       usStocks: isZh ? '美股' : 'US Stocks',
@@ -107,12 +151,12 @@ export async function POST(request: NextRequest) {
       veryLong: isZh ? '10年以上（超长期）' : '10+ years (Very Long-term)',
     };
 
-    const selectedAssets = assetTypes.map(a => assetTypeMap[a] || a).join('、');
+    const selectedAssets = assetTypes.map(a => assetTypeMap[a] || a).join(isZh ? '、' : ', ');
     const returnDesc = returnLevelMap[returnLevel] || returnLevel;
     const outlookDesc = outlookMap[marketOutlook] || marketOutlook;
     const horizonDesc = horizonMap[investmentHorizon] || investmentHorizon;
 
-    const prompt = isZh ? buildZhPrompt({
+    const promptParams: PromptParams = {
       selectedAssets,
       returnDesc,
       investAmount,
@@ -122,33 +166,48 @@ export async function POST(request: NextRequest) {
       horizonDesc,
       existingAssets,
       interests,
-    }) : buildEnPrompt({
-      selectedAssets,
-      returnDesc,
-      investAmount,
-      totalAssets,
-      currencyLabel,
-      outlookDesc,
-      horizonDesc,
-      existingAssets,
-      interests,
-    });
+      palette: ALLOCATION_PALETTE,
+    };
+    const prompt = isZh ? buildZhPrompt(promptParams) : buildEnPrompt(promptParams);
 
-    const text = await generateDeepSeekContent(deepseekApiKey, prompt);
+    const raw = await generateDeepSeekJSON(deepseekApiKey, prompt);
 
-    let chartData = null;
-    const jsonMatch = text.match(/```json\s*\n([\s\S]*?)\n```/);
-    if (jsonMatch) {
-      try {
-        chartData = JSON.parse(jsonMatch[1]);
-      } catch {
-        // JSON parse failed, skip chart data
-      }
+    let parsed: any;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      // Fallback: strip a possible code-fence wrapper.
+      const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (fenced) parsed = JSON.parse(fenced[1]);
+      else throw new Error('Model did not return parseable JSON');
     }
 
-    const cleanedText = text.replace(/```json\s*\n[\s\S]*?\n```/, '').trim();
+    const report = sanitizeReport(parsed);
 
-    return NextResponse.json({ recommendation: cleanedText, chartData });
+    // Derive chartData for the existing pie + scatter components.
+    const chartData = report?.allocation?.length
+      ? {
+          allocation: report.allocation.map((a: any, i: number) => ({
+            name: a.name,
+            percentage: Number(a.percentage) || 0,
+            amount: Number(a.amount) || 0,
+            color: a.color || ALLOCATION_PALETTE[i % ALLOCATION_PALETTE.length],
+          })),
+          riskReturn: report.riskReturn?.length
+            ? report.riskReturn.map((r: any) => ({
+                name: r.name,
+                risk: Number(r.risk) || 0,
+                expectedReturn: Number(r.expectedReturn) || 0,
+              }))
+            : report.allocation.map((a: any) => ({
+                name: a.name,
+                risk: Number(a.riskLevel) || 5,
+                expectedReturn: Number(a.expectedReturn) || 0,
+              })),
+        }
+      : null;
+
+    return NextResponse.json({ report, chartData });
   } catch (error: any) {
     console.error('Asset allocation error:', error);
     return NextResponse.json(
@@ -168,136 +227,179 @@ interface PromptParams {
   horizonDesc: string;
   existingAssets: string;
   interests: string;
+  palette: string[];
 }
 
-function buildZhPrompt(p: PromptParams): string {
-  return `你是一位资深的投资顾问和资产配置专家。请根据以下用户信息，结合当前实时市场新闻和经济环境，给出一份详细且个性化的资产配置建议方案。
+const SCHEMA_NOTE_ZH = `严格按以下 JSON Schema 输出。所有字段必填（除可选字段外）。文本字段必须为简体中文，不得含表情符号(emoji)、不得用第一/第二人称、不得有 "好的""作为您的""我们""你的"等口语化措辞，也不要再加任何解释或包装。整段回答只包含一个 JSON 对象。
 
-## 用户信息
-
-- **感兴趣的资产类别**：${p.selectedAssets}
-- **收益预期**：${p.returnDesc}
-- **可投资金额**：${p.investAmount} ${p.currencyLabel}
-- **总资产**：${p.totalAssets} ${p.currencyLabel}
-- **市场观点**：${p.outlookDesc}
-- **投资期限**：${p.horizonDesc}
-${p.existingAssets ? `- **目前持有的资产**：${p.existingAssets}` : ''}
-${p.interests ? `- **特别关注的方向**：${p.interests}` : ''}
-
-## 重要原则
-
-1. **稳健为主**：始终优先推荐长期稳健的资产。对于股票类资产，优先推荐宽基指数（如标普500 ETF、沪深300 ETF）而非个股。
-2. **风险警示**：如果用户选择了激进的收益预期，要明确提醒风险，并建议将大部分资金配置在稳健资产上。
-3. **分散配置**：确保推荐的组合足够分散，不要把鸡蛋放在一个篮子里。
-4. **具体可执行**：给出具体的产品名称或代码（如 VOO、SPY、518880 等），而不只是笼统的建议。
-5. **结合时事**：请搜索并参考当前的经济新闻、美联储利率政策、中国经济数据等，让建议紧贴市场实际。
-6. **安全边际**：建议用户保留至少 10-20% 的现金或高流动性资产作为应急准备金。
-7. **如果用户想要更高收益**：可以推荐一小部分仓位配置伯克希尔·哈撒韦(BRK.B)、优质蓝筹股或优质成长股，但要控制比例。
-
-## 输出格式（Markdown）
-
-### 📊 资产配置总览
-
-用表格展示推荐的配置比例，包含：
-| 资产类别 | 配置比例 | 金额（${p.currencyLabel}） | 推荐产品/标的 | 理由 |
-
-### 💡 核心配置说明
-
-对每个主要配置做 2-3 句话的说明，为什么推荐这个配置。
-
-### 📈 当前市场环境分析
-
-结合最新的新闻和数据，分析当前市场环境对这份配置方案的影响。
-
-### ⚠️ 风险提示
-
-具体针对这份方案的风险点，以及应对建议。
-
-### 🎯 执行建议
-
-分步骤告诉用户如何开始执行这份配置方案（开户、定投时间、调仓频率等）。
-
-### 📦 结构化数据（必须提供）
-
-在 Markdown 内容的最末尾，请输出一个 JSON 代码块（用 \`\`\`json 和 \`\`\` 包裹），包含以下结构：
-\`\`\`json
 {
+  "strategy": {
+    "name": string,                // 策略名称，例如 "核心-卫星策略"
+    "summary": string,             // 1-2 句简洁陈述，纯客观描述策略思路，不得含称呼或情绪词
+    "targetReturn": string,        // 例如 "10%-15% 年化"
+    "horizon": string              // 例如 "10 年以上"
+  },
   "allocation": [
-    { "name": "资产类别名称", "percentage": 数字, "amount": 数字, "color": "#hex色值" }
+    {
+      "name": string,              // 资产类别中文名，例如 "美股核心（宽基指数）"
+      "category": string,          // 简短分类标签，例如 "宽基指数 / 成长股 / 黄金 / 短债 / 优质蓝筹 / 现金"
+      "percentage": number,        // 占比百分比数字（不含 % 符号）
+      "amount": number,            // 金额数字（与用户输入相同单位，万元/万美元）
+      "ticker": string,            // 推荐主标的代码，例如 "VOO"；如无主标的填 ""
+      "productName": string,       // 主标的全称
+      "rationale": string,         // 2-3 句结构化解释，说明"为何选这一类资产 + 为何用该标的"
+      "riskLevel": number,         // 1-10 风险等级
+      "expectedReturn": number,    // 年化预期收益百分比数字
+      "risks": [string, string],   // 该资产 2-3 条具体可量化的风险点（含触发条件 + 潜在影响幅度）
+      "color": string              // 16 进制色值，从用户提示中给定的调色板按顺序取
+    }
+  ],
+  "riskReturn": [                  // 用于风险-收益散点图，按 allocation 顺序对应
+    { "name": string, "risk": number, "expectedReturn": number }
+  ],
+  "marketContext": [
+    {
+      "title": string,             // 简短主题，例如 "美联储政策"、"AI 资本开支周期"
+      "body": string,              // 1-2 句客观分析，引用具体数据/政策时点
+      "impact": "positive" | "neutral" | "negative"  // 对本组合的方向性影响
+    }
+  ],
+  "executionPlan": [
+    {
+      "phase": string,             // 阶段名，例如 "第一步：开户与资金准备"
+      "timeframe": string,         // 时间窗口，例如 "T+0 ~ 2 周"
+      "actions": [string, string]  // 该阶段可执行步骤
+    }
+  ],
+  "portfolioRisks": [
+    {
+      "name": string,              // 组合级风险名称，例如 "高波动风险"
+      "level": "low" | "medium" | "high",
+      "description": string,       // 客观描述风险及触发场景
+      "mitigation": string         // 一句对应缓释/对冲建议
+    }
+  ]
+}`;
+
+const SCHEMA_NOTE_EN = `Output a single JSON object that exactly matches the schema below. Every field is required unless marked optional. Use only plain factual English — no emojis, no greetings, no first/second-person ("you", "we", "as your advisor"), no marketing language, no wrappers. Output JSON only.
+
+{
+  "strategy": {
+    "name": string,                // e.g. "Core-Satellite"
+    "summary": string,             // 1-2 sentences, factual, no addressee
+    "targetReturn": string,        // e.g. "10%-15% annualized"
+    "horizon": string              // e.g. "10+ years"
+  },
+  "allocation": [
+    {
+      "name": string,              // asset bucket label, e.g. "US Core Equity"
+      "category": string,          // short tag, e.g. "Broad Index / Growth / Gold / Short Duration / Quality Blue Chip / Cash"
+      "percentage": number,        // 0-100, no % sign
+      "amount": number,            // same unit as user input
+      "ticker": string,            // primary ticker, e.g. "VOO"; "" if none
+      "productName": string,
+      "rationale": string,         // 2-3 sentences explaining bucket + chosen instrument
+      "riskLevel": number,         // 1-10
+      "expectedReturn": number,    // annualized return percent, no % sign
+      "risks": [string, string],   // 2-3 specific, quantified risks with trigger + magnitude
+      "color": string              // hex from palette in order
+    }
   ],
   "riskReturn": [
-    { "name": "资产类别名称", "risk": 1到10的数字, "expectedReturn": 年化收益率百分比数字 }
+    { "name": string, "risk": number, "expectedReturn": number }
+  ],
+  "marketContext": [
+    {
+      "title": string,
+      "body": string,              // 1-2 sentences with concrete data/policy reference
+      "impact": "positive" | "neutral" | "negative"
+    }
+  ],
+  "executionPlan": [
+    {
+      "phase": string,             // e.g. "Step 1: Account & Funding"
+      "timeframe": string,         // e.g. "T+0 to 2 weeks"
+      "actions": [string, string]
+    }
+  ],
+  "portfolioRisks": [
+    {
+      "name": string,
+      "level": "low" | "medium" | "high",
+      "description": string,
+      "mitigation": string
+    }
   ]
-}
-\`\`\`
-- allocation 是资产配置比例数组，percentage 为百分比数字（不带%），amount 为金额数字，color 为不同的十六进制颜色。请用这些颜色：#88ABDA, #98B6C2, #C0D09D, #CB523E, #DFD6B8, #EAE4D1, #8B5CF6, #F59E0B, #EC4899, #06B6D4。
-- riskReturn 是各资产类别的风险收益散点图数据，risk 为 1-10 的风险等级，expectedReturn 为预期年化收益百分比数字。
+}`;
 
-请使用中文回答，Markdown 格式。关键数据用 **加粗** 标注。`;
+function buildZhPrompt(p: PromptParams): string {
+  return `# 任务
+
+为以下用户画像生成一份资产配置方案，输出唯一的 JSON 对象。
+
+## 用户画像
+
+- 感兴趣资产：${p.selectedAssets}
+- 收益预期：${p.returnDesc}
+- 可投资金额：${p.investAmount} ${p.currencyLabel}
+- 总资产：${p.totalAssets} ${p.currencyLabel}
+- 市场观点：${p.outlookDesc}
+- 投资期限：${p.horizonDesc}
+${p.existingAssets ? `- 当前持仓：${p.existingAssets}` : ''}
+${p.interests ? `- 关注方向：${p.interests}` : ''}
+
+## 投资原则
+
+1. 优先长期稳健资产；股票端优先宽基指数，少量配置个股（如 BRK.B、行业龙头）。
+2. allocation 必须覆盖核心、卫星、防御三层：宽基指数 / 成长主题 / 防御资产（黄金、债券、现金等）。
+3. 至少保留 10%-20% 在现金或短债中作为安全边际。
+4. 每只标的必须给出 ticker 和 productName；金额按用户的总投资额按比例分配。
+5. 每一项 allocation 的 rationale 必须分别回答："为什么选这一类资产 + 为什么用该具体标的"，引用宏观逻辑或财务数据。
+6. 每一项 allocation 的 risks 必须给出 2-3 条具体风险（包含触发条件，例如 "若美联储推迟降息至 2027 年，估值压缩可能带来 15%-25% 回撤"），禁止抽象表述如 "市场风险"。
+7. portfolioRisks 至少包含：集中度风险、波动风险、汇率/币种风险、流动性风险中任三项。
+8. marketContext 必须引用具体的政策事件 / 数据 / 行业景气指标。
+9. 全文禁止使用 emoji、表情符号、第一第二人称、口语化措辞。
+
+## 颜色调色板
+
+allocation 数组中的 color 字段，按数组顺序依次从下列颜色取值（不要重复，不要使用其他色值）：
+${p.palette.join(', ')}
+
+${SCHEMA_NOTE_ZH}`;
 }
 
 function buildEnPrompt(p: PromptParams): string {
-  return `You are a senior investment advisor and asset allocation expert. Based on the following user profile and current real-time market news and economic conditions, provide a detailed, personalized asset allocation recommendation.
+  return `# Task
+
+Produce an asset-allocation plan for the user profile below. Output one JSON object only.
 
 ## User Profile
 
-- **Interested Asset Classes**: ${p.selectedAssets}
-- **Return Expectation**: ${p.returnDesc}
-- **Available Investment Amount**: ${p.investAmount} ${p.currencyLabel}
-- **Total Assets**: ${p.totalAssets} ${p.currencyLabel}
-- **Market Outlook**: ${p.outlookDesc}
-- **Investment Horizon**: ${p.horizonDesc}
-${p.existingAssets ? `- **Current Holdings**: ${p.existingAssets}` : ''}
-${p.interests ? `- **Special Interests**: ${p.interests}` : ''}
+- Interested assets: ${p.selectedAssets}
+- Return target: ${p.returnDesc}
+- Investable amount: ${p.investAmount} ${p.currencyLabel}
+- Total assets: ${p.totalAssets} ${p.currencyLabel}
+- Market view: ${p.outlookDesc}
+- Horizon: ${p.horizonDesc}
+${p.existingAssets ? `- Current holdings: ${p.existingAssets}` : ''}
+${p.interests ? `- Special interests: ${p.interests}` : ''}
 
-## Key Principles
+## Allocation Principles
 
-1. **Stability First**: Always prioritize long-term stable assets. For equities, prefer broad index funds (e.g., S&P 500 ETFs, total market ETFs) over individual stocks.
-2. **Risk Warning**: If the user has aggressive return expectations, clearly warn about risks and suggest allocating most capital to stable assets.
-3. **Diversification**: Ensure the portfolio is well-diversified across asset classes, geographies, and sectors.
-4. **Actionable**: Provide specific product names or tickers (e.g., VOO, SPY, BRK.B), not just generic advice.
-5. **Market-Aware**: Search and reference current economic news, Fed rate policy, global macro trends to make recommendations timely and relevant.
-6. **Safety Margin**: Suggest keeping at least 10-20% in cash or highly liquid assets as an emergency fund.
-7. **For Higher Returns**: Recommend a small allocation to Berkshire Hathaway (BRK.B), quality blue chips, or growth stocks, but keep the proportion controlled.
+1. Favor long-term stable assets; broad-market index funds over single stocks. Single stocks (e.g. BRK.B, sector leaders) only as a small satellite.
+2. allocation must cover three layers: core (broad index), satellite (theme/growth), defensive (gold, bonds, cash).
+3. Reserve 10%-20% in cash or short-duration treasuries as safety margin.
+4. Every line item must include both ticker and productName; amounts must sum to the user's investable amount, in the user's unit.
+5. Each allocation's rationale must address two questions separately: why this asset class, and why this specific instrument — citing macro logic or financial data.
+6. Each allocation's risks must list 2-3 concrete, quantified risks (e.g. "If Fed delays cuts past 2027, multiple compression could trigger a 15%-25% drawdown"). Forbid abstract phrasing such as "market risk".
+7. portfolioRisks must include at least three of: concentration, volatility, FX/currency, liquidity.
+8. marketContext must cite concrete policy events / data points / sector indicators.
+9. No emojis, no greetings, no first/second-person, no marketing language anywhere in the output.
 
-## Output Format (Markdown)
+## Color Palette
 
-### 📊 Asset Allocation Overview
+For each allocation item's color field, take colors in order from this palette (no repeats, no other values):
+${p.palette.join(', ')}
 
-Table showing recommended allocation:
-| Asset Class | Allocation % | Amount (${p.currencyLabel}) | Recommended Products | Rationale |
-
-### 💡 Core Allocation Explanation
-
-2-3 sentences for each major allocation explaining the reasoning.
-
-### 📈 Current Market Environment
-
-Analysis of current market conditions and how they affect this plan, referencing recent news and data.
-
-### ⚠️ Risk Warnings
-
-Specific risks for this plan and mitigation strategies.
-
-### 🎯 Execution Guide
-
-Step-by-step instructions for implementing this plan (account setup, DCA schedule, rebalancing frequency, etc.).
-
-### 📦 Structured Data (Required)
-
-At the very end of the Markdown content, output a JSON code block (wrapped in \`\`\`json and \`\`\`), with the following structure:
-\`\`\`json
-{
-  "allocation": [
-    { "name": "Asset Class Name", "percentage": number, "amount": number, "color": "#hexcolor" }
-  ],
-  "riskReturn": [
-    { "name": "Asset Class Name", "risk": 1to10number, "expectedReturn": annualReturnPercentNumber }
-  ]
-}
-\`\`\`
-- allocation is an array of asset allocation ratios. percentage is a number without %, amount is the dollar/yuan amount, color is a distinct hex color. Please use these colors: #88ABDA, #98B6C2, #C0D09D, #CB523E, #DFD6B8, #EAE4D1, #8B5CF6, #F59E0B, #EC4899, #06B6D4.
-- riskReturn is scatter plot data for each asset class. risk is 1-10 risk level, expectedReturn is expected annual return percent number.
-
-Please respond in English, Markdown format. Bold **key data points**.`;
+${SCHEMA_NOTE_EN}`;
 }
