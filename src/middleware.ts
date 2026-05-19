@@ -44,6 +44,13 @@ function resolveLocale(request: NextRequest): SupportedLocale {
 // (.SS, .SZ, .HK, .T, .KS, .KQ, .AX, plus BRK.B-style class shares).
 const TICKER_REGEX = /^[A-Z0-9.\-=^]{1,15}$/;
 
+// Static asset extensions served straight out of /public/. The locale-prefix
+// rewrite below must never run on these — redirecting `/web-qrcode.png` to
+// `/{locale}/web-qrcode.png` 404s because the asset only exists at the root.
+// Ticker segments like `AAPL.SS` / `BRK.B` don't end in any of these, so
+// matching on the full pathname is safe.
+const STATIC_ASSET_RE = /\.(png|jpe?g|gif|svg|ico|webp|avif|woff2?|ttf|otf|css|js|mjs|map|json|xml|txt|pdf|mp4|webm|ogg|mp3|wav)$/i;
+
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
@@ -53,13 +60,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/api') ||
     pathname.startsWith('/static') ||
     pathname.startsWith('/site-intro/') ||
-    pathname === '/favicon.ico' ||
-    pathname === '/icon.png' ||
-    pathname === '/wechat-qr.jpg' ||
-    pathname === '/robots.txt' ||
-    pathname === '/sitemap.xml' ||
-    pathname === '/manifest.json' ||
-    pathname === '/manifest.webmanifest'
+    STATIC_ASSET_RE.test(pathname)
   ) {
     return NextResponse.next();
   }

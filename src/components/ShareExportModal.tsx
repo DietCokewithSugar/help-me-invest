@@ -272,9 +272,10 @@ const ExportCard = React.forwardRef<
         settings: ExportSettings;
         companyName?: string;
         symbol?: string;
+        qrCodeSrc: string;
         t: { shareExportCard: { investReport: string } };
     }
->(({ title, contentHtml, settings, companyName, symbol, t }, ref) => {
+>(({ title, contentHtml, settings, companyName, symbol, qrCodeSrc, t }, ref) => {
     const fontSize = fontSizeConfig[settings.fontSize] ?? fontSizeConfig.md;
     const theme = themeConfig[settings.theme] ?? themeConfig.dark;
 
@@ -397,24 +398,25 @@ const ExportCard = React.forwardRef<
                         </div>
                         <div
                             style={{
-                                width: '56px',
-                                height: '56px',
-                                background: 'white',
-                                borderRadius: '6px',
-                                padding: '4px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
+                                width: '80px',
+                                height: '80px',
+                                background: '#ffffff',
+                                borderRadius: '8px',
+                                padding: '6px',
+                                boxSizing: 'border-box',
+                                flexShrink: 0,
                             }}
                         >
                             <img
-                                src="/web-qrcode.png"
+                                src={qrCodeSrc}
                                 alt="扫码访问网站"
+                                width={68}
+                                height={68}
                                 style={{
-                                    width: '100%',
-                                    height: '100%',
+                                    width: '68px',
+                                    height: '68px',
+                                    display: 'block',
                                     objectFit: 'contain',
-                                    borderRadius: '4px',
                                 }}
                             />
                         </div>
@@ -473,6 +475,26 @@ export default function ShareExportModal({
         typeof navigator.share === 'function' &&
         typeof navigator.canShare === 'function'
     );
+
+    // Inline the QR code as a base64 data URL so html-to-image's toPng()
+    // never has to async-fetch it during export. Without this, the QR
+    // sometimes renders blank in the exported PNG because the image
+    // hasn't finished decoding when the canvas is rasterized.
+    const [qrCodeSrc, setQrCodeSrc] = useState<string>('/web-qrcode.png');
+    useEffect(() => {
+        let cancelled = false;
+        fetch('/web-qrcode.png')
+            .then(res => res.blob())
+            .then(blob => new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = () => reject(reader.error);
+                reader.readAsDataURL(blob);
+            }))
+            .then(dataUrl => { if (!cancelled) setQrCodeSrc(dataUrl); })
+            .catch(() => { /* keep URL fallback */ });
+        return () => { cancelled = true; };
+    }, []);
 
     // Reset status and theme when modal opens
     useEffect(() => {
@@ -684,6 +706,7 @@ export default function ShareExportModal({
                                     settings={settings}
                                     companyName={companyName}
                                     symbol={symbol}
+                                    qrCodeSrc={qrCodeSrc}
                                     t={t}
                                 />
                             </div>
