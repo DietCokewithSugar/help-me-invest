@@ -55,11 +55,6 @@ export default function HomePage({ params }: HomePageProps) {
   // Default market is US for home page; the AI market-detect badge surfaces
   // this in the SSR output before the user types anything.
   const currentMarketConfig = MARKET_CONFIGS.US;
-  const marketRecommended: FeaturedStockChip[] = currentMarketConfig.featuredStocks.slice(0, 5).map((stock) => ({
-    symbol: stock.symbol,
-    label: stock.name,
-    href: `/${locale}/companies/${encodeURIComponent(stock.symbol)}`,
-  }));
 
   const labels: SearchIslandLabels = {
     aiMarketDetectPrefix: t.home.search.aiMarketDetect,
@@ -73,7 +68,6 @@ export default function HomePage({ params }: HomePageProps) {
     delete: t.common.delete,
     trendingThisWeek: t.home.search.trendingThisWeek,
     realtimeUpdate: t.home.search.realtimeUpdate,
-    marketHotLabel: t.home.search.marketHot(currentMarketConfig.nameCn),
   };
 
   const reportTypeOptions = [
@@ -111,9 +105,7 @@ export default function HomePage({ params }: HomePageProps) {
               <span className="gradient-text font-normal">{t.home.hero.titleHighlight}</span>
             </h2>
             <p className="text-base md:text-xl text-mist-400 max-w-2xl mx-auto leading-relaxed px-4">
-              {t.home.hero.subtitle1}
-              <br className="hidden md:block" />
-              <span className="text-mist-500">{t.home.hero.subtitle2}</span>
+              {t.home.hero.subtitle}
             </p>
           </div>
 
@@ -122,7 +114,6 @@ export default function HomePage({ params }: HomePageProps) {
             initialPlaceholder={rotation[0]}
             rotation={rotation}
             featuredStocks={featuredStocks}
-            marketRecommended={marketRecommended}
             reportTypeOptions={reportTypeOptions}
             labels={labels}
           />

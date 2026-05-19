@@ -58,7 +58,6 @@ export interface SearchIslandLabels {
   delete: string;
   trendingThisWeek: string;
   realtimeUpdate: string;
-  marketHotLabel: string;
 }
 
 interface HomeSearchIslandProps {
@@ -66,7 +65,6 @@ interface HomeSearchIslandProps {
   initialPlaceholder: PlaceholderRotationItem;
   rotation: PlaceholderRotationItem[];
   featuredStocks: FeaturedStockChip[];
-  marketRecommended: FeaturedStockChip[];
   reportTypeOptions: ReportTypeChoice[];
   labels: SearchIslandLabels;
 }
@@ -140,7 +138,6 @@ export default function HomeSearchIsland({
   initialPlaceholder,
   rotation,
   featuredStocks,
-  marketRecommended,
   reportTypeOptions,
   labels,
 }: HomeSearchIslandProps) {
@@ -551,23 +548,6 @@ export default function HomeSearchIsland({
           </div>
         </div>
 
-        {/* Market-specific recommendations: always SSR. */}
-        <div className="flex items-center gap-2 flex-wrap text-sm px-1">
-          <span className="text-mist-600">{labels.marketHotLabel}</span>
-          {marketRecommended.slice(0, 5).map((stock) => (
-            <a
-              key={stock.symbol}
-              href={stock.href}
-              onClick={(e) => {
-                e.preventDefault();
-                router.push(stock.href);
-              }}
-              className="stock-chip"
-            >
-              <span className="font-mono">{stock.symbol}</span>
-            </a>
-          ))}
-        </div>
       </div>
     </motion.div>
   );
