@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import Header from '@/components/Header';
-import ContactModal from '@/components/ContactModal';
 import CompanyOverviewModal from '@/components/CompanyOverviewModal';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { withLocale } from '@/lib/locale-path';
@@ -481,7 +480,6 @@ export default function CompaniesPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [isFilterExpanded, setIsFilterExpanded] = useState(true);
     const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-    const [showContactModal, setShowContactModal] = useState(false);
     const [selectedMarketCapRange, setSelectedMarketCapRange] = useState<string | null>(null);
 
     // 公司概述浮窗状态
@@ -639,7 +637,6 @@ export default function CompaniesPage() {
                 theme={theme}
                 toggleTheme={toggleTheme}
                 onReset={() => router.push(withLocale(locale, '/'))}
-                showContactModal={() => setShowContactModal(true)}
             />
 
             {/* Main Content */}
@@ -964,15 +961,6 @@ export default function CompaniesPage() {
                 onCompanyChange={(newCompany) => setSelectedCompany(newCompany)}
             />
 
-            <ContactModal
-                isOpen={showContactModal}
-                onClose={() => setShowContactModal(false)}
-                title={t.home.contact.title}
-                scanQr={t.home.contact.scanQr}
-                lookForward={t.home.contact.lookForward}
-                wechatLabel={t.home.faq.wechat}
-                emailLabel={t.home.faq.email}
-            />
         </div >
     );
 }

@@ -14,7 +14,6 @@ import {
     FilterIcon,
 } from '@/components/Icons';
 import Header from '@/components/Header';
-import ContactModal from '@/components/ContactModal';
 import {
     ChevronLeft as ChevronLeftIcon,
     LayoutGrid as LayoutGridIcon,
@@ -397,7 +396,6 @@ export default function TrackingPage() {
     const [theme, setTheme] = useState<'dark' | 'light'>('dark');
     const [selectedCompany, setSelectedCompany] = useState<TrackedCompany | null>(null);
     const [reportModalOpen, setReportModalOpen] = useState(false);
-    const [showContactModal, setShowContactModal] = useState(false);
     const [diagnosticCompany, setDiagnosticCompany] = useState<CompanyDiagnostic | null>(null);
     const [showOverviewModal, setShowOverviewModal] = useState(false);
     const router = useRouter();
@@ -472,7 +470,6 @@ export default function TrackingPage() {
             <Header
                 theme={theme}
                 toggleTheme={toggleTheme}
-                showContactModal={() => setShowContactModal(true)}
             />
 
             {/* 二级工具栏 - 视图切换 */}
@@ -695,15 +692,6 @@ export default function TrackingPage() {
                 onCompanyChange={(newCompany) => setDiagnosticCompany(newCompany)}
             />
 
-            <ContactModal
-                isOpen={showContactModal}
-                onClose={() => setShowContactModal(false)}
-                title={t.home.contact.title}
-                scanQr={t.home.contact.scanQr}
-                lookForward={t.home.contact.lookForward}
-                wechatLabel={t.home.faq.wechat}
-                emailLabel={t.home.faq.email}
-            />
         </main>
     );
 }

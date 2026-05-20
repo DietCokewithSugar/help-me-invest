@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
-import ContactModal from '@/components/ContactModal';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { withLocale } from '@/lib/locale-path';
 import { getTrendColor } from '@/lib/industry-data';
@@ -44,7 +43,6 @@ export default function IndustryPage() {
   const [error, setError] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>('marketCapWeight');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
-  const [showContactModal, setShowContactModal] = useState(false);
   const isDark = theme === 'dark';
 
   useEffect(() => {
@@ -251,7 +249,7 @@ export default function IndustryPage() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-obsidian)' }}>
-      <Header theme={theme} toggleTheme={toggleTheme} showContactModal={() => setShowContactModal(true)} />
+      <Header theme={theme} toggleTheme={toggleTheme} />
 
       <main className="max-w-7xl mx-auto px-4 md:px-6 pt-28 pb-16">
         {/* Title */}
@@ -415,15 +413,6 @@ export default function IndustryPage() {
         )}
       </main>
 
-      <ContactModal
-        isOpen={showContactModal}
-        onClose={() => setShowContactModal(false)}
-        title={t.home.contact.title}
-        scanQr={t.home.contact.scanQr}
-        lookForward={t.home.contact.lookForward}
-        wechatLabel={t.home.faq.wechat}
-        emailLabel={t.home.faq.email}
-      />
     </div>
   );
 }

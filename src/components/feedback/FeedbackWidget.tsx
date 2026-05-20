@@ -136,7 +136,7 @@ export default function FeedbackWidget() {
         onClick={() => setOpen((v) => !v)}
         title={widgetT.tooltip}
         aria-label={widgetT.tooltip}
-        className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-full bg-glacier-500 hover:bg-glacier-400 text-obsidian font-semibold text-sm shadow-lg shadow-glacier-500/30 transition-all"
+        className="glass-card inline-flex items-center gap-2 px-4 py-2.5 rounded-pill font-mono text-[11px] uppercase tracking-[0.12em] text-mist-300 hover:text-mist-50 transition-colors"
       >
         <MessageSquarePlus className="w-4 h-4" />
         <span className="hidden sm:inline">{widgetT.open}</span>

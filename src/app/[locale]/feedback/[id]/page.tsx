@@ -254,7 +254,6 @@ export default function FeedbackDetailPage() {
         theme={theme}
         toggleTheme={toggleTheme}
         onReset={() => router.push(withLocale(locale, '/'))}
-        showContactModal={() => router.push(withLocale(locale, '/feedback'))}
       />
 
       <div className="pt-32 pb-24 px-4 md:px-6">

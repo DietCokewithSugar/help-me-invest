@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { AnimatePresence, motion } from 'framer-motion';
 import Header from '@/components/Header';
-import ContactModal from '@/components/ContactModal';
 import { useCompare, type CompareCompany } from '@/contexts/CompareContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { withLocale } from '@/lib/locale-path';
@@ -105,7 +104,6 @@ export default function ComparePage() {
   const { companies, addCompany, removeCompany, clearAll, isFull } = useCompare();
 
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-  const [showContactModal, setShowContactModal] = useState(false);
   const [detailedData, setDetailedData] = useState<Record<string, DetailedData>>({});
   const [loadingData, setLoadingData] = useState<Record<string, boolean>>({});
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
@@ -300,7 +298,6 @@ export default function ComparePage() {
         theme={theme}
         toggleTheme={toggleTheme}
         onReset={() => router.push(withLocale(locale, '/'))}
-        showContactModal={() => setShowContactModal(true)}
       />
 
       <div className="pt-32 pb-12 px-4 md:px-6">
@@ -563,15 +560,6 @@ export default function ComparePage() {
         </div>
       </div>
 
-      <ContactModal
-        isOpen={showContactModal}
-        onClose={() => setShowContactModal(false)}
-        title={t.home.contact.title}
-        scanQr={t.home.contact.scanQr}
-        lookForward={t.home.contact.lookForward}
-        wechatLabel={t.home.faq.wechat}
-        emailLabel={t.home.faq.email}
-      />
     </div>
   );
 }
