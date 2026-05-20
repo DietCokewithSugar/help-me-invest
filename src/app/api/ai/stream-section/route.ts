@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GeminiClient } from '@/lib/gemini';
 import { saveReportSection } from '@/lib/supabase';
 import type { MarketType } from '@/types';
+import { MARKET_CONFIGS } from '@/lib/markets';
 
 // 使用 Node.js Runtime（不使用 Edge），Pro 计划最大超时 300 秒
 export const maxDuration = 300;
@@ -166,7 +167,7 @@ export async function POST(request: NextRequest) {
         }
 
         const client = new GeminiClient(deepseekApiKey);
-        const marketType = (market as MarketType) || 'US';
+        const marketType: MarketType = typeof market === 'string' && market in MARKET_CONFIGS ? (market as MarketType) : 'US';
 
         let streamIterator: AsyncGenerator<string, void, unknown>;
 

@@ -532,7 +532,7 @@ export default function FinancialRatiosTTMDisplay({
               动态估值指标
             </h3>
             <p className="text-xs text-mist-500 mt-1">
-              "现在的价格贵不贵？" —— 最适合用来做实时的买卖决策
+              &quot;现在的价格贵不贵？&quot; —— 最适合用来做实时的买卖决策
             </p>
           </div>
           <div className="flex items-center gap-1 text-xs text-mist-500">
@@ -680,7 +680,7 @@ export default function FinancialRatiosTTMDisplay({
               真实盈利能力
             </h3>
             <p className="text-xs text-mist-500 mt-1">
-              "最近一年赚钱效率如何？" —— TTM 数据消除了季节性波动
+              &quot;最近一年赚钱效率如何？&quot; —— TTM 数据消除了季节性波动
             </p>
           </div>
         </div>
@@ -821,7 +821,7 @@ export default function FinancialRatiosTTMDisplay({
               运营效率
             </h3>
             <p className="text-xs text-mist-500 mt-1">
-              "生意做得有多快？" —— 展示最新的供应链管理水平
+              &quot;生意做得有多快？&quot; —— 展示最新的供应链管理水平
             </p>
           </div>
         </div>
@@ -998,7 +998,7 @@ export default function FinancialRatiosTTMDisplay({
               财务健康
             </h3>
             <p className="text-xs text-mist-500 mt-1">
-              "抗风险能力" —— 评估公司的财务稳健程度
+              &quot;抗风险能力&quot; —— 评估公司的财务稳健程度
             </p>
           </div>
         </div>
@@ -1135,7 +1135,7 @@ export default function FinancialRatiosTTMDisplay({
               资本配置
             </h3>
             <p className="text-xs text-mist-500 mt-1">
-              "赚的钱花哪去了？" —— 看出管理层是喜欢乱花钱，还是回报股东
+              &quot;赚的钱花哪去了？&quot; —— 看出管理层是喜欢乱花钱，还是回报股东
             </p>
           </div>
         </div>
@@ -1236,7 +1236,7 @@ export default function FinancialRatiosTTMDisplay({
   return (
     <div className="space-y-6 animate-fade-in mt-8">
       {/* TTM 说明头部 */}
-      <div className="mb-6 p-4 bg-gradient-to-r from-glacier-500/10 to-gemini-blue/10 border border-glacier-500/20 rounded-xl">
+      <div className="mb-6 p-4 bg-glacier-500/10 border border-glacier-500/20 rounded-xl">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-glacier-500/20 flex items-center justify-center">
             <Clock className="w-5 h-5 text-glacier-400" />

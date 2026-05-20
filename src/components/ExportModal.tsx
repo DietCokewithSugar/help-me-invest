@@ -95,7 +95,7 @@ export default function ExportModal({
       const dataUrl = await toPng(targetRef.current, {
         quality: 1,
         pixelRatio: 2,
-        backgroundColor: '#0a0a0f',
+        backgroundColor: '#0F0E0B',
         cacheBust: false, // 禁用 cacheBust 避免字体缓存问题
         skipFonts: true,  // 跳过字体嵌入，避免 CORS 问题
         style: {
@@ -133,7 +133,7 @@ export default function ExportModal({
       const dataUrl = await toPng(targetRef.current, {
         quality: 1,
         pixelRatio: 2,
-        backgroundColor: '#0a0a0f',
+        backgroundColor: '#0F0E0B',
         cacheBust: false, // 禁用 cacheBust 避免字体缓存问题
         skipFonts: true,  // 跳过字体嵌入，避免 CORS 问题
       });
@@ -241,10 +241,6 @@ export default function ExportModal({
             animate="visible"
             exit="exit"
           >
-            {/* 装饰背景 */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-gemini-blue/10 to-gemini-purple/5 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-gemini-pink/10 to-gemini-yellow/5 rounded-full blur-3xl pointer-events-none" />
-
             {/* 关闭按钮 */}
             <motion.button
               type="button"
@@ -261,11 +257,8 @@ export default function ExportModal({
             {/* 标题区域 */}
             <div className="relative mb-8">
               <div className="flex items-center gap-4">
-                <div className="relative">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-gemini-blue via-gemini-purple to-gemini-pink flex items-center justify-center">
-                    <ImageIcon className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-gemini-blue to-gemini-pink opacity-40 blur-2xl" />
+                <div className="w-14 h-14 rounded-2xl bg-glacier-500 flex items-center justify-center">
+                  <ImageIcon className="w-6 h-6 text-white" />
                 </div>
                 <div>
                   <h2 id={titleId} className="text-2xl font-bold text-white">导出报告</h2>

@@ -27,16 +27,16 @@ interface Props {
   currency?: string;
 }
 
-const FALLBACK_COLORS = ['#88ABDA', '#98B6C2', '#C0D09D', '#CB523E', '#DFD6B8', '#EAE4D1', '#8B5CF6', '#F59E0B', '#EC4899', '#06B6D4'];
+const FALLBACK_COLORS = ['#88ABDA', '#98B6C2', '#C0D09D', '#CB523E', '#DFD6B8', '#FF8866', '#D5FAD3', '#BADBEE', '#EFECCA', '#CCC5A3'];
 
 export default function AllocationCharts({ chartData, theme = 'dark', currency = 'CNY' }: Props) {
   const { locale } = useLanguage();
   const isLight = theme === 'light';
   const isZh = locale === 'zh';
 
-  const TEXT_PRIMARY = isLight ? '#1e293b' : '#e2e8f0';
-  const TEXT_SECONDARY = isLight ? '#475569' : '#94a3b8';
-  const BG_SURFACE = isLight ? '#ffffff' : '#121212';
+  const TEXT_PRIMARY = isLight ? '#0F0E0B' : '#FFFFFA';
+  const TEXT_SECONDARY = isLight ? '#3D3B34' : '#9D937C';
+  const BG_SURFACE = isLight ? '#F9F9F0' : '#0F0E0B';
   const BORDER = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
   const currencyUnit = currency === 'CNY' ? (isZh ? '万元' : '0k CNY') : (isZh ? '万美元' : '0k USD');
 
@@ -158,7 +158,7 @@ export default function AllocationCharts({ chartData, theme = 'dark', currency =
   return (
     <div className="space-y-6 mb-8">
       {pieOption && (
-        <div className="p-4 rounded-md border" style={{ borderColor: BORDER, backgroundColor: isLight ? '#f8fafc' : 'rgba(255,255,255,0.02)' }}>
+        <div className="p-4 rounded-md border" style={{ borderColor: BORDER, backgroundColor: isLight ? '#F9F9F0' : 'rgba(255,255,255,0.02)' }}>
           <div className="mono-kicker mb-3">
             {isZh ? '资产配置比例' : 'Allocation breakdown'}
           </div>
@@ -166,7 +166,7 @@ export default function AllocationCharts({ chartData, theme = 'dark', currency =
         </div>
       )}
       {scatterOption && (
-        <div className="p-4 rounded-md border" style={{ borderColor: BORDER, backgroundColor: isLight ? '#f8fafc' : 'rgba(255,255,255,0.02)' }}>
+        <div className="p-4 rounded-md border" style={{ borderColor: BORDER, backgroundColor: isLight ? '#F9F9F0' : 'rgba(255,255,255,0.02)' }}>
           <div className="mono-kicker mb-3">
             {isZh ? '风险收益分布' : 'Risk-return profile'}
           </div>

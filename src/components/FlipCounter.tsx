@@ -32,7 +32,7 @@ function FlipDigit({ digit, delay = 0 }: FlipDigitProps) {
   return (
     <div className="relative w-[0.65em] h-[1.2em] overflow-hidden">
       {/* 背景卡片 */}
-      <div className="absolute inset-0 bg-gradient-to-b from-white/[0.08] to-white/[0.03] rounded-md border border-white/[0.08]" />
+      <div className="absolute inset-0 bg-white/[0.05] rounded-md border border-white/[0.08]" />
       
       {/* 中间分割线 */}
       <div className="absolute left-0 right-0 top-1/2 h-px bg-black/30 z-10" />

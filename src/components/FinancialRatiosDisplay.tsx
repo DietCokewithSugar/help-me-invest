@@ -232,7 +232,7 @@ export default function FinancialRatiosDisplay({
       <div className="bg-midnight/30 rounded-xl p-6 border border-white/5 max-md:border-0">
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <span className="w-2 h-2 bg-gemini-blue rounded-full"></span>
-          利润率 (Margins) —— 赚钱有多"轻松"？
+          利润率 (Margins) —— 赚钱有多&quot;轻松&quot;？
         </h3>
         <p className="text-xs text-mist-500 mb-4">
           这一组数据全都是 ...Margin 结尾，衡量公司把收入转化为利润的能力。
@@ -754,7 +754,7 @@ export default function FinancialRatiosDisplay({
           每股数据 (Per Share Metrics)
         </h3>
         <p className="text-xs text-mist-500 mb-4">
-          这一组是把总数除以了"总股本"，方便散户看"每一股"含金量。
+          这一组是把总数除以了&quot;总股本&quot;，方便散户看&quot;每一股&quot;含金量。
         </p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {perShare.map((m, i) => (

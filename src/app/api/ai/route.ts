@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GeminiClient } from '@/lib/gemini';
-import type { MarketType } from '@/lib/markets';
+import { MARKET_CONFIGS, type MarketType } from '@/lib/markets';
 import { getCachedReportV1, saveReport, type AIReportRecord } from '@/lib/supabase';
 import { withRetryAndTimeout } from '@/lib/api-utils';
 
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '缺少必要的公司信息' }, { status: 400 });
     }
 
-    const marketType = (market as MarketType) || 'US';
+    const marketType: MarketType = typeof market === 'string' && market in MARKET_CONFIGS ? (market as MarketType) : 'US';
     const upperSymbol = symbol.toUpperCase().trim();
 
     // 1. 检查数据库中是否有7天内的缓存报告

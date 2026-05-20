@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GeminiClient } from '@/lib/gemini';
-import type { MarketType } from '@/lib/markets';
+import { MARKET_CONFIGS, type MarketType } from '@/lib/markets';
 import { saveReport, type AIReportRecord } from '@/lib/supabase';
 import { withRetryAndTimeout } from '@/lib/api-utils';
 
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
         }
 
         const gemini = new GeminiClient(deepseekApiKey);
-        const marketType = (market as MarketType) || 'US';
+        const marketType: MarketType = typeof market === 'string' && market in MARKET_CONFIGS ? (market as MarketType) : 'US';
         const upperSymbol = symbol.toUpperCase().trim();
 
         const defaultAnalysis = {

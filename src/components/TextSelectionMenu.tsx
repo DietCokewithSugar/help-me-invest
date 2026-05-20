@@ -291,7 +291,7 @@ export default function TextSelectionMenu() {
 
                             {selection.text && (
                                 <div className="px-4 py-2.5 bg-slate-50/30 dark:bg-white/[0.01] border-t border-slate-100 dark:border-white/10 text-[11px] text-slate-400 dark:text-mist-500 truncate font-mono">
-                                    SOURCE: "{selection.text}"
+                                    SOURCE: &quot;{selection.text}&quot;
                                 </div>
                             )}
                         </motion.div>
