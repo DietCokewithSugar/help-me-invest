@@ -476,6 +476,8 @@ html {
 [data-theme="light"] .bg-obsidian-900 { background-color: var(--bg-obsidian) !important; }
 [data-theme="light"] .bg-surface       { background-color: var(--bg-surface)  !important; }
 [data-theme="light"] .bg-surface\/80   { background-color: rgba(255, 255, 255, 0.9) !important; }
+[data-theme="light"] .bg-surface\/90   { background-color: rgba(255, 255, 250, 0.94) !important; }
+[data-theme="light"] .bg-surface\/95   { background-color: rgba(255, 255, 250, 0.97) !important; }
 
 /* Shadow softening */
 [data-theme="light"] .shadow-black\/40,
