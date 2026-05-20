@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
-import ContactModal from '@/components/ContactModal';
 import CompanyOverviewModal from '@/components/CompanyOverviewModal';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { withLocale } from '@/lib/locale-path';
@@ -60,7 +59,6 @@ export default function IndustryDetailPage() {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [sortKey, setSortKey] = useState<SortKey>('marketCap');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
-  const [showContactModal, setShowContactModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'chain' | 'companies' | 'news'>('chain');
   const [selectedCompany, setSelectedCompany] = useState<CompanyDiagnostic | null>(null);
   const [showOverviewModal, setShowOverviewModal] = useState(false);
@@ -423,7 +421,7 @@ export default function IndustryDetailPage() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-obsidian)' }}>
-      <Header theme={theme} toggleTheme={toggleTheme} showContactModal={() => setShowContactModal(true)} />
+      <Header theme={theme} toggleTheme={toggleTheme} />
 
       <main className="max-w-7xl mx-auto px-4 md:px-6 pt-28 pb-16">
         {/* Breadcrumb */}
@@ -725,15 +723,6 @@ export default function IndustryDetailPage() {
         ) : null}
       </main>
 
-      <ContactModal
-        isOpen={showContactModal}
-        onClose={() => setShowContactModal(false)}
-        title={t.home.contact.title}
-        scanQr={t.home.contact.scanQr}
-        lookForward={t.home.contact.lookForward}
-        wechatLabel={t.home.faq.wechat}
-        emailLabel={t.home.faq.email}
-      />
 
       <CompanyOverviewModal
         company={selectedCompany}

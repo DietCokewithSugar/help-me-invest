@@ -17,7 +17,7 @@ export default function HomeButton() {
       href={`/${locale}`}
       aria-label={label}
       title={label}
-      className="fixed bottom-5 left-5 z-[95] inline-flex h-10 w-10 items-center justify-center rounded-sm border border-white/10 bg-surface text-mist-300 shadow-lg transition-colors hover:bg-white/10 hover:text-white"
+      className="glass-card fixed bottom-5 left-5 z-[95] inline-flex h-10 w-10 items-center justify-center rounded-pill text-mist-300 hover:text-mist-50 transition-colors"
     >
       <Home className="h-4 w-4" />
     </Link>

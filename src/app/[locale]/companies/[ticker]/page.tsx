@@ -4,7 +4,6 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { notFound, useParams, useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Header from '@/components/Header';
-import ContactModal from '@/components/ContactModal';
 import Report from '@/components/Report';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { withLocale } from '@/lib/locale-path';
@@ -100,7 +99,6 @@ function CompanyReportPageContent() {
   const initialReportType = (searchParams.get('type') as ReportType | null) || 'standard';
   const [reportType, setReportType] = useState<ReportType>(initialReportType);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-  const [showContactModal, setShowContactModal] = useState(false);
 
   const {
     loading,
@@ -174,7 +172,6 @@ function CompanyReportPageContent() {
         theme={theme}
         toggleTheme={toggleTheme}
         onReset={goHome}
-        showContactModal={() => setShowContactModal(true)}
       />
 
       {/* Loading screen */}
@@ -260,15 +257,6 @@ function CompanyReportPageContent() {
         </div>
       )}
 
-      <ContactModal
-        isOpen={showContactModal}
-        onClose={() => setShowContactModal(false)}
-        title={t.home.contact.title}
-        scanQr={t.home.contact.scanQr}
-        lookForward={t.home.contact.lookForward}
-        wechatLabel={t.home.faq.wechat}
-        emailLabel={t.home.faq.email}
-      />
     </main>
   );
 }

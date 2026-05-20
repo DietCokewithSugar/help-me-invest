@@ -18,12 +18,6 @@ interface HeaderProps {
     theme: 'dark' | 'light';
     toggleTheme: () => void;
     onReset?: () => void;
-    /**
-     * Legacy prop kept for back-compat with the old "Contact" modal. The
-     * navigation now always points to /feedback; this callback (if provided)
-     * runs in addition to the navigation, e.g. for analytics.
-     */
-    showContactModal?: () => void;
 }
 
 /**
@@ -41,7 +35,6 @@ export default function Header({
     theme,
     toggleTheme,
     onReset,
-    showContactModal,
 }: HeaderProps) {
     const router = useRouter();
     const pathname = usePathname();
@@ -153,13 +146,6 @@ export default function Header({
                                 ) : null}
                             </Link>
                         ))}
-                        <Link
-                            href={feedbackHref}
-                            onClick={() => showContactModal?.()}
-                            className="px-3 xl:px-4 py-2 rounded-pill font-mono text-[11px] uppercase tracking-[0.12em] text-mist-300 hover:text-mist-50 hover:bg-white/5 transition-colors whitespace-nowrap"
-                        >
-                            {t.header.contact}
-                        </Link>
                     </nav>
 
                     {/* Right cluster: settings · CTA */}
@@ -205,7 +191,6 @@ export default function Header({
                         {/* Desktop primary CTA — pill */}
                         <Link
                             href={feedbackHref}
-                            onClick={() => showContactModal?.()}
                             className="hidden xl:inline-flex pill-btn !py-2 !px-4 !text-[10px]"
                         >
                             {t.header.contact}
@@ -247,13 +232,6 @@ export default function Header({
                                         ) : null}
                                     </Link>
                                 ))}
-                                <Link
-                                    href={feedbackHref}
-                                    onClick={() => { showContactModal?.(); setMobileMenuOpen(false); }}
-                                    className="flex items-center px-3 py-3 min-h-[44px] rounded-md text-sm font-mono uppercase tracking-[0.1em] text-mist-300 hover:text-mist-50 hover:bg-white/5 transition-colors text-left"
-                                >
-                                    <span className="truncate">{t.header.contact}</span>
-                                </Link>
                             </nav>
                         </motion.div>
                     )}

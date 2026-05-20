@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
-import ContactModal from '@/components/ContactModal';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { withLocale } from '@/lib/locale-path';
 
@@ -19,9 +18,8 @@ interface ThemeAwareHeaderProps {
  */
 export default function ThemeAwareHeader({ initialTheme }: ThemeAwareHeaderProps) {
   const router = useRouter();
-  const { locale, t } = useLanguage();
+  const { locale } = useLanguage();
   const [theme, setTheme] = useState<'dark' | 'light'>(initialTheme || 'dark');
-  const [contactOpen, setContactOpen] = useState(false);
 
   useEffect(() => {
     const saved = (typeof localStorage !== 'undefined'
@@ -52,22 +50,10 @@ export default function ThemeAwareHeader({ initialTheme }: ThemeAwareHeaderProps
   }, []);
 
   return (
-    <>
-      <Header
-        theme={theme}
-        toggleTheme={toggleTheme}
-        onReset={() => router.push(withLocale(locale, '/'))}
-        showContactModal={() => setContactOpen(true)}
-      />
-      <ContactModal
-        isOpen={contactOpen}
-        onClose={() => setContactOpen(false)}
-        title={t.home.contact.title}
-        scanQr={t.home.contact.scanQr}
-        lookForward={t.home.contact.lookForward}
-        wechatLabel={t.home.faq.wechat}
-        emailLabel={t.home.faq.email}
-      />
-    </>
+    <Header
+      theme={theme}
+      toggleTheme={toggleTheme}
+      onReset={() => router.push(withLocale(locale, '/'))}
+    />
   );
 }

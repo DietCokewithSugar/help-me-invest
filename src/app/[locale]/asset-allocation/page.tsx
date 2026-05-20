@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Header from '@/components/Header';
-import ContactModal from '@/components/ContactModal';
 import ExportModal from '@/components/ExportModal';
 import AllocationCharts from '@/components/AllocationCharts';
 import AssetAllocationReport, { type AssetAllocationReportData } from '@/components/AssetAllocationReport';
@@ -60,7 +59,6 @@ interface FormData {
 export default function AssetAllocationPage() {
   const { t, locale } = useLanguage();
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-  const [showContactModal, setShowContactModal] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
   const [report, setReport] = useState<AssetAllocationReportData | null>(null);
@@ -213,7 +211,6 @@ export default function AssetAllocationPage() {
       <Header
         theme={theme}
         toggleTheme={toggleTheme}
-        showContactModal={() => setShowContactModal(true)}
       />
 
       <div className="pt-32 pb-16 px-4 md:px-6">
@@ -616,15 +613,6 @@ export default function AssetAllocationPage() {
         />
       </div>
 
-      <ContactModal
-        isOpen={showContactModal}
-        onClose={() => setShowContactModal(false)}
-        title={t.home.contact.title}
-        scanQr={t.home.contact.scanQr}
-        lookForward={t.home.contact.lookForward}
-        wechatLabel={t.home.faq.wechat}
-        emailLabel={t.home.faq.email}
-      />
     </div>
   );
 }
