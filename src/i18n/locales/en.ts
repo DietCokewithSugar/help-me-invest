@@ -197,7 +197,7 @@ export const en: TranslationKeys = {
       reportCount: 'Generated',
       reportUnit: 'research reports',
       copyright: (year: number) => `© ${year} AI Invest · AI Investment Research`,
-      dataSource: 'Data: Financial Modeling Prep (FMP) · AI powered by DeepSeek',
+      dataSource: 'Data: Financial Modeling Prep (FMP) · AI powered by Google Gemini',
     },
     loading: {
       step1: 'Fetching company information',

@@ -15,14 +15,14 @@ export async function POST(request: NextRequest) {
     }
 
     const fmpApiKey = process.env.FMP_API_KEY;
-    const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
+    const googleApiKey = process.env.GOOGLE_API_KEY;
 
-    if (!fmpApiKey || !deepseekApiKey) {
+    if (!fmpApiKey || !googleApiKey) {
       return NextResponse.json({ error: 'API密钥未配置' }, { status: 500 });
     }
 
     const fmp = new FMPClient(fmpApiKey);
-    const gemini = new GeminiClient(deepseekApiKey);
+    const gemini = new GeminiClient(googleApiKey);
 
     const upperSymbol = symbol.toUpperCase();
 

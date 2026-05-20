@@ -195,7 +195,7 @@ export const zh = {
       reportCount: '已产出',
       reportUnit: '篇企业研报',
       copyright: (year: number) => `© ${year} 智投研究 · AI Investment Research`,
-      dataSource: '数据来源：Financial Modeling Prep (FMP) · AI 由 DeepSeek 提供支持',
+      dataSource: '数据来源：Financial Modeling Prep (FMP) · AI 由 Google Gemini 提供支持',
     },
     loading: {
       step1: '正在获取企业基本信息',

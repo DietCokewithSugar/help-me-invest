@@ -13,12 +13,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '缺少必要的公司信息' }, { status: 400 });
     }
 
-    const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
-    if (!deepseekApiKey) {
-      return NextResponse.json({ error: 'DeepSeek API 密钥未配置' }, { status: 500 });
+    const googleApiKey = process.env.GOOGLE_API_KEY;
+    if (!googleApiKey) {
+      return NextResponse.json({ error: 'Google API 密钥未配置' }, { status: 500 });
     }
 
-    const gemini = new GeminiClient(deepseekApiKey);
+    const gemini = new GeminiClient(googleApiKey);
     const marketType = (market as MarketType) || 'US';
     const isNonUS = marketType !== 'US';
 
