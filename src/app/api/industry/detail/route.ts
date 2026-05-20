@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { FMPMCPClient } from '@/lib/fmp-mcp';
-import { SECTOR_SUPPLY_CHAINS } from '@/lib/industry-data';
+import {
+  SECTOR_STRUCTURE,
+  flattenSectorSymbols,
+  buildSectorNameMap,
+  type IndustrySegment,
+  type SectorStructure,
+} from '@/lib/industry-data';
 
 export const maxDuration = 60;
 
@@ -10,6 +16,17 @@ interface SymbolFallback {
   profile: any | null;
 }
 
+interface CompanyMetrics {
+  symbol: string;
+  name: string;
+  marketCap: number;
+  price: number;
+  change: number;
+  revenueGrowth: number;
+  industry: string;
+  image: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { sector } = await request.json();
@@ -17,17 +34,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Sector is required' }, { status: 400 });
     }
 
-    const supplyChain = SECTOR_SUPPLY_CHAINS[sector] || null;
-    const allSymbols = getSymbolsForSector(sector);
-    const nameMap = buildNameMap(sector);
+    const structure: SectorStructure | undefined = SECTOR_STRUCTURE[sector];
+    const allSymbols = flattenSectorSymbols(sector);
+    const nameMap = buildSectorNameMap(sector);
 
-    if (allSymbols.length === 0) {
+    if (!structure || allSymbols.length === 0) {
       return NextResponse.json({
         success: true,
         data: {
           sector,
+          overview: structure?.overview ?? null,
+          segments: [],
           companies: [],
-          supplyChain,
           totalMarketCap: 0,
           avgGrowth: 0,
           companyCount: 0,
@@ -100,7 +118,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const companies = allSymbols
+    const companies: CompanyMetrics[] = allSymbols
       .map((symbol) => {
         const screener = screenerMap.get(symbol);
         const fallback = fallbackMap.get(symbol);
@@ -151,10 +169,59 @@ export async function POST(request: NextRequest) {
       })
       .sort((a, b) => b.marketCap - a.marketCap);
 
+    const metricsBySymbol = new Map<string, CompanyMetrics>();
+    for (const company of companies) {
+      metricsBySymbol.set(company.symbol, company);
+    }
+
+    const segments = structure.segments.map((segment: IndustrySegment) => {
+      const segmentCompanies = segment.companies
+        .map((seed) => {
+          const metrics = metricsBySymbol.get(seed.symbol);
+          if (metrics) {
+            return {
+              ...metrics,
+              note: seed.note,
+            };
+          }
+          return {
+            symbol: seed.symbol,
+            name: seed.name,
+            marketCap: 0,
+            price: 0,
+            change: 0,
+            revenueGrowth: 0,
+            industry: '',
+            image: '',
+            note: seed.note,
+          };
+        })
+        .sort((a, b) => b.marketCap - a.marketCap);
+
+      const segmentMarketCap = segmentCompanies.reduce((sum, c) => sum + c.marketCap, 0);
+      const withGrowth = segmentCompanies.filter((c) => Number.isFinite(c.revenueGrowth));
+      const segmentAvgGrowth =
+        withGrowth.length > 0
+          ? withGrowth.reduce((sum, c) => sum + c.revenueGrowth, 0) / withGrowth.length
+          : 0;
+
+      return {
+        id: segment.id,
+        name: segment.name,
+        description: segment.description,
+        position: segment.position ?? null,
+        themes: segment.themes ?? null,
+        companies: segmentCompanies,
+        totalMarketCap: segmentMarketCap,
+        avgGrowth: round(segmentAvgGrowth, 1),
+      };
+    });
+
     const totalMarketCap = companies.reduce((sum, company) => sum + company.marketCap, 0);
+    const companiesWithGrowth = companies.filter((c) => Number.isFinite(c.revenueGrowth));
     const avgGrowth =
-      companies.length > 0
-        ? companies.reduce((sum, company) => sum + company.revenueGrowth, 0) / companies.length
+      companiesWithGrowth.length > 0
+        ? companiesWithGrowth.reduce((sum, c) => sum + c.revenueGrowth, 0) / companiesWithGrowth.length
         : 0;
 
     let news: any[] = [];
@@ -188,8 +255,9 @@ export async function POST(request: NextRequest) {
       success: true,
       data: {
         sector,
+        overview: structure.overview,
+        segments,
         companies,
-        supplyChain,
         totalMarketCap,
         avgGrowth: round(avgGrowth, 1),
         companyCount: companies.length,
@@ -201,35 +269,6 @@ export async function POST(request: NextRequest) {
     console.error('Industry detail error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
-}
-
-function buildNameMap(sector: string): Record<string, string> {
-  const chain = SECTOR_SUPPLY_CHAINS[sector];
-  if (!chain) return {};
-  const map: Record<string, string> = {};
-  for (const layer of [chain.upstream, chain.midstream, chain.downstream]) {
-    for (const node of layer) {
-      for (const company of node.companies) {
-        map[company.symbol] = company.name;
-      }
-    }
-  }
-  return map;
-}
-
-function getSymbolsForSector(sector: string): string[] {
-  const chain = SECTOR_SUPPLY_CHAINS[sector];
-  if (!chain) return [];
-
-  const symbols = new Set<string>();
-  for (const layer of [chain.upstream, chain.midstream, chain.downstream]) {
-    for (const node of layer) {
-      for (const company of node.companies) {
-        symbols.add(company.symbol);
-      }
-    }
-  }
-  return Array.from(symbols);
 }
 
 function normalizeRevenueGrowth(value: unknown): number | null {

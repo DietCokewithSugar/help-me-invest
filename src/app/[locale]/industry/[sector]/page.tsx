@@ -7,14 +7,14 @@ import Header from '@/components/Header';
 import CompanyOverviewModal from '@/components/CompanyOverviewModal';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { withLocale } from '@/lib/locale-path';
-import { formatMarketCap, type SupplyChainData, type SupplyChainNode } from '@/lib/industry-data';
+import { formatMarketCap, POSITION_LABELS, type ValueChainPosition } from '@/lib/industry-data';
 import { stripEmoji } from '@/lib/text-utils';
 import type { CompanyDiagnostic } from '@/types';
 import dynamic from 'next/dynamic';
 
 const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
 
-interface CompanyInfo {
+interface SegmentCompanyInfo {
   symbol: string;
   name: string;
   marketCap: number;
@@ -23,16 +23,29 @@ interface CompanyInfo {
   revenueGrowth: number;
   industry: string;
   image: string;
+  note?: { zh: string; en: string };
+}
+
+interface SegmentInfo {
+  id: string;
+  name: { zh: string; en: string };
+  description: { zh: string; en: string };
+  position: ValueChainPosition | null;
+  themes: { zh: string[]; en: string[] } | null;
+  companies: SegmentCompanyInfo[];
+  totalMarketCap: number;
+  avgGrowth: number;
 }
 
 interface DetailData {
   sector: string;
-  companies: CompanyInfo[];
-  supplyChain: SupplyChainData | null;
+  overview: { zh: string; en: string } | null;
+  segments: SegmentInfo[];
+  companies: SegmentCompanyInfo[];
   totalMarketCap: number;
   avgGrowth: number;
   companyCount: number;
-  topCompany: CompanyInfo | null;
+  topCompany: SegmentCompanyInfo | null;
   news: { title: string; url: string; date: string; source: string; sentiment: string }[];
 }
 
@@ -48,6 +61,15 @@ const darkTableHeaderStyle = {
   backgroundColor: 'rgba(255, 255, 255, 0.02)',
 } as const;
 
+const POSITION_COLOR: Record<ValueChainPosition, string> = {
+  upstream: '#88ABDA',
+  midstream: '#C0D09D',
+  downstream: '#CB523E',
+  platform: '#BADBEE',
+  service: '#DFD6B8',
+  infrastructure: '#98B6C2',
+};
+
 export default function IndustryDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -56,10 +78,10 @@ export default function IndustryDetailPage() {
   const [data, setData] = useState<DetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [expandedSegments, setExpandedSegments] = useState<Set<string>>(new Set());
   const [sortKey, setSortKey] = useState<SortKey>('marketCap');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
-  const [activeTab, setActiveTab] = useState<'chain' | 'companies' | 'news'>('chain');
+  const [activeTab, setActiveTab] = useState<'structure' | 'companies' | 'news'>('structure');
   const [selectedCompany, setSelectedCompany] = useState<CompanyDiagnostic | null>(null);
   const [showOverviewModal, setShowOverviewModal] = useState(false);
   const [loadingCompany, setLoadingCompany] = useState<string | null>(null);
@@ -94,6 +116,10 @@ export default function IndustryDetailPage() {
       const json = await res.json();
       if (json.success && json.data) {
         setData(json.data);
+        // Expand the first two segments by default so users see content immediately.
+        const initial = new Set<string>();
+        (json.data.segments as SegmentInfo[]).slice(0, 2).forEach((s) => initial.add(s.id));
+        setExpandedSegments(initial);
       } else {
         setError(json.error || t.industry.error);
       }
@@ -113,13 +139,22 @@ export default function IndustryDetailPage() {
     return stripEmoji(sectorMap[sector] || sector);
   }, [sector, t]);
 
-  const toggleNode = (nodeId: string) => {
-    setExpandedNodes((prev) => {
+  const toggleSegment = (id: string) => {
+    setExpandedSegments((prev) => {
       const next = new Set(prev);
-      if (next.has(nodeId)) next.delete(nodeId);
-      else next.add(nodeId);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
+  };
+
+  const expandAllSegments = () => {
+    if (!data) return;
+    setExpandedSegments(new Set(data.segments.map((s) => s.id)));
+  };
+
+  const collapseAllSegments = () => {
+    setExpandedSegments(new Set());
   };
 
   const sortedCompanies = useMemo(() => {
@@ -230,7 +265,9 @@ export default function IndustryDetailPage() {
         {
           type: 'scatter',
           symbolSize: (d: any) => Math.max(8, Math.min(30, Math.log10(d[0] / 1e8) * 6)),
-          data: data.companies.map((c) => [c.marketCap, c.revenueGrowth, c.change, stripEmoji(c.name), stripEmoji(c.symbol)]),
+          data: data.companies
+            .filter((c) => c.marketCap > 0)
+            .map((c) => [c.marketCap, c.revenueGrowth, c.change, stripEmoji(c.name), stripEmoji(c.symbol)]),
           emphasis: {
             itemStyle: { borderColor: '#14b8a6', borderWidth: 2 },
           },
@@ -273,87 +310,74 @@ export default function IndustryDetailPage() {
     };
   }, [data, isDark, locale, t]);
 
-  const hasPillarLabels = !!data?.supplyChain?.layerLabels;
-
-  const layerLabels = useMemo(() => {
-    const chain = data?.supplyChain;
-    if (chain?.layerLabels) {
-      const ll = chain.layerLabels;
-      return {
-        upstream: stripEmoji(locale === 'zh' ? ll.upstream.zh : ll.upstream.en),
-        midstream: stripEmoji(locale === 'zh' ? ll.midstream.zh : ll.midstream.en),
-        downstream: stripEmoji(locale === 'zh' ? ll.downstream.zh : ll.downstream.en),
-      };
-    }
-    return {
-      upstream: stripEmoji(t.industry.detail.upstream),
-      midstream: stripEmoji(t.industry.detail.midstream),
-      downstream: stripEmoji(t.industry.detail.downstream),
-    };
-  }, [data, locale, t]);
-
-  const supplyChainFlowOption = useMemo(() => {
-    if (!data?.supplyChain) return {};
-    const chain = data.supplyChain;
-
-    const nodes: { name: string; itemStyle?: any }[] = [];
-    const links: { source: string; target: string; value: number }[] = [];
-
-    const upLabel = layerLabels.upstream;
-    const midLabel = layerLabels.midstream;
-    const downLabel = layerLabels.downstream;
-
-    nodes.push({ name: upLabel, itemStyle: { color: '#88ABDA' } });
-    nodes.push({ name: midLabel, itemStyle: { color: '#C0D09D' } });
-    nodes.push({ name: downLabel, itemStyle: { color: '#CB523E' } });
-
-    const nodeName = (node: SupplyChainNode) => stripEmoji(locale === 'zh' ? node.name.zh : node.name.en);
-
-    for (const node of chain.upstream) {
-      const nm = nodeName(node);
-      nodes.push({ name: nm, itemStyle: { color: '#98B6C2' } });
-      links.push({ source: nm, target: midLabel, value: node.companies.length * 2 });
-    }
-    for (const node of chain.midstream) {
-      const nm = nodeName(node);
-      nodes.push({ name: nm, itemStyle: { color: '#DFD6B8' } });
-      links.push({ source: upLabel, target: nm, value: node.companies.length * 2 });
-      links.push({ source: nm, target: downLabel, value: node.companies.length * 2 });
-    }
-    for (const node of chain.downstream) {
-      const nm = nodeName(node);
-      nodes.push({ name: nm, itemStyle: { color: '#EAE4D1' } });
-      links.push({ source: midLabel, target: nm, value: node.companies.length * 2 });
-    }
+  // Segment market cap distribution treemap (used in structure tab header).
+  const segmentTreemapOption = useMemo(() => {
+    if (!data || data.segments.length === 0) return {};
+    const totalCap = data.totalMarketCap || 1;
+    const items = data.segments
+      .filter((s) => s.totalMarketCap > 0)
+      .map((s) => ({
+        name: locale === 'zh' ? s.name.zh : s.name.en,
+        value: s.totalMarketCap,
+        share: (s.totalMarketCap / totalCap) * 100,
+        avgGrowth: s.avgGrowth,
+        position: s.position,
+        itemStyle: {
+          color: s.position ? POSITION_COLOR[s.position] : '#88ABDA',
+        },
+      }));
 
     return {
       backgroundColor: isDark ? '#121212' : 'transparent',
-      color: ['#88ABDA', '#98B6C2', '#C0D09D', '#CB523E', '#DFD6B8', '#EAE4D1'],
       tooltip: {
         trigger: 'item',
         backgroundColor: isDark ? '#121212' : '#ffffff',
         borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
         textStyle: { color: isDark ? '#e2e8f0' : '#1e293b', fontFamily: 'Inter', fontSize: 12 },
+        formatter: (params: any) => {
+          const d = params.data;
+          if (!d) return '';
+          return `<div style="font-family:Inter;min-width:160px">
+            <div style="font-weight:600;margin-bottom:4px">${stripEmoji(d.name)}</div>
+            <div style="font-family:'JetBrains Mono';font-size:11px;display:flex;justify-content:space-between;gap:12px">
+              <span style="opacity:0.6">${t.industry.detail.segmentMarketCap}</span>
+              <span>${formatMarketCap(d.value, locale)}</span>
+            </div>
+            <div style="font-family:'JetBrains Mono';font-size:11px;display:flex;justify-content:space-between;gap:12px">
+              <span style="opacity:0.6">${t.industry.detail.segmentShare}</span>
+              <span>${d.share.toFixed(1)}%</span>
+            </div>
+            <div style="font-family:'JetBrains Mono';font-size:11px;display:flex;justify-content:space-between;gap:12px">
+              <span style="opacity:0.6">${t.industry.detail.companyTableCols.revenueGrowth}</span>
+              <span style="color:${d.avgGrowth >= 0 ? '#10B981' : '#EF4444'}">${d.avgGrowth > 0 ? '+' : ''}${d.avgGrowth}%</span>
+            </div>
+          </div>`;
+        },
       },
       series: [
         {
-          type: 'sankey',
-          layout: 'none',
-          emphasis: { focus: 'adjacency' },
-          nodeGap: 14,
-          nodeWidth: 20,
-          lineStyle: { color: 'gradient', curveness: 0.5, opacity: 0.3 },
+          type: 'treemap',
+          roam: false,
+          nodeClick: false,
+          breadcrumb: { show: false },
+          itemStyle: { borderColor: isDark ? '#0A0A0B' : '#F8FAFC', borderWidth: 2, gapWidth: 2 },
           label: {
-            color: isDark ? '#e2e8f0' : '#1e293b',
-            fontFamily: 'Inter',
-            fontSize: 11,
+            show: true,
+            formatter: (params: any) => {
+              const d = params.data;
+              if (!d) return '';
+              return `{name|${stripEmoji(d.name)}}\n{val|${d.share.toFixed(1)}%}`;
+            },
+            rich: {
+              name: { fontSize: 12, fontWeight: 600, fontFamily: 'Inter', color: '#0F0E0B', lineHeight: 18 },
+              val: { fontSize: 10, fontFamily: '"JetBrains Mono"', color: 'rgba(15,14,11,0.7)', lineHeight: 14 },
+            },
           },
-          data: nodes,
-          links,
+          data: items,
         },
       ],
     };
-  }, [data, isDark, locale, layerLabels]);
+  }, [data, isDark, locale, t]);
 
   const Sparkline = ({ growth }: { growth: number }) => {
     const points = useMemo(() => {
@@ -387,36 +411,23 @@ export default function IndustryDetailPage() {
     );
   };
 
-  const shareTag = (share: 'large' | 'medium' | 'small') => {
-    const labels = {
-      large: t.industry.detail.marketShareLarge,
-      medium: t.industry.detail.marketShareMedium,
-      small: t.industry.detail.marketShareSmall,
-    };
-    const cls = {
-      large: 'bg-glacier-500/20 text-glacier-500',
-      medium: 'bg-yellow-500/20 text-yellow-500',
-      small: 'bg-mist-500/20 text-mist-400',
-    };
-    return (
-      <span className={`px-1.5 py-0.5 rounded-sm text-[10px] font-mono font-medium ${cls[share]}`}>
-        {labels[share]}
-      </span>
-    );
-  };
-
-  const companyTag = (c: CompanyInfo) => {
+  const companyTag = (c: SegmentCompanyInfo) => {
     if (c.marketCap > 1e11 && c.revenueGrowth >= 10) return t.industry.detail.pillar;
     if (c.revenueGrowth >= 15) return t.industry.detail.highGrowth;
-    if (c.marketCap < 5e10 && c.revenueGrowth >= 5) return t.industry.detail.emerging;
+    if (c.marketCap > 0 && c.marketCap < 5e10 && c.revenueGrowth >= 5) return t.industry.detail.emerging;
     return t.industry.detail.mature;
   };
 
-  const companyTagColor = (c: CompanyInfo) => {
+  const companyTagColor = (c: SegmentCompanyInfo) => {
     if (c.marketCap > 1e11 && c.revenueGrowth >= 10) return 'text-glacier-500 bg-glacier-500/10';
     if (c.revenueGrowth >= 15) return 'text-growth bg-growth/10';
-    if (c.marketCap < 5e10 && c.revenueGrowth >= 5) return 'text-blue-400 bg-blue-500/10';
+    if (c.marketCap > 0 && c.marketCap < 5e10 && c.revenueGrowth >= 5) return 'text-blue-400 bg-blue-500/10';
     return 'text-mist-400 bg-mist-500/10';
+  };
+
+  const positionLabel = (position: ValueChainPosition | null) => {
+    if (!position) return null;
+    return locale === 'zh' ? POSITION_LABELS[position].zh : POSITION_LABELS[position].en;
   };
 
   return (
@@ -449,13 +460,26 @@ export default function IndustryDetailPage() {
           </div>
         ) : data ? (
           <div className="space-y-6">
+            {/* Sector title + overview narrative */}
+            <div>
+              <div className="mono-kicker text-mist-500 mb-2">{t.industry.detail.sectorPanorama}</div>
+              <h1 className="text-2xl md:text-3xl font-bold mb-3" style={{ color: 'var(--text-heading)' }}>
+                {sectorName}
+              </h1>
+              {data.overview && (
+                <p className="text-sm md:text-base leading-relaxed max-w-4xl" style={{ color: 'var(--text-secondary)' }}>
+                  {locale === 'zh' ? data.overview.zh : data.overview.en}
+                </p>
+              )}
+            </div>
+
             {/* Overview Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
                 { label: t.industry.detail.totalMarketCap, value: formatMarketCap(data.totalMarketCap, locale) },
+                { label: t.industry.detail.segmentCount, value: String(data.segments.length) },
                 { label: t.industry.detail.companyCount, value: String(data.companyCount) },
                 { label: t.industry.detail.avgGrowth, value: `${data.avgGrowth > 0 ? '+' : ''}${data.avgGrowth}%`, color: data.avgGrowth >= 0 ? 'text-growth' : 'text-decay' },
-                { label: t.industry.detail.topCompany, value: stripEmoji(data.topCompany?.symbol || '-') },
               ].map((stat) => (
                 <div key={stat.label} className="gemini-card p-4 transition-colors hover:border-white/20" style={isDark ? darkPanelStyle : undefined}>
                   <div className="text-xs text-mist-500 mb-1">{stat.label}</div>
@@ -468,9 +492,9 @@ export default function IndustryDetailPage() {
 
             {/* Tabs */}
             <div className="flex gap-1 p-1 rounded-md w-fit border" style={isDark ? darkPanelStyle : { backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
-              {(['chain', 'companies', 'news'] as const).map((tab) => {
+              {(['structure', 'companies', 'news'] as const).map((tab) => {
                 const labels = {
-                  chain: hasPillarLabels ? t.industry.detail.supplyChainPillar : t.industry.detail.supplyChain,
+                  structure: t.industry.detail.structure,
                   companies: t.industry.detail.companyProfile,
                   news: t.industry.detail.news,
                 };
@@ -489,29 +513,33 @@ export default function IndustryDetailPage() {
               })}
             </div>
 
-            {/* Tab Content */}
-            {activeTab === 'chain' && (
+            {/* Structure tab */}
+            {activeTab === 'structure' && (
               <div className="space-y-6">
-                {/* Sankey Flow */}
-                {data.supplyChain && (
+                {/* Segment treemap */}
+                {data.segments.some((s) => s.totalMarketCap > 0) && (
                   <section className="gemini-card p-4 md:p-6" style={isDark ? darkPanelStyle : undefined}>
-                    <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--text-heading)' }}>
-                      {hasPillarLabels ? t.industry.detail.supplyChainPillar : t.industry.detail.supplyChain}
-                    </h3>
+                    <div className="flex items-baseline justify-between mb-1">
+                      <h3 className="text-sm font-semibold" style={{ color: 'var(--text-heading)' }}>
+                        {t.industry.detail.segmentDistribution}
+                      </h3>
+                      <span className="text-[10px] mono-kicker text-mist-500">
+                        {t.industry.detail.segmentDistributionHint}
+                      </span>
+                    </div>
                     <p className="text-xs text-mist-500 mb-4">
-                      {hasPillarLabels ? t.industry.detail.supplyChainDescPillar : t.industry.detail.supplyChainDesc}
+                      {t.industry.detail.segmentDistributionDesc}
                     </p>
                     <div
                       className="rounded-sm p-2"
                       style={{
-                        minHeight: hasPillarLabels ? 480 : 320,
                         backgroundColor: isDark ? '#121212' : 'transparent',
                         border: isDark ? '1px solid rgba(255,255,255,0.08)' : undefined,
                       }}
                     >
                       <ReactECharts
-                        option={supplyChainFlowOption}
-                        style={{ width: '100%', height: hasPillarLabels ? 480 : 320 }}
+                        option={segmentTreemapOption}
+                        style={{ width: '100%', height: 320 }}
                         opts={{ renderer: 'canvas' }}
                         notMerge
                       />
@@ -519,66 +547,184 @@ export default function IndustryDetailPage() {
                   </section>
                 )}
 
-                {/* Tree Table */}
-                {data.supplyChain && (
-                  <section className="gemini-card overflow-hidden" style={isDark ? darkPanelStyle : undefined}>
-                    <div className="p-4 md:p-6 pb-0">
-                      <h3 className="text-sm font-semibold" style={{ color: 'var(--text-heading)' }}>
-                        {hasPillarLabels ? t.industry.detail.pillarCompanies : t.industry.detail.nodeCompanies}
-                      </h3>
+                {/* Segment cards */}
+                <section className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold" style={{ color: 'var(--text-heading)' }}>
+                      {t.industry.detail.segmentList}
+                    </h3>
+                    <div className="flex gap-2 text-xs">
+                      <button
+                        onClick={expandAllSegments}
+                        className="px-2 py-1 rounded-sm border border-white/10 text-mist-400 hover:border-glacier-500/40 hover:text-glacier-400 transition-colors"
+                      >
+                        {t.industry.detail.expandAll}
+                      </button>
+                      <button
+                        onClick={collapseAllSegments}
+                        className="px-2 py-1 rounded-sm border border-white/10 text-mist-400 hover:border-glacier-500/40 hover:text-glacier-400 transition-colors"
+                      >
+                        {t.industry.detail.collapseAll}
+                      </button>
                     </div>
-                    <div className="p-4 md:p-6 space-y-2">
-                      {(['upstream', 'midstream', 'downstream'] as const).map((layer) => {
-                        const layerLabel = layerLabels[layer];
-                        const nodes = data.supplyChain![layer];
-                        return (
-                          <div key={layer}>
-                            <div className="text-xs font-semibold text-mist-500 uppercase tracking-wider mb-2">
-                              {layerLabel}
+                  </div>
+
+                  {data.segments.map((segment) => {
+                    const isExpanded = expandedSegments.has(segment.id);
+                    const segName = locale === 'zh' ? segment.name.zh : segment.name.en;
+                    const segDesc = locale === 'zh' ? segment.description.zh : segment.description.en;
+                    const themes = segment.themes
+                      ? (locale === 'zh' ? segment.themes.zh : segment.themes.en)
+                      : [];
+                    const positionTag = positionLabel(segment.position);
+                    const positionColor = segment.position ? POSITION_COLOR[segment.position] : null;
+
+                    return (
+                      <article
+                        key={segment.id}
+                        className="gemini-card overflow-hidden transition-colors"
+                        style={isDark ? darkPanelStyle : undefined}
+                      >
+                        {/* Card header (clickable) */}
+                        <button
+                          onClick={() => toggleSegment(segment.id)}
+                          className="w-full text-left p-4 md:p-5 hover:bg-white/5 transition-colors"
+                        >
+                          <div className="flex items-start justify-between gap-4 mb-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h4 className="text-base font-semibold" style={{ color: 'var(--text-heading)' }}>
+                                {stripEmoji(segName)}
+                              </h4>
+                              {positionTag && positionColor && (
+                                <span
+                                  className="px-1.5 py-0.5 rounded-sm text-[10px] font-mono uppercase tracking-wider"
+                                  style={{
+                                    color: positionColor,
+                                    backgroundColor: positionColor + '20',
+                                  }}
+                                >
+                                  {positionTag}
+                                </span>
+                              )}
+                              <span className="text-[10px] font-mono text-mist-500">
+                                {segment.companies.length} {t.industry.detail.companiesUnit}
+                              </span>
                             </div>
-                            {nodes.map((node) => {
-                              const isExpanded = expandedNodes.has(node.id);
-                              const nm = stripEmoji(locale === 'zh' ? node.name.zh : node.name.en);
-                              return (
-                                <div key={node.id} className="mb-1">
-                                  <button
-                                    onClick={() => toggleNode(node.id)}
-                                    className="w-full flex items-center gap-2 px-3 py-2 rounded-sm hover:bg-white/5 transition-colors text-left border border-transparent hover:border-white/10"
-                                    style={isDark ? { backgroundColor: 'rgba(255,255,255,0.015)' } : undefined}
-                                  >
-                                    <span className={`text-[10px] transition-transform ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
-                                    <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{nm}</span>
-                                    <span className="text-[10px] text-mist-500 font-mono ml-auto">{node.companies.length}</span>
-                                  </button>
-                                  {isExpanded && (
-                                    <div className="ml-6 border-l pl-3 py-1 space-y-1" style={{ borderColor: 'var(--border-color)' }}>
-                                      {node.companies.map((co) => (
-                                        <div
-                                          key={co.symbol}
-                                          className={`flex items-center gap-3 px-2 py-1 hover:bg-white/5 rounded-sm transition-colors cursor-pointer ${loadingCompany === co.symbol ? 'opacity-60' : ''}`}
-                                          onClick={() => handleCompanyClick(co.symbol)}
-                                        >
-                                          <span className="text-xs font-mono text-glacier-500 w-14">{stripEmoji(co.symbol)}</span>
-                                          <span className="text-xs flex-1" style={{ color: 'var(--text-primary)' }}>{stripEmoji(co.name)}</span>
-                                          {loadingCompany === co.symbol ? (
-                                            <span className="w-3 h-3 border border-glacier-500 border-t-transparent rounded-full animate-spin" />
-                                          ) : shareTag(co.share)}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
+                            <div className="flex items-center gap-3 shrink-0">
+                              {segment.totalMarketCap > 0 && (
+                                <span className="text-xs font-mono" style={{ color: 'var(--text-primary)' }}>
+                                  {formatMarketCap(segment.totalMarketCap, locale)}
+                                </span>
+                              )}
+                              {Number.isFinite(segment.avgGrowth) && segment.avgGrowth !== 0 && (
+                                <span className={`text-xs font-mono ${segment.avgGrowth >= 0 ? 'text-growth' : 'text-decay'}`}>
+                                  {segment.avgGrowth > 0 ? '+' : ''}{segment.avgGrowth}%
+                                </span>
+                              )}
+                              <span className={`text-mist-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
+                            </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  </section>
-                )}
+                          <p className="text-xs md:text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                            {stripEmoji(segDesc)}
+                          </p>
+                          {themes.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mt-3">
+                              {themes.map((theme, idx) => (
+                                <span
+                                  key={idx}
+                                  className="px-2 py-0.5 text-[10px] rounded-sm border border-white/10 text-mist-400"
+                                  style={isDark ? { backgroundColor: 'rgba(255,255,255,0.02)' } : undefined}
+                                >
+                                  {stripEmoji(theme)}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </button>
+
+                        {/* Expanded company table */}
+                        {isExpanded && (
+                          <div className="border-t" style={{ borderColor: 'var(--border-color)' }}>
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr style={isDark ? darkTableHeaderStyle : undefined}>
+                                    <th className="text-left px-4 md:px-5 py-2 text-mist-500 font-medium text-[10px] uppercase tracking-wider">
+                                      {t.industry.detail.companyTableCols.symbol}
+                                    </th>
+                                    <th className="text-left px-2 md:px-3 py-2 text-mist-500 font-medium text-[10px] uppercase tracking-wider">
+                                      {t.industry.detail.companyTableCols.name}
+                                    </th>
+                                    <th className="text-right px-2 md:px-3 py-2 text-mist-500 font-medium text-[10px] uppercase tracking-wider">
+                                      {t.industry.detail.companyTableCols.marketCap}
+                                    </th>
+                                    <th className="text-right px-2 md:px-3 py-2 text-mist-500 font-medium text-[10px] uppercase tracking-wider hidden md:table-cell">
+                                      {t.industry.detail.companyTableCols.revenueGrowth}
+                                    </th>
+                                    <th className="text-right px-4 md:px-5 py-2 text-mist-500 font-medium text-[10px] uppercase tracking-wider hidden lg:table-cell">
+                                      {t.industry.detail.companyTableCols.change}
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {segment.companies.map((co) => (
+                                    <tr
+                                      key={co.symbol}
+                                      className={`border-t cursor-pointer transition-colors hover:bg-white/5 ${loadingCompany === co.symbol ? 'opacity-60' : ''}`}
+                                      style={{ borderColor: 'var(--border-color)' }}
+                                      onClick={() => handleCompanyClick(co.symbol)}
+                                    >
+                                      <td className="px-4 md:px-5 py-2.5 font-mono text-xs text-glacier-500 whitespace-nowrap">
+                                        {stripEmoji(co.symbol)}
+                                      </td>
+                                      <td className="px-2 md:px-3 py-2.5">
+                                        <div className="flex flex-col">
+                                          <span className="text-xs md:text-sm" style={{ color: 'var(--text-primary)' }}>
+                                            {stripEmoji(co.name)}
+                                          </span>
+                                          {co.note && (
+                                            <span className="text-[10px] text-mist-500 mt-0.5">
+                                              {stripEmoji(locale === 'zh' ? co.note.zh : co.note.en)}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="px-2 md:px-3 py-2.5 text-right font-mono text-xs" style={{ color: 'var(--text-primary)' }}>
+                                        {co.marketCap > 0 ? formatMarketCap(co.marketCap, locale) : '—'}
+                                      </td>
+                                      <td className="px-2 md:px-3 py-2.5 text-right font-mono text-xs hidden md:table-cell">
+                                        {co.revenueGrowth === 0 && co.marketCap === 0 ? (
+                                          <span className="text-mist-500">—</span>
+                                        ) : (
+                                          <span className={co.revenueGrowth >= 0 ? 'text-growth' : 'text-decay'}>
+                                            {co.revenueGrowth > 0 ? '+' : ''}{co.revenueGrowth}%
+                                          </span>
+                                        )}
+                                      </td>
+                                      <td className="px-4 md:px-5 py-2.5 text-right font-mono text-xs hidden lg:table-cell">
+                                        {co.change === 0 && co.marketCap === 0 ? (
+                                          <span className="text-mist-500">—</span>
+                                        ) : (
+                                          <span className={co.change >= 0 ? 'text-growth' : 'text-decay'}>
+                                            {co.change > 0 ? '+' : ''}{co.change.toFixed(2)}%
+                                          </span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+                      </article>
+                    );
+                  })}
+                </section>
               </div>
             )}
 
+            {/* Companies tab */}
             {activeTab === 'companies' && (
               <div className="space-y-6">
                 {/* Scatter Plot */}
@@ -648,7 +794,7 @@ export default function IndustryDetailPage() {
                               {stripEmoji(c.symbol)}
                             </td>
                             <td className="px-4 md:px-6 py-3 font-mono text-xs" style={{ color: 'var(--text-primary)' }}>
-                              {formatMarketCap(c.marketCap, locale)}
+                              {c.marketCap > 0 ? formatMarketCap(c.marketCap, locale) : '—'}
                             </td>
                             <td className="px-4 md:px-6 py-3 font-mono text-xs">
                               <span className={c.revenueGrowth >= 0 ? 'text-growth' : 'text-decay'}>
@@ -672,6 +818,7 @@ export default function IndustryDetailPage() {
               </div>
             )}
 
+            {/* News tab */}
             {activeTab === 'news' && (
               <section className="gemini-card p-4 md:p-6" style={isDark ? darkPanelStyle : undefined}>
                 <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--text-heading)' }}>
