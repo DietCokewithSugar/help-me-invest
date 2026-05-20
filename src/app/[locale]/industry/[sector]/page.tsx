@@ -23,6 +23,7 @@ interface SegmentCompanyInfo {
   revenueGrowth: number;
   industry: string;
   image: string;
+  history: number[];
   note?: { zh: string; en: string };
 }
 
@@ -379,33 +380,26 @@ export default function IndustryDetailPage() {
     };
   }, [data, isDark, locale, t]);
 
-  const Sparkline = ({ growth }: { growth: number }) => {
-    const points = useMemo(() => {
-      const pts: number[] = [];
-      let val = 100;
-      for (let i = 0; i < 12; i++) {
-        val += val * (growth / 100 / 12) + (Math.random() - 0.5) * 3;
-        pts.push(val);
-      }
-      return pts;
-    }, [growth]);
-
-    const min = Math.min(...points);
-    const max = Math.max(...points);
+  const Sparkline = ({ history }: { history: number[] }) => {
+    if (!history || history.length < 2) {
+      return <span className="text-mist-600 text-[10px] font-mono">—</span>;
+    }
+    const min = Math.min(...history);
+    const max = Math.max(...history);
     const range = max - min || 1;
-    const w = 60;
+    const w = 64;
     const h = 20;
-    const path = points
+    const path = history
       .map((v, i) => {
-        const x = (i / (points.length - 1)) * w;
+        const x = (i / (history.length - 1)) * w;
         const y = h - ((v - min) / range) * h;
-        return `${i === 0 ? 'M' : 'L'}${x},${y}`;
+        return `${i === 0 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)}`;
       })
       .join(' ');
 
-    const color = growth >= 0 ? '#10B981' : '#EF4444';
+    const color = history[history.length - 1] >= history[0] ? '#10B981' : '#EF4444';
     return (
-      <svg width={w} height={h} className="inline-block">
+      <svg width={w} height={h} className="inline-block" aria-hidden="true">
         <path d={path} fill="none" stroke={color} strokeWidth="1.5" />
       </svg>
     );
@@ -802,7 +796,7 @@ export default function IndustryDetailPage() {
                               </span>
                             </td>
                             <td className="px-4 py-3 hidden lg:table-cell text-center">
-                              <Sparkline growth={c.revenueGrowth} />
+                              <Sparkline history={c.history} />
                             </td>
                             <td className="px-4 py-3">
                               <span className={`px-2 py-0.5 rounded-sm text-[10px] font-medium ${companyTagColor(c)}`}>

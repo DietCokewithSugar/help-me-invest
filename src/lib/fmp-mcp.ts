@@ -122,6 +122,37 @@ export class FMPMCPClient {
     });
   }
 
+  /**
+   * Lightweight EOD price history straight from the FMP REST API.
+   * Returns rows with { symbol, date, price, volume } in descending date order.
+   * Uses direct REST instead of MCP because the MCP tool wraps the same data
+   * with significant per-call overhead — for sparkline fan-out this matters.
+   */
+  async getHistoricalPriceLight(symbol: string, from?: string, to?: string): Promise<Array<{ date: string; price: number }>> {
+    try {
+      const params = new URLSearchParams({ apikey: this.apiKey, symbol });
+      if (from) params.set('from', from);
+      if (to) params.set('to', to);
+      const url = `https://financialmodelingprep.com/stable/historical-price-eod/light?${params}`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+      });
+      if (!response.ok) return [];
+      const data = await response.json();
+      if (!Array.isArray(data)) return [];
+      return data
+        .map((row: any) => ({
+          date: typeof row?.date === 'string' ? row.date : '',
+          price: typeof row?.price === 'number' ? row.price : Number(row?.price) || 0,
+        }))
+        .filter((row) => row.date && row.price > 0);
+    } catch {
+      return [];
+    }
+  }
+
   private async callTool<T>(name: string, args: object = {}): Promise<T> {
     await this.ensureInitialized();
     const payload = {
