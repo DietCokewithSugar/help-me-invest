@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GeminiClient } from '@/lib/gemini';
+import { suggestSymbolWithDeepSeek } from '@/lib/deepseek-suggest';
 import { FMPClient } from '@/lib/fmp';
 import { formatSymbolForMarket, type MarketType } from '@/lib/markets';
 
@@ -323,17 +323,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(payload);
     }
 
-    // ===== Tier 3: AI fallback (slow, but handles e.g. Chinese name → ticker) =====
-    const googleApiKey = process.env.GOOGLE_API_KEY;
-    if (!googleApiKey) {
+    // ===== Tier 3: AI fallback (handles e.g. Chinese name → ticker) =====
+    // 主页联想专门走 DeepSeek：Gemini 3.5 Flash 在这个高频低复杂度场景下响应偏慢
+    const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
+    if (!deepseekApiKey) {
       const payload = { query: trimmedQuery, suggestions: merged, source: merged.length > 0 ? 'local' : 'none' };
       cacheSet(cacheKey, payload);
       return NextResponse.json(payload);
     }
 
     try {
-      const gemini = new GeminiClient(googleApiKey);
-      const aiResult = await gemini.suggestSymbol(trimmedQuery, marketHint, lang);
+      const aiResult = await suggestSymbolWithDeepSeek(deepseekApiKey, trimmedQuery, marketHint, lang);
       const rawSuggestions = Array.isArray(aiResult?.suggestions) ? aiResult.suggestions : [];
       const aiSuggestions = rawSuggestions
         .map(normalizeSuggestion)
