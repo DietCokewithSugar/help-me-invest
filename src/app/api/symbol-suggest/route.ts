@@ -324,15 +324,15 @@ export async function POST(request: NextRequest) {
     }
 
     // ===== Tier 3: AI fallback (slow, but handles e.g. Chinese name → ticker) =====
-    const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
-    if (!deepseekApiKey) {
+    const googleApiKey = process.env.GOOGLE_API_KEY;
+    if (!googleApiKey) {
       const payload = { query: trimmedQuery, suggestions: merged, source: merged.length > 0 ? 'local' : 'none' };
       cacheSet(cacheKey, payload);
       return NextResponse.json(payload);
     }
 
     try {
-      const gemini = new GeminiClient(deepseekApiKey);
+      const gemini = new GeminiClient(googleApiKey);
       const aiResult = await gemini.suggestSymbol(trimmedQuery, marketHint, lang);
       const rawSuggestions = Array.isArray(aiResult?.suggestions) ? aiResult.suggestions : [];
       const aiSuggestions = rawSuggestions

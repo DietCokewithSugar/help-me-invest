@@ -2,39 +2,46 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const maxDuration = 120;
 
-async function generateDeepSeekJSON(apiKey: string, prompt: string): Promise<string> {
-  const response = await fetch('https://api.deepseek.com/chat/completions', {
+const GEMINI_MODEL_ID = 'gemini-3.5-flash';
+
+async function generateGeminiJSON(apiKey: string, prompt: string): Promise<string> {
+  const systemInstruction =
+    'You are a structured-data API. Respond with ONE valid JSON object that matches the schema in the user prompt — no prose, no markdown, no code fences, no emojis, no greetings, no first-person language.';
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL_ID}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+  const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'deepseek-chat',
-      messages: [
-        {
-          role: 'system',
-          content:
-            'You are a structured-data API. Respond with ONE valid JSON object that matches the schema in the user prompt — no prose, no markdown, no code fences, no emojis, no greetings, no first-person language.',
-        },
-        { role: 'user', content: prompt },
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.5,
-      top_p: 0.9,
-      max_tokens: 8192,
+      systemInstruction: {
+        role: 'system',
+        parts: [{ text: systemInstruction }],
+      },
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.5,
+        topP: 0.9,
+        maxOutputTokens: 8192,
+        responseMimeType: 'application/json',
+      },
     }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`DeepSeek API error (${response.status}): ${errorText}`);
+    throw new Error(`Gemini API error (${response.status}): ${errorText}`);
   }
 
   const data = await response.json();
-  const content = data?.choices?.[0]?.message?.content;
-  if (typeof content !== 'string' || content.trim().length === 0) {
-    throw new Error('DeepSeek returned empty content');
+  const parts = data?.candidates?.[0]?.content?.parts;
+  const content = Array.isArray(parts)
+    ? parts.map((p: any) => (typeof p?.text === 'string' ? p.text : '')).join('')
+    : '';
+  if (!content || content.trim().length === 0) {
+    throw new Error('Gemini returned empty content');
   }
   return content;
 }
@@ -109,9 +116,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
-    if (!deepseekApiKey) {
-      return NextResponse.json({ error: 'DeepSeek API key not configured' }, { status: 500 });
+    const googleApiKey = process.env.GOOGLE_API_KEY;
+    if (!googleApiKey) {
+      return NextResponse.json({ error: 'Google API key not configured' }, { status: 500 });
     }
 
     const isZh = language === 'zh';
@@ -170,7 +177,7 @@ export async function POST(request: NextRequest) {
     };
     const prompt = isZh ? buildZhPrompt(promptParams) : buildEnPrompt(promptParams);
 
-    const raw = await generateDeepSeekJSON(deepseekApiKey, prompt);
+    const raw = await generateGeminiJSON(googleApiKey, prompt);
 
     let parsed: any;
     try {

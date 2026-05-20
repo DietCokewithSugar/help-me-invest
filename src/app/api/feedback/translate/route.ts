@@ -10,7 +10,7 @@ const MAX_INPUT_LENGTH = 8000;
  * POST /api/feedback/translate
  * Body: { text, targetLang: 'zh'|'en', sourceLang? }
  *
- * Uses the existing DeepSeek client to translate user-generated feedback for
+ * Uses the existing Gemini client to translate user-generated feedback for
  * display only — the row in the DB is never modified. If the API key is
  * missing or the call fails, we fall back to the original text and mark the
  * response as `skipped` so the client can hide the "translated" badge.
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, translated: text, skipped: true });
   }
 
-  const apiKey = process.env.DEEPSEEK_API_KEY;
+  const apiKey = process.env.GOOGLE_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ success: true, translated: text, skipped: true });
   }

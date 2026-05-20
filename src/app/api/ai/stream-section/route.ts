@@ -159,13 +159,13 @@ export async function POST(request: NextRequest) {
             balanceSheetsQuarter,
             cashFlowStatementsQuarter,
         } = await request.json();
-        const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
+        const googleApiKey = process.env.GOOGLE_API_KEY;
 
-        if (!deepseekApiKey) {
-            return NextResponse.json({ error: 'DeepSeek API Key missing' }, { status: 500 });
+        if (!googleApiKey) {
+            return NextResponse.json({ error: 'Google API key missing' }, { status: 500 });
         }
 
-        const client = new GeminiClient(deepseekApiKey);
+        const client = new GeminiClient(googleApiKey);
         const marketType = (market as MarketType) || 'US';
 
         let streamIterator: AsyncGenerator<string, void, unknown>;

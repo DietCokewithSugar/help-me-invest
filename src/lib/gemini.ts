@@ -128,6 +128,7 @@ interface ModelRuntimeConfig {
   temperature: number;
   topP: number;
   maxOutputTokens: number;
+  tools?: any[];
 }
 
 interface GenerateContentResult {
@@ -144,7 +145,7 @@ interface GenerateContentStreamResult {
   stream: AsyncGenerator<StreamChunk, void, unknown>;
 }
 
-interface DeepSeekModelAdapter {
+interface GeminiModelAdapter {
   generateContent: (prompt: string) => Promise<GenerateContentResult>;
   generateContentStream: (prompt: string) => Promise<GenerateContentStreamResult>;
 }
@@ -152,32 +153,35 @@ interface DeepSeekModelAdapter {
 // 模型分级策略
 // - lite: 简单任务，速度优先（股票联想、财报摘要）
 // - standard: 复杂推理任务（公司深度分析）
-// - search: 搜索类分析（通过提示词要求模型整合公开信息）
-// - pro: 专业版深度分析，优先使用推理模型
+// - search: 搜索类分析（通过 googleSearch 工具联网）
+// - pro: 专业版深度分析
+// 当前全部统一使用 gemini-3.5-flash
 type ModelTier = 'lite' | 'standard' | 'search' | 'pro';
+
+const GEMINI_MODEL_ID = 'gemini-3.5-flash';
 
 const MODEL_CONFIG: Record<ModelTier, { model: string; description: string }> = {
   lite: {
-    model: 'deepseek-chat',
+    model: GEMINI_MODEL_ID,
     description: '轻量快速模型，适合简单任务',
   },
   standard: {
-    model: 'deepseek-chat',
+    model: GEMINI_MODEL_ID,
     description: '标准模型，适合复杂推理',
   },
   search: {
-    model: 'deepseek-chat',
-    description: '搜索分析模型，通过提示词补充公开信息',
+    model: GEMINI_MODEL_ID,
+    description: '搜索分析模型，配合 googleSearch 工具',
   },
   pro: {
-    model: 'deepseek-reasoner',
-    description: '专业模型，支持深度思考',
+    model: GEMINI_MODEL_ID,
+    description: '专业模型，深度分析',
   },
 };
 
 export class GeminiClient {
   private readonly apiKey: string;
-  private readonly baseUrl = 'https://api.deepseek.com';
+  private readonly baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
@@ -208,41 +212,61 @@ export class GeminiClient {
       temperature: config?.temperature ?? 0.7,
       topP: config?.topP ?? 0.95,
       maxOutputTokens: config?.maxOutputTokens ?? 8192,
+      tools: config?.tools,
     };
   }
 
-  private async callDeepSeek(
+  private buildGeminiPayload(prompt: string, config: ModelRuntimeConfig): Record<string, any> {
+    const payload: Record<string, any> = {
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: config.temperature,
+        topP: config.topP,
+        maxOutputTokens: config.maxOutputTokens,
+      },
+    };
+    if (config.tools && config.tools.length > 0) {
+      payload.tools = config.tools;
+    }
+    return payload;
+  }
+
+  private async callGemini(
     prompt: string,
     config: ModelRuntimeConfig,
     stream: boolean
   ): Promise<Response> {
-    const payload = {
-      model: config.model,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: config.temperature,
-      top_p: config.topP,
-      max_tokens: config.maxOutputTokens,
-      stream,
-    };
+    const method = stream ? 'streamGenerateContent' : 'generateContent';
+    const url = stream
+      ? `${this.baseUrl}/models/${config.model}:${method}?alt=sse&key=${encodeURIComponent(this.apiKey)}`
+      : `${this.baseUrl}/models/${config.model}:${method}?key=${encodeURIComponent(this.apiKey)}`;
 
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`,
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(this.buildGeminiPayload(prompt, config)),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`DeepSeek API 请求失败 (${response.status}): ${errorText}`);
+      throw new Error(`Gemini API 请求失败 (${response.status}): ${errorText}`);
     }
 
     return response;
   }
 
-  private parseDeepSeekStream(body: ReadableStream<Uint8Array>): AsyncGenerator<StreamChunk, void, unknown> {
+  private extractTextFromCandidate(candidate: any): string {
+    const parts = candidate?.content?.parts;
+    if (!Array.isArray(parts)) return '';
+    return parts
+      .map((p: any) => (typeof p?.text === 'string' ? p.text : ''))
+      .join('');
+  }
+
+  private parseGeminiStream(body: ReadableStream<Uint8Array>): AsyncGenerator<StreamChunk, void, unknown> {
+    const extractText = this.extractTextFromCandidate.bind(this);
     async function* iterator() {
       const reader = body.getReader();
       const decoder = new TextDecoder();
@@ -257,12 +281,13 @@ export class GeminiClient {
 
         try {
           const payload = JSON.parse(data);
-          const deltaText = payload?.choices?.[0]?.delta?.content;
-          if (typeof deltaText === 'string' && deltaText.length > 0) {
+          const candidate = payload?.candidates?.[0];
+          const deltaText = extractText(candidate);
+          if (deltaText && deltaText.length > 0) {
             yield { text: () => deltaText };
           }
         } catch (error: any) {
-          console.warn('DeepSeek stream parse warning:', error?.message || error);
+          console.warn('Gemini stream parse warning:', error?.message || error);
         }
       };
 
@@ -294,15 +319,13 @@ export class GeminiClient {
     return iterator();
   }
 
-  private async generateContentWithDeepSeek(
+  private async generateContentWithGemini(
     prompt: string,
     config: ModelRuntimeConfig
   ): Promise<GenerateContentResult> {
-    const response = await this.callDeepSeek(prompt, config, false);
+    const response = await this.callGemini(prompt, config, false);
     const data = await response.json();
-    const text = typeof data?.choices?.[0]?.message?.content === 'string'
-      ? data.choices[0].message.content
-      : '';
+    const text = this.extractTextFromCandidate(data?.candidates?.[0]);
 
     return {
       response: Promise.resolve({
@@ -311,26 +334,26 @@ export class GeminiClient {
     };
   }
 
-  private async generateContentStreamWithDeepSeek(
+  private async generateContentStreamWithGemini(
     prompt: string,
     config: ModelRuntimeConfig
   ): Promise<GenerateContentStreamResult> {
-    const response = await this.callDeepSeek(prompt, config, true);
+    const response = await this.callGemini(prompt, config, true);
     if (!response.body) {
-      throw new Error('DeepSeek stream body is empty');
+      throw new Error('Gemini stream body is empty');
     }
 
     return {
-      stream: this.parseDeepSeekStream(response.body as ReadableStream<Uint8Array>),
+      stream: this.parseGeminiStream(response.body as ReadableStream<Uint8Array>),
     };
   }
 
   // 根据任务类型获取对应的模型实例
-  private getModel(tier: ModelTier, config?: ModelConfigInput): DeepSeekModelAdapter {
+  private getModel(tier: ModelTier, config?: ModelConfigInput): GeminiModelAdapter {
     const resolvedConfig = this.resolveModelConfig(tier, config);
     return {
-      generateContent: (prompt: string) => this.generateContentWithDeepSeek(prompt, resolvedConfig),
-      generateContentStream: (prompt: string) => this.generateContentStreamWithDeepSeek(prompt, resolvedConfig),
+      generateContent: (prompt: string) => this.generateContentWithGemini(prompt, resolvedConfig),
+      generateContentStream: (prompt: string) => this.generateContentStreamWithGemini(prompt, resolvedConfig),
     };
   }
 

@@ -1003,8 +1003,8 @@ export default function Report({
 
   // 获取 section 编号
   const getSectionNumber = (id: string) => sections.find(s => s.id === id)?.number || '';
-  // DeepSeek 暂不支持在线研究，普通版先隐藏“最新发展动态”卡片
-  const showRecentDevelopmentsInStandard = false;
+  // Gemini 支持 googleSearch grounding，普通版重新展示“最新发展动态”卡片
+  const showRecentDevelopmentsInStandard = true;
 
   const renderReportVersionSwitcher = () => (
     <div className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 p-1">
@@ -1429,7 +1429,7 @@ export default function Report({
                 </AnalysisCard>
               </div>
 
-              {/* 最新动态：DeepSeek 暂不支持在线研究，普通版暂不展示 */}
+              {/* 最新动态：通过 Gemini googleSearch 获取近 90 天信息 */}
               {showRecentDevelopmentsInStandard && (
                 <AnalysisCard title={t.report.analysis.recentDevelopments} onShare={handleShareModule}>
                   {aiAnalysis?.recentDevelopments ? (
