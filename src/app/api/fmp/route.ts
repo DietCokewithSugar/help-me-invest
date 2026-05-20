@@ -3,7 +3,7 @@ import { FMPClient } from '@/lib/fmp';
 import { fetchFmpReportData } from '@/lib/fmp-data';
 import { saveFmpDataToCache, getCachedReportV2 } from '@/lib/supabase';
 import { buildSankeyData } from '@/lib/sankey-utils';
-import type { MarketType } from '@/lib/markets';
+import { MARKET_CONFIGS, type MarketType } from '@/lib/markets';
 
 export const maxDuration = 60;
 
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const marketType = (market as MarketType) || 'US';
+    const marketType: MarketType = typeof market === 'string' && market in MARKET_CONFIGS ? (market as MarketType) : 'US';
     const upperSymbol = symbol.toUpperCase().trim();
 
     // 检查是否可以使用缓存的 FMP 数据
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     const fmp = new FMPClient(fmpApiKey);
     const fmpData = await fetchFmpReportData(fmp, {
       symbol,
-      market: market as MarketType | undefined,
+      market: marketType,
       period: period as 'annual' | 'quarter' | undefined
     });
 

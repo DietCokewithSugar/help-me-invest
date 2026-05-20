@@ -73,10 +73,6 @@ export default function AIShowcase() {
   return (
     <div ref={containerRef} className="relative">
       <div className="glass-card p-8 md:p-12 overflow-hidden">
-        {/* Background decoration */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-glacier-500/10 to-transparent rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-gemini-blue/10 to-transparent rounded-full blur-3xl" />
-        
         <div className="relative grid md:grid-cols-2 gap-8 md:gap-12">
           {/* Left - Stock info */}
           <div className="space-y-6">
@@ -163,7 +159,7 @@ export default function AIShowcase() {
                     index < activeDimension
                       ? 'bg-glacier-500/20'
                       : index === activeDimension
-                        ? 'bg-gradient-to-br from-glacier-500 to-gemini-blue'
+                        ? 'bg-glacier-500'
                         : 'bg-white/5'
                   }`}>
                     {index < activeDimension ? (
@@ -198,7 +194,7 @@ export default function AIShowcase() {
                   {/* Progress bar */}
                   {index === activeDimension && (
                     <motion.div
-                      className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-glacier-500 to-gemini-blue"
+                      className="absolute bottom-0 left-0 h-0.5 bg-glacier-500"
                       initial={{ width: 0 }}
                       animate={{ width: '100%' }}
                       transition={{ duration: 2.4, ease: 'linear' }}

@@ -258,7 +258,7 @@ export default function CompanyFilterModal({
                                 <button
                                     onClick={applyFilters}
                                     disabled={loading}
-                                    className="flex-3 px-6 py-3 bg-[#10B981] hover:bg-[#059669] text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                                    className="flex-3 px-6 py-3 bg-growth hover:bg-growth/90 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
                                 >
                                     {loading ? t.companyFilterModal.processing : t.companyFilterModal.apply}
                                 </button>
@@ -329,7 +329,7 @@ export default function CompanyFilterModal({
                                                 onSelectCompany(selectedCompany.symbol);
                                                 onClose();
                                             }}
-                                            className="w-full px-6 py-4 bg-gradient-to-r from-glacier-500 to-gemini-blue hover:from-glacier-600 hover:to-gemini-purple text-white rounded-xl font-semibold transition-all shadow-lg shadow-glacier-500/20 hover:shadow-glacier-500/40"
+                                            className="w-full px-6 py-4 bg-glacier-500 hover:bg-glacier-600 text-white rounded-xl font-semibold transition-colors"
                                         >
                                             {t.companyFilterModal.generateReport}
                                         </button>

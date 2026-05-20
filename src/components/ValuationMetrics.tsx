@@ -263,17 +263,17 @@ export default function ValuationMetrics({
       backgroundColor: 'transparent',
       tooltip: {
         trigger: 'axis',
-        backgroundColor: isLight ? '#ffffff' : '#121212',
+        backgroundColor: isLight ? '#F9F9F0' : '#0F0E0B',
         borderColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)',
         borderWidth: 1,
-        textStyle: { color: isLight ? '#1e293b' : '#f8fafc' },
+        textStyle: { color: isLight ? '#0F0E0B' : '#FFFFFA' },
         formatter: (params: any) => {
-          let result = `<div style="font-weight: 600; margin-bottom: 8px; color: ${isLight ? '#1e293b' : '#f8fafc'};">${params[0].axisValue}</div>`;
+          let result = `<div style="font-weight: 600; margin-bottom: 8px; color: ${isLight ? '#0F0E0B' : '#FFFFFA'};">${params[0].axisValue}</div>`;
           params.forEach((p: any) => {
             const color = p.value >= 0 ? colors.positive : colors.negative;
             result += `<div style="display: flex; align-items: center; gap: 8px; margin: 4px 0;">
               <span style="width: 10px; height: 10px; background: ${p.color}; border-radius: 50%;"></span>
-              <span style="color: ${isLight ? '#475569' : '#94a3b8'};">${p.seriesName}: </span>
+              <span style="color: ${isLight ? '#3D3B34' : '#9D937C'};">${p.seriesName}: </span>
               <span style="font-weight: 600; color: ${color};">${p.value >= 0 ? '+' : ''}${p.value.toFixed(1)}%</span>
             </div>`;
           });
@@ -282,23 +282,23 @@ export default function ValuationMetrics({
       },
       legend: {
         data: ['营收增长', '净利润增长', 'EPS增长', '自由现金流增长'],
-        textStyle: { color: isLight ? '#475569' : '#94a3b8' },
+        textStyle: { color: isLight ? '#3D3B34' : '#9D937C' },
         top: 0,
       },
       grid: { left: '3%', right: '4%', bottom: '3%', top: '60px', containLabel: true },
       xAxis: {
         type: 'category',
         data: years,
-        axisLine: { lineStyle: { color: isLight ? '#e2e8f0' : '#334155' } },
-        axisLabel: { color: isLight ? '#475569' : '#94a3b8' },
+        axisLine: { lineStyle: { color: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' } },
+        axisLabel: { color: isLight ? '#3D3B34' : '#9D937C' },
       },
       yAxis: {
         type: 'value',
         name: '增长率 (%)',
-        nameTextStyle: { color: isLight ? '#64748b' : '#64748b' },
+        nameTextStyle: { color: isLight ? '#9D937C' : '#9D937C' },
         axisLine: { show: false },
-        axisLabel: { color: isLight ? '#64748b' : '#64748b', formatter: (v: number) => `${v}%` },
-        splitLine: { lineStyle: { color: isLight ? '#f1f5f9' : '#1e293b', type: 'dashed' } },
+        axisLabel: { color: isLight ? '#9D937C' : '#9D937C', formatter: (v: number) => `${v}%` },
+        splitLine: { lineStyle: { color: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)', type: 'dashed' } },
       },
       series: [
         { name: '营收增长', type: 'line', data: revenueGrowth, smooth: true, lineStyle: { width: 2 }, itemStyle: { color: colors.revenue }, symbol: 'circle', symbolSize: 5, label: { show: true, position: 'top', color: colors.revenue, fontSize: 9, fontFamily: 'JetBrains Mono', formatter: (p: any) => `${p.value >= 0 ? '+' : ''}${p.value.toFixed(1)}%` } },
@@ -342,7 +342,7 @@ export default function ValuationMetrics({
           {metrics.map((m, i) => {
             const color = m.value && m.value > 0
               ? (isLight ? '#059669' : '#5a9472')
-              : (m.value && m.value < 0 ? (isLight ? '#dc2626' : '#94655a') : (isLight ? '#64748b' : '#64748b'));
+              : (m.value && m.value < 0 ? (isLight ? '#dc2626' : '#94655a') : (isLight ? '#9D937C' : '#9D937C'));
             return (
               <div key={i} className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
                 <span className="text-sm text-slate-400">{m.label}</span>
@@ -364,7 +364,7 @@ export default function ValuationMetrics({
   return (
     <div className="glass-card p-6 animate-fade-in-up">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-slate-500/20 to-slate-600/20 flex items-center justify-center">
+        <div className="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center">
           <Calculator className="w-5 h-5 text-slate-400" />
         </div>
         <div>

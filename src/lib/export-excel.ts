@@ -1,7 +1,6 @@
 import * as XLSX from 'xlsx';
 import type { ReportData } from '@/types';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 type ExcelTranslations = { excel: Record<string, string> };
 
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCachedReport, getCachedFmpData, deleteReportCache, type BeginnerReportRecord, type StandardReportRecord, type ProfessionalReportRecord } from '@/lib/supabase';
 import type { MarketType } from '@/types';
+import { MARKET_CONFIGS } from '@/lib/markets';
 
 export const maxDuration = 30;
 
@@ -12,7 +13,8 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const symbol = searchParams.get('symbol');
-    const market = (searchParams.get('market') as MarketType) || 'US';
+    const rawMarket = searchParams.get('market');
+    const market: MarketType = rawMarket && rawMarket in MARKET_CONFIGS ? (rawMarket as MarketType) : 'US';
     const language = searchParams.get('language') || 'zh';
     const reportType = (searchParams.get('type') as 'beginner' | 'standard' | 'professional') || 'standard';
 
@@ -122,7 +124,8 @@ export async function DELETE(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const symbol = searchParams.get('symbol');
-    const market = (searchParams.get('market') as MarketType) || 'US';
+    const rawMarket = searchParams.get('market');
+    const market: MarketType = rawMarket && rawMarket in MARKET_CONFIGS ? (rawMarket as MarketType) : 'US';
     const language = searchParams.get('language') || 'zh';
     const reportType = searchParams.get('type') as 'beginner' | 'standard' | 'professional' | null;
 
