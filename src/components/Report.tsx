@@ -208,7 +208,7 @@ function AnalysisCard({
   };
 
   return (
-    <div className="bg-white/5 border border-white/10 p-6 rounded-md hover:border-white/20 transition-colors relative group">
+    <div className="streaming-card bg-white/5 border border-white/10 p-6 rounded-md hover:border-white/20 transition-colors relative group">
       <div
         className={`flex items-center justify-between gap-3 border-b border-white/5 pb-3 ${collapsible ? 'cursor-pointer' : ''}`}
         onClick={() => collapsible && setIsExpanded(!isExpanded)}

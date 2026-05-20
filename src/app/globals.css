@@ -245,6 +245,25 @@ h1, h2, h3 {
   border-color: var(--border-strong);
 }
 
+/* ============================================================
+   Streaming containers — stop scroll jitter while AI streams.
+   - overflow-anchor: none: stops Chromium "scroll anchoring" from
+     adjusting scrollTop when content above the viewport grows.
+   - contain: layout style: isolates a card's layout so growth in
+     one card doesn't reflow neighbours.
+   ============================================================ */
+html {
+  overflow-anchor: none;
+}
+.streaming-card {
+  overflow-anchor: none;
+  contain: layout style;
+}
+.streaming-card .prose,
+.streaming-card .prose * {
+  overflow-anchor: none;
+}
+
 /* Decorative count number inside feature-card (now editorial) */
 .cn-number {
   font-family: 'Fraunces', 'Instrument Serif', serif;
@@ -457,6 +476,8 @@ h1, h2, h3 {
 [data-theme="light"] .bg-obsidian-900 { background-color: var(--bg-obsidian) !important; }
 [data-theme="light"] .bg-surface       { background-color: var(--bg-surface)  !important; }
 [data-theme="light"] .bg-surface\/80   { background-color: rgba(255, 255, 255, 0.9) !important; }
+[data-theme="light"] .bg-surface\/90   { background-color: rgba(255, 255, 250, 0.94) !important; }
+[data-theme="light"] .bg-surface\/95   { background-color: rgba(255, 255, 250, 0.97) !important; }
 
 /* Shadow softening */
 [data-theme="light"] .shadow-black\/40,

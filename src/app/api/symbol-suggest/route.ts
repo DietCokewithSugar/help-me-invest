@@ -1,6 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GeminiClient } from '@/lib/gemini';
+import { FMPClient } from '@/lib/fmp';
 import { formatSymbolForMarket, type MarketType } from '@/lib/markets';
+
+// Map FMP `exchangeShortName` → our MarketType. FMP returns codes like
+// "NASDAQ" / "NYSE" / "SHH" / "SHZ" / "HKSE" / "TYO" / "KOSPI" / "ASX".
+function fmpExchangeToMarket(ex: string | undefined | null): MarketType | null {
+  if (!ex) return null;
+  const e = ex.toUpperCase();
+  if (e === 'NASDAQ' || e === 'NYSE' || e === 'AMEX' || e === 'BATS') return 'US';
+  if (e === 'SHH' || e === 'SSE' || e === 'SHZ' || e === 'SZSE') return 'CN';
+  if (e === 'HKSE' || e === 'HKG') return 'HK';
+  if (e === 'TYO' || e === 'JPX' || e === 'OSE') return 'JP';
+  if (e === 'KSC' || e === 'KOSPI' || e === 'KOSDAQ' || e === 'KOE') return 'KR';
+  if (e === 'ASX') return 'AU';
+  return null;
+}
+
+// In-memory cache: identical queries within a few minutes (e.g. user types
+// "APPL" then deletes "L" and re-types) hit memory instead of re-fetching.
+// Tiny TTL avoids stale results when the user explicitly retries.
+const SUGGEST_CACHE = new Map<string, { ts: number; value: any }>();
+const SUGGEST_CACHE_TTL_MS = 60_000;
+function cacheGet(key: string) {
+  const hit = SUGGEST_CACHE.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.ts > SUGGEST_CACHE_TTL_MS) {
+    SUGGEST_CACHE.delete(key);
+    return null;
+  }
+  return hit.value;
+}
+function cacheSet(key: string, value: any) {
+  if (SUGGEST_CACHE.size > 200) {
+    // simple FIFO eviction
+    const first = SUGGEST_CACHE.keys().next().value;
+    if (first) SUGGEST_CACHE.delete(first);
+  }
+  SUGGEST_CACHE.set(key, { ts: Date.now(), value });
+}
 
 const VALID_MARKETS: MarketType[] = ['US', 'CN', 'HK', 'JP', 'KR', 'AU'];
 
@@ -183,6 +221,51 @@ function normalizeSuggestion(item: any) {
   };
 }
 
+// FMP /search returns items like:
+//   { symbol: "AAPL", name: "Apple Inc.", currency: "USD",
+//     stockExchange: "NASDAQ Global Select", exchangeShortName: "NASDAQ" }
+// Map them into our suggestion shape and filter by marketHint.
+function mapFmpResults(
+  items: any[],
+  marketHint?: MarketType
+): Array<{ symbol: string; market: MarketType; name: string; nameCn: string; confidence?: number }> {
+  const out: Array<{ symbol: string; market: MarketType; name: string; nameCn: string; confidence?: number }> = [];
+  for (const item of items) {
+    const market = fmpExchangeToMarket(item?.exchangeShortName);
+    if (!market) continue;
+    if (marketHint && market !== marketHint) continue;
+    const symbol = String(item?.symbol || '').toUpperCase().trim();
+    if (!symbol) continue;
+    const formatted = formatSymbolForMarket(symbol, market);
+    if (!MARKET_SYMBOL_REGEX[market].test(formatted)) continue;
+    out.push({
+      symbol: formatted,
+      market,
+      name: String(item?.name || '').trim(),
+      nameCn: '',
+      confidence: 0.85,
+    });
+  }
+  return out;
+}
+
+function dedupeMerge(
+  ...batches: Array<Array<{ symbol: string; market: MarketType; name: string; nameCn: string; confidence?: number }>>
+) {
+  const seen = new Set<string>();
+  const out: typeof batches[number] = [];
+  for (const batch of batches) {
+    for (const item of batch) {
+      const key = `${item.market}-${item.symbol}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(item);
+      if (out.length >= 5) return out;
+    }
+  }
+  return out;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { query, market, language } = await request.json();
@@ -194,21 +277,61 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ query: trimmedQuery, suggestions: [] });
     }
 
-    const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
+    // In-memory cache check (same query within 60s)
+    const cacheKey = `${trimmedQuery.toLowerCase()}|${marketHint || ''}|${lang}`;
+    const cached = cacheGet(cacheKey);
+    if (cached) return NextResponse.json(cached);
 
-    // 如果没有 API Key，直接使用本地搜索
-    if (!deepseekApiKey) {
-      console.log('No DeepSeek API key, using local search fallback');
-      const localResults = localSearch(trimmedQuery, marketHint || undefined);
-      return NextResponse.json({
+    // ===== Tier 1: local index (instant) =====
+    const localResults = localSearch(trimmedQuery, marketHint || undefined);
+
+    // If local already gives a decent answer, ship it. The vast majority of
+    // queries (top global tickers + their CN/HK/JP/KR names) hit here.
+    if (localResults.length >= 3) {
+      const payload = { query: trimmedQuery, suggestions: localResults.slice(0, 5), source: 'local' };
+      cacheSet(cacheKey, payload);
+      return NextResponse.json(payload);
+    }
+
+    // ===== Tier 2: FMP /search (~100-300ms, global coverage) =====
+    const fmpApiKey = process.env.FMP_API_KEY;
+    let fmpResults: ReturnType<typeof mapFmpResults> = [];
+    if (fmpApiKey) {
+      try {
+        const fmp = new FMPClient(fmpApiKey);
+        const raw = await fmp.searchCompany(trimmedQuery);
+        if (Array.isArray(raw)) {
+          fmpResults = mapFmpResults(raw, marketHint || undefined);
+        }
+      } catch (fmpError: any) {
+        console.log('FMP search failed, will fall through:', fmpError?.message || fmpError);
+      }
+    }
+
+    const merged = dedupeMerge(localResults, fmpResults);
+    if (merged.length >= 2) {
+      const payload = {
         query: trimmedQuery,
-        suggestions: localResults,
-        source: 'local',
-      });
+        suggestions: merged,
+        source: localResults.length > 0 && fmpResults.length > 0
+          ? 'local+fmp'
+          : fmpResults.length > 0
+            ? 'fmp'
+            : 'local',
+      };
+      cacheSet(cacheKey, payload);
+      return NextResponse.json(payload);
+    }
+
+    // ===== Tier 3: AI fallback (slow, but handles e.g. Chinese name → ticker) =====
+    const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
+    if (!deepseekApiKey) {
+      const payload = { query: trimmedQuery, suggestions: merged, source: merged.length > 0 ? 'local' : 'none' };
+      cacheSet(cacheKey, payload);
+      return NextResponse.json(payload);
     }
 
     try {
-      // 尝试使用 AI 搜索
       const gemini = new GeminiClient(deepseekApiKey);
       const aiResult = await gemini.suggestSymbol(trimmedQuery, marketHint, lang);
       const rawSuggestions = Array.isArray(aiResult?.suggestions) ? aiResult.suggestions : [];
@@ -216,54 +339,28 @@ export async function POST(request: NextRequest) {
         .map(normalizeSuggestion)
         .filter(Boolean) as Array<{ symbol: string; market: MarketType; name: string; nameCn: string; confidence?: number }>;
 
-      // 如果 AI 返回的候选数太少（<3），用本地搜索补齐，方便用户在多个公司间选择
-      if (aiSuggestions.length > 0 && aiSuggestions.length < 3) {
-        const seen = new Set(aiSuggestions.map(s => `${s.market}-${s.symbol}`));
-        const localResults = localSearch(trimmedQuery, marketHint || undefined);
-        for (const item of localResults) {
-          const key = `${item.market}-${item.symbol}`;
-          if (!seen.has(key)) {
-            seen.add(key);
-            aiSuggestions.push(item);
-            if (aiSuggestions.length >= 5) break;
-          }
-        }
-      }
-
-      const suggestions = aiSuggestions.slice(0, 5);
-
-      if (suggestions.length > 0) {
-        return NextResponse.json({
-          query: trimmedQuery,
-          suggestions,
-          source: rawSuggestions.length === suggestions.length ? 'ai' : 'ai+local',
-        });
-      }
-
-      // AI 没有返回任何结果，回退本地搜索
-      const localResults = localSearch(trimmedQuery, marketHint || undefined);
-      return NextResponse.json({
+      const finalMerged = dedupeMerge(merged, aiSuggestions);
+      const payload = {
         query: trimmedQuery,
-        suggestions: localResults,
-        source: localResults.length > 0 ? 'local' : 'none',
-      });
-
+        suggestions: finalMerged,
+        source: aiSuggestions.length > 0 ? 'ai+fallback' : 'fallback',
+      };
+      cacheSet(cacheKey, payload);
+      return NextResponse.json(payload);
     } catch (aiError: any) {
-      // AI API 调用失败（网络问题等），回退到本地搜索
-      console.log('AI API failed, falling back to local search:', aiError?.message || aiError);
-      const localResults = localSearch(trimmedQuery, marketHint || undefined);
-
-      return NextResponse.json({
+      console.log('AI API failed:', aiError?.message || aiError);
+      const payload = {
         query: trimmedQuery,
-        suggestions: localResults,
-        source: 'local_fallback',
-      });
+        suggestions: merged,
+        source: merged.length > 0 ? 'local_fallback' : 'none',
+      };
+      cacheSet(cacheKey, payload);
+      return NextResponse.json(payload);
     }
 
   } catch (error: any) {
     console.error('Symbol suggest error:', error?.message || error);
 
-    // 即使解析请求失败，也尝试返回一些有用信息
     return NextResponse.json(
       { error: '联想搜索失败，请稍后重试', suggestions: [] },
       { status: 500 }

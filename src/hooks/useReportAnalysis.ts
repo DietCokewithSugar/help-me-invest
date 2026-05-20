@@ -34,7 +34,8 @@ export function useReportAnalysis() {
     const [loadingStep, setLoadingStep] = useState(0);
     const [fromCache, setFromCache] = useState(false);
 
-    // Streaming helper
+    // Streaming helper. Chunks coalesced via requestAnimationFrame so React
+    // renders ≤ once/frame even when several sections stream in parallel.
     const streamSection = async (section: string, payload: any, saveToCache: boolean = true, language: string = 'zh') => {
         try {
             const response = await fetch('/api/ai/stream-section', {
@@ -49,41 +50,62 @@ export function useReportAnalysis() {
             const decoder = new TextDecoder();
             let done = false;
             let text = '';
+            let pendingFrame = 0;
+            let lastFlushed = '';
+
+            const flush = () => {
+                pendingFrame = 0;
+                if (text === lastFlushed) return;
+                lastFlushed = text;
+                const snapshot = text;
+                setReportData((prev) => {
+                    if (!prev) return prev;
+
+                    if (section === 'earningsCallSummary') {
+                        return { ...prev, earningsCallSummary: snapshot };
+                    }
+
+                    if (section.startsWith('pro')) {
+                        return {
+                            ...prev,
+                            proAiAnalysis: {
+                                ...(prev.proAiAnalysis || {} as any),
+                                [section]: snapshot,
+                            } as any,
+                        };
+                    }
+
+                    return {
+                        ...prev,
+                        aiAnalysis: {
+                            ...(prev.aiAnalysis || {} as any),
+                            [section]: snapshot,
+                        } as any,
+                    };
+                });
+            };
+
+            const scheduleFlush = () => {
+                if (pendingFrame) return;
+                if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
+                    flush();
+                    return;
+                }
+                pendingFrame = window.requestAnimationFrame(flush);
+            };
 
             while (!done) {
                 const { value, done: doneReading } = await reader.read();
                 done = doneReading;
                 const chunkValue = decoder.decode(value, { stream: !done });
                 text += chunkValue;
-
-                setReportData((prev) => {
-                    if (!prev) return prev;
-
-                    if (section === 'earningsCallSummary') {
-                        return { ...prev, earningsCallSummary: text };
-                    }
-
-                    // 处理专业版模块
-                    if (section.startsWith('pro')) {
-                        return {
-                            ...prev,
-                            proAiAnalysis: {
-                                ...(prev.proAiAnalysis || {} as any),
-                                [section]: text,
-                            } as any,
-                        };
-                    }
-
-                    // For AI Analysis fields
-                    return {
-                        ...prev,
-                        aiAnalysis: {
-                            ...(prev.aiAnalysis || {} as any),
-                            [section]: text,
-                        } as any,
-                    };
-                });
+                scheduleFlush();
             }
+            if (pendingFrame && typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function') {
+                window.cancelAnimationFrame(pendingFrame);
+                pendingFrame = 0;
+            }
+            flush();
             return text;
         } catch (error) {
             console.error(`Stream error for ${section}:`, error);
