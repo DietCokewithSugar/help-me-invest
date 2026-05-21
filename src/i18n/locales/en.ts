@@ -1182,6 +1182,7 @@ export const en: TranslationKeys = {
       emerging: 'Emerging',
       mature: 'Mature',
       companyTable: 'Company List',
+      companyTableDesc: 'Brief profiles of every representative company in this sector, sorted alphabetically. Click any company for the full profile.',
       companyTableCols: {
         name: 'Company',
         symbol: 'Symbol',

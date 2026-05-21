@@ -50,9 +50,6 @@ interface DetailData {
   news: { title: string; url: string; date: string; source: string; sentiment: string }[];
 }
 
-type SortKey = 'marketCap' | 'revenueGrowth' | 'change';
-type SortDir = 'asc' | 'desc';
-
 const darkPanelStyle = {
   backgroundColor: '#121212',
   borderColor: 'rgba(255, 255, 255, 0.12)',
@@ -80,8 +77,6 @@ export default function IndustryDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedSegments, setExpandedSegments] = useState<Set<string>>(new Set());
-  const [sortKey, setSortKey] = useState<SortKey>('marketCap');
-  const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [activeTab, setActiveTab] = useState<'structure' | 'companies' | 'news'>('structure');
   const [selectedCompany, setSelectedCompany] = useState<CompanyDiagnostic | null>(null);
   const [showOverviewModal, setShowOverviewModal] = useState(false);
@@ -158,25 +153,19 @@ export default function IndustryDetailPage() {
     setExpandedSegments(new Set());
   };
 
-  const sortedCompanies = useMemo(() => {
+  // Flatten all segment companies into a single de-duplicated list for the Profiles tab.
+  const allCompaniesFlat = useMemo(() => {
     if (!data) return [];
-    const copy = [...data.companies];
-    copy.sort((a, b) => {
-      const va = a[sortKey] ?? 0;
-      const vb = b[sortKey] ?? 0;
-      return sortDir === 'desc' ? vb - va : va - vb;
-    });
-    return copy;
-  }, [data, sortKey, sortDir]);
-
-  const handleCompanySort = (key: SortKey) => {
-    if (sortKey === key) {
-      setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'));
-    } else {
-      setSortKey(key);
-      setSortDir('desc');
+    const seen = new Map<string, SegmentCompanyInfo>();
+    for (const segment of data.segments) {
+      for (const company of segment.companies) {
+        if (!seen.has(company.symbol)) {
+          seen.set(company.symbol, company);
+        }
+      }
     }
-  };
+    return Array.from(seen.values()).sort((a, b) => a.symbol.localeCompare(b.symbol));
+  }, [data]);
 
   const handleCompanyClick = async (symbol: string) => {
     if (loadingCompany) return;
@@ -201,115 +190,6 @@ export default function IndustryDetailPage() {
     setShowOverviewModal(false);
     setTimeout(() => setSelectedCompany(null), 300);
   };
-
-  const scatterOption = useMemo(() => {
-    if (!data || data.companies.length === 0) return {};
-
-    return {
-      backgroundColor: isDark ? '#121212' : 'transparent',
-      color: ['#88ABDA', '#98B6C2', '#C0D09D', '#CB523E', '#DFD6B8'],
-      grid: { top: 60, right: 30, bottom: 50, left: 60 },
-      tooltip: {
-        trigger: 'item',
-        backgroundColor: isDark ? '#121212' : '#ffffff',
-        borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-        textStyle: { color: isDark ? '#e2e8f0' : '#1e293b', fontFamily: 'Inter', fontSize: 12 },
-        formatter: (params: any) => {
-          const d = params.data;
-          if (!d) return '';
-          return `<div style="font-family:Inter">
-            <div style="font-weight:600">${stripEmoji(d[3])}</div>
-            <div style="font-family:'JetBrains Mono';font-size:11px;color:${isDark ? '#94a3b8' : '#475569'}">${stripEmoji(d[4])}</div>
-            <div style="font-family:'JetBrains Mono';font-size:11px;margin-top:4px">
-              ${t.industry.detail.companyTableCols.marketCap}: ${formatMarketCap(d[0], locale)}<br/>
-              ${t.industry.detail.companyTableCols.revenueGrowth}: <span style="color:${d[1] >= 0 ? '#10B981' : '#EF4444'}">${d[1] > 0 ? '+' : ''}${d[1]}%</span>
-            </div>
-          </div>`;
-        },
-      },
-      xAxis: {
-        type: 'log',
-        name: t.industry.detail.scatterXAxis,
-        nameTextStyle: { color: isDark ? '#64748b' : '#64748b', fontSize: 11 },
-        axisLabel: {
-          color: isDark ? '#64748b' : '#64748b',
-          fontFamily: '"JetBrains Mono"',
-          fontSize: 10,
-          formatter: (v: number) => formatMarketCap(v, locale),
-        },
-        splitLine: { lineStyle: { color: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' } },
-        axisLine: { lineStyle: { color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' } },
-      },
-      yAxis: {
-        type: 'value',
-        name: t.industry.detail.scatterYAxis,
-        nameTextStyle: { color: isDark ? '#64748b' : '#64748b', fontSize: 11 },
-        axisLabel: {
-          color: isDark ? '#64748b' : '#64748b',
-          fontFamily: '"JetBrains Mono"',
-          fontSize: 10,
-          formatter: (v: number) => `${v}%`,
-        },
-        splitLine: { lineStyle: { color: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' } },
-        axisLine: { lineStyle: { color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' } },
-      },
-      visualMap: {
-        show: false,
-        dimension: 1,
-        min: -20,
-        max: 30,
-        inRange: {
-          color: ['#EF4444', '#F87171', '#94A3B8', '#6EE7B7', '#10B981'],
-        },
-      },
-      series: [
-        {
-          type: 'scatter',
-          symbolSize: (d: any) => Math.max(8, Math.min(30, Math.log10(d[0] / 1e8) * 6)),
-          data: data.companies
-            .filter((c) => c.marketCap > 0)
-            .map((c) => [c.marketCap, c.revenueGrowth, c.change, stripEmoji(c.name), stripEmoji(c.symbol)]),
-          emphasis: {
-            itemStyle: { borderColor: '#14b8a6', borderWidth: 2 },
-          },
-        },
-        {
-          type: 'line',
-          markLine: {
-            silent: true,
-            lineStyle: { color: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)', type: 'dashed' },
-            data: [{ yAxis: 0 }],
-            label: { show: false },
-          },
-          data: [],
-        },
-      ],
-      graphic: [
-        {
-          type: 'text',
-          left: 70,
-          top: 10,
-          style: {
-            text: stripEmoji(t.industry.detail.highGrowth) + ' ←',
-            fill: isDark ? '#64748b' : '#94a3b8',
-            fontSize: 10,
-            fontFamily: 'Inter',
-          },
-        },
-        {
-          type: 'text',
-          right: 40,
-          top: 10,
-          style: {
-            text: '→ ' + stripEmoji(t.industry.detail.pillar),
-            fill: isDark ? '#64748b' : '#94a3b8',
-            fontSize: 10,
-            fontFamily: 'Inter',
-          },
-        },
-      ],
-    };
-  }, [data, isDark, locale, t]);
 
   // Segment market cap distribution treemap (used in structure tab header).
   const segmentTreemapOption = useMemo(() => {
@@ -380,45 +260,6 @@ export default function IndustryDetailPage() {
     };
   }, [data, isDark, locale, t]);
 
-  const Sparkline = ({ history }: { history: number[] }) => {
-    if (!history || history.length < 2) {
-      return <span className="text-mist-600 text-[10px] font-mono">—</span>;
-    }
-    const min = Math.min(...history);
-    const max = Math.max(...history);
-    const range = max - min || 1;
-    const w = 64;
-    const h = 20;
-    const path = history
-      .map((v, i) => {
-        const x = (i / (history.length - 1)) * w;
-        const y = h - ((v - min) / range) * h;
-        return `${i === 0 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)}`;
-      })
-      .join(' ');
-
-    const color = history[history.length - 1] >= history[0] ? '#10B981' : '#EF4444';
-    return (
-      <svg width={w} height={h} className="inline-block" aria-hidden="true">
-        <path d={path} fill="none" stroke={color} strokeWidth="1.5" />
-      </svg>
-    );
-  };
-
-  const companyTag = (c: SegmentCompanyInfo) => {
-    if (c.marketCap > 1e11 && c.revenueGrowth >= 10) return t.industry.detail.pillar;
-    if (c.revenueGrowth >= 15) return t.industry.detail.highGrowth;
-    if (c.marketCap > 0 && c.marketCap < 5e10 && c.revenueGrowth >= 5) return t.industry.detail.emerging;
-    return t.industry.detail.mature;
-  };
-
-  const companyTagColor = (c: SegmentCompanyInfo) => {
-    if (c.marketCap > 1e11 && c.revenueGrowth >= 10) return 'text-glacier-500 bg-glacier-500/10';
-    if (c.revenueGrowth >= 15) return 'text-growth bg-growth/10';
-    if (c.marketCap > 0 && c.marketCap < 5e10 && c.revenueGrowth >= 5) return 'text-blue-400 bg-blue-500/10';
-    return 'text-mist-400 bg-mist-500/10';
-  };
-
   const positionLabel = (position: ValueChainPosition | null) => {
     if (!position) return null;
     return locale === 'zh' ? POSITION_LABELS[position].zh : POSITION_LABELS[position].en;
@@ -469,19 +310,31 @@ export default function IndustryDetailPage() {
 
             {/* Overview Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {[
-                { label: t.industry.detail.totalMarketCap, value: formatMarketCap(data.totalMarketCap, locale) },
-                { label: t.industry.detail.segmentCount, value: String(data.segments.length) },
-                { label: t.industry.detail.companyCount, value: String(data.companyCount) },
-                { label: t.industry.detail.avgGrowth, value: `${data.avgGrowth > 0 ? '+' : ''}${data.avgGrowth}%`, color: data.avgGrowth >= 0 ? 'text-growth' : 'text-decay' },
-              ].map((stat) => (
-                <div key={stat.label} className="gemini-card p-4 transition-colors hover:border-white/20" style={isDark ? darkPanelStyle : undefined}>
-                  <div className="text-xs text-mist-500 mb-1">{stat.label}</div>
-                  <div className={`text-lg font-mono font-semibold ${stat.color || ''}`} style={stat.color ? undefined : { color: 'var(--text-heading)' }}>
-                    {stat.value}
+              {(() => {
+                const totalCompanies = data.segments.reduce((sum, s) => sum + s.companies.length, 0);
+                const stats: { label: string; value: string; color?: string }[] = [
+                  { label: t.industry.detail.segmentCount, value: String(data.segments.length) },
+                  { label: t.industry.detail.companyCount, value: String(totalCompanies) },
+                ];
+                if (data.totalMarketCap > 0) {
+                  stats.push({ label: t.industry.detail.totalMarketCap, value: formatMarketCap(data.totalMarketCap, locale) });
+                }
+                if (Number.isFinite(data.avgGrowth) && data.avgGrowth !== 0) {
+                  stats.push({
+                    label: t.industry.detail.avgGrowth,
+                    value: `${data.avgGrowth > 0 ? '+' : ''}${data.avgGrowth}%`,
+                    color: data.avgGrowth >= 0 ? 'text-growth' : 'text-decay',
+                  });
+                }
+                return stats.map((stat) => (
+                  <div key={stat.label} className="gemini-card p-4 transition-colors hover:border-white/20" style={isDark ? darkPanelStyle : undefined}>
+                    <div className="text-xs text-mist-500 mb-1">{stat.label}</div>
+                    <div className={`text-lg font-mono font-semibold ${stat.color || ''}`} style={stat.color ? undefined : { color: 'var(--text-heading)' }}>
+                      {stat.value}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ));
+              })()}
             </div>
 
             {/* Tabs */}
@@ -643,20 +496,11 @@ export default function IndustryDetailPage() {
                               <table className="w-full text-sm">
                                 <thead>
                                   <tr style={isDark ? darkTableHeaderStyle : undefined}>
-                                    <th className="text-left px-4 md:px-5 py-2 text-mist-500 font-medium text-[10px] uppercase tracking-wider">
+                                    <th className="text-left px-4 md:px-5 py-2 text-mist-500 font-medium text-[10px] uppercase tracking-wider w-20">
                                       {t.industry.detail.companyTableCols.symbol}
                                     </th>
                                     <th className="text-left px-2 md:px-3 py-2 text-mist-500 font-medium text-[10px] uppercase tracking-wider">
                                       {t.industry.detail.companyTableCols.name}
-                                    </th>
-                                    <th className="text-right px-2 md:px-3 py-2 text-mist-500 font-medium text-[10px] uppercase tracking-wider">
-                                      {t.industry.detail.companyTableCols.marketCap}
-                                    </th>
-                                    <th className="text-right px-2 md:px-3 py-2 text-mist-500 font-medium text-[10px] uppercase tracking-wider hidden md:table-cell">
-                                      {t.industry.detail.companyTableCols.revenueGrowth}
-                                    </th>
-                                    <th className="text-right px-4 md:px-5 py-2 text-mist-500 font-medium text-[10px] uppercase tracking-wider hidden lg:table-cell">
-                                      {t.industry.detail.companyTableCols.change}
                                     </th>
                                   </tr>
                                 </thead>
@@ -668,41 +512,20 @@ export default function IndustryDetailPage() {
                                       style={{ borderColor: 'var(--border-color)' }}
                                       onClick={() => handleCompanyClick(co.symbol)}
                                     >
-                                      <td className="px-4 md:px-5 py-2.5 font-mono text-xs text-glacier-500 whitespace-nowrap">
+                                      <td className="px-4 md:px-5 py-3 font-mono text-xs text-glacier-500 whitespace-nowrap align-top">
                                         {stripEmoji(co.symbol)}
                                       </td>
-                                      <td className="px-2 md:px-3 py-2.5">
-                                        <div className="flex flex-col">
-                                          <span className="text-xs md:text-sm" style={{ color: 'var(--text-primary)' }}>
+                                      <td className="px-2 md:px-3 py-3">
+                                        <div className="flex flex-col gap-0.5">
+                                          <span className="text-xs md:text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                                             {stripEmoji(co.name)}
                                           </span>
                                           {co.note && (
-                                            <span className="text-[10px] text-mist-500 mt-0.5">
+                                            <span className="text-[11px] md:text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                                               {stripEmoji(locale === 'zh' ? co.note.zh : co.note.en)}
                                             </span>
                                           )}
                                         </div>
-                                      </td>
-                                      <td className="px-2 md:px-3 py-2.5 text-right font-mono text-xs" style={{ color: 'var(--text-primary)' }}>
-                                        {co.marketCap > 0 ? formatMarketCap(co.marketCap, locale) : '—'}
-                                      </td>
-                                      <td className="px-2 md:px-3 py-2.5 text-right font-mono text-xs hidden md:table-cell">
-                                        {co.revenueGrowth === 0 && co.marketCap === 0 ? (
-                                          <span className="text-mist-500">—</span>
-                                        ) : (
-                                          <span className={co.revenueGrowth >= 0 ? 'text-growth' : 'text-decay'}>
-                                            {co.revenueGrowth > 0 ? '+' : ''}{co.revenueGrowth}%
-                                          </span>
-                                        )}
-                                      </td>
-                                      <td className="px-4 md:px-5 py-2.5 text-right font-mono text-xs hidden lg:table-cell">
-                                        {co.change === 0 && co.marketCap === 0 ? (
-                                          <span className="text-mist-500">—</span>
-                                        ) : (
-                                          <span className={co.change >= 0 ? 'text-growth' : 'text-decay'}>
-                                            {co.change > 0 ? '+' : ''}{co.change.toFixed(2)}%
-                                          </span>
-                                        )}
                                       </td>
                                     </tr>
                                   ))}
@@ -720,96 +543,55 @@ export default function IndustryDetailPage() {
 
             {/* Companies tab */}
             {activeTab === 'companies' && (
-              <div className="space-y-6">
-                {/* Scatter Plot */}
-                <section className="gemini-card p-4 md:p-6" style={isDark ? darkPanelStyle : undefined}>
-                  <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--text-heading)' }}>
-                    {t.industry.detail.scatterTitle}
+              <section className="gemini-card overflow-hidden" style={isDark ? darkPanelStyle : undefined}>
+                <div className="p-4 md:p-6 pb-3">
+                  <h3 className="text-sm font-semibold" style={{ color: 'var(--text-heading)' }}>
+                    {t.industry.detail.companyTable}
                   </h3>
-                  <div
-                    className="rounded-sm p-2"
-                    style={{
-                      minHeight: 380,
-                      backgroundColor: isDark ? '#121212' : 'transparent',
-                      border: isDark ? '1px solid rgba(255,255,255,0.08)' : undefined,
-                    }}
-                  >
-                    <ReactECharts
-                      option={scatterOption}
-                      style={{ width: '100%', height: 380 }}
-                      opts={{ renderer: 'canvas' }}
-                      notMerge
-                    />
-                  </div>
-                </section>
-
-                {/* Company Table with Sparklines */}
-                <section className="gemini-card overflow-hidden" style={isDark ? darkPanelStyle : undefined}>
-                  <div className="p-4 md:p-6 pb-0">
-                    <h3 className="text-sm font-semibold" style={{ color: 'var(--text-heading)' }}>
-                      {t.industry.detail.companyTable}
-                    </h3>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b" style={{ borderColor: 'var(--border-color)', ...(isDark ? darkTableHeaderStyle : {}) }}>
-                          <th className="text-left px-4 md:px-6 py-3 text-mist-400 font-medium text-xs">
-                            {t.industry.detail.companyTableCols.name}
-                          </th>
-                          <th className="text-left px-4 md:px-6 py-3 text-mist-400 font-medium text-xs hidden md:table-cell">
-                            {t.industry.detail.companyTableCols.symbol}
-                          </th>
-                          <ThSort label={t.industry.detail.companyTableCols.marketCap} k="marketCap" current={sortKey} dir={sortDir} onSort={handleCompanySort} />
-                          <ThSort label={t.industry.detail.companyTableCols.revenueGrowth} k="revenueGrowth" current={sortKey} dir={sortDir} onSort={handleCompanySort} />
-                          <th className="text-center px-4 py-3 text-mist-400 font-medium text-xs hidden lg:table-cell">
-                            {t.industry.detail.companyTableCols.trend}
-                          </th>
-                          <th className="text-left px-4 py-3 text-mist-400 font-medium text-xs">
-                            {t.industry.detail.companyTableCols.tag}
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sortedCompanies.map((c, idx) => (
-                          <tr
-                            key={c.symbol}
-                            className="border-b cursor-pointer transition-colors hover:bg-white/5"
-                            style={{
-                              borderColor: 'var(--border-color)',
-                              backgroundColor: isDark && idx % 2 === 1 ? 'rgba(255,255,255,0.012)' : undefined,
-                            }}
-                            onClick={() => handleCompanyClick(c.symbol)}
-                          >
-                            <td className="px-4 md:px-6 py-3">
+                  <p className="text-xs text-mist-500 mt-1">{t.industry.detail.companyTableDesc}</p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b" style={{ borderColor: 'var(--border-color)', ...(isDark ? darkTableHeaderStyle : {}) }}>
+                        <th className="text-left px-4 md:px-6 py-2 text-mist-500 font-medium text-[10px] uppercase tracking-wider w-20">
+                          {t.industry.detail.companyTableCols.symbol}
+                        </th>
+                        <th className="text-left px-4 md:px-6 py-2 text-mist-500 font-medium text-[10px] uppercase tracking-wider">
+                          {t.industry.detail.companyTableCols.name}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allCompaniesFlat.map((c, idx) => (
+                        <tr
+                          key={c.symbol}
+                          className="border-b cursor-pointer transition-colors hover:bg-white/5"
+                          style={{
+                            borderColor: 'var(--border-color)',
+                            backgroundColor: isDark && idx % 2 === 1 ? 'rgba(255,255,255,0.012)' : undefined,
+                          }}
+                          onClick={() => handleCompanyClick(c.symbol)}
+                        >
+                          <td className="px-4 md:px-6 py-3 font-mono text-xs text-glacier-500 align-top whitespace-nowrap">
+                            {stripEmoji(c.symbol)}
+                          </td>
+                          <td className="px-4 md:px-6 py-3">
+                            <div className="flex flex-col gap-0.5">
                               <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{stripEmoji(c.name)}</span>
-                            </td>
-                            <td className="px-4 md:px-6 py-3 font-mono text-xs text-glacier-500 hidden md:table-cell">
-                              {stripEmoji(c.symbol)}
-                            </td>
-                            <td className="px-4 md:px-6 py-3 font-mono text-xs" style={{ color: 'var(--text-primary)' }}>
-                              {c.marketCap > 0 ? formatMarketCap(c.marketCap, locale) : '—'}
-                            </td>
-                            <td className="px-4 md:px-6 py-3 font-mono text-xs">
-                              <span className={c.revenueGrowth >= 0 ? 'text-growth' : 'text-decay'}>
-                                {c.revenueGrowth > 0 ? '+' : ''}{c.revenueGrowth}%
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 hidden lg:table-cell text-center">
-                              <Sparkline history={c.history} />
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className={`px-2 py-0.5 rounded-sm text-[10px] font-medium ${companyTagColor(c)}`}>
-                                {stripEmoji(companyTag(c))}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
-              </div>
+                              {c.note && (
+                                <span className="text-[11px] md:text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                                  {stripEmoji(locale === 'zh' ? c.note.zh : c.note.en)}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
             )}
 
             {/* News tab */}
@@ -875,21 +657,3 @@ export default function IndustryDetailPage() {
   );
 }
 
-function ThSort({
-  label, k, current, dir, onSort,
-}: {
-  label: string; k: SortKey; current: SortKey; dir: SortDir; onSort: (k: SortKey) => void;
-}) {
-  const active = current === k;
-  return (
-    <th
-      className="text-left px-4 md:px-6 py-3 text-mist-400 font-medium text-xs cursor-pointer select-none hover:text-glacier-400 transition-colors whitespace-nowrap"
-      onClick={() => onSort(k)}
-    >
-      {label}
-      <span className={`ml-1 inline-block ${active ? 'text-glacier-500' : 'text-mist-600'}`}>
-        {active && dir === 'asc' ? '↑' : '↓'}
-      </span>
-    </th>
-  );
-}

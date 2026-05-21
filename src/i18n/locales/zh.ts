@@ -1180,6 +1180,7 @@ export const zh = {
       emerging: '新兴企业',
       mature: '成熟企业',
       companyTable: '企业列表',
+      companyTableDesc: '本板块下所有代表性企业的简介，按代码字母序排列。点击任意企业查看完整画像。',
       companyTableCols: {
         name: '公司名称',
         symbol: '代码',
