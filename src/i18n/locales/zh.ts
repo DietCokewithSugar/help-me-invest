@@ -154,7 +154,7 @@ export const zh = {
       feature1Title: '穿透表象的 AI 逻辑',
       feature1Desc: 'AI 不止总结数据，而是理解财报背后的商业动机，洞察企业真正的经营本质。',
       feature2Title: '多维数据印证',
-      feature2Desc: '整合 FMP 财务数据与 Google Search 实时新闻，实现基本面与消息面的交叉验证。',
+      feature2Desc: '整合 FMP 财务数据与 AI 推理，对基本面、经营质量与风险因素进行交叉验证。',
       feature3Title: '极致克制的研报',
       feature3Desc: '告别繁琐的传统报告，用可视化（如桑基图）还原经营本质，只留下真正重要的信息。',
     },
@@ -767,7 +767,7 @@ export const zh = {
     },
     dataNotice: {
       title: '数据说明',
-      content: (market: string) => `${market}市场的部分数据（如机构持仓、内幕交易、财报电话会议等）暂不可用。AI 分析已通过 Google Search 搜索补充了最新的市场动态和分析师观点，以提供更全面的投资参考。`,
+      content: (market: string) => `${market}市场的部分数据（如机构持仓、内幕交易、财报电话会议等）暂不可用。AI 分析将基于已提供数据与模型已有知识生成补充说明，不包含实时联网搜索结果。`,
     },
     footer: {
       generatedAt: (date: string) => `报告生成于：${date}`,

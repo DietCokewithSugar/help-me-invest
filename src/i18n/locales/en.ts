@@ -156,7 +156,7 @@ export const en: TranslationKeys = {
       feature1Title: 'AI Logic Beyond the Surface',
       feature1Desc: 'AI doesn\'t just summarize data — it understands the business motives behind financial reports, revealing the true operating essence of companies.',
       feature2Title: 'Multi-dimensional Data Verification',
-      feature2Desc: 'Integrates FMP financial data with Google Search real-time news for cross-validation of fundamentals and market sentiment.',
+      feature2Desc: 'Integrates FMP financial data with AI reasoning to cross-check fundamentals, operating quality, and risk factors.',
       feature3Title: 'Minimalist Research Reports',
       feature3Desc: 'Say goodbye to tedious traditional reports. Visualizations like Sankey charts reveal business essence, keeping only what truly matters.',
     },
@@ -769,7 +769,7 @@ export const en: TranslationKeys = {
     },
     dataNotice: {
       title: 'Data Notice',
-      content: (market: string) => `Some data for the ${market} market (e.g., institutional holdings, insider trading, earnings calls) is not available. AI analysis has supplemented with the latest market trends and analyst opinions via Google Search for a more comprehensive investment reference.`,
+      content: (market: string) => `Some data for the ${market} market (e.g., institutional holdings, insider trading, earnings calls) is not available. AI analysis uses the provided data and model knowledge only; it does not include real-time web search results.`,
     },
     footer: {
       generatedAt: (date: string) => `Report generated on: ${date}`,
