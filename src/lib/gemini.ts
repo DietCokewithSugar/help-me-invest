@@ -155,10 +155,10 @@ interface GeminiModelAdapter {
 // - standard: 复杂推理任务（公司深度分析）
 // - search: 补充摘要任务（禁用 online search / googleSearch）
 // - pro: 专业版深度分析
-// 当前全部统一使用 gemini-3.0-flash-lite
+// 当前全部统一使用 gemini-3.1-flash-lite
 type ModelTier = 'lite' | 'standard' | 'search' | 'pro';
 
-const GEMINI_MODEL_ID = 'gemini-3.0-flash-lite';
+const GEMINI_MODEL_ID = 'gemini-3.1-flash-lite';
 
 const MODEL_CONFIG: Record<ModelTier, { model: string; description: string }> = {
   lite: {

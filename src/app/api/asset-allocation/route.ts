@@ -3,7 +3,7 @@ import { apiErrorResponse, enforceRateLimit, readJsonWithLimit, truncateText } f
 
 export const maxDuration = 120;
 
-const GEMINI_MODEL_ID = 'gemini-3.0-flash-lite';
+const GEMINI_MODEL_ID = 'gemini-3.1-flash-lite';
 const MAX_REQUEST_BYTES = 32 * 1024;
 const MAX_FREE_TEXT_CHARS = 1_000;
 
