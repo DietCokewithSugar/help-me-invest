@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GeminiClient } from '@/lib/gemini';
 import { withRetryAndTimeout } from '@/lib/api-utils';
+import { apiErrorResponse, enforceRateLimit, readJsonWithLimit } from '@/lib/api-security';
 
 export const maxDuration = 30;
 
 const MAX_INPUT_LENGTH = 8000;
+const MAX_REQUEST_BYTES = 16 * 1024;
 
 /**
  * POST /api/feedback/translate
@@ -18,9 +20,10 @@ const MAX_INPUT_LENGTH = 8000;
 export async function POST(request: NextRequest) {
   let payload: any;
   try {
-    payload = await request.json();
-  } catch {
-    return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 });
+    enforceRateLimit(request, { key: 'feedback-translate', limit: 20, windowMs: 60_000 });
+    payload = await readJsonWithLimit<any>(request, MAX_REQUEST_BYTES);
+  } catch (error) {
+    return apiErrorResponse(error, 'Invalid JSON', 400);
   }
 
   const text = String(payload?.text || '').slice(0, MAX_INPUT_LENGTH);
@@ -50,6 +53,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, translated: translated || text });
   } catch (error: any) {
     console.error('Feedback translate route error:', error?.message || error);
-    return NextResponse.json({ success: true, translated: text, error: error?.message || 'translate-failed' });
+    return NextResponse.json({ success: true, translated: text, error: 'translate-failed' });
   }
 }

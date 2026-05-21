@@ -1,19 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { apiErrorResponse, enforceRateLimit, readJsonWithLimit, truncateText } from '@/lib/api-security';
 
 export const maxDuration = 120;
 
 const GEMINI_MODEL_ID = 'gemini-3.5-flash';
+const MAX_REQUEST_BYTES = 32 * 1024;
+const MAX_FREE_TEXT_CHARS = 1_000;
 
 async function generateGeminiJSON(apiKey: string, prompt: string): Promise<string> {
   const systemInstruction =
     'You are a structured-data API. Respond with ONE valid JSON object that matches the schema in the user prompt — no prose, no markdown, no code fences, no emojis, no greetings, no first-person language.';
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL_ID}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL_ID}:generateContent`;
 
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'x-goog-api-key': apiKey,
     },
     body: JSON.stringify({
       systemInstruction: {
@@ -24,7 +28,7 @@ async function generateGeminiJSON(apiKey: string, prompt: string): Promise<strin
       generationConfig: {
         temperature: 0.5,
         topP: 0.9,
-        maxOutputTokens: 8192,
+        maxOutputTokens: 6144,
         responseMimeType: 'application/json',
       },
     }),
@@ -32,7 +36,11 @@ async function generateGeminiJSON(apiKey: string, prompt: string): Promise<strin
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Gemini API error (${response.status}): ${errorText}`);
+    console.error('Gemini asset allocation error:', {
+      status: response.status,
+      body: errorText.slice(0, 500),
+    });
+    throw new Error(`Gemini API error (${response.status})`);
   }
 
   const data = await response.json();
@@ -98,7 +106,9 @@ function sanitizeReport(raw: any): any {
 
 export async function POST(request: NextRequest) {
   try {
-    const body: AllocationRequest = await request.json();
+    enforceRateLimit(request, { key: 'asset-allocation', limit: 6, windowMs: 10 * 60_000 });
+
+    const body: AllocationRequest = await readJsonWithLimit<AllocationRequest>(request, MAX_REQUEST_BYTES);
     const {
       assetTypes,
       returnLevel,
@@ -112,8 +122,12 @@ export async function POST(request: NextRequest) {
       language = 'zh',
     } = body;
 
-    if (!assetTypes || assetTypes.length === 0 || !returnLevel || !investAmount) {
+    if (!Array.isArray(assetTypes) || assetTypes.length === 0 || assetTypes.length > 10 || !returnLevel || !investAmount) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    if (!Number.isFinite(investAmount) || investAmount <= 0 || !Number.isFinite(totalAssets) || totalAssets < 0) {
+      return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
     }
 
     const googleApiKey = process.env.GOOGLE_API_KEY;
@@ -171,8 +185,8 @@ export async function POST(request: NextRequest) {
       currencyLabel,
       outlookDesc,
       horizonDesc,
-      existingAssets,
-      interests,
+      existingAssets: truncateText(existingAssets, MAX_FREE_TEXT_CHARS),
+      interests: truncateText(interests, MAX_FREE_TEXT_CHARS),
       palette: ALLOCATION_PALETTE,
     };
     const prompt = isZh ? buildZhPrompt(promptParams) : buildEnPrompt(promptParams);
@@ -217,10 +231,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ report, chartData });
   } catch (error: any) {
     console.error('Asset allocation error:', error);
-    return NextResponse.json(
-      { error: error.message || 'Failed to generate recommendation' },
-      { status: 500 }
-    );
+    return apiErrorResponse(error, 'Failed to generate recommendation');
   }
 }
 

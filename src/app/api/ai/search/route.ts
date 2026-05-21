@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GeminiClient } from '@/lib/gemini';
 import type { MarketType } from '@/lib/markets';
 import { withRetryAndTimeout } from '@/lib/api-utils';
+import { apiErrorResponse, readJsonWithLimit, requireInternalApiKey } from '@/lib/api-security';
 
 export const maxDuration = 60;
+const MAX_REQUEST_BYTES = 16 * 1024;
 
 export async function POST(request: NextRequest) {
   try {
-    const { symbol, companyName, market } = await request.json();
+    requireInternalApiKey(request);
+    const { symbol, companyName, market } = await readJsonWithLimit<any>(request, MAX_REQUEST_BYTES);
 
     if (!symbol || !companyName) {
       return NextResponse.json({ error: '缺少必要的公司信息' }, { status: 400 });
@@ -40,9 +43,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ searchResults, supplementary });
   } catch (error: any) {
     console.error('AI search error:', error);
-    return NextResponse.json(
-      { error: error.message || '搜索失败，请稍后重试' },
-      { status: 500 }
-    );
+    return apiErrorResponse(error, '搜索失败，请稍后重试');
   }
 }

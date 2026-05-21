@@ -238,20 +238,25 @@ export class GeminiClient {
   ): Promise<Response> {
     const method = stream ? 'streamGenerateContent' : 'generateContent';
     const url = stream
-      ? `${this.baseUrl}/models/${config.model}:${method}?alt=sse&key=${encodeURIComponent(this.apiKey)}`
-      : `${this.baseUrl}/models/${config.model}:${method}?key=${encodeURIComponent(this.apiKey)}`;
+      ? `${this.baseUrl}/models/${config.model}:${method}?alt=sse`
+      : `${this.baseUrl}/models/${config.model}:${method}`;
 
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'x-goog-api-key': this.apiKey,
       },
       body: JSON.stringify(this.buildGeminiPayload(prompt, config)),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Gemini API 请求失败 (${response.status}): ${errorText}`);
+      console.error('Gemini API 请求失败:', {
+        status: response.status,
+        body: errorText.slice(0, 500),
+      });
+      throw new Error(`Gemini API 请求失败 (${response.status})`);
     }
 
     return response;

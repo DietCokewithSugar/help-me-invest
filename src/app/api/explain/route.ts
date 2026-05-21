@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GeminiClient } from '@/lib/gemini';
 import { withRetryAndTimeout } from '@/lib/api-utils';
+import { apiErrorResponse, enforceRateLimit, readJsonWithLimit, truncateText } from '@/lib/api-security';
 
 export const maxDuration = 60;
+const MAX_REQUEST_BYTES = 8 * 1024;
 
 export async function POST(request: NextRequest) {
     try {
-        const { text, language = 'zh' } = await request.json();
+        enforceRateLimit(request, { key: 'explain', limit: 20, windowMs: 60_000 });
+
+        const { text, language = 'zh' } = await readJsonWithLimit<any>(request, MAX_REQUEST_BYTES);
 
         if (!text || typeof text !== 'string' || text.trim().length === 0) {
             return NextResponse.json({ error: '请提供有效的文本' }, { status: 400 });
@@ -19,7 +23,7 @@ export async function POST(request: NextRequest) {
 
         const gemini = new GeminiClient(googleApiKey);
 
-        const limitedText = text.trim().slice(0, 1000);
+        const limitedText = truncateText(text, 1000);
 
         const explanation = await withRetryAndTimeout(
             () => gemini.explainText(limitedText, language),
@@ -32,9 +36,6 @@ export async function POST(request: NextRequest) {
         });
     } catch (error: any) {
         console.error('Explanation API error:', error);
-        return NextResponse.json(
-            { error: error.message || '解释失败，请稍后重试' },
-            { status: 500 }
-        );
+        return apiErrorResponse(error, '解释失败，请稍后重试');
     }
 }

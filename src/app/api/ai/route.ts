@@ -3,12 +3,15 @@ import { GeminiClient } from '@/lib/gemini';
 import type { MarketType } from '@/lib/markets';
 import { getCachedReportV1, saveReport, type AIReportRecord } from '@/lib/supabase';
 import { withRetryAndTimeout } from '@/lib/api-utils';
+import { apiErrorResponse, readJsonWithLimit, requireInternalApiKey } from '@/lib/api-security';
 
 export const maxDuration = 60;
+const MAX_REQUEST_BYTES = 256 * 1024;
 
 export async function POST(request: NextRequest) {
   try {
-    const { symbol, profile, incomeStatements, peers, earningsTranscripts, market } = await request.json();
+    requireInternalApiKey(request);
+    const { symbol, profile, incomeStatements, peers, earningsTranscripts, market } = await readJsonWithLimit<any>(request, MAX_REQUEST_BYTES);
 
     if (!symbol || !profile) {
       return NextResponse.json({ error: '缺少必要的公司信息' }, { status: 400 });
@@ -127,9 +130,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('AI analysis error:', error);
-    return NextResponse.json(
-      { error: error.message || 'AI 分析失败，请稍后重试' },
-      { status: 500 }
-    );
+    return apiErrorResponse(error, 'AI 分析失败，请稍后重试');
   }
 }
