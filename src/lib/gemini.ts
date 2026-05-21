@@ -1,7 +1,7 @@
 import type { MarketType } from '@/lib/markets';
 
 // ============================================================================
-// Gemini API 速率限制器 - 防止 429 Too Many Requests 错误
+// DeepSeek API 速率限制器 - 防止 429 Too Many Requests 错误
 // ============================================================================
 
 interface QueuedRequest<T> {
@@ -11,7 +11,7 @@ interface QueuedRequest<T> {
   label: string;
 }
 
-class GeminiRateLimiter {
+class DeepSeekRateLimiter {
   private queue: QueuedRequest<any>[] = [];
   private activeRequests = 0;
   private readonly maxConcurrent: number;
@@ -97,10 +97,10 @@ class GeminiRateLimiter {
   }
 }
 
-// 全局速率限制器实例 - 所有 GeminiClient 共享
+// 全局速率限制器实例 - 所有 DeepSeekClient 共享（底层调用 DeepSeek）
 // maxConcurrent=2: 最多同时 2 个请求
 // minDelayMs=500: 每个请求之间至少间隔 500ms
-const globalRateLimiter = new GeminiRateLimiter(2, 500);
+const globalRateLimiter = new DeepSeekRateLimiter(2, 500);
 
 // 市场名称映射
 const MARKET_NAMES: Record<MarketType, string> = {
@@ -145,7 +145,7 @@ interface GenerateContentStreamResult {
   stream: AsyncGenerator<StreamChunk, void, unknown>;
 }
 
-interface GeminiModelAdapter {
+interface DeepSeekModelAdapter {
   generateContent: (prompt: string) => Promise<GenerateContentResult>;
   generateContentStream: (prompt: string) => Promise<GenerateContentStreamResult>;
 }
@@ -155,33 +155,33 @@ interface GeminiModelAdapter {
 // - standard: 复杂推理任务（公司深度分析）
 // - search: 补充摘要任务（禁用 online search / googleSearch）
 // - pro: 专业版深度分析
-// 当前全部统一使用 gemini-3.1-flash-lite
+// 当前全部统一使用 DeepSeek deepseek-v4-flash
 type ModelTier = 'lite' | 'standard' | 'search' | 'pro';
 
-const GEMINI_MODEL_ID = 'gemini-3.1-flash-lite';
+const DEEPSEEK_MODEL_ID = 'deepseek-v4-flash';
 
 const MODEL_CONFIG: Record<ModelTier, { model: string; description: string }> = {
   lite: {
-    model: GEMINI_MODEL_ID,
+    model: DEEPSEEK_MODEL_ID,
     description: '轻量快速模型，适合简单任务',
   },
   standard: {
-    model: GEMINI_MODEL_ID,
+    model: DEEPSEEK_MODEL_ID,
     description: '标准模型，适合复杂推理',
   },
   search: {
-    model: GEMINI_MODEL_ID,
+    model: DEEPSEEK_MODEL_ID,
     description: '补充摘要模型，不启用 online search',
   },
   pro: {
-    model: GEMINI_MODEL_ID,
+    model: DEEPSEEK_MODEL_ID,
     description: '专业模型，深度分析',
   },
 };
 
-export class GeminiClient {
+export class DeepSeekClient {
   private readonly apiKey: string;
-  private readonly baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
+  private readonly baseUrl = 'https://api.deepseek.com/chat/completions';
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
@@ -212,68 +212,58 @@ export class GeminiClient {
       temperature: config?.temperature ?? 0.7,
       topP: config?.topP ?? 0.95,
       maxOutputTokens: config?.maxOutputTokens ?? 8192,
-      // Do not forward Gemini tools. googleSearch grounding is intentionally disabled
-      // so the server cannot be abused as an online-search proxy.
+      // DeepSeek chat completions do not receive tools here. This keeps
+      // online search disabled and avoids proxy-style abuse.
       tools: undefined,
     };
   }
 
-  private buildGeminiPayload(prompt: string, config: ModelRuntimeConfig): Record<string, any> {
-    const payload: Record<string, any> = {
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: config.temperature,
-        topP: config.topP,
-        maxOutputTokens: config.maxOutputTokens,
-      },
+  private buildDeepSeekPayload(
+    prompt: string,
+    config: ModelRuntimeConfig,
+    stream: boolean
+  ): Record<string, any> {
+    return {
+      model: config.model,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: config.temperature,
+      top_p: config.topP,
+      max_tokens: config.maxOutputTokens,
+      stream,
     };
-    if (config.tools && config.tools.length > 0) {
-      payload.tools = config.tools;
-    }
-    return payload;
   }
 
-  private async callGemini(
+  private async callDeepSeek(
     prompt: string,
     config: ModelRuntimeConfig,
     stream: boolean
   ): Promise<Response> {
-    const method = stream ? 'streamGenerateContent' : 'generateContent';
-    const url = stream
-      ? `${this.baseUrl}/models/${config.model}:${method}?alt=sse`
-      : `${this.baseUrl}/models/${config.model}:${method}`;
-
-    const response = await fetch(url, {
+    const response = await fetch(this.baseUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-goog-api-key': this.apiKey,
+        Authorization: `Bearer ${this.apiKey}`,
       },
-      body: JSON.stringify(this.buildGeminiPayload(prompt, config)),
+      body: JSON.stringify(this.buildDeepSeekPayload(prompt, config, stream)),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Gemini API 请求失败:', {
+      console.error('DeepSeek API 请求失败:', {
         status: response.status,
         body: errorText.slice(0, 500),
       });
-      throw new Error(`Gemini API 请求失败 (${response.status})`);
+      throw new Error(`DeepSeek API 请求失败 (${response.status})`);
     }
 
     return response;
   }
 
-  private extractTextFromCandidate(candidate: any): string {
-    const parts = candidate?.content?.parts;
-    if (!Array.isArray(parts)) return '';
-    return parts
-      .map((p: any) => (typeof p?.text === 'string' ? p.text : ''))
-      .join('');
+  private extractTextFromChatCompletion(data: any): string {
+    return data?.choices?.[0]?.message?.content || '';
   }
 
-  private parseGeminiStream(body: ReadableStream<Uint8Array>): AsyncGenerator<StreamChunk, void, unknown> {
-    const extractText = this.extractTextFromCandidate.bind(this);
+  private parseDeepSeekStream(body: ReadableStream<Uint8Array>): AsyncGenerator<StreamChunk, void, unknown> {
     async function* iterator() {
       const reader = body.getReader();
       const decoder = new TextDecoder();
@@ -288,13 +278,12 @@ export class GeminiClient {
 
         try {
           const payload = JSON.parse(data);
-          const candidate = payload?.candidates?.[0];
-          const deltaText = extractText(candidate);
+          const deltaText = payload?.choices?.[0]?.delta?.content || '';
           if (deltaText && deltaText.length > 0) {
             yield { text: () => deltaText };
           }
         } catch (error: any) {
-          console.warn('Gemini stream parse warning:', error?.message || error);
+          console.warn('DeepSeek stream parse warning:', error?.message || error);
         }
       };
 
@@ -326,13 +315,13 @@ export class GeminiClient {
     return iterator();
   }
 
-  private async generateContentWithGemini(
+  private async generateContentWithDeepSeek(
     prompt: string,
     config: ModelRuntimeConfig
   ): Promise<GenerateContentResult> {
-    const response = await this.callGemini(prompt, config, false);
+    const response = await this.callDeepSeek(prompt, config, false);
     const data = await response.json();
-    const text = this.extractTextFromCandidate(data?.candidates?.[0]);
+    const text = this.extractTextFromChatCompletion(data);
 
     return {
       response: Promise.resolve({
@@ -341,26 +330,26 @@ export class GeminiClient {
     };
   }
 
-  private async generateContentStreamWithGemini(
+  private async generateContentStreamWithDeepSeek(
     prompt: string,
     config: ModelRuntimeConfig
   ): Promise<GenerateContentStreamResult> {
-    const response = await this.callGemini(prompt, config, true);
+    const response = await this.callDeepSeek(prompt, config, true);
     if (!response.body) {
-      throw new Error('Gemini stream body is empty');
+      throw new Error('DeepSeek stream body is empty');
     }
 
     return {
-      stream: this.parseGeminiStream(response.body as ReadableStream<Uint8Array>),
+      stream: this.parseDeepSeekStream(response.body as ReadableStream<Uint8Array>),
     };
   }
 
   // 根据任务类型获取对应的模型实例
-  private getModel(tier: ModelTier, config?: ModelConfigInput): GeminiModelAdapter {
+  private getModel(tier: ModelTier, config?: ModelConfigInput): DeepSeekModelAdapter {
     const resolvedConfig = this.resolveModelConfig(tier, config);
     return {
-      generateContent: (prompt: string) => this.generateContentWithGemini(prompt, resolvedConfig),
-      generateContentStream: (prompt: string) => this.generateContentStreamWithGemini(prompt, resolvedConfig),
+      generateContent: (prompt: string) => this.generateContentWithDeepSeek(prompt, resolvedConfig),
+      generateContentStream: (prompt: string) => this.generateContentStreamWithDeepSeek(prompt, resolvedConfig),
     };
   }
 
@@ -452,7 +441,7 @@ ${nameInstruction}
 
       return JSON.parse(cleaned);
     } catch (error: any) {
-      console.error('Gemini suggestSymbol error:', error?.message || error);
+      console.error('DeepSeek suggestSymbol error:', error?.message || error);
       return { query: trimmedQuery, suggestions: [] };
     }
   }
@@ -536,13 +525,13 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
 
       // 检查是否返回了有效的 JSON 格式响应
       if (!text || text.trim().length === 0) {
-        console.error('Gemini returned empty response');
+        console.error('DeepSeek returned empty response');
         throw new Error('AI 返回空响应');
       }
 
       return text;
     } catch (error: any) {
-      console.error('Gemini analyzeCompany error:', error?.message || error);
+      console.error('DeepSeek analyzeCompany error:', error?.message || error);
       // 如果是网络错误，抛出更友好的错误信息
       if (error?.message?.includes('fetch failed') ||
         error?.message?.includes('ECONNRESET') ||
@@ -585,7 +574,7 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
       const response = await result.response;
       return response.text();
     } catch (error: any) {
-      console.error('Gemini supplemental summary error:', error?.message || error);
+      console.error('DeepSeek supplemental summary error:', error?.message || error);
       // 网络错误时返回空字符串，让主流程继续
       if (error?.message?.includes('fetch failed') ||
         error?.message?.includes('ECONNRESET') ||

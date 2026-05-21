@@ -1,10 +1,8 @@
 import type { MarketType } from '@/lib/markets';
 
 // 主页股票联想专用的 DeepSeek 客户端。
-// 主报告链路已全面迁移到 Gemini，但主页输入框的联想是一个高频、低复杂度的请求，
-// DeepSeek 在这个 case 上的响应速度更快，所以单独保留。
-//
-// 与 GeminiClient.suggestSymbol 保持完全一致的 prompt + 返回结构，方便随时切回 Gemini。
+// 主报告链路也使用同一 DeepSeek 模型；这里保留独立实现，避免高频联想请求
+// 牵动报告生成链路。
 
 const MARKET_NAMES: Record<MarketType, string> = {
   US: '美股',
@@ -90,7 +88,7 @@ export async function suggestSymbolWithDeepSeek(
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'deepseek-chat',
+        model: 'deepseek-v4-flash',
         messages: [{ role: 'user', content: prompt }],
         response_format: { type: 'json_object' },
         temperature: 0.2,

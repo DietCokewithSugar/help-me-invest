@@ -324,7 +324,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ===== Tier 3: AI fallback (handles e.g. Chinese name → ticker) =====
-    // 主页联想专门走 DeepSeek：Gemini 3.5 Flash 在这个高频低复杂度场景下响应偏慢
+    // 主页联想走 DeepSeek，与主报告链路共用同一 API key。
     const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
     if (!deepseekApiKey) {
       const payload = { query: trimmedQuery, suggestions: merged, source: merged.length > 0 ? 'local' : 'none' };

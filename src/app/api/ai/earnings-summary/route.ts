@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GeminiClient } from '@/lib/gemini';
+import { DeepSeekClient } from '@/lib/deepseek';
 import { withRetryAndTimeout } from '@/lib/api-utils';
 import { apiErrorResponse, readJsonWithLimit, requireInternalApiKey, truncateText } from '@/lib/api-security';
 
@@ -16,15 +16,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '缺少必要的电话会议信息' }, { status: 400 });
     }
 
-    const googleApiKey = process.env.GOOGLE_API_KEY;
-    if (!googleApiKey) {
-      return NextResponse.json({ error: 'Google API 密钥未配置' }, { status: 500 });
+    const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
+    if (!deepseekApiKey) {
+      return NextResponse.json({ error: 'DeepSeek API 密钥未配置' }, { status: 500 });
     }
 
-    const gemini = new GeminiClient(googleApiKey);
+    const deepseek = new DeepSeekClient(deepseekApiKey);
     const limitedTranscript = truncateText(transcriptText, MAX_TRANSCRIPT_CHARS);
     const earningsCallSummary = await withRetryAndTimeout(
-      () => gemini.summarizeEarningsCall(limitedTranscript, companyName, symbol.toUpperCase()),
+      () => deepseek.summarizeEarningsCall(limitedTranscript, companyName, symbol.toUpperCase()),
       { maxRetries: 3, retryDelayMs: 1000, timeoutMs: 15000, label: 'summarizeEarningsCall' },
       ''
     );

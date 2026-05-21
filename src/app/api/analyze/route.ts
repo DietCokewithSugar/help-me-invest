@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { FMPClient } from '@/lib/fmp';
-import { GeminiClient } from '@/lib/gemini';
+import { DeepSeekClient } from '@/lib/deepseek';
 import type { SankeyData } from '@/types';
 import { buildSankeyData } from '@/lib/sankey-utils';
 import { apiErrorResponse, readJsonWithLimit, requireInternalApiKey } from '@/lib/api-security';
@@ -18,14 +18,14 @@ export async function POST(request: NextRequest) {
     }
 
     const fmpApiKey = process.env.FMP_API_KEY;
-    const googleApiKey = process.env.GOOGLE_API_KEY;
+    const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
 
-    if (!fmpApiKey || !googleApiKey) {
+    if (!fmpApiKey || !deepseekApiKey) {
       return NextResponse.json({ error: 'API密钥未配置' }, { status: 500 });
     }
 
     const fmp = new FMPClient(fmpApiKey);
-    const gemini = new GeminiClient(googleApiKey);
+    const deepseek = new DeepSeekClient(deepseekApiKey);
 
     const upperSymbol = symbol.toUpperCase();
 
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
 
     // ==================== AI 分析 ====================
     
-    const aiAnalysisRaw = await gemini.analyzeCompany(
+    const aiAnalysisRaw = await deepseek.analyzeCompany(
       profile,
       incomeData,
       peers,
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
     // 使用 AI 获取最新新闻和动态
     let searchResults = '';
     try {
-      searchResults = await gemini.searchAndAnalyze(
+      searchResults = await deepseek.searchAndAnalyze(
         profile.companyName,
         upperSymbol
       );

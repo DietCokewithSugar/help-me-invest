@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GeminiClient } from '@/lib/gemini';
+import { DeepSeekClient } from '@/lib/deepseek';
 import { saveReportSection } from '@/lib/supabase';
 import type { MarketType } from '@/types';
 import { apiErrorResponse, enforceRateLimit, readJsonWithLimit, truncateText } from '@/lib/api-security';
@@ -165,10 +165,10 @@ export async function POST(request: NextRequest) {
             balanceSheetsQuarter,
             cashFlowStatementsQuarter,
         } = await readJsonWithLimit<any>(request, MAX_REQUEST_BYTES);
-        const googleApiKey = process.env.GOOGLE_API_KEY;
+        const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
 
-        if (!googleApiKey) {
-            return NextResponse.json({ error: 'Google API key missing' }, { status: 500 });
+        if (!deepseekApiKey) {
+            return NextResponse.json({ error: 'DeepSeek API key missing' }, { status: 500 });
         }
 
         if (!rawData || typeof rawData !== 'object') {
@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
         }
 
         const safePrevContext = truncateText(prevContext, MAX_CONTEXT_CHARS);
-        const client = new GeminiClient(googleApiKey);
+        const client = new DeepSeekClient(deepseekApiKey);
         const marketType = (market as MarketType) || 'US';
 
         let streamIterator: AsyncGenerator<string, void, unknown>;
