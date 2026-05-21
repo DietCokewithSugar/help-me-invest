@@ -39,11 +39,11 @@ function getClientIp(request: NextRequest): string {
 function pruneExpiredBuckets(now: number): void {
   if (rateLimitBuckets.size < 5000) return;
 
-  for (const [key, bucket] of rateLimitBuckets.entries()) {
+  rateLimitBuckets.forEach((bucket, key) => {
     if (bucket.resetAt <= now) {
       rateLimitBuckets.delete(key);
     }
-  }
+  });
 }
 
 export function enforceRateLimit(request: NextRequest, options: RateLimitOptions): void {
