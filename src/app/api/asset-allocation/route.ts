@@ -1,47 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { apiErrorResponse, enforceRateLimit, readJsonWithLimit, truncateText } from '@/lib/api-security';
 
 export const maxDuration = 120;
 
-const GEMINI_MODEL_ID = 'gemini-3.5-flash';
+const DEEPSEEK_MODEL_ID = 'deepseek-v4-flash';
+const MAX_REQUEST_BYTES = 32 * 1024;
+const MAX_FREE_TEXT_CHARS = 1_000;
 
-async function generateGeminiJSON(apiKey: string, prompt: string): Promise<string> {
+async function generateDeepSeekJSON(apiKey: string, prompt: string): Promise<string> {
   const systemInstruction =
     'You are a structured-data API. Respond with ONE valid JSON object that matches the schema in the user prompt — no prose, no markdown, no code fences, no emojis, no greetings, no first-person language.';
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL_ID}:generateContent?key=${encodeURIComponent(apiKey)}`;
-
-  const response = await fetch(url, {
+  const response = await fetch('https://api.deepseek.com/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      systemInstruction: {
-        role: 'system',
-        parts: [{ text: systemInstruction }],
-      },
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.5,
-        topP: 0.9,
-        maxOutputTokens: 8192,
-        responseMimeType: 'application/json',
-      },
+      model: DEEPSEEK_MODEL_ID,
+      messages: [
+        { role: 'system', content: systemInstruction },
+        { role: 'user', content: prompt },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.5,
+      top_p: 0.9,
+      max_tokens: 6144,
+      stream: false,
     }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Gemini API error (${response.status}): ${errorText}`);
+    console.error('DeepSeek asset allocation error:', {
+      status: response.status,
+      body: errorText.slice(0, 500),
+    });
+    throw new Error(`DeepSeek API error (${response.status})`);
   }
 
   const data = await response.json();
-  const parts = data?.candidates?.[0]?.content?.parts;
-  const content = Array.isArray(parts)
-    ? parts.map((p: any) => (typeof p?.text === 'string' ? p.text : '')).join('')
-    : '';
+  const content = data?.choices?.[0]?.message?.content || '';
   if (!content || content.trim().length === 0) {
-    throw new Error('Gemini returned empty content');
+    throw new Error('DeepSeek returned empty content');
   }
   return content;
 }
@@ -98,7 +100,9 @@ function sanitizeReport(raw: any): any {
 
 export async function POST(request: NextRequest) {
   try {
-    const body: AllocationRequest = await request.json();
+    enforceRateLimit(request, { key: 'asset-allocation', limit: 6, windowMs: 10 * 60_000 });
+
+    const body: AllocationRequest = await readJsonWithLimit<AllocationRequest>(request, MAX_REQUEST_BYTES);
     const {
       assetTypes,
       returnLevel,
@@ -112,13 +116,17 @@ export async function POST(request: NextRequest) {
       language = 'zh',
     } = body;
 
-    if (!assetTypes || assetTypes.length === 0 || !returnLevel || !investAmount) {
+    if (!Array.isArray(assetTypes) || assetTypes.length === 0 || assetTypes.length > 10 || !returnLevel || !investAmount) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const googleApiKey = process.env.GOOGLE_API_KEY;
-    if (!googleApiKey) {
-      return NextResponse.json({ error: 'Google API key not configured' }, { status: 500 });
+    if (!Number.isFinite(investAmount) || investAmount <= 0 || !Number.isFinite(totalAssets) || totalAssets < 0) {
+      return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
+    }
+
+    const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
+    if (!deepseekApiKey) {
+      return NextResponse.json({ error: 'DeepSeek API key not configured' }, { status: 500 });
     }
 
     const isZh = language === 'zh';
@@ -171,13 +179,13 @@ export async function POST(request: NextRequest) {
       currencyLabel,
       outlookDesc,
       horizonDesc,
-      existingAssets,
-      interests,
+      existingAssets: truncateText(existingAssets, MAX_FREE_TEXT_CHARS),
+      interests: truncateText(interests, MAX_FREE_TEXT_CHARS),
       palette: ALLOCATION_PALETTE,
     };
     const prompt = isZh ? buildZhPrompt(promptParams) : buildEnPrompt(promptParams);
 
-    const raw = await generateGeminiJSON(googleApiKey, prompt);
+    const raw = await generateDeepSeekJSON(deepseekApiKey, prompt);
 
     let parsed: any;
     try {
@@ -217,10 +225,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ report, chartData });
   } catch (error: any) {
     console.error('Asset allocation error:', error);
-    return NextResponse.json(
-      { error: error.message || 'Failed to generate recommendation' },
-      { status: 500 }
-    );
+    return apiErrorResponse(error, 'Failed to generate recommendation');
   }
 }
 

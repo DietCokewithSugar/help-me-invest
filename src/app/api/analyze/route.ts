@@ -1,28 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { FMPClient } from '@/lib/fmp';
-import { GeminiClient } from '@/lib/gemini';
+import { DeepSeekClient } from '@/lib/deepseek';
 import type { SankeyData } from '@/types';
 import { buildSankeyData } from '@/lib/sankey-utils';
+import { apiErrorResponse, readJsonWithLimit, requireInternalApiKey } from '@/lib/api-security';
 
 export const maxDuration = 60; // 设置最大执行时间为60秒
+const MAX_REQUEST_BYTES = 8 * 1024;
 
 export async function POST(request: NextRequest) {
   try {
-    const { symbol } = await request.json();
+    requireInternalApiKey(request);
+    const { symbol } = await readJsonWithLimit<any>(request, MAX_REQUEST_BYTES);
     
     if (!symbol) {
       return NextResponse.json({ error: '请提供股票代码' }, { status: 400 });
     }
 
     const fmpApiKey = process.env.FMP_API_KEY;
-    const googleApiKey = process.env.GOOGLE_API_KEY;
+    const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
 
-    if (!fmpApiKey || !googleApiKey) {
+    if (!fmpApiKey || !deepseekApiKey) {
       return NextResponse.json({ error: 'API密钥未配置' }, { status: 500 });
     }
 
     const fmp = new FMPClient(fmpApiKey);
-    const gemini = new GeminiClient(googleApiKey);
+    const deepseek = new DeepSeekClient(deepseekApiKey);
 
     const upperSymbol = symbol.toUpperCase();
 
@@ -102,7 +105,7 @@ export async function POST(request: NextRequest) {
 
     // ==================== AI 分析 ====================
     
-    const aiAnalysisRaw = await gemini.analyzeCompany(
+    const aiAnalysisRaw = await deepseek.analyzeCompany(
       profile,
       incomeData,
       peers,
@@ -150,7 +153,7 @@ export async function POST(request: NextRequest) {
     // 使用 AI 获取最新新闻和动态
     let searchResults = '';
     try {
-      searchResults = await gemini.searchAndAnalyze(
+      searchResults = await deepseek.searchAndAnalyze(
         profile.companyName,
         upperSymbol
       );
@@ -198,9 +201,6 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Analysis error:', error);
-    return NextResponse.json(
-      { error: error.message || '分析过程中发生错误，请稍后重试' },
-      { status: 500 }
-    );
+    return apiErrorResponse(error, '分析过程中发生错误，请稍后重试');
   }
 }

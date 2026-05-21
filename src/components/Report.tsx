@@ -1003,7 +1003,7 @@ export default function Report({
 
   // 获取 section 编号
   const getSectionNumber = (id: string) => sections.find(s => s.id === id)?.number || '';
-  // Gemini 支持 googleSearch grounding，普通版重新展示“最新发展动态”卡片
+  // Online search is disabled; keep the card as a non-real-time supplemental analysis section.
   const showRecentDevelopmentsInStandard = true;
 
   const renderReportVersionSwitcher = () => (
@@ -1429,7 +1429,7 @@ export default function Report({
                 </AnalysisCard>
               </div>
 
-              {/* 最新动态：通过 Gemini googleSearch 获取近 90 天信息 */}
+              {/* 最新动态：不使用联网搜索，仅展示非实时补充分析 */}
               {showRecentDevelopmentsInStandard && (
                 <AnalysisCard title={t.report.analysis.recentDevelopments} onShare={handleShareModule}>
                   {aiAnalysis?.recentDevelopments ? (

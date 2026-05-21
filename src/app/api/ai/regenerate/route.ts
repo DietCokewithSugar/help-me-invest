@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GeminiClient } from '@/lib/gemini';
+import { DeepSeekClient } from '@/lib/deepseek';
 import type { MarketType } from '@/lib/markets';
 import { saveReport, type AIReportRecord } from '@/lib/supabase';
 import { withRetryAndTimeout } from '@/lib/api-utils';
+import { apiErrorResponse, readJsonWithLimit, requireInternalApiKey } from '@/lib/api-security';
 
 export const maxDuration = 60;
+const MAX_REQUEST_BYTES = 256 * 1024;
 
 /**
  * POST /api/ai/regenerate
@@ -12,18 +14,19 @@ export const maxDuration = 60;
  */
 export async function POST(request: NextRequest) {
     try {
-        const { symbol, profile, incomeStatements, peers, earningsTranscripts, market } = await request.json();
+        requireInternalApiKey(request);
+        const { symbol, profile, incomeStatements, peers, earningsTranscripts, market } = await readJsonWithLimit<any>(request, MAX_REQUEST_BYTES);
 
         if (!symbol || !profile) {
             return NextResponse.json({ error: '缺少必要的公司信息' }, { status: 400 });
         }
 
-        const googleApiKey = process.env.GOOGLE_API_KEY;
-        if (!googleApiKey) {
-            return NextResponse.json({ error: 'Google API 密钥未配置' }, { status: 500 });
+        const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
+        if (!deepseekApiKey) {
+            return NextResponse.json({ error: 'DeepSeek API 密钥未配置' }, { status: 500 });
         }
 
-        const gemini = new GeminiClient(googleApiKey);
+        const deepseek = new DeepSeekClient(deepseekApiKey);
         const marketType = (market as MarketType) || 'US';
         const upperSymbol = symbol.toUpperCase().trim();
 
@@ -39,7 +42,7 @@ export async function POST(request: NextRequest) {
         };
 
         const aiAnalysisRaw = await withRetryAndTimeout(
-            () => gemini.analyzeCompany(
+            () => deepseek.analyzeCompany(
                 profile,
                 incomeStatements || [],
                 peers || [],
@@ -111,9 +114,6 @@ export async function POST(request: NextRequest) {
         });
     } catch (error: any) {
         console.error('AI regenerate error:', error);
-        return NextResponse.json(
-            { error: error.message || 'AI 报告重新生成失败，请稍后重试' },
-            { status: 500 }
-        );
+        return apiErrorResponse(error, 'AI 报告重新生成失败，请稍后重试');
     }
 }

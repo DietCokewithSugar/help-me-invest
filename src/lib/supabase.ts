@@ -105,7 +105,7 @@ export async function recordSearch(
 }
 
 /**
- * 标记搜索记录为无效（当 Gemini 返回"这不是股票"错误时调用）
+ * 标记搜索记录为无效（当 AI 返回"这不是股票"错误时调用）
  */
 export async function markSearchInvalid(symbol: string): Promise<boolean> {
   const supabase = getSupabase();

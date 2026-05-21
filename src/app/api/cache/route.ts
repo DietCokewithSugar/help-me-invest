@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCachedReport, getCachedFmpData, deleteReportCache, type BeginnerReportRecord, type StandardReportRecord, type ProfessionalReportRecord } from '@/lib/supabase';
 import type { MarketType } from '@/types';
+import { apiErrorResponse, enforceRateLimit } from '@/lib/api-security';
 
 export const maxDuration = 30;
 
@@ -120,6 +121,8 @@ export async function GET(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
+    enforceRateLimit(request, { key: 'cache-delete', limit: 3, windowMs: 60 * 60_000 });
+
     const searchParams = request.nextUrl.searchParams;
     const symbol = searchParams.get('symbol');
     const market = (searchParams.get('market') as MarketType) || 'US';
@@ -138,6 +141,6 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('删除缓存失败:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return apiErrorResponse(error, 'Cache delete error');
   }
 }

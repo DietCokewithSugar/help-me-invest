@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GeminiClient } from '@/lib/gemini';
+import { DeepSeekClient } from '@/lib/deepseek';
 import { saveReportSection } from '@/lib/supabase';
 import type { MarketType } from '@/types';
+import { apiErrorResponse, enforceRateLimit, readJsonWithLimit, truncateText } from '@/lib/api-security';
 
 // 使用 Node.js Runtime（不使用 Edge），Pro 计划最大超时 300 秒
 export const maxDuration = 300;
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1500;
+const MAX_REQUEST_BYTES = 768 * 1024;
+const MAX_TRANSCRIPT_CHARS = 50_000;
+const MAX_CONTEXT_CHARS = 60_000;
 
 function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -134,9 +138,11 @@ function iteratorToStream(iterator: AsyncGenerator<string, void, unknown>) {
 
 export async function POST(request: NextRequest) {
     try {
+        enforceRateLimit(request, { key: 'ai-stream-section', limit: 30, windowMs: 60_000 });
+
         const {
             section,
-            data,
+            data: rawData,
             market,
             prevContext,
             // 用于缓存的参数
@@ -158,14 +164,24 @@ export async function POST(request: NextRequest) {
             incomeStatementsQuarter,
             balanceSheetsQuarter,
             cashFlowStatementsQuarter,
-        } = await request.json();
-        const googleApiKey = process.env.GOOGLE_API_KEY;
+        } = await readJsonWithLimit<any>(request, MAX_REQUEST_BYTES);
+        const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
 
-        if (!googleApiKey) {
-            return NextResponse.json({ error: 'Google API key missing' }, { status: 500 });
+        if (!deepseekApiKey) {
+            return NextResponse.json({ error: 'DeepSeek API key missing' }, { status: 500 });
         }
 
-        const client = new GeminiClient(googleApiKey);
+        if (!rawData || typeof rawData !== 'object') {
+            return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
+        }
+
+        const data = { ...rawData };
+        if (typeof data.transcript === 'string') {
+            data.transcript = truncateText(data.transcript, MAX_TRANSCRIPT_CHARS);
+        }
+
+        const safePrevContext = truncateText(prevContext, MAX_CONTEXT_CHARS);
+        const client = new DeepSeekClient(deepseekApiKey);
         const marketType = (market as MarketType) || 'US';
 
         let streamIterator: AsyncGenerator<string, void, unknown>;
@@ -223,11 +239,11 @@ export async function POST(request: NextRequest) {
                 );
                 break;
             case 'investmentConclusion':
-                if (!prevContext) {
+                if (!safePrevContext) {
                     return NextResponse.json({ error: 'Context required for conclusion' }, { status: 400 });
                 }
                 streamIterator = await getStreamWithRetry(
-                    () => client.streamInvestmentConclusion(data, prevContext, marketType, language),
+                    () => client.streamInvestmentConclusion(data, safePrevContext, marketType, language),
                     'investmentConclusion'
                 );
                 break;
@@ -290,11 +306,11 @@ export async function POST(request: NextRequest) {
                 );
                 break;
             case 'proInvestmentConclusion':
-                if (!prevContext) {
+                if (!safePrevContext) {
                     return NextResponse.json({ error: 'Context required for pro conclusion' }, { status: 400 });
                 }
                 streamIterator = await getStreamWithRetry(
-                    () => client.streamProInvestmentConclusion(data, prevContext, marketType, language),
+                    () => client.streamProInvestmentConclusion(data, safePrevContext, marketType, language),
                     'proInvestmentConclusion'
                 );
                 break;
@@ -317,11 +333,11 @@ export async function POST(request: NextRequest) {
                 );
                 break;
             case 'beginnerActionPlan':
-                if (!prevContext) {
+                if (!safePrevContext) {
                     return NextResponse.json({ error: 'Context required for beginner action plan' }, { status: 400 });
                 }
                 streamIterator = await getStreamWithRetry(
-                    () => client.streamBeginnerActionPlan(data, prevContext, marketType, language),
+                    () => client.streamBeginnerActionPlan(data, safePrevContext, marketType, language),
                     'beginnerActionPlan'
                 );
                 break;
@@ -347,6 +363,6 @@ export async function POST(request: NextRequest) {
 
     } catch (error: any) {
         console.error('API Error:', error);
-        return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+        return apiErrorResponse(error, 'Internal Server Error');
     }
 }
