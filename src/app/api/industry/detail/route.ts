@@ -1,13 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { FMPMCPClient } from '@/lib/fmp-mcp';
-import { SECTOR_SUPPLY_CHAINS } from '@/lib/industry-data';
+import {
+  SECTOR_STRUCTURE,
+  flattenSectorSymbols,
+  buildSectorNameMap,
+  type IndustrySegment,
+  type SectorStructure,
+} from '@/lib/industry-data';
 
 export const maxDuration = 60;
 
-interface SymbolFallback {
+interface CompanyMetrics {
   symbol: string;
-  quote: any | null;
-  profile: any | null;
+  name: string;
+  marketCap: number;
+  price: number;
+  change: number;
+  revenueGrowth: number;
+  industry: string;
+  image: string;
+  history: number[];
 }
 
 export async function POST(request: NextRequest) {
@@ -17,17 +29,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Sector is required' }, { status: 400 });
     }
 
-    const supplyChain = SECTOR_SUPPLY_CHAINS[sector] || null;
-    const allSymbols = getSymbolsForSector(sector);
-    const nameMap = buildNameMap(sector);
+    const structure: SectorStructure | undefined = SECTOR_STRUCTURE[sector];
+    const allSymbols = flattenSectorSymbols(sector);
+    const nameMap = buildSectorNameMap(sector);
 
-    if (allSymbols.length === 0) {
+    if (!structure || allSymbols.length === 0) {
       return NextResponse.json({
         success: true,
         data: {
           sector,
+          overview: structure?.overview ?? null,
+          segments: [],
           companies: [],
-          supplyChain,
           totalMarketCap: 0,
           avgGrowth: 0,
           companyCount: 0,
@@ -46,22 +59,34 @@ export async function POST(request: NextRequest) {
     }
 
     const mcp = new FMPMCPClient(fmpApiKey);
+    const historyFrom = getDateDaysAgo(90);
+    const historyTo = new Date().toISOString().slice(0, 10);
 
-    const [screenerRows, growthRows] = await Promise.all([
+    // Sector screener gives a bulk snapshot. limit=1000 covers every sector's
+    // active equities — important because the previous limit (250) was dropping
+    // small/mid caps that our segment definitions reference.
+    const [screenerRows, perSymbolRows] = await Promise.all([
       mcp
         .searchCompanyScreener({
           sector,
-          limit: 250,
+          limit: 1000,
           isActivelyTrading: true,
           includeAllShareClasses: false,
         })
         .catch(() => []),
-      runWithConcurrency(allSymbols, 5, async (symbol) => {
-        const growthData = await mcp.getFinancialStatementGrowth(symbol, 'annual', 1).catch(() => []);
-        const latest = Array.isArray(growthData) ? growthData[0] : null;
+      runWithConcurrency(allSymbols, 10, async (symbol) => {
+        const [quoteRows, profileRows, growthRows, historyRows] = await Promise.all([
+          mcp.getQuote(symbol).catch(() => []),
+          mcp.getProfile(symbol).catch(() => []),
+          mcp.getFinancialStatementGrowth(symbol, 'annual', 1).catch(() => []),
+          mcp.getHistoricalPriceLight(symbol, historyFrom, historyTo).catch(() => []),
+        ]);
         return {
           symbol,
-          revenueGrowth: normalizeRevenueGrowth(latest?.revenueGrowth),
+          quote: Array.isArray(quoteRows) ? quoteRows[0] ?? null : null,
+          profile: Array.isArray(profileRows) ? profileRows[0] ?? null : null,
+          growth: Array.isArray(growthRows) ? growthRows[0] ?? null : null,
+          history: normalizeHistory(historyRows),
         };
       }),
     ]);
@@ -73,73 +98,54 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const growthMap = new Map<string, number>();
-    for (const row of growthRows) {
-      if (row.revenueGrowth !== null) {
-        growthMap.set(row.symbol, row.revenueGrowth);
-      }
+    const perSymbolMap = new Map<string, (typeof perSymbolRows)[number]>();
+    for (const row of perSymbolRows) {
+      perSymbolMap.set(row.symbol, row);
     }
 
-    const missingSymbols = allSymbols.filter((symbol) => !screenerMap.has(symbol));
-    const fallbackRows = await runWithConcurrency(missingSymbols, 5, async (symbol): Promise<SymbolFallback> => {
-      const [quoteRows, profileRows] = await Promise.all([
-        mcp.getQuote(symbol).catch(() => []),
-        mcp.getProfile(symbol).catch(() => []),
-      ]);
-      return {
-        symbol,
-        quote: Array.isArray(quoteRows) ? quoteRows[0] ?? null : null,
-        profile: Array.isArray(profileRows) ? profileRows[0] ?? null : null,
-      };
-    });
-
-    const fallbackMap = new Map<string, SymbolFallback>();
-    for (const row of fallbackRows) {
-      if (row.quote || row.profile) {
-        fallbackMap.set(row.symbol, row);
-      }
-    }
-
-    const companies = allSymbols
+    const companies: CompanyMetrics[] = allSymbols
       .map((symbol) => {
         const screener = screenerMap.get(symbol);
-        const fallback = fallbackMap.get(symbol);
+        const fallback = perSymbolMap.get(symbol);
 
         const marketCap =
           pickFirstNumber([
-            screener?.marketCap,
             fallback?.quote?.marketCap,
+            screener?.marketCap,
             fallback?.profile?.mktCap,
             fallback?.profile?.marketCap,
           ]) ?? 0;
 
         const price =
           pickFirstNumber([
-            screener?.price,
             fallback?.quote?.price,
+            screener?.price,
             fallback?.profile?.price,
           ]) ?? 0;
 
         const change =
           pickFirstNumber([
-            screener?.changePercentage,
             fallback?.quote?.changePercentage,
             fallback?.quote?.change,
+            screener?.changePercentage,
             fallback?.profile?.changesPercentage,
             fallback?.profile?.change,
           ]) ?? 0;
 
+        const revenueGrowth = normalizeRevenueGrowth(fallback?.growth?.revenueGrowth) ?? 0;
+
         return {
           symbol,
           name:
-            (typeof screener?.companyName === 'string' && screener.companyName) ||
             (typeof fallback?.profile?.companyName === 'string' && fallback.profile.companyName) ||
+            (typeof screener?.companyName === 'string' && screener.companyName) ||
+            (typeof fallback?.quote?.name === 'string' && fallback.quote.name) ||
             nameMap[symbol] ||
             symbol,
           marketCap,
           price,
           change: round(change, 3),
-          revenueGrowth: growthMap.get(symbol) ?? 0,
+          revenueGrowth,
           industry:
             (typeof screener?.industry === 'string' && screener.industry) ||
             (typeof fallback?.profile?.industry === 'string' && fallback.profile.industry) ||
@@ -147,14 +153,62 @@ export async function POST(request: NextRequest) {
           image:
             (typeof fallback?.profile?.image === 'string' && fallback.profile.image) ||
             '',
+          history: fallback?.history ?? [],
         };
       })
       .sort((a, b) => b.marketCap - a.marketCap);
 
+    const metricsBySymbol = new Map<string, CompanyMetrics>();
+    for (const company of companies) {
+      metricsBySymbol.set(company.symbol, company);
+    }
+
+    const segments = structure.segments.map((segment: IndustrySegment) => {
+      const segmentCompanies = segment.companies
+        .map((seed) => {
+          const metrics = metricsBySymbol.get(seed.symbol);
+          if (metrics) {
+            return { ...metrics, note: seed.note };
+          }
+          return {
+            symbol: seed.symbol,
+            name: seed.name,
+            marketCap: 0,
+            price: 0,
+            change: 0,
+            revenueGrowth: 0,
+            industry: '',
+            image: '',
+            history: [] as number[],
+            note: seed.note,
+          };
+        })
+        .sort((a, b) => b.marketCap - a.marketCap);
+
+      const segmentMarketCap = segmentCompanies.reduce((sum, c) => sum + c.marketCap, 0);
+      const withGrowth = segmentCompanies.filter((c) => c.marketCap > 0 && Number.isFinite(c.revenueGrowth));
+      const segmentAvgGrowth =
+        withGrowth.length > 0
+          ? withGrowth.reduce((sum, c) => sum + c.revenueGrowth, 0) / withGrowth.length
+          : 0;
+
+      return {
+        id: segment.id,
+        name: segment.name,
+        description: segment.description,
+        position: segment.position ?? null,
+        themes: segment.themes ?? null,
+        companies: segmentCompanies,
+        totalMarketCap: segmentMarketCap,
+        avgGrowth: round(segmentAvgGrowth, 1),
+      };
+    });
+
     const totalMarketCap = companies.reduce((sum, company) => sum + company.marketCap, 0);
+    const companiesWithGrowth = companies.filter((c) => c.marketCap > 0 && Number.isFinite(c.revenueGrowth));
     const avgGrowth =
-      companies.length > 0
-        ? companies.reduce((sum, company) => sum + company.revenueGrowth, 0) / companies.length
+      companiesWithGrowth.length > 0
+        ? companiesWithGrowth.reduce((sum, c) => sum + c.revenueGrowth, 0) / companiesWithGrowth.length
         : 0;
 
     let news: any[] = [];
@@ -188,11 +242,12 @@ export async function POST(request: NextRequest) {
       success: true,
       data: {
         sector,
+        overview: structure.overview,
+        segments,
         companies,
-        supplyChain,
         totalMarketCap,
         avgGrowth: round(avgGrowth, 1),
-        companyCount: companies.length,
+        companyCount: companies.filter((c) => c.marketCap > 0).length,
         topCompany: companies[0] || null,
         news,
       },
@@ -203,40 +258,24 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function buildNameMap(sector: string): Record<string, string> {
-  const chain = SECTOR_SUPPLY_CHAINS[sector];
-  if (!chain) return {};
-  const map: Record<string, string> = {};
-  for (const layer of [chain.upstream, chain.midstream, chain.downstream]) {
-    for (const node of layer) {
-      for (const company of node.companies) {
-        map[company.symbol] = company.name;
-      }
-    }
-  }
-  return map;
-}
-
-function getSymbolsForSector(sector: string): string[] {
-  const chain = SECTOR_SUPPLY_CHAINS[sector];
-  if (!chain) return [];
-
-  const symbols = new Set<string>();
-  for (const layer of [chain.upstream, chain.midstream, chain.downstream]) {
-    for (const node of layer) {
-      for (const company of node.companies) {
-        symbols.add(company.symbol);
-      }
-    }
-  }
-  return Array.from(symbols);
-}
-
 function normalizeRevenueGrowth(value: unknown): number | null {
   const numeric = toNumber(value);
   if (numeric === null) return null;
   const asPercent = Math.abs(numeric) <= 1 ? numeric * 100 : numeric;
   return round(asPercent, 1);
+}
+
+function normalizeHistory(rows: unknown): number[] {
+  if (!Array.isArray(rows) || rows.length === 0) return [];
+  // FMP returns rows in descending date order; reverse for chart-friendly oldest-first.
+  const sorted = [...rows].sort((a: any, b: any) => {
+    const da = new Date(a?.date ?? 0).getTime();
+    const db = new Date(b?.date ?? 0).getTime();
+    return da - db;
+  });
+  return sorted
+    .map((row: any) => Number(row?.price ?? row?.close ?? 0))
+    .filter((v) => Number.isFinite(v) && v > 0);
 }
 
 function pickFirstNumber(values: unknown[]): number | null {
@@ -261,6 +300,12 @@ function toNumber(value: unknown): number | null {
 function round(value: number, decimals: number): number {
   const factor = 10 ** decimals;
   return Math.round(value * factor) / factor;
+}
+
+function getDateDaysAgo(days: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString().slice(0, 10);
 }
 
 function deriveNewsSentiment(title: string): 'positive' | 'negative' | 'neutral' {
