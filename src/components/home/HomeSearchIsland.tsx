@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { MarketType } from '@/types';
@@ -58,6 +58,12 @@ export interface SearchIslandLabels {
   delete: string;
   trendingThisWeek: string;
   realtimeUpdate: string;
+  confirmKicker: string;
+  confirmTitle: string;
+  confirmHint: string;
+  confirmYourInput: string;
+  confirmNoMatch: string;
+  confirmCancel: string;
 }
 
 interface HomeSearchIslandProps {
@@ -99,6 +105,15 @@ function normalizeSymbol(input: string): string {
     }
   }
   return result.toUpperCase();
+}
+
+// A query can be navigated to directly (no confirmation) only when it is
+// unambiguously a stock code: it carries a market suffix (e.g. 600519.SS,
+// 0700.HK) or is a bare 6-digit A-share code. Everything else — company names,
+// partial input, bare letter tickers — must be confirmed against an AI
+// suggestion so we never pass raw text to the report API.
+function isExplicitStockCode(normalized: string): boolean {
+  return normalized.includes('.') || /^\d{6}$/.test(normalized);
 }
 
 function getSearchHistory(): SearchHistoryItem[] {
@@ -154,6 +169,25 @@ export default function HomeSearchIsland({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
   const [trendingStocks, setTrendingStocks] = useState<TrendingChip[]>([]);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmQuery, setConfirmQuery] = useState('');
+  const [confirmCandidates, setConfirmCandidates] = useState<SymbolSuggestion[]>([]);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+
+  const fetchSuggestionsNow = useCallback(
+    async (query: string, signal?: AbortSignal): Promise<SymbolSuggestion[]> => {
+      const marketHint = query.includes('.') ? detectMarketFromSymbol(query) : undefined;
+      const response = await fetch('/api/symbol-suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, market: marketHint, language: locale }),
+        signal,
+      });
+      const data = await response.json();
+      return Array.isArray(data.suggestions) ? data.suggestions : [];
+    },
+    [locale]
+  );
 
   useEffect(() => {
     setSearchHistory(getSearchHistory());
@@ -212,20 +246,13 @@ export default function HomeSearchIsland({
       return;
     }
 
-    const marketHint = query.includes('.') ? detectMarketFromSymbol(query) : undefined;
     const controller = new AbortController();
     const timeout = setTimeout(async () => {
       setSuggestLoading(true);
       try {
-        const response = await fetch('/api/symbol-suggest', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query, market: marketHint, language: locale }),
-          signal: controller.signal,
-        });
-        const data = await response.json();
+        const results = await fetchSuggestionsNow(query, controller.signal);
         if (!controller.signal.aborted) {
-          setSuggestions(Array.isArray(data.suggestions) ? data.suggestions : []);
+          setSuggestions(results);
           setShowSuggestions(true);
         }
       } catch {
@@ -242,7 +269,27 @@ export default function HomeSearchIsland({
       controller.abort();
       clearTimeout(timeout);
     };
-  }, [symbol, locale]);
+  }, [symbol, fetchSuggestionsNow]);
+
+  // Close the confirmation dialog on Escape.
+  useEffect(() => {
+    if (!confirmOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setConfirmOpen(false);
+        inputRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [confirmOpen]);
+
+  const navigateToSymbol = (sym: string) => {
+    setShowSuggestions(false);
+    setConfirmOpen(false);
+    const query = reportType !== 'standard' ? `?type=${reportType}` : '';
+    router.push(`/${locale}/companies/${encodeURIComponent(sym)}${query}`);
+  };
 
   const goToReport = (rawSymbol: string) => {
     const normalized = normalizeSymbol(rawSymbol);
@@ -259,22 +306,51 @@ export default function HomeSearchIsland({
       formatted = formatSymbolForMarket(normalized, market);
     }
 
-    const query = reportType !== 'standard' ? `?type=${reportType}` : '';
-    router.push(`/${locale}/companies/${encodeURIComponent(formatted)}${query}`);
+    navigateToSymbol(formatted);
+  };
+
+  // Open the confirmation dialog for a query that is not an explicit stock
+  // code. We seed it with whatever suggestions are already loaded so it shows
+  // instantly, then refresh to be safe (the debounce may not have fired yet
+  // when a fast typist hits Enter).
+  const openConfirm = async (query: string) => {
+    setShowSuggestions(false);
+    setConfirmQuery(query);
+    setConfirmCandidates(suggestions);
+    setConfirmOpen(true);
+    setConfirmLoading(true);
+    try {
+      const results = await fetchSuggestionsNow(query);
+      setConfirmCandidates(results);
+    } catch {
+      // keep the seeded candidates on failure
+    } finally {
+      setConfirmLoading(false);
+    }
+  };
+
+  const closeConfirm = () => {
+    setConfirmOpen(false);
+    inputRef.current?.focus();
   };
 
   const handleSubmit = () => {
+    if (confirmOpen) return;
     const trimmed = normalizeSymbol(symbol);
     if (!trimmed) {
       inputRef.current?.focus();
       return;
     }
-    if (!trimmed.includes('.') && suggestions.length > 0) {
-      const best = suggestions[0];
-      router.push(`/${locale}/companies/${encodeURIComponent(best.symbol)}`);
+    if (isExplicitStockCode(trimmed)) {
+      goToReport(trimmed);
       return;
     }
-    goToReport(trimmed);
+    const exact = suggestions.find((item) => normalizeSymbol(item.symbol) === trimmed);
+    if (exact) {
+      navigateToSymbol(exact.symbol);
+      return;
+    }
+    void openConfirm(trimmed);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -285,8 +361,7 @@ export default function HomeSearchIsland({
   };
 
   const handleSelectSuggestion = (item: SymbolSuggestion) => {
-    setShowSuggestions(false);
-    router.push(`/${locale}/companies/${encodeURIComponent(item.symbol)}`);
+    navigateToSymbol(item.symbol);
   };
 
   return (
@@ -394,7 +469,7 @@ export default function HomeSearchIsland({
             )}
 
             <AnimatePresence>
-              {showSuggestions && symbol.trim().length >= 2 && (
+              {showSuggestions && !confirmOpen && symbol.trim().length >= 2 && (
                 <motion.div
                   id="hero-symbol-suggestions"
                   role="listbox"
@@ -549,6 +624,100 @@ export default function HomeSearchIsland({
         </div>
 
       </div>
+
+      <AnimatePresence>
+        {confirmOpen && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center px-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            role="dialog"
+            aria-modal="true"
+            aria-label={labels.confirmTitle}
+          >
+            <div className="absolute inset-0 bg-obsidian/70 backdrop-blur-sm" onClick={closeConfirm} />
+            <motion.div
+              className="relative z-10 w-full max-w-md overflow-hidden rounded-lg border border-white/10 bg-surface shadow-lg"
+              initial={{ opacity: 0, y: 8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.98 }}
+              transition={{ duration: 0.18 }}
+            >
+              <div className="flex items-start justify-between gap-4 border-b border-white/10 px-5 py-4">
+                <div>
+                  <div className="text-[11px] font-mono uppercase tracking-[0.12em] text-mist-500">
+                    {labels.confirmKicker}
+                  </div>
+                  <h3 className="mt-1 text-lg text-mist-50">{labels.confirmTitle}</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeConfirm}
+                  aria-label={labels.confirmCancel}
+                  className="rounded-md p-1 text-mist-500 transition-colors hover:bg-white/5 hover:text-mist-200"
+                >
+                  <XIcon size={18} />
+                </button>
+              </div>
+
+              <div className="px-5 py-4">
+                <p className="text-sm text-mist-400">{labels.confirmHint}</p>
+                <div className="mt-2 inline-flex max-w-full items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1.5">
+                  <span className="shrink-0 text-[11px] font-mono uppercase tracking-wide text-mist-600">
+                    {labels.confirmYourInput}
+                  </span>
+                  <span className="truncate font-mono text-sm text-mist-200">{confirmQuery}</span>
+                </div>
+
+                {confirmLoading && confirmCandidates.length === 0 && (
+                  <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-white/5">
+                    <div className="h-full w-1/3 rounded-full bg-glacier-500 animate-bounce-horizontal" />
+                  </div>
+                )}
+
+                {confirmCandidates.length > 0 && (
+                  <div className="mt-4 max-h-64 overflow-y-auto rounded-md border border-white/10">
+                    {confirmCandidates.map((item) => (
+                      <button
+                        key={`${item.market}-${item.symbol}`}
+                        type="button"
+                        onClick={() => handleSelectSuggestion(item)}
+                        className="group flex w-full items-center gap-3 border-b border-white/5 px-4 py-3 text-left transition-colors hover:bg-white/5 last:border-b-0"
+                      >
+                        <span className="font-mono text-sm text-mist-200 group-hover:text-white">{item.symbol}</span>
+                        <span className="rounded-sm border border-white/10 bg-white/5 px-1.5 py-0.5 text-[11px] text-mist-500">
+                          {item.market}
+                        </span>
+                        {(item.nameCn || item.name) && (
+                          <span className="truncate text-sm text-mist-400 group-hover:text-mist-300">
+                            {locale === 'en' ? item.name || item.nameCn : item.nameCn || item.name}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {!confirmLoading && confirmCandidates.length === 0 && (
+                  <p className="mt-4 text-sm text-mist-500">{labels.confirmNoMatch}</p>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 border-t border-white/10 px-5 py-3">
+                <button
+                  type="button"
+                  onClick={closeConfirm}
+                  className="gemini-btn gemini-btn-secondary px-4 py-2 text-sm"
+                >
+                  {labels.confirmCancel}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
