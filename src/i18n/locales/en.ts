@@ -146,6 +146,12 @@ export const en: TranslationKeys = {
       clearAll: 'Clear All',
       trendingThisWeek: 'Trending This Week',
       realtimeUpdate: 'Real-time',
+      confirmKicker: 'AI Check',
+      confirmTitle: 'Confirm the stock to analyze',
+      confirmHint: 'What you entered is not a stock symbol. Please pick the right stock from the AI suggestions below:',
+      confirmYourInput: 'Your input',
+      confirmNoMatch: 'No matching stock found. Check your input, or enter a stock symbol directly (e.g. 600519.SS).',
+      confirmCancel: 'Back to edit',
     },
     features: {
       title: 'Why Choose AI Invest',

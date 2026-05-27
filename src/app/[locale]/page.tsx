@@ -68,6 +68,12 @@ export default function HomePage({ params }: HomePageProps) {
     delete: t.common.delete,
     trendingThisWeek: t.home.search.trendingThisWeek,
     realtimeUpdate: t.home.search.realtimeUpdate,
+    confirmKicker: t.home.search.confirmKicker,
+    confirmTitle: t.home.search.confirmTitle,
+    confirmHint: t.home.search.confirmHint,
+    confirmYourInput: t.home.search.confirmYourInput,
+    confirmNoMatch: t.home.search.confirmNoMatch,
+    confirmCancel: t.home.search.confirmCancel,
   };
 
   const reportTypeOptions = [

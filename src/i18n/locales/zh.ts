@@ -144,6 +144,12 @@ export const zh = {
       clearAll: '清除全部',
       trendingThisWeek: '本周热搜',
       realtimeUpdate: '实时更新',
+      confirmKicker: 'AI 校验',
+      confirmTitle: '请确认要分析的股票',
+      confirmHint: '你输入的内容不是股票代码。请从下方 AI 联想结果中选择正确的股票：',
+      confirmYourInput: '你的输入',
+      confirmNoMatch: '没有找到匹配的股票。请检查输入，或直接填写股票代码（如 600519.SS）。',
+      confirmCancel: '返回修改',
     },
     features: {
       title: '为什么选择智投研究',
