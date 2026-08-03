@@ -4,7 +4,8 @@ import { saveReportSection } from '@/lib/supabase';
 import type { MarketType } from '@/types';
 import { apiErrorResponse, enforceRateLimit, readJsonWithLimit, truncateText } from '@/lib/api-security';
 
-// 使用 Node.js Runtime（不使用 Edge），Pro 计划最大超时 300 秒
+// 使用 Node.js Runtime（不使用 Edge），Vercel Pro 计划最大超时 300 秒。
+// 自建部署（Render 等）无此上限，该导出在那里是无害的惰性声明。
 export const maxDuration = 300;
 
 const MAX_RETRIES = 3;

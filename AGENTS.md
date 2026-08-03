@@ -137,7 +137,7 @@ Used in report modules like "Calculation Factor Details", "Financial Indicators"
 ## Cursor Cloud specific instructions
 
 - **Stack**: Next.js 14 (App Router) with React 18, Tailwind CSS 3, TypeScript 5. Package manager is `npm`.
-- **Dev server**: `npm run dev` (starts on port 3000). No Docker or external services needed for the frontend; API routes call external APIs (FMP, Google Gemini) requiring `FMP_API_KEY` and `GOOGLE_API_KEY` environment variables at runtime.
+- **Dev server**: `npm run dev` (starts on port 3000). No Docker or external services needed for the frontend; API routes call external APIs (FMP, DeepSeek) requiring `FMP_API_KEY` and `DEEPSEEK_API_KEY` environment variables at runtime.
 - **Lint**: `npm run lint` — pre-existing lint errors exist in `FinancialRatiosDisplay.tsx`, `FinancialRatiosTTMDisplay.tsx`, and `TextSelectionMenu.tsx` (unescaped quotes). These are not regressions.
 - **Build**: `npm run build` — runs TypeScript type-checking and produces a production build.
 - **i18n**: Dual-language (zh/en). Translation keys are in `src/i18n/locales/zh.ts` (source of truth for types) and `src/i18n/locales/en.ts`. When adding new UI text, add keys to both files.
