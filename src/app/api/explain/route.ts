@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
         const limitedText = truncateText(text, 1000);
 
         const explanation = await withRetryAndTimeout(
-            () => deepseek.explainText(limitedText, language),
+            (signal) => deepseek.explainText(limitedText, language, signal),
             { maxRetries: 3, retryDelayMs: 1000, timeoutMs: 15000, label: 'explainText' },
             ''
         );

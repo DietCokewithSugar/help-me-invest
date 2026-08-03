@@ -53,7 +53,7 @@ interface GenerateContentStreamResult {
 }
 
 interface DeepSeekModelAdapter {
-  generateContent: (prompt: string) => Promise<GenerateContentResult>;
+  generateContent: (prompt: string, signal?: AbortSignal) => Promise<GenerateContentResult>;
   generateContentStream: (prompt: string) => Promise<GenerateContentStreamResult>;
 }
 
@@ -133,26 +133,32 @@ export class DeepSeekClient {
   private async callDeepSeek(
     prompt: string,
     config: ModelRuntimeConfig,
-    stream: boolean
+    stream: boolean,
+    signal?: AbortSignal
   ): Promise<Response> {
     const messages: ChatMessage[] = [{ role: 'user', content: prompt }];
-    return requestChatCompletion(this.apiKey, {
-      model: config.model,
-      messages,
-      temperature: config.temperature,
-      topP: config.topP,
-      maxTokens: config.maxOutputTokens,
-      thinking: config.thinking,
-      stream,
-    });
+    return requestChatCompletion(
+      this.apiKey,
+      {
+        model: config.model,
+        messages,
+        temperature: config.temperature,
+        topP: config.topP,
+        maxTokens: config.maxOutputTokens,
+        thinking: config.thinking,
+        stream,
+      },
+      signal
+    );
   }
 
   private async generateContentWithDeepSeek(
     prompt: string,
     config: ModelRuntimeConfig,
-    label: string
+    label: string,
+    signal?: AbortSignal
   ): Promise<GenerateContentResult> {
-    const response = await this.callDeepSeek(prompt, config, false);
+    const response = await this.callDeepSeek(prompt, config, false, signal);
     const data = await response.json();
     // 正文为空时沿用旧行为（返回空串交给各方法自行兜底），
     // 只有「推理吃光 token 预算」这种可诊断的情况才抛错。
@@ -193,7 +199,8 @@ export class DeepSeekClient {
   private getModel(tier: ModelTier, config?: ModelConfigInput): DeepSeekModelAdapter {
     const resolvedConfig = this.resolveModelConfig(tier, config);
     return {
-      generateContent: (prompt: string) => this.generateContentWithDeepSeek(prompt, resolvedConfig, tier),
+      generateContent: (prompt: string, signal?: AbortSignal) =>
+        this.generateContentWithDeepSeek(prompt, resolvedConfig, tier, signal),
       generateContentStream: (prompt: string) => this.generateContentStreamWithDeepSeek(prompt, resolvedConfig),
     };
   }
@@ -297,7 +304,8 @@ ${nameInstruction}
     peers: string[],
     transcriptData?: any,
     market: MarketType = 'US',
-    language?: string
+    language?: string,
+    signal?: AbortSignal
   ): Promise<string> {
     const lang = this.getLanguageInstruction(language);
     const marketName = MARKET_NAMES[market] || '美股';
@@ -362,7 +370,7 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
       });
       // 使用速率限制器
       const result = await globalRateLimiter.enqueue(
-        () => model.generateContent(prompt),
+        () => model.generateContent(prompt, signal),
         'analyzeCompany'
       );
       const response = await result.response;
@@ -391,7 +399,8 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
     companyName: string,
     symbol: string,
     market: MarketType = 'US',
-    language?: string
+    language?: string,
+    signal?: AbortSignal
   ): Promise<string> {
     const lang = this.getLanguageInstruction(language);
     void market;
@@ -413,7 +422,7 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
     try {
       // 使用速率限制器
       const result = await globalRateLimiter.enqueue(
-        () => modelWithSearch.generateContent(prompt),
+        () => modelWithSearch.generateContent(prompt, signal),
         'searchAndAnalyze'
       );
       const response = await result.response;
@@ -435,7 +444,8 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
     companyName: string,
     symbol: string,
     market: MarketType,
-    language?: string
+    language?: string,
+    signal?: AbortSignal
   ): Promise<{
     competitors: string;
     recentNews: string;
@@ -466,7 +476,7 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
     try {
       // 使用速率限制器
       const result = await globalRateLimiter.enqueue(
-        () => modelWithSearch.generateContent(prompt),
+        () => modelWithSearch.generateContent(prompt, signal),
         'searchCompanyDetails'
       );
       const response = await result.response;
@@ -505,7 +515,8 @@ ${transcriptData ? `## 最近财报电话会议摘要\n${JSON.stringify(transcri
     transcriptText: string,
     companyName: string,
     symbol: string,
-    language?: string
+    language?: string,
+    signal?: AbortSignal
   ): Promise<string> {
     const lang = this.getLanguageInstruction(language);
     const prompt = `
@@ -560,7 +571,7 @@ ${transcriptText}
       });
       // 使用速率限制器
       const result = await globalRateLimiter.enqueue(
-        () => model.generateContent(prompt),
+        () => model.generateContent(prompt, signal),
         'summarizeEarningsCall'
       );
       const response = await result.response;
@@ -1938,6 +1949,7 @@ ${JSON.stringify(quarterlyFinancials, null, 2)}
     text: string,
     targetLang: 'zh' | 'en',
     sourceLang: string = 'auto',
+    signal?: AbortSignal,
   ): Promise<string> {
     const trimmed = text.trim();
     if (!trimmed) return '';
@@ -1967,7 +1979,7 @@ ${trimmed}
         maxOutputTokens: 2048,
       });
       const result = await globalRateLimiter.enqueue(
-        () => model.generateContent(prompt),
+        () => model.generateContent(prompt, signal),
         'translateText',
       );
       const response = await result.response;
@@ -1980,7 +1992,7 @@ ${trimmed}
   }
 
   // 11. 智能划词解释
-  async explainText(text: string, language?: string): Promise<string> {
+  async explainText(text: string, language?: string, signal?: AbortSignal): Promise<string> {
     const lang = this.getLanguageInstruction(language);
     const prompt = `
 你是一个专业的金融助手，擅长用最通俗易懂的语言解释复杂的金融概念。
@@ -2007,7 +2019,7 @@ ${trimmed}
       });
       // 使用速率限制器
       const result = await globalRateLimiter.enqueue(
-        () => model.generateContent(prompt),
+        () => model.generateContent(prompt, signal),
         'explainText'
       );
       const response = await result.response;

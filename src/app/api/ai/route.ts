@@ -54,12 +54,14 @@ export async function POST(request: NextRequest) {
     };
 
     const aiAnalysisRaw = await withRetryAndTimeout(
-      () => deepseek.analyzeCompany(
+      (signal) => deepseek.analyzeCompany(
         profile,
         incomeStatements || [],
         peers || [],
         earningsTranscripts && earningsTranscripts.length > 0 ? earningsTranscripts[0] : null,
-        marketType
+        marketType,
+        undefined,
+        signal
       ),
       { maxRetries: 3, retryDelayMs: 1000, timeoutMs: 25000, label: 'analyzeCompany' },
       ''
