@@ -1,106 +1,16 @@
 import type { MarketType } from '@/lib/markets';
-
-// ============================================================================
-// DeepSeek API 速率限制器 - 防止 429 Too Many Requests 错误
-// ============================================================================
-
-interface QueuedRequest<T> {
-  execute: () => Promise<T>;
-  resolve: (value: T) => void;
-  reject: (error: any) => void;
-  label: string;
-}
-
-class DeepSeekRateLimiter {
-  private queue: QueuedRequest<any>[] = [];
-  private activeRequests = 0;
-  private readonly maxConcurrent: number;
-  private readonly minDelayMs: number;
-  private lastRequestTime = 0;
-  private isProcessing = false;
-
-  constructor(maxConcurrent = 2, minDelayMs = 1500) {
-    this.maxConcurrent = maxConcurrent;
-    this.minDelayMs = minDelayMs;
-  }
-
-  /**
-   * 将请求添加到队列，并返回结果 Promise
-   */
-  async enqueue<T>(execute: () => Promise<T>, label = 'request'): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
-      this.queue.push({ execute, resolve, reject, label });
-      this.processQueue();
-    });
-  }
-
-  /**
-   * 处理队列中的请求
-   */
-  private async processQueue(): Promise<void> {
-    if (this.isProcessing) return;
-    this.isProcessing = true;
-
-    while (this.queue.length > 0 && this.activeRequests < this.maxConcurrent) {
-      const request = this.queue.shift();
-      if (!request) continue;
-
-      // 计算需要等待的时间
-      const now = Date.now();
-      const timeSinceLastRequest = now - this.lastRequestTime;
-      const waitTime = Math.max(0, this.minDelayMs - timeSinceLastRequest);
-
-      if (waitTime > 0) {
-        await this.sleep(waitTime);
-      }
-
-      this.activeRequests++;
-      this.lastRequestTime = Date.now();
-
-      // 异步执行请求，不阻塞队列处理
-      this.executeRequest(request);
-    }
-
-    this.isProcessing = false;
-  }
-
-  /**
-   * 执行单个请求
-   */
-  private async executeRequest<T>(request: QueuedRequest<T>): Promise<void> {
-    try {
-      const result = await request.execute();
-      request.resolve(result);
-    } catch (error: any) {
-      // 如果是 429 错误，添加额外等待后重试
-      if (error?.message?.includes('429') || error?.message?.includes('Too Many Requests')) {
-        console.warn(`[RateLimiter] 429 错误，等待 2 秒后重试: ${request.label}`);
-        await this.sleep(2000);
-        try {
-          const result = await request.execute();
-          request.resolve(result);
-        } catch (retryError) {
-          request.reject(retryError);
-        }
-      } else {
-        request.reject(error);
-      }
-    } finally {
-      this.activeRequests--;
-      // 继续处理队列中的下一个请求
-      this.processQueue();
-    }
-  }
-
-  private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-}
-
-// 全局速率限制器实例 - 所有 DeepSeekClient 共享（底层调用 DeepSeek）
-// maxConcurrent=2: 最多同时 2 个请求
-// minDelayMs=500: 每个请求之间至少间隔 500ms
-const globalRateLimiter = new DeepSeekRateLimiter(2, 500);
+import { globalRateLimiter } from '@/lib/ai/rate-limiter';
+import {
+  DEEPSEEK_MODEL,
+  DEEPSEEK_MODEL_PRO,
+  type ThinkingPolicy,
+} from '@/lib/ai/deepseek-config';
+import {
+  extractContentOrEmpty,
+  parseChatStream,
+  requestChatCompletion,
+  type ChatMessage,
+} from '@/lib/ai/deepseek-request';
 
 // 市场名称映射
 const MARKET_NAMES: Record<MarketType, string> = {
@@ -116,11 +26,8 @@ interface ModelConfigInput {
   temperature?: number;
   topP?: number;
   maxOutputTokens?: number;
-  tools?: any[];
-  thinkingConfig?: {
-    thinkingLevel?: 'low' | 'medium' | 'high';
-    includeThoughts?: boolean;
-  };
+  /** 省略即按 tier 默认值（见 DEFAULT_THINKING_BY_TIER） */
+  thinking?: ThinkingPolicy;
 }
 
 interface ModelRuntimeConfig {
@@ -128,7 +35,7 @@ interface ModelRuntimeConfig {
   temperature: number;
   topP: number;
   maxOutputTokens: number;
-  tools?: any[];
+  thinking: ThinkingPolicy;
 }
 
 interface GenerateContentResult {
@@ -153,35 +60,42 @@ interface DeepSeekModelAdapter {
 // 模型分级策略
 // - lite: 简单任务，速度优先（股票联想、财报摘要）
 // - standard: 复杂推理任务（公司深度分析）
-// - search: 补充摘要任务（禁用 online search / googleSearch）
+// - search: 补充摘要任务（不启用联网检索）
 // - pro: 专业版深度分析
-// 当前全部统一使用 DeepSeek deepseek-v4-flash
+// 分级只影响温度 / token 预算与所用模型；pro 档可通过 DEEPSEEK_MODEL_PRO 单独切换。
 type ModelTier = 'lite' | 'standard' | 'search' | 'pro';
-
-const DEEPSEEK_MODEL_ID = 'deepseek-v4-flash';
 
 const MODEL_CONFIG: Record<ModelTier, { model: string; description: string }> = {
   lite: {
-    model: DEEPSEEK_MODEL_ID,
+    model: DEEPSEEK_MODEL,
     description: '轻量快速模型，适合简单任务',
   },
   standard: {
-    model: DEEPSEEK_MODEL_ID,
+    model: DEEPSEEK_MODEL,
     description: '标准模型，适合复杂推理',
   },
   search: {
-    model: DEEPSEEK_MODEL_ID,
-    description: '补充摘要模型，不启用 online search',
+    model: DEEPSEEK_MODEL,
+    description: '补充摘要模型，不启用联网检索',
   },
   pro: {
-    model: DEEPSEEK_MODEL_ID,
+    model: DEEPSEEK_MODEL_PRO,
     description: '专业模型，深度分析',
   },
 };
 
+// 思考模式默认全部关闭，只有判断密集且没有硬超时约束的调用点才显式开启。
+// 原因：非流式调用都被 withRetryAndTimeout 包了 10~25s 的预算（见 api-utils.ts），
+// 开启思考必然超时；而流式报告段落跑在 maxDuration=300 下，才有开思考的余量。
+const DEFAULT_THINKING_BY_TIER: Record<ModelTier, ThinkingPolicy> = {
+  lite: 'disabled',
+  standard: 'disabled',
+  search: 'disabled',
+  pro: 'disabled',
+};
+
 export class DeepSeekClient {
   private readonly apiKey: string;
-  private readonly baseUrl = 'https://api.deepseek.com/chat/completions';
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
@@ -212,24 +126,7 @@ export class DeepSeekClient {
       temperature: config?.temperature ?? 0.7,
       topP: config?.topP ?? 0.95,
       maxOutputTokens: config?.maxOutputTokens ?? 8192,
-      // DeepSeek chat completions do not receive tools here. This keeps
-      // online search disabled and avoids proxy-style abuse.
-      tools: undefined,
-    };
-  }
-
-  private buildDeepSeekPayload(
-    prompt: string,
-    config: ModelRuntimeConfig,
-    stream: boolean
-  ): Record<string, any> {
-    return {
-      model: config.model,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: config.temperature,
-      top_p: config.topP,
-      max_tokens: config.maxOutputTokens,
-      stream,
+      thinking: config?.thinking ?? DEFAULT_THINKING_BY_TIER[tier],
     };
   }
 
@@ -238,90 +135,28 @@ export class DeepSeekClient {
     config: ModelRuntimeConfig,
     stream: boolean
   ): Promise<Response> {
-    const response = await fetch(this.baseUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify(this.buildDeepSeekPayload(prompt, config, stream)),
+    const messages: ChatMessage[] = [{ role: 'user', content: prompt }];
+    return requestChatCompletion(this.apiKey, {
+      model: config.model,
+      messages,
+      temperature: config.temperature,
+      topP: config.topP,
+      maxTokens: config.maxOutputTokens,
+      thinking: config.thinking,
+      stream,
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('DeepSeek API 请求失败:', {
-        status: response.status,
-        body: errorText.slice(0, 500),
-      });
-      throw new Error(`DeepSeek API 请求失败 (${response.status})`);
-    }
-
-    return response;
-  }
-
-  private extractTextFromChatCompletion(data: any): string {
-    return data?.choices?.[0]?.message?.content || '';
-  }
-
-  private parseDeepSeekStream(body: ReadableStream<Uint8Array>): AsyncGenerator<StreamChunk, void, unknown> {
-    async function* iterator() {
-      const reader = body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      const consumeLine = async function* (line: string): AsyncGenerator<StreamChunk, void, unknown> {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith('data:')) return;
-
-        const data = trimmed.slice(5).trim();
-        if (!data || data === '[DONE]') return;
-
-        try {
-          const payload = JSON.parse(data);
-          const deltaText = payload?.choices?.[0]?.delta?.content || '';
-          if (deltaText && deltaText.length > 0) {
-            yield { text: () => deltaText };
-          }
-        } catch (error: any) {
-          console.warn('DeepSeek stream parse warning:', error?.message || error);
-        }
-      };
-
-      try {
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          let lineBreakIndex = buffer.indexOf('\n');
-
-          while (lineBreakIndex !== -1) {
-            const line = buffer.slice(0, lineBreakIndex);
-            buffer = buffer.slice(lineBreakIndex + 1);
-            lineBreakIndex = buffer.indexOf('\n');
-            yield* consumeLine(line);
-          }
-        }
-
-        const finalLine = buffer.trim();
-        if (finalLine) {
-          yield* consumeLine(finalLine);
-        }
-      } finally {
-        reader.releaseLock();
-      }
-    }
-
-    return iterator();
   }
 
   private async generateContentWithDeepSeek(
     prompt: string,
-    config: ModelRuntimeConfig
+    config: ModelRuntimeConfig,
+    label: string
   ): Promise<GenerateContentResult> {
     const response = await this.callDeepSeek(prompt, config, false);
     const data = await response.json();
-    const text = this.extractTextFromChatCompletion(data);
+    // 正文为空时沿用旧行为（返回空串交给各方法自行兜底），
+    // 只有「推理吃光 token 预算」这种可诊断的情况才抛错。
+    const text = extractContentOrEmpty(data, label);
 
     return {
       response: Promise.resolve({
@@ -339,16 +174,26 @@ export class DeepSeekClient {
       throw new Error('DeepSeek stream body is empty');
     }
 
-    return {
-      stream: this.parseDeepSeekStream(response.body as ReadableStream<Uint8Array>),
-    };
+    // 只把正文交给上层；思维链（reasoning_content）在这里丢弃。
+    // 报告段落的响应体是纯 markdown 且会被原样写入 Supabase 缓存，
+    // 混入思维链会污染缓存并被之后每一次命中缓存的读者看到。
+    const source = parseChatStream(response.body as ReadableStream<Uint8Array>);
+    async function* contentOnly(): AsyncGenerator<StreamChunk, void, unknown> {
+      for await (const chunk of source) {
+        if (chunk.kind === 'content') {
+          yield { text: () => chunk.text };
+        }
+      }
+    }
+
+    return { stream: contentOnly() };
   }
 
   // 根据任务类型获取对应的模型实例
   private getModel(tier: ModelTier, config?: ModelConfigInput): DeepSeekModelAdapter {
     const resolvedConfig = this.resolveModelConfig(tier, config);
     return {
-      generateContent: (prompt: string) => this.generateContentWithDeepSeek(prompt, resolvedConfig),
+      generateContent: (prompt: string) => this.generateContentWithDeepSeek(prompt, resolvedConfig, tier),
       generateContentStream: (prompt: string) => this.generateContentStreamWithDeepSeek(prompt, resolvedConfig),
     };
   }
@@ -736,11 +581,16 @@ ${transcriptText}
   // ============================================================================
 
   // 通用的流式生成辅助方法（带速率限制）
-  async *generateStream(prompt: string, tier: ModelTier = 'standard'): AsyncGenerator<string, void, unknown> {
+  async *generateStream(
+    prompt: string,
+    tier: ModelTier = 'standard',
+    options?: { thinking?: ThinkingPolicy; maxOutputTokens?: number }
+  ): AsyncGenerator<string, void, unknown> {
     const model = this.getModel(tier, {
       temperature: 0.7,
       topP: 0.95,
-      maxOutputTokens: 8192
+      maxOutputTokens: options?.maxOutputTokens ?? 8192,
+      thinking: options?.thinking,
     });
 
     // 使用速率限制器来获取流
@@ -945,7 +795,8 @@ ${context}
 **主要弊端/风险**：
 - ...
 `;
-    return this.generateStream(prompt, 'standard');
+    // 判断类段落：开启思考模式。预算需同时容纳推理与正文。
+    return this.generateStream(prompt, 'standard', { thinking: 'high', maxOutputTokens: 16384 });
   }
 
   // 9. 财报电话会议总结 (流式)
@@ -1421,7 +1272,13 @@ ${JSON.stringify(quarterlyFinancials, null, 2)}
   ): Promise<AsyncGenerator<string, void, unknown>> {
     const lang = this.getLanguageInstruction(language);
     const marketName = MARKET_NAMES[market] || '美股';
-    const model = this.getProModel();
+    // 估值判断需要多步推算，开启思考模式（其余 pro 段落沿用 getProModel 的非思考配置）。
+    const model = this.getModel('pro', {
+      temperature: 0.7,
+      topP: 0.95,
+      maxOutputTokens: 16384,
+      thinking: 'high',
+    });
     const today = new Date().toISOString().slice(0, 10);
 
     const prompt = `分析 ${companyData.companyName} (${companyData.symbol}) 的估值水平和买入时机。
@@ -1508,10 +1365,13 @@ ${JSON.stringify(quarterlyFinancials, null, 2)}
   ): Promise<AsyncGenerator<string, void, unknown>> {
     const lang = this.getLanguageInstruction(language);
     const marketName = MARKET_NAMES[market] || '美股';
+    // 专业版投资结论是全篇判断密度最高的一段，开启思考模式；
+    // 预算由 6144 提到 16384，因为推理与正文共享 max_tokens。
     const model = this.getModel('pro', {
       temperature: 0.7,
       topP: 0.95,
-      maxOutputTokens: 6144,
+      maxOutputTokens: 16384,
+      thinking: 'high',
     });
 
     const prompt = `根据以下关于 ${companyData.companyName} (${companyData.symbol}) 的完整研究报告，撰写综合投资建议。
@@ -1626,7 +1486,8 @@ ${prevContext}
 - ${lang.outputLang}。
 - 格式：Markdown，关键结论加粗。
 `;
-    return this.generateStream(prompt, 'standard');
+    // 新手版结论同样是判断类段落，开启思考模式。
+    return this.generateStream(prompt, 'standard', { thinking: 'high', maxOutputTokens: 16384 });
   }
 
   async streamBeginnerCompanyIntro(companyData: any, market: MarketType, language?: string): Promise<AsyncGenerator<string, void, unknown>> {

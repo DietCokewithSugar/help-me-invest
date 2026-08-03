@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { apiErrorResponse, enforceRateLimit, readJsonWithLimit, truncateText } from '@/lib/api-security';
+import { DEEPSEEK_MODEL } from '@/lib/ai/deepseek-config';
+import { extractContentOrEmpty, requestChatCompletion } from '@/lib/ai/deepseek-request';
 
 export const maxDuration = 120;
 
-const DEEPSEEK_MODEL_ID = 'deepseek-v4-flash';
 const MAX_REQUEST_BYTES = 32 * 1024;
 const MAX_FREE_TEXT_CHARS = 1_000;
 
@@ -11,37 +12,23 @@ async function generateDeepSeekJSON(apiKey: string, prompt: string): Promise<str
   const systemInstruction =
     'You are a structured-data API. Respond with ONE valid JSON object that matches the schema in the user prompt — no prose, no markdown, no code fences, no emojis, no greetings, no first-person language.';
 
-  const response = await fetch('https://api.deepseek.com/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: DEEPSEEK_MODEL_ID,
-      messages: [
-        { role: 'system', content: systemInstruction },
-        { role: 'user', content: prompt },
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.5,
-      top_p: 0.9,
-      max_tokens: 6144,
-      stream: false,
-    }),
+  // 结构化 JSON 抽取：关闭思考模式，输出确定性优先。
+  const response = await requestChatCompletion(apiKey, {
+    model: DEEPSEEK_MODEL,
+    messages: [
+      { role: 'system', content: systemInstruction },
+      { role: 'user', content: prompt },
+    ],
+    temperature: 0.5,
+    topP: 0.9,
+    maxTokens: 6144,
+    thinking: 'disabled',
+    stream: false,
+    jsonObject: true,
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('DeepSeek asset allocation error:', {
-      status: response.status,
-      body: errorText.slice(0, 500),
-    });
-    throw new Error(`DeepSeek API error (${response.status})`);
-  }
-
   const data = await response.json();
-  const content = data?.choices?.[0]?.message?.content || '';
+  const content = extractContentOrEmpty(data, 'assetAllocation');
   if (!content || content.trim().length === 0) {
     throw new Error('DeepSeek returned empty content');
   }
