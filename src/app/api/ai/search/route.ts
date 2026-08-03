@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     const isNonUS = marketType !== 'US';
 
     const searchResults = await withRetryAndTimeout(
-      () => deepseek.searchAndAnalyze(companyName, symbol.toUpperCase(), marketType),
+      (signal) => deepseek.searchAndAnalyze(companyName, symbol.toUpperCase(), marketType, undefined, signal),
       { maxRetries: 3, retryDelayMs: 1000, timeoutMs: 15000, label: 'searchAndAnalyze' },
       ''
     );
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     let supplementary = { competitors: '', recentNews: '', analystViews: '' };
     if (isNonUS) {
       supplementary = await withRetryAndTimeout(
-        () => deepseek.searchCompanyDetails(companyName, symbol.toUpperCase(), marketType),
+        (signal) => deepseek.searchCompanyDetails(companyName, symbol.toUpperCase(), marketType, undefined, signal),
         { maxRetries: 3, retryDelayMs: 1000, timeoutMs: 10000, label: 'searchCompanyDetails' },
         supplementary
       );

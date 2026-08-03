@@ -1,8 +1,10 @@
 import type { MarketType } from '@/lib/markets';
+import { DEEPSEEK_MODEL } from '@/lib/ai/deepseek-config';
+import { extractContentOrEmpty, requestChatCompletion } from '@/lib/ai/deepseek-request';
 
 // 主页股票联想专用的 DeepSeek 客户端。
-// 主报告链路也使用同一 DeepSeek 模型；这里保留独立实现，避免高频联想请求
-// 牵动报告生成链路。
+// 传输层与主报告链路共用（见 lib/ai/deepseek-request），但**刻意不接入限流队列**：
+// 联想是高频、对延迟敏感的输入框补全，不能排在报告生成后面。
 
 const MARKET_NAMES: Record<MarketType, string> = {
   US: '美股',
@@ -81,30 +83,20 @@ export async function suggestSymbolWithDeepSeek(
   const prompt = buildPrompt(trimmedQuery, marketHint, language);
 
   try {
-    const response = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'deepseek-v4-flash',
-        messages: [{ role: 'user', content: prompt }],
-        response_format: { type: 'json_object' },
-        temperature: 0.2,
-        top_p: 0.9,
-        max_tokens: 1024,
-        stream: false,
-      }),
+    // 输入框补全：关闭思考模式。1024 的预算下开思考会被推理吃光，返回空正文。
+    const response = await requestChatCompletion(apiKey, {
+      model: DEEPSEEK_MODEL,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.2,
+      topP: 0.9,
+      maxTokens: 1024,
+      thinking: 'disabled',
+      stream: false,
+      jsonObject: true,
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`DeepSeek API 请求失败 (${response.status}): ${errorText}`);
-    }
-
     const data = await response.json();
-    const text: string = data?.choices?.[0]?.message?.content || '';
+    const text = extractContentOrEmpty(data, 'suggestSymbol');
 
     if (!text || text.trim().length === 0) {
       throw new Error('AI 返回空响应');

@@ -11,12 +11,16 @@ export interface RetryOptions {
 
 /**
  * 带重试和超时的 Promise 包装器
- * @param promiseFactory - 返回 Promise 的工厂函数（每次重试都会调用）
+ * @param promiseFactory - 接收 AbortSignal 并返回 Promise 的工厂函数（每次重试都会调用）
  * @param options - 配置选项
  * @param fallback - 所有重试失败后的回退值
+ *
+ * 超时会真正 abort 掉底层请求。此前的实现只是让外层 Promise 先 reject，
+ * 被放弃的请求仍在后台跑完，期间一直占着 DeepSeek 限流器的并发名额，
+ * 于是一次逻辑调用最多能占满 maxConcurrent=2 的全部名额并拖垮其他调用。
  */
 export async function withRetryAndTimeout<T>(
-  promiseFactory: () => Promise<T>,
+  promiseFactory: (signal: AbortSignal) => Promise<T>,
   options: RetryOptions,
   fallback: T
 ): Promise<T> {
@@ -25,14 +29,20 @@ export async function withRetryAndTimeout<T>(
   let lastError: Error | null = null;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort(new Error(`[${label}] 请求超时 (${timeoutMs}ms)`));
+    }, timeoutMs);
+
     try {
-      const result = await withTimeout(promiseFactory(), timeoutMs, label);
-      return result;
+      return await promiseFactory(controller.signal);
     } catch (error: any) {
-      lastError = error;
+      lastError = controller.signal.aborted
+        ? new Error(`[${label}] 请求超时 (${timeoutMs}ms)`)
+        : error;
       console.warn(
         `[${label}] 第 ${attempt}/${maxRetries} 次尝试失败:`,
-        error?.message || error
+        lastError?.message || lastError
       );
 
       if (attempt < maxRetries) {
@@ -41,36 +51,13 @@ export async function withRetryAndTimeout<T>(
         console.log(`[${label}] 等待 ${delay}ms 后重试...`);
         await sleep(delay);
       }
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
   console.error(`[${label}] 所有 ${maxRetries} 次重试均失败，使用回退值`);
   return fallback;
-}
-
-/**
- * 带超时的 Promise 包装器（会抛出错误而不是返回回退值）
- */
-async function withTimeout<T>(
-  promise: Promise<T>,
-  timeoutMs: number,
-  label: string
-): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timeoutId = setTimeout(() => {
-      reject(new Error(`[${label}] 请求超时 (${timeoutMs}ms)`));
-    }, timeoutMs);
-
-    promise
-      .then((result) => {
-        clearTimeout(timeoutId);
-        resolve(result);
-      })
-      .catch((error) => {
-        clearTimeout(timeoutId);
-        reject(error);
-      });
-  });
 }
 
 /**

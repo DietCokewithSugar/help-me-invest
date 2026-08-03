@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
   try {
     const client = new DeepSeekClient(apiKey);
     const translated = await withRetryAndTimeout(
-      () => client.translateText(text, targetLang, sourceLang),
+      (signal) => client.translateText(text, targetLang, sourceLang, signal),
       { maxRetries: 2, retryDelayMs: 500, timeoutMs: 12000, label: 'feedback-translate' },
       text,
     );

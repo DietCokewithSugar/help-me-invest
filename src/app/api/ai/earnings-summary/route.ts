@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     const deepseek = new DeepSeekClient(deepseekApiKey);
     const limitedTranscript = truncateText(transcriptText, MAX_TRANSCRIPT_CHARS);
     const earningsCallSummary = await withRetryAndTimeout(
-      () => deepseek.summarizeEarningsCall(limitedTranscript, companyName, symbol.toUpperCase()),
+      (signal) => deepseek.summarizeEarningsCall(limitedTranscript, companyName, symbol.toUpperCase(), undefined, signal),
       { maxRetries: 3, retryDelayMs: 1000, timeoutMs: 15000, label: 'summarizeEarningsCall' },
       ''
     );
