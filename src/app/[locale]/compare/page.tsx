@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { AnimatePresence, motion } from 'framer-motion';
 import Header from '@/components/Header';
+import PageHeader from '@/components/PageHeader';
 import { useCompare, type CompareCompany } from '@/contexts/CompareContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { withLocale } from '@/lib/locale-path';
@@ -131,7 +131,7 @@ export default function ComparePage() {
     if (detailedData[symbol] || loadingData[symbol]) return;
     setLoadingData(prev => ({ ...prev, [symbol]: true }));
     try {
-      const response = await fetch('/api/fmp', {
+      const response = await fetch('/api/report-data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ symbol, market, period: 'annual' }),
@@ -291,8 +291,7 @@ export default function ComparePage() {
   const metricSections = buildMetricSections();
 
   return (
-    <div className="min-h-screen bg-main-bg transition-colors duration-200">
-      <div className="fixed inset-0 bg-pattern opacity-[0.03] dark:opacity-[0.05] pointer-events-none" />
+    <div className="min-h-screen transition-colors duration-200">
 
       <Header
         theme={theme}
@@ -300,30 +299,27 @@ export default function ComparePage() {
         onReset={() => router.push(withLocale(locale, '/'))}
       />
 
-      <div className="pt-32 pb-12 px-4 md:px-6">
-        <div className="max-w-7xl mx-auto space-y-6">
-          {/* Page Header */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-2">
-                {t.compare.title}
-              </h2>
-              <p className="text-text-secondary">
-                {t.compare.subtitle}
-              </p>
-            </div>
-            {companies.length > 0 && (
-              <button
-                onClick={() => {
-                  clearAll();
-                  setDetailedData({});
-                }}
-                className="text-sm text-text-muted hover:text-red-400 transition-colors font-mono"
-              >
-                {t.compare.clearAll}
-              </button>
-            )}
-          </div>
+      <PageHeader
+        title={t.compare.title}
+        subtitle={t.compare.subtitle}
+        actions={
+          companies.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => {
+                clearAll();
+                setDetailedData({});
+              }}
+              className="btn-secondary"
+            >
+              {t.compare.clearAll}
+            </button>
+          ) : undefined
+        }
+      />
+
+      <div className="page-container py-6">
+        <div className="space-y-6">
 
           {/* Company Slots */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -336,15 +332,10 @@ export default function ComparePage() {
 
               if (company) {
                 return (
-                  <motion.div
-                    key={`slot-${idx}`}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="glass-card p-5 rounded-sm border border-white/10 dark:border-white/10 light:border-black/5 relative"
-                  >
+                  <div key={`slot-${idx}`} className="panel p-5 rounded-sm border border-white/10 dark:border-white/10 relative">
                     <button
                       onClick={() => handleRemove(company.symbol)}
-                      className="absolute top-3 right-3 p-1 rounded-sm bg-white/5 hover:bg-red-500/20 hover:text-red-400 text-text-muted transition-colors"
+                      className="absolute top-3 right-3 p-1 rounded-sm bg-white/5 hover:bg-down/20 hover:text-down text-text-3 transition-colors"
                       title={t.compare.remove}
                     >
                       <XIcon size={14} />
@@ -358,12 +349,12 @@ export default function ComparePage() {
                           className="w-10 h-10 rounded-sm object-contain bg-white/5 p-1"
                         />
                       ) : (
-                        <div className="w-10 h-10 rounded-sm bg-white/5 flex items-center justify-center text-text-muted font-mono text-xs">
+                        <div className="w-10 h-10 rounded-sm bg-white/5 flex items-center justify-center text-text-3 font-mono text-xs">
                           {company.symbol.slice(0, 2)}
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <div className="font-bold text-text-primary truncate text-sm">
+                        <div className="font-bold text-text-1 truncate text-sm">
                           {profile?.companyName || company.companyName}
                         </div>
                         <div className="text-xs font-mono text-accent">
@@ -373,22 +364,22 @@ export default function ComparePage() {
                     </div>
 
                     {isLoading ? (
-                      <div className="text-xs text-text-muted font-mono animate-pulse">
+                      <div className="text-xs text-text-3 font-mono animate-pulse">
                         {t.compare.loadingData}
                       </div>
                     ) : profile ? (
                       <div className="flex items-baseline gap-3">
-                        <span className="font-mono font-bold text-text-primary text-lg">
+                        <span className="font-mono font-bold text-text-1 text-lg">
                           {formatCurrency(profile.price)}
                         </span>
                         <span className={`font-mono text-sm ${
-                          (profile.changes ?? 0) >= 0 ? 'text-[#10B981]' : 'text-[#EF4444]'
+                          (profile.changes ?? 0) >= 0 ? 'text-up' : 'text-down'
                         }`}>
                           {profile.changes != null ? `${profile.changes >= 0 ? '+' : ''}${profile.changes.toFixed(2)}%` : ''}
                         </span>
                       </div>
                     ) : null}
-                  </motion.div>
+                  </div>
                 );
               }
 
@@ -403,36 +394,31 @@ export default function ComparePage() {
                     }`}
                   >
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      isActive ? 'bg-accent/20 text-accent' : 'bg-white/5 text-text-muted'
+                      isActive ? 'bg-accent/20 text-accent' : 'bg-white/5 text-text-3'
                     }`}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                         <line x1="12" y1="5" x2="12" y2="19" />
                         <line x1="5" y1="12" x2="19" y2="12" />
                       </svg>
                     </div>
-                    <span className="text-xs text-text-muted">
+                    <span className="text-xs text-text-3">
                       {t.compare.emptySlot}
                     </span>
                   </button>
 
-                  <AnimatePresence>
+                  <>
                     {isActive && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -4 }}
-                        className="absolute top-full left-0 right-0 mt-2 z-20"
-                      >
-                        <div className="glass-card rounded-sm border border-white/10 shadow-xl overflow-hidden">
+                      <div className="absolute top-full left-0 right-0 mt-2 z-20 animate-fade-in">
+                        <div className="panel rounded-sm border border-white/10 shadow-xl overflow-hidden">
                           <div className="flex items-center gap-2 p-3 border-b border-white/5">
-                            <SearchIcon size={14} className="text-text-muted flex-shrink-0" />
+                            <SearchIcon size={14} className="text-text-3 flex-shrink-0" />
                             <input
                               ref={searchInputRef}
                               type="text"
                               value={searchQuery}
                               onChange={(e) => handleSearchChange(e.target.value)}
                               placeholder={t.compare.searchPlaceholder}
-                              className="flex-1 bg-transparent text-sm text-text-primary placeholder-text-muted focus:outline-none"
+                              className="flex-1 bg-transparent text-sm text-text-1 placeholder:text-text-3 focus:outline-none"
                               onKeyDown={(e) => {
                                 if (e.key === 'Escape') {
                                   setActiveSlot(null);
@@ -456,11 +442,11 @@ export default function ComparePage() {
                                 >
                                   <div>
                                     <span className="font-mono text-sm text-accent">{s.symbol}</span>
-                                    <span className="text-xs text-text-secondary ml-2">
+                                    <span className="text-xs text-text-2 ml-2">
                                       {locale === 'zh' && s.nameCn ? s.nameCn : s.name}
                                     </span>
                                   </div>
-                                  <span className="text-[10px] font-mono text-text-muted px-1.5 py-0.5 rounded-sm bg-white/5">
+                                  <span className="text-[10px] font-mono text-text-3 px-1.5 py-0.5 rounded-sm bg-white/5">
                                     {s.market}
                                   </span>
                                 </button>
@@ -469,14 +455,14 @@ export default function ComparePage() {
                           )}
 
                           {searchQuery.length >= 2 && suggestions.length === 0 && !searchLoading && (
-                            <div className="p-3 text-xs text-text-muted text-center">
+                            <div className="p-3 text-xs text-text-3 text-center">
                               {t.common.noResults}
                             </div>
                           )}
                         </div>
-                      </motion.div>
+                      </div>
                     )}
-                  </AnimatePresence>
+                  </>
                 </div>
               );
             })}
@@ -486,9 +472,9 @@ export default function ComparePage() {
           {companies.length >= 2 ? (
             <div className="space-y-6">
               {metricSections.map((section) => (
-                <div key={section.title} className="glass-card rounded-sm border border-white/10 dark:border-white/10 light:border-black/5 overflow-hidden">
+                <div key={section.title} className="panel rounded-sm border border-white/10 dark:border-white/10 overflow-hidden">
                   <div className="px-5 py-3 border-b border-white/5 bg-white/[0.02]">
-                    <h3 className="text-[11px] font-bold text-text-muted uppercase tracking-wider">
+                    <h3 className="text-[11px] font-bold text-text-3 uppercase tracking-wider">
                       {section.title}
                     </h3>
                   </div>
@@ -513,7 +499,7 @@ export default function ComparePage() {
                             gridTemplateColumns: `minmax(140px, 1fr) repeat(${companies.length}, minmax(0, 1fr))`,
                           }}
                         >
-                          <div className="px-5 py-3 text-xs text-text-secondary">
+                          <div className="px-5 py-3 text-xs text-text-2">
                             {metric.label}
                           </div>
                           {companies.map((c, i) => {
@@ -523,7 +509,7 @@ export default function ComparePage() {
 
                             if (isLoading || !d) {
                               return (
-                                <div key={c.symbol} className="px-5 py-3 text-xs font-mono text-text-muted">
+                                <div key={c.symbol} className="px-5 py-3 text-xs font-mono text-text-3">
                                   {isLoading ? '...' : 'N/A'}
                                 </div>
                               );
@@ -536,7 +522,7 @@ export default function ComparePage() {
                               <div
                                 key={c.symbol}
                                 className={`px-5 py-3 text-xs font-mono ${
-                                  isBest ? 'text-glacier-500 font-bold' : 'text-text-primary'
+                                  isBest ? 'text-glacier-500 font-bold' : 'text-text-1'
                                 }`}
                               >
                                 {formatted}
@@ -551,8 +537,8 @@ export default function ComparePage() {
               ))}
             </div>
           ) : (
-            <div className="glass-card p-12 rounded-sm border border-white/10 text-center">
-              <div className="text-text-muted font-mono text-sm">
+            <div className="panel p-12 rounded-sm border border-white/10 text-center">
+              <div className="text-text-3 font-mono text-sm">
                 {t.compare.noCompanies}
               </div>
             </div>

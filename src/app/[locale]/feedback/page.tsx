@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Bug, Lightbulb, MessageSquare, MoreHorizontal, ThumbsUp, ThumbsDown, MessageCircle, Plus, X } from 'lucide-react';
 import Header from '@/components/Header';
+import PageHeader from '@/components/PageHeader';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { withLocale } from '@/lib/locale-path';
 import { useFeedbackIdentity } from '@/hooks/useFeedbackIdentity';
@@ -25,9 +25,9 @@ const CATEGORY_ICON: Record<FeedbackCategory, JSX.Element> = {
 };
 
 const CATEGORY_COLOR: Record<FeedbackCategory, string> = {
-  bug: 'bg-red-500/15 text-red-300 border-red-500/30',
+  bug: 'bg-down/15 text-down border-down/30',
   ux: 'bg-glacier-500/15 text-glacier-300 border-glacier-500/30',
-  feature: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+  feature: 'bg-warn/15 text-warn border-warn/30',
   other: 'bg-white/10 text-mist-300 border-white/15',
 };
 
@@ -161,8 +161,7 @@ export default function FeedbackPage() {
   const hasMore = remaining > 0 && issues.length < total;
 
   return (
-    <div className="min-h-screen bg-main-bg transition-colors duration-200">
-      <div className="fixed inset-0 bg-pattern opacity-[0.03] dark:opacity-[0.05] pointer-events-none" />
+    <div className="min-h-screen transition-colors duration-200">
 
       <Header
         theme={theme}
@@ -170,47 +169,40 @@ export default function FeedbackPage() {
         onReset={() => router.push(withLocale(locale, '/'))}
       />
 
-      <div className="pt-32 pb-24 px-4 md:px-6">
-        <div className="max-w-4xl mx-auto space-y-6">
-          {/* Page Header */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-2">{fbT.pageTitle}</h2>
-              <p className="text-text-secondary text-sm md:text-base">{fbT.pageSubtitle}</p>
+      <PageHeader
+        title={fbT.pageTitle}
+        subtitle={fbT.pageSubtitle}
+        actions={
+          <>
+            <div className="mr-2 text-right">
+              <div className="font-mono text-[22px] font-semibold leading-none text-fg">{total}</div>
+              <div className="mt-1 text-[12px] text-text-3">{fbT.countLabel(total)}</div>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <div className="text-2xl font-mono font-bold text-text-primary leading-none">{total}</div>
-                <div className="text-[10px] text-text-muted mt-1 font-mono uppercase tracking-wider">
-                  {fbT.countLabel(total)}
-                </div>
-              </div>
-              <button
-                onClick={() => setComposerOpen((v) => !v)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-sm bg-glacier-500 hover:bg-glacier-400 text-obsidian font-semibold text-sm transition-colors"
-              >
-                {composerOpen ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                {composerOpen ? fbT.composer.cancel : fbT.newIssue}
-              </button>
-            </div>
-          </div>
+            <button
+              type="button"
+              onClick={() => setComposerOpen((v) => !v)}
+              className={composerOpen ? 'btn-secondary' : 'btn-primary'}
+            >
+              {composerOpen ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+              {composerOpen ? fbT.composer.cancel : fbT.newIssue}
+            </button>
+          </>
+        }
+      />
+
+      <div className="page-container py-6">
+        <div className="max-w-4xl space-y-6">
 
           {/* Composer */}
-          <AnimatePresence>
+          <>
             {composerOpen && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2 }}
-                className="overflow-hidden"
-              >
+              <div className="overflow-hidden">
                 <div className="mt-1">
                   <FeedbackComposer onSubmitted={onSubmitted} onCancel={() => setComposerOpen(false)} />
                 </div>
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
+          </>
 
           {/* Filters */}
           <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
@@ -232,7 +224,7 @@ export default function FeedbackPage() {
                     onClick={() => setSort(key)}
                     className={`px-2.5 py-1 text-xs font-mono rounded-sm transition-all whitespace-nowrap ${
                       sort === key
-                        ? 'bg-glacier-500 text-obsidian font-bold'
+                        ? 'bg-accent/10 text-accent font-semibold'
                         : 'text-mist-500 hover:text-mist-200'
                     }`}
                   >
@@ -284,7 +276,7 @@ export default function FeedbackPage() {
                         >
                           <ThumbsUp className="w-3.5 h-3.5" />
                         </button>
-                        <span className={`text-xs font-mono font-semibold ${score > 0 ? 'text-glacier-300' : score < 0 ? 'text-red-300' : 'text-mist-400'}`}>
+                        <span className={`text-xs font-mono font-semibold ${score > 0 ? 'text-glacier-300' : score < 0 ? 'text-down' : 'text-mist-400'}`}>
                           {score}
                         </span>
                         <button
@@ -292,7 +284,7 @@ export default function FeedbackPage() {
                           aria-label={fbT.detail.voteDown}
                           className={`p-1 rounded-sm border transition-colors ${
                             userVote === -1
-                              ? 'bg-red-500/20 border-red-500/50 text-red-300'
+                              ? 'bg-down/20 border-down/50 text-down'
                               : 'bg-white/5 border-white/10 text-mist-500 hover:bg-white/10 hover:text-mist-300'
                           }`}
                         >

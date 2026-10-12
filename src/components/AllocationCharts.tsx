@@ -27,17 +27,17 @@ interface Props {
   currency?: string;
 }
 
-const FALLBACK_COLORS = ['#88ABDA', '#98B6C2', '#C0D09D', '#CB523E', '#DFD6B8', '#EAE4D1', '#8B5CF6', '#F59E0B', '#EC4899', '#06B6D4'];
+const FALLBACK_COLORS = ['#4A86E8', '#7FA3BF', '#3FA66B', '#D9534F', '#C9A227', '#B8B2A0', '#8B5CF6', '#F59E0B', '#EC4899', '#06B6D4'];
 
 export default function AllocationCharts({ chartData, theme = 'dark', currency = 'CNY' }: Props) {
   const { locale } = useLanguage();
   const isLight = theme === 'light';
   const isZh = locale === 'zh';
 
-  const TEXT_PRIMARY = isLight ? '#1e293b' : '#e2e8f0';
-  const TEXT_SECONDARY = isLight ? '#475569' : '#94a3b8';
-  const BG_SURFACE = isLight ? '#ffffff' : '#121212';
-  const BORDER = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+  const TEXT_PRIMARY = isLight ? '#222222' : '#D8DCE2';
+  const TEXT_SECONDARY = isLight ? '#545B65' : '#A3ABB6';
+  const BG_SURFACE = isLight ? '#FFFFFF' : '#1B1F24';
+  const BORDER = isLight ? 'rgba(23,25,28,0.12)' : 'rgba(236,238,241,0.10)';
   const currencyUnit = currency === 'CNY' ? (isZh ? '万元' : '0k CNY') : (isZh ? '万美元' : '0k USD');
 
   const { allocation, riskReturn } = chartData;
@@ -159,7 +159,7 @@ export default function AllocationCharts({ chartData, theme = 'dark', currency =
     <div className="space-y-6 mb-8">
       {pieOption && (
         <div className="p-4 rounded-md border" style={{ borderColor: BORDER, backgroundColor: isLight ? '#f8fafc' : 'rgba(255,255,255,0.02)' }}>
-          <div className="mono-kicker mb-3">
+          <div className="label-caps mb-3">
             {isZh ? '资产配置比例' : 'Allocation breakdown'}
           </div>
           <ReactECharts option={pieOption} style={{ height: 280 }} opts={{ renderer: 'svg' }} />
@@ -167,7 +167,7 @@ export default function AllocationCharts({ chartData, theme = 'dark', currency =
       )}
       {scatterOption && (
         <div className="p-4 rounded-md border" style={{ borderColor: BORDER, backgroundColor: isLight ? '#f8fafc' : 'rgba(255,255,255,0.02)' }}>
-          <div className="mono-kicker mb-3">
+          <div className="label-caps mb-3">
             {isZh ? '风险收益分布' : 'Risk-return profile'}
           </div>
           <ReactECharts option={scatterOption} style={{ height: 280 }} opts={{ renderer: 'svg' }} />

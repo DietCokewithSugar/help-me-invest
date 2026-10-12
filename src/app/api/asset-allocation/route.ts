@@ -48,7 +48,7 @@ interface AllocationRequest {
   language: string;
 }
 
-const ALLOCATION_PALETTE = ['#88ABDA', '#98B6C2', '#C0D09D', '#CB523E', '#DFD6B8', '#EAE4D1', '#FF8866', '#BADBEE', '#F59E0B', '#06B6D4'];
+const ALLOCATION_PALETTE = ['#4A86E8', '#7FA3BF', '#3FA66B', '#D9534F', '#C9A227', '#B8B2A0', '#E07B39', '#8DB4E2', '#F59E0B', '#06B6D4'];
 
 function stripEmoji(input: string): string {
   // Defense-in-depth: prompt forbids emojis, but if any slip through we drop

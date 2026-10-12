@@ -20,9 +20,9 @@ const CATEGORY_ICON: Record<FeedbackCategory, JSX.Element> = {
 };
 
 const CATEGORY_COLOR: Record<FeedbackCategory, string> = {
-  bug: 'bg-red-500/15 text-red-300 border-red-500/30',
+  bug: 'bg-down/15 text-down border-down/30',
   ux: 'bg-glacier-500/15 text-glacier-300 border-glacier-500/30',
-  feature: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+  feature: 'bg-warn/15 text-warn border-warn/30',
   other: 'bg-white/10 text-mist-300 border-white/15',
 };
 
@@ -204,7 +204,7 @@ export default function FeedbackDetailPage() {
             >
               <ThumbsUp className="w-3 h-3" />
             </button>
-            <span className={`text-[10px] font-mono font-semibold ${score > 0 ? 'text-glacier-300' : score < 0 ? 'text-red-300' : 'text-mist-500'}`}>
+            <span className={`text-[10px] font-mono font-semibold ${score > 0 ? 'text-glacier-300' : score < 0 ? 'text-down' : 'text-mist-500'}`}>
               {score}
             </span>
             <button
@@ -212,7 +212,7 @@ export default function FeedbackDetailPage() {
               aria-label={fbT.detail.voteDown}
               className={`p-0.5 rounded-sm border transition-colors ${
                 vote === -1
-                  ? 'bg-red-500/20 border-red-500/50 text-red-300'
+                  ? 'bg-down/20 border-down/50 text-down'
                   : 'bg-white/5 border-white/10 text-mist-500 hover:bg-white/10 hover:text-mist-300'
               }`}
             >
@@ -247,8 +247,7 @@ export default function FeedbackDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-main-bg transition-colors duration-200">
-      <div className="fixed inset-0 bg-pattern opacity-[0.03] dark:opacity-[0.05] pointer-events-none" />
+    <div className="min-h-screen transition-colors duration-200">
 
       <Header
         theme={theme}
@@ -256,8 +255,8 @@ export default function FeedbackDetailPage() {
         onReset={() => router.push(withLocale(locale, '/'))}
       />
 
-      <div className="pt-32 pb-24 px-4 md:px-6">
-        <div className="max-w-3xl mx-auto space-y-5">
+      <div className="page-container py-6">
+        <div className="max-w-3xl space-y-5">
           <Link
             href={withLocale(locale, '/feedback')}
             className="inline-flex items-center gap-1.5 text-sm text-mist-400 hover:text-glacier-300 transition-colors"
@@ -307,7 +306,7 @@ export default function FeedbackDetailPage() {
                       onClick={() => sendVote('issue', issue.id, -1, issueVote)}
                       className={`inline-flex items-center gap-1 px-2 py-1 rounded-sm border text-xs transition-colors ${
                         issueVote === -1
-                          ? 'bg-red-500/20 border-red-500/50 text-red-300'
+                          ? 'bg-down/20 border-down/50 text-down'
                           : 'bg-white/5 border-white/10 text-mist-400 hover:bg-white/10'
                       }`}
                     >
@@ -372,11 +371,11 @@ export default function FeedbackDetailPage() {
                       maxLength={60}
                       className="flex-1 px-3 py-1.5 rounded-sm bg-white/5 border border-white/10 text-xs text-mist-200 placeholder-mist-600 focus:outline-none focus:border-glacier-500/50"
                     />
-                    {composerError && <span className="text-xs text-red-400">{composerError}</span>}
+                    {composerError && <span className="text-xs text-down">{composerError}</span>}
                     <button
                       type="submit"
                       disabled={submitting || !ready}
-                      className="px-3 py-1.5 text-sm rounded-sm bg-glacier-500 hover:bg-glacier-400 text-obsidian font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3 py-1.5 text-sm rounded-sm bg-brand hover:bg-brand-strong text-pure-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {submitting ? fbT.detail.commentSubmitting : fbT.detail.commentSubmit}
                     </button>

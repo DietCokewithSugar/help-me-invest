@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
 import type { MarketType } from '@/types';
 import { detectMarketFromSymbol, formatSymbolForMarket } from '@/lib/markets';
 import { TrendingUpIcon, ArrowRightIcon, ClockIcon, FlameIcon, XIcon } from '@/components/Icons';
@@ -163,7 +162,6 @@ export default function HomeSearchIsland({
   const [symbol, setSymbol] = useState('');
   const [isComposing, setIsComposing] = useState(false);
   const [reportType, setReportType] = useState<ReportTypeOption>('standard');
-  const [currentPlaceholderIndex, setCurrentPlaceholderIndex] = useState(0);
   const [suggestions, setSuggestions] = useState<SymbolSuggestion[]>([]);
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -192,14 +190,6 @@ export default function HomeSearchIsland({
   useEffect(() => {
     setSearchHistory(getSearchHistory());
   }, []);
-
-  useEffect(() => {
-    if (symbol || rotation.length <= 1) return;
-    const interval = setInterval(() => {
-      setCurrentPlaceholderIndex((prev) => (prev + 1) % rotation.length);
-    }, 2500);
-    return () => clearInterval(interval);
-  }, [symbol, rotation.length]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -364,45 +354,65 @@ export default function HomeSearchIsland({
     navigateToSymbol(item.symbol);
   };
 
-  return (
-    <motion.div
-      className="max-w-3xl mx-auto"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, delay: 0.2 }}
-    >
-      <div className="flex items-center gap-2 mb-4 text-sm text-mist-500 px-1">
-        <svg className="h-3.5 w-3.5 text-glacier-500/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="12" cy="12" r="10" />
-          <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-        </svg>
-        <span>
-          {labels.aiMarketDetectPrefix}
-          {labels.currentMarketName}
-        </span>
-      </div>
+  // 静态示例占位：给出三个不同市场的代码格式，不再轮播
+  const placeholder = [initialPlaceholder, ...rotation]
+    .filter((item, index, list) => list.findIndex((other) => other.symbol === item.symbol) === index)
+    .filter((item) => ['AAPL', '0700.HK', '600519.SS'].includes(item.symbol))
+    .map((item) => `${item.symbol} ${item.label}`)
+    .join(' · ');
 
-      <div className="flex items-center justify-start gap-2 mb-3">
-        {reportTypeOptions.map((type) => (
-          <button
-            key={type.value}
-            onClick={() => setReportType(type.value)}
-            className={`px-3 py-1.5 rounded-sm text-xs transition-all border ${
-              reportType === type.value
-                ? 'bg-accent/15 border-accent text-accent'
-                : 'bg-white/5 border-transparent text-text-muted hover:text-text-secondary hover:bg-white/10'
-            }`}
-          >
-            <div className="font-medium">{type.label}</div>
-            <div className="text-[10px] opacity-70 mt-0.5">{type.desc}</div>
-          </button>
-        ))}
+  const trendingRows = trendingStocks.length > 0
+    ? trendingStocks.slice(0, 8).map((stock) => ({
+        symbol: stock.symbol,
+        label: stock.companyName || '',
+        href: `/${locale}/companies/${encodeURIComponent(stock.symbol)}`,
+      }))
+    : featuredStocks.slice(0, 8).map((stock) => ({ symbol: stock.symbol, label: stock.label, href: stock.href }));
+
+  const renderSuggestionRow = (item: SymbolSuggestion) => (
+    <button
+      key={`${item.market}-${item.symbol}`}
+      type="button"
+      role="option"
+      aria-selected={false}
+      onClick={() => handleSelectSuggestion(item)}
+      className="grid w-full grid-cols-[96px_44px_1fr] items-center gap-3 border-b border-line px-3 py-2.5 text-left last:border-b-0 hover:bg-hover"
+    >
+      <span className="font-mono text-[13px] font-semibold text-fg">{item.symbol}</span>
+      <span className="text-[11px] font-medium text-text-3">{item.market}</span>
+      <span className="truncate text-[13px] text-text-2">
+        {locale === 'en' ? item.name || item.nameCn : item.nameCn || item.name}
+      </span>
+    </button>
+  );
+
+  return (
+    <div>
+      <div role="radiogroup" aria-label={labels.startAnalysis} className="mb-3 grid grid-cols-3 border border-line rounded-md overflow-hidden bg-panel">
+        {reportTypeOptions.map((type, index) => {
+          const active = reportType === type.value;
+          return (
+            <button
+              key={type.value}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              onClick={() => setReportType(type.value)}
+              className={`px-3 py-2 text-left transition-colors ${index > 0 ? 'border-l border-line' : ''} ${
+                active ? 'bg-accent/10 shadow-[inset_0_-2px_0_rgb(var(--c-accent))]' : 'hover:bg-hover'
+              }`}
+            >
+              <div className={`text-[13px] font-semibold ${active ? 'text-accent' : 'text-text-1'}`}>{type.label}</div>
+              <div className="mt-0.5 text-[11px] leading-4 text-text-3 line-clamp-1">{type.desc}</div>
+            </button>
+          );
+        })}
       </div>
 
       <form
         ref={suggestContainerRef}
         role="search"
-        className="relative mb-6"
+        className="relative"
         onSubmit={(e) => {
           e.preventDefault();
           handleSubmit();
@@ -412,8 +422,8 @@ export default function HomeSearchIsland({
         <label htmlFor="hero-symbol-input" className="sr-only">
           {labels.enterSymbol}
         </label>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex-1 relative">
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="relative flex-1">
             <input
               ref={inputRef}
               id="hero-symbol-input"
@@ -438,286 +448,186 @@ export default function HomeSearchIsland({
                 setSymbol(normalizeSymbol(e.currentTarget.value));
               }}
               onKeyDown={handleKeyDown}
-              placeholder=""
+              placeholder={placeholder || labels.enterSymbol}
               aria-label={labels.enterSymbol}
               aria-autocomplete="list"
               aria-controls="hero-symbol-suggestions"
               aria-expanded={showSuggestions && symbol.trim().length >= 2}
-              className="gemini-input w-full px-5 py-4 text-base md:text-lg font-mono"
+              className="input-field !h-11 w-full !text-[15px] font-mono"
             />
-            {/* The very first item is rendered as a real DOM child so the
-                SSR'd HTML always contains a visible placeholder example. */}
-            {!symbol && (
-              <div className="absolute left-5 right-5 top-1/2 -translate-y-1/2 pointer-events-none overflow-hidden h-6">
-                <div
-                  className="transition-transform duration-500 ease-in-out"
-                  style={{ transform: `translateY(-${currentPlaceholderIndex * 24}px)` }}
-                >
-                  {/* Render initial placeholder first so SSR HTML matches. */}
-                  {rotation.map((item, index) => (
-                    <div
-                      key={`${item.symbol}-${index}`}
-                      className="h-6 flex items-center whitespace-nowrap text-mist-600 text-base md:text-lg"
-                    >
-                      <span className="font-mono shrink-0">{item.symbol}</span>
-                      <span className="mx-2 text-mist-700 shrink-0">·</span>
-                      <span className="text-mist-600 truncate">{item.label}</span>
-                    </div>
-                  ))}
+
+            {showSuggestions && !confirmOpen && symbol.trim().length >= 2 && (
+              <div
+                id="hero-symbol-suggestions"
+                role="listbox"
+                aria-label={labels.suggestionsHeading}
+                className="absolute left-0 right-0 top-[calc(100%+4px)] z-30 overflow-hidden rounded-md border border-line bg-panel shadow-lg"
+              >
+                <div className="flex items-center justify-between border-b border-line bg-raised px-3 py-1.5">
+                  <span className="label-caps">{labels.suggestionsHeading}</span>
+                  {suggestLoading && (
+                    <span className="h-3 w-3 rounded-full border-2 border-text-4 border-t-accent animate-spin" aria-hidden="true" />
+                  )}
+                </div>
+                <div className="max-h-72 overflow-y-auto">
+                  {suggestions.map(renderSuggestionRow)}
+                  {suggestions.length === 0 && !suggestLoading && (
+                    <div className="px-3 py-2.5 text-[13px] text-text-3">{labels.noMatch}</div>
+                  )}
                 </div>
               </div>
             )}
-
-            <AnimatePresence>
-              {showSuggestions && !confirmOpen && symbol.trim().length >= 2 && (
-                <motion.div
-                  id="hero-symbol-suggestions"
-                  role="listbox"
-                  aria-label={labels.suggestionsHeading}
-                  className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-md border border-white/10 bg-surface/95 shadow-xl backdrop-blur-md"
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <div className="border-b border-white/10 px-4 py-2 text-[11px] font-mono uppercase tracking-wide text-mist-500">
-                    {labels.suggestionsHeading}
-                  </div>
-                  {suggestLoading && (
-                    <div className="px-4 py-3">
-                      <div className="h-1 w-full overflow-hidden rounded-full bg-white/5">
-                        <div className="h-full w-1/3 rounded-full bg-glacier-500 animate-bounce-horizontal" />
-                      </div>
-                    </div>
-                  )}
-                  <div className="max-h-64 overflow-y-auto">
-                    {suggestions.map((item) => (
-                      <button
-                        key={`${item.market}-${item.symbol}`}
-                        type="button"
-                        role="option"
-                        aria-selected={false}
-                        onClick={() => handleSelectSuggestion(item)}
-                        className="group flex w-full items-center gap-3 border-b border-white/5 px-4 py-3 text-left transition-colors hover:bg-white/5 last:border-b-0"
-                      >
-                        <span className="font-mono text-sm text-mist-200 group-hover:text-white">{item.symbol}</span>
-                        <span className="rounded-sm border border-white/10 bg-white/5 px-1.5 py-0.5 text-[11px] text-mist-500">
-                          {item.market}
-                        </span>
-                        {(item.nameCn || item.name) && (
-                          <span className="truncate text-sm text-mist-400 group-hover:text-mist-300">
-                            {locale === 'en' ? item.name || item.nameCn : item.nameCn || item.name}
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                    {suggestions.length === 0 && !suggestLoading && (
-                      <div className="px-4 py-3 text-sm text-mist-500">{labels.noMatch}</div>
-                    )}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
 
-          <button
-            type="submit"
-            className="gemini-btn gemini-btn-primary flex items-center justify-center gap-2 md:gap-3 min-w-[140px] md:min-w-[160px] py-4 text-base md:text-lg"
-          >
-            <TrendingUpIcon size={20} />
+          <button type="submit" className="btn-primary !h-11 !px-6 !text-[14px] sm:min-w-[148px]">
+            <TrendingUpIcon size={16} />
             <span>{labels.startAnalysis}</span>
-            <ArrowRightIcon size={16} className="opacity-70 hidden sm:block" />
           </button>
         </div>
+        <p className="mt-2 flex items-center gap-1.5 text-[12px] text-text-3">
+          <ArrowRightIcon size={12} />
+          <span>
+            {labels.aiMarketDetectPrefix}
+            {labels.currentMarketName}
+          </span>
+        </p>
       </form>
 
-      {searchHistory.length > 0 && (
-        <div className="mb-4">
-          <div className="flex items-center gap-2 mb-3 px-1">
-            <ClockIcon size={14} className="text-mist-500" />
-            <span className="text-sm text-mist-500">{labels.searchHistory}</span>
-            <button
-              onClick={() => {
-                clearSearchHistory();
-                setSearchHistory([]);
-              }}
-              className="ml-auto text-xs text-mist-600 hover:text-mist-400 transition-colors"
-            >
-              {labels.clearAll}
-            </button>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {searchHistory.slice(0, 6).map((item) => (
-              <div
-                key={item.symbol}
-                className="group relative flex items-center gap-1.5 pl-3 pr-1.5 py-1.5 rounded-lg bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.1] transition-all"
+      <div className={`mt-8 grid gap-6 ${searchHistory.length > 0 ? 'md:grid-cols-2' : ''}`}>
+        {searchHistory.length > 0 && (
+          <section className="panel">
+            <div className="panel-header !min-h-[40px] !py-2">
+              <span className="flex items-center gap-2 panel-title !text-[13px]">
+                <ClockIcon size={14} className="text-text-3" />
+                {labels.searchHistory}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  clearSearchHistory();
+                  setSearchHistory([]);
+                }}
+                className="text-[12px] text-accent hover:underline"
               >
-                <button onClick={() => goToReport(item.symbol)} className="flex items-center gap-2">
-                  <span className="font-mono text-sm text-mist-300 group-hover:text-white transition-colors">
-                    {item.symbol}
-                  </span>
-                  {item.name && <span className="text-xs text-mist-600 hidden sm:inline">{item.name}</span>}
-                </button>
-                <button
+                {labels.clearAll}
+              </button>
+            </div>
+            <ul>
+              {searchHistory.slice(0, 6).map((item) => (
+                <li key={item.symbol} className="group flex items-center border-b border-line last:border-b-0 hover:bg-hover">
+                  <button
+                    type="button"
+                    onClick={() => goToReport(item.symbol)}
+                    className="grid flex-1 grid-cols-[96px_1fr] items-center gap-3 px-4 py-2 text-left"
+                  >
+                    <span className="font-mono text-[13px] font-semibold text-fg">{item.symbol}</span>
+                    <span className="truncate text-[13px] text-text-2">{item.name || ''}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeFromSearchHistory(item.symbol);
+                      setSearchHistory(getSearchHistory());
+                    }}
+                    className="mr-2 flex h-7 w-7 items-center justify-center rounded-sm text-text-3 hover:bg-raised hover:text-fg"
+                    title={labels.delete}
+                    aria-label={`${labels.delete} ${item.symbol}`}
+                  >
+                    <XIcon size={12} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* SSR 时先渲染 featuredStocks，保证爬虫可见；热门接口返回后替换为实时榜单 */}
+        <section className="panel">
+          <div className="panel-header !min-h-[40px] !py-2">
+            <span className="flex items-center gap-2 panel-title !text-[13px]">
+              <FlameIcon size={14} className="text-text-3" />
+              {labels.trendingThisWeek}
+            </span>
+            <span className="text-[12px] text-text-3">{labels.realtimeUpdate}</span>
+          </div>
+          <ol className={searchHistory.length > 0 ? '' : 'sm:grid sm:grid-cols-2'}>
+            {trendingRows.map((stock, index) => (
+              <li key={stock.symbol} className="border-b border-line last:border-b-0 sm:[&:nth-last-child(2)]:border-b-0">
+                <a
+                  href={stock.href}
                   onClick={(e) => {
-                    e.stopPropagation();
-                    removeFromSearchHistory(item.symbol);
-                    setSearchHistory(getSearchHistory());
+                    e.preventDefault();
+                    router.push(stock.href);
                   }}
-                  className="w-5 h-5 flex items-center justify-center rounded-md text-mist-700 hover:text-mist-300 hover:bg-white/[0.06] transition-all opacity-0 group-hover:opacity-100"
-                  title={labels.delete}
+                  className="grid grid-cols-[24px_96px_1fr] items-center gap-3 px-4 py-2 hover:bg-hover"
                 >
-                  <XIcon size={12} />
-                </button>
-              </div>
+                  <span className="font-mono text-[12px] text-text-3 text-right">{index + 1}</span>
+                  <span className="font-mono text-[13px] font-semibold text-fg">{stock.symbol}</span>
+                  <span className="truncate text-[13px] text-text-2">{stock.label !== stock.symbol ? stock.label : ''}</span>
+                </a>
+              </li>
             ))}
+          </ol>
+        </section>
+      </div>
+
+      {confirmOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label={labels.confirmTitle}
+        >
+          <div className="absolute inset-0 bg-black/50" onClick={closeConfirm} />
+          <div className="relative z-10 w-full max-w-md overflow-hidden rounded-md border border-line bg-panel shadow-xl animate-fade-in">
+            <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+              <div>
+                <div className="label-caps">{labels.confirmKicker}</div>
+                <h3 className="mt-1 text-[16px]">{labels.confirmTitle}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={closeConfirm}
+                aria-label={labels.confirmCancel}
+                className="btn-ghost !h-8 !w-8 !p-0"
+              >
+                <XIcon size={16} />
+              </button>
+            </div>
+
+            <div className="px-5 py-4">
+              <p className="text-[13px] text-text-2">{labels.confirmHint}</p>
+              <div className="mt-3 flex items-baseline gap-2 text-[13px]">
+                <span className="text-text-3">{labels.confirmYourInput}</span>
+                <span className="truncate font-mono font-semibold text-fg">{confirmQuery}</span>
+              </div>
+
+              {confirmLoading && confirmCandidates.length === 0 && (
+                <div className="mt-4 flex items-center gap-2 text-[13px] text-text-3">
+                  <span className="h-3 w-3 rounded-full border-2 border-text-4 border-t-accent animate-spin" aria-hidden="true" />
+                </div>
+              )}
+
+              {confirmCandidates.length > 0 && (
+                <div className="mt-4 max-h-64 overflow-y-auto rounded-md border border-line">
+                  {confirmCandidates.map(renderSuggestionRow)}
+                </div>
+              )}
+
+              {!confirmLoading && confirmCandidates.length === 0 && (
+                <p className="mt-4 text-[13px] text-text-3">{labels.confirmNoMatch}</p>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-line bg-raised px-5 py-3">
+              <button type="button" onClick={closeConfirm} className="btn-secondary">
+                {labels.confirmCancel}
+              </button>
+            </div>
           </div>
         </div>
       )}
-
-      <div className="space-y-4">
-        {/* Trending: SSR-rendered fallback shows featuredStocks so the crawler
-            always sees a chip set. Once the trending API resolves we swap in
-            the dynamic list. */}
-        <div>
-          <div className="flex items-center gap-2 mb-3 px-1">
-            <FlameIcon size={14} className="text-mist-500" />
-            <span className="text-sm text-mist-500">{labels.trendingThisWeek}</span>
-            <div className="flex items-center gap-1 ml-auto text-xs text-mist-600">
-              <ClockIcon size={11} />
-              <span className="hidden sm:inline">{labels.realtimeUpdate}</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {(trendingStocks.length > 0
-              ? trendingStocks.slice(0, 6).map((stock, idx) => ({
-                  symbol: stock.symbol,
-                  label: stock.companyName || stock.symbol,
-                  href: `/${locale}/companies/${encodeURIComponent(stock.symbol)}`,
-                  rank: idx + 1,
-                }))
-              : featuredStocks.slice(0, 6).map((stock, idx) => ({ ...stock, rank: idx + 1 }))
-            ).map((stock) => (
-              <a
-                key={stock.symbol}
-                href={stock.href}
-                onClick={(e) => {
-                  e.preventDefault();
-                  router.push(stock.href);
-                }}
-                className="group relative px-3 py-1.5 rounded-lg bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.1] transition-all"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-mist-600">#{stock.rank}</span>
-                  <span className="font-mono text-sm text-mist-300 group-hover:text-white transition-colors">
-                    {stock.symbol}
-                  </span>
-                </div>
-                {stock.label && stock.label !== stock.symbol && (
-                  <div className="hidden sm:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded-lg bg-[#1a1a24] border border-white/[0.06] text-xs text-mist-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">
-                    {stock.label}
-                  </div>
-                )}
-              </a>
-            ))}
-          </div>
-        </div>
-
-      </div>
-
-      <AnimatePresence>
-        {confirmOpen && (
-          <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center px-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            role="dialog"
-            aria-modal="true"
-            aria-label={labels.confirmTitle}
-          >
-            <div className="absolute inset-0 bg-obsidian/70 backdrop-blur-sm" onClick={closeConfirm} />
-            <motion.div
-              className="relative z-10 w-full max-w-md overflow-hidden rounded-lg border border-white/10 bg-surface shadow-lg"
-              initial={{ opacity: 0, y: 8, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.98 }}
-              transition={{ duration: 0.18 }}
-            >
-              <div className="flex items-start justify-between gap-4 border-b border-white/10 px-5 py-4">
-                <div>
-                  <div className="text-[11px] font-mono uppercase tracking-[0.12em] text-mist-500">
-                    {labels.confirmKicker}
-                  </div>
-                  <h3 className="mt-1 text-lg text-mist-50">{labels.confirmTitle}</h3>
-                </div>
-                <button
-                  type="button"
-                  onClick={closeConfirm}
-                  aria-label={labels.confirmCancel}
-                  className="rounded-md p-1 text-mist-500 transition-colors hover:bg-white/5 hover:text-mist-200"
-                >
-                  <XIcon size={18} />
-                </button>
-              </div>
-
-              <div className="px-5 py-4">
-                <p className="text-sm text-mist-400">{labels.confirmHint}</p>
-                <div className="mt-2 inline-flex max-w-full items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1.5">
-                  <span className="shrink-0 text-[11px] font-mono uppercase tracking-wide text-mist-600">
-                    {labels.confirmYourInput}
-                  </span>
-                  <span className="truncate font-mono text-sm text-mist-200">{confirmQuery}</span>
-                </div>
-
-                {confirmLoading && confirmCandidates.length === 0 && (
-                  <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-white/5">
-                    <div className="h-full w-1/3 rounded-full bg-glacier-500 animate-bounce-horizontal" />
-                  </div>
-                )}
-
-                {confirmCandidates.length > 0 && (
-                  <div className="mt-4 max-h-64 overflow-y-auto rounded-md border border-white/10">
-                    {confirmCandidates.map((item) => (
-                      <button
-                        key={`${item.market}-${item.symbol}`}
-                        type="button"
-                        onClick={() => handleSelectSuggestion(item)}
-                        className="group flex w-full items-center gap-3 border-b border-white/5 px-4 py-3 text-left transition-colors hover:bg-white/5 last:border-b-0"
-                      >
-                        <span className="font-mono text-sm text-mist-200 group-hover:text-white">{item.symbol}</span>
-                        <span className="rounded-sm border border-white/10 bg-white/5 px-1.5 py-0.5 text-[11px] text-mist-500">
-                          {item.market}
-                        </span>
-                        {(item.nameCn || item.name) && (
-                          <span className="truncate text-sm text-mist-400 group-hover:text-mist-300">
-                            {locale === 'en' ? item.name || item.nameCn : item.nameCn || item.name}
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {!confirmLoading && confirmCandidates.length === 0 && (
-                  <p className="mt-4 text-sm text-mist-500">{labels.confirmNoMatch}</p>
-                )}
-              </div>
-
-              <div className="flex justify-end gap-2 border-t border-white/10 px-5 py-3">
-                <button
-                  type="button"
-                  onClick={closeConfirm}
-                  className="gemini-btn gemini-btn-secondary px-4 py-2 text-sm"
-                >
-                  {labels.confirmCancel}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+    </div>
   );
 }

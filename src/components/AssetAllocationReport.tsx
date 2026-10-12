@@ -56,9 +56,9 @@ function Section({ kicker, title, children }: { kicker: string; title?: string; 
   return (
     <section className="border-t border-white/10 pt-8 mt-8 first:border-t-0 first:pt-0 first:mt-0">
       <div className="mb-5">
-        <div className="mono-kicker">{kicker}</div>
+        <div className="label-caps">{kicker}</div>
         {title ? (
-          <h2 className="font-serif text-2xl md:text-3xl mt-2 leading-tight" style={{ color: 'var(--text-primary)' }}>
+          <h2 className="font-serif text-2xl md:text-3xl mt-2 leading-tight" style={{ color: 'rgb(var(--c-text-1))' }}>
             {title}
           </h2>
         ) : null}
@@ -81,7 +81,7 @@ function RiskLevelBar({ level }: { level: number }) {
           />
         ))}
       </div>
-      <span className="font-mono text-xs tabular-nums" style={{ color: 'var(--text-secondary)' }}>
+      <span className="font-mono text-xs tabular-nums" style={{ color: 'rgb(var(--c-text-2))' }}>
         {clamped}/10
       </span>
     </div>
@@ -141,7 +141,7 @@ export default function AssetAllocationReport({ report, currency = 'CNY' }: Prop
       {(report.strategy?.name || report.strategy?.summary) && (
         <Section kicker={r.strategyKicker} title={report.strategy?.name}>
           {report.strategy?.summary && (
-            <p className="text-base leading-relaxed font-serif" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-base leading-relaxed font-serif" style={{ color: 'rgb(var(--c-text-2))' }}>
               {report.strategy.summary}
             </p>
           )}
@@ -149,14 +149,14 @@ export default function AssetAllocationReport({ report, currency = 'CNY' }: Prop
             <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-2 max-w-md">
               {report.strategy?.targetReturn && (
                 <>
-                  <dt className="mono-kicker self-center">{r.targetReturn}</dt>
-                  <dd className="font-mono text-sm tabular-nums" style={{ color: 'var(--text-primary)' }}>{report.strategy.targetReturn}</dd>
+                  <dt className="label-caps self-center">{r.targetReturn}</dt>
+                  <dd className="font-mono text-sm tabular-nums" style={{ color: 'rgb(var(--c-text-1))' }}>{report.strategy.targetReturn}</dd>
                 </>
               )}
               {report.strategy?.horizon && (
                 <>
-                  <dt className="mono-kicker self-center">{r.horizon}</dt>
-                  <dd className="font-mono text-sm tabular-nums" style={{ color: 'var(--text-primary)' }}>{report.strategy.horizon}</dd>
+                  <dt className="label-caps self-center">{r.horizon}</dt>
+                  <dd className="font-mono text-sm tabular-nums" style={{ color: 'rgb(var(--c-text-1))' }}>{report.strategy.horizon}</dd>
                 </>
               )}
             </dl>
@@ -179,7 +179,7 @@ export default function AssetAllocationReport({ report, currency = 'CNY' }: Prop
                   style={{ backgroundColor: item.color }}
                   aria-hidden
                 />
-                <h3 className="font-serif text-lg leading-snug" style={{ color: 'var(--text-primary)' }}>
+                <h3 className="font-serif text-lg leading-snug" style={{ color: 'rgb(var(--c-text-1))' }}>
                   {item.name}
                 </h3>
                 {item.ticker && (
@@ -188,20 +188,20 @@ export default function AssetAllocationReport({ report, currency = 'CNY' }: Prop
                   </span>
                 )}
                 {item.category && (
-                  <span className="mono-kicker">{item.category}</span>
+                  <span className="label-caps">{item.category}</span>
                 )}
                 <span className="ml-auto flex items-baseline gap-3">
-                  <span className="font-mono text-2xl font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                  <span className="font-mono text-2xl font-semibold tabular-nums" style={{ color: 'rgb(var(--c-text-1))' }}>
                     {Number(item.percentage).toFixed(0)}%
                   </span>
-                  <span className="font-mono text-xs tabular-nums" style={{ color: 'var(--text-secondary)' }}>
+                  <span className="font-mono text-xs tabular-nums" style={{ color: 'rgb(var(--c-text-2))' }}>
                     {formatAmount(item.amount, currency, isZh)}
                   </span>
                 </span>
               </header>
 
               {item.productName && (
-                <p className="text-xs font-mono mb-3" style={{ color: 'var(--text-muted, #9D937C)' }}>
+                <p className="text-xs font-mono mb-3" style={{ color: 'rgb(var(--c-text-3))' }}>
                   {item.productName}
                 </p>
               )}
@@ -209,18 +209,18 @@ export default function AssetAllocationReport({ report, currency = 'CNY' }: Prop
               {/* Two-column: rationale | risk */}
               <div className="grid md:grid-cols-[1fr_220px] gap-x-8 gap-y-4">
                 <div>
-                  <div className="mono-kicker mb-1.5">{r.rationale}</div>
-                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                  <div className="label-caps mb-1.5">{r.rationale}</div>
+                  <p className="text-sm leading-relaxed" style={{ color: 'rgb(var(--c-text-2))' }}>
                     {item.rationale}
                   </p>
                 </div>
                 <div>
-                  <div className="mono-kicker mb-1.5">{r.riskLevel}</div>
+                  <div className="label-caps mb-1.5">{r.riskLevel}</div>
                   <RiskLevelBar level={item.riskLevel} />
                   {typeof item.expectedReturn === 'number' && item.expectedReturn > 0 && (
                     <div className="mt-3">
-                      <div className="mono-kicker mb-1.5">{r.expectedReturn}</div>
-                      <div className="font-mono text-sm tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                      <div className="label-caps mb-1.5">{r.expectedReturn}</div>
+                      <div className="font-mono text-sm tabular-nums" style={{ color: 'rgb(var(--c-text-1))' }}>
                         {item.expectedReturn.toFixed(1)}%
                       </div>
                     </div>
@@ -230,10 +230,10 @@ export default function AssetAllocationReport({ report, currency = 'CNY' }: Prop
 
               {item.risks?.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-white/5">
-                  <div className="mono-kicker mb-2">{r.keyRisks}</div>
+                  <div className="label-caps mb-2">{r.keyRisks}</div>
                   <ul className="space-y-1.5">
                     {item.risks.map((risk, i) => (
-                      <li key={i} className="flex gap-2.5 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                      <li key={i} className="flex gap-2.5 text-sm leading-relaxed" style={{ color: 'rgb(var(--c-text-2))' }}>
                         <span className="font-mono text-xs tabular-nums shrink-0 mt-1 text-mist-500">
                           {String(i + 1).padStart(2, '0')}
                         </span>
@@ -248,8 +248,8 @@ export default function AssetAllocationReport({ report, currency = 'CNY' }: Prop
         </div>
 
         <div className="mt-4 flex items-center justify-end gap-2 px-1">
-          <span className="mono-kicker">{r.total}</span>
-          <span className="font-mono text-sm tabular-nums" style={{ color: 'var(--text-primary)' }}>
+          <span className="label-caps">{r.total}</span>
+          <span className="font-mono text-sm tabular-nums" style={{ color: 'rgb(var(--c-text-1))' }}>
             {totalPercentage.toFixed(0)}%
           </span>
         </div>
@@ -262,12 +262,12 @@ export default function AssetAllocationReport({ report, currency = 'CNY' }: Prop
             {report.marketContext.map((ctx, i) => (
               <div key={i} className="rounded-md border border-white/10 bg-white/[0.02] p-4">
                 <div className="flex items-start justify-between gap-3 mb-2">
-                  <h4 className="font-serif text-base leading-snug" style={{ color: 'var(--text-primary)' }}>
+                  <h4 className="font-serif text-base leading-snug" style={{ color: 'rgb(var(--c-text-1))' }}>
                     {ctx.title}
                   </h4>
                   <ImpactBadge impact={ctx.impact} labels={r.impact} />
                 </div>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-sm leading-relaxed" style={{ color: 'rgb(var(--c-text-2))' }}>
                   {ctx.body}
                 </p>
               </div>
@@ -287,7 +287,7 @@ export default function AssetAllocationReport({ report, currency = 'CNY' }: Prop
                 </div>
                 <div className="rounded-md border border-white/10 bg-white/[0.02] p-4">
                   <div className="flex flex-wrap items-baseline justify-between gap-2 mb-2">
-                    <h4 className="font-serif text-base leading-snug" style={{ color: 'var(--text-primary)' }}>
+                    <h4 className="font-serif text-base leading-snug" style={{ color: 'rgb(var(--c-text-1))' }}>
                       {phase.phase}
                     </h4>
                     {phase.timeframe && (
@@ -298,7 +298,7 @@ export default function AssetAllocationReport({ report, currency = 'CNY' }: Prop
                   </div>
                   <ul className="space-y-1.5">
                     {phase.actions.map((action, j) => (
-                      <li key={j} className="text-sm leading-relaxed flex gap-2" style={{ color: 'var(--text-secondary)' }}>
+                      <li key={j} className="text-sm leading-relaxed flex gap-2" style={{ color: 'rgb(var(--c-text-2))' }}>
                         <span className="text-mist-500 select-none">·</span>
                         <span>{action}</span>
                       </li>
@@ -318,17 +318,17 @@ export default function AssetAllocationReport({ report, currency = 'CNY' }: Prop
             {report.portfolioRisks.map((risk, i) => (
               <div key={i} className="rounded-md border border-white/10 bg-white/[0.02] p-4">
                 <header className="flex items-center justify-between gap-3 mb-2">
-                  <h4 className="font-serif text-base leading-snug" style={{ color: 'var(--text-primary)' }}>
+                  <h4 className="font-serif text-base leading-snug" style={{ color: 'rgb(var(--c-text-1))' }}>
                     {risk.name}
                   </h4>
                   <LevelBadge level={risk.level} labels={r.levels} />
                 </header>
-                <p className="text-sm leading-relaxed mb-2" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-sm leading-relaxed mb-2" style={{ color: 'rgb(var(--c-text-2))' }}>
                   {risk.description}
                 </p>
                 <div className="grid grid-cols-[80px_1fr] gap-3 pt-2 border-t border-white/5">
-                  <span className="mono-kicker self-start pt-0.5">{r.mitigation}</span>
-                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-primary)' }}>
+                  <span className="label-caps self-start pt-0.5">{r.mitigation}</span>
+                  <p className="text-sm leading-relaxed" style={{ color: 'rgb(var(--c-text-1))' }}>
                     {risk.mitigation}
                   </p>
                 </div>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { FMPMCPClient } from '@/lib/fmp-mcp';
+import { getChart, getQuoteSummary, getQuotes, search } from '@/lib/yahoo/client';
+import { buildPriceHistory, num } from '@/lib/yahoo/normalize';
 import {
   SECTOR_STRUCTURE,
   flattenSectorSymbols,
@@ -9,6 +10,9 @@ import {
 } from '@/lib/industry-data';
 
 export const maxDuration = 60;
+
+const CACHE_TTL_MS = 15 * 60 * 1000;
+const detailCache = new Map<string, { data: unknown; expiresAt: number }>();
 
 interface CompanyMetrics {
   symbol: string;
@@ -50,51 +54,33 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const fmpApiKey = process.env.FMP_API_KEY;
-    if (!fmpApiKey) {
-      return NextResponse.json(
-        { success: false, error: 'FMP_API_KEY is required for industry detail data.' },
-        { status: 500 }
-      );
+    const hit = detailCache.get(sector);
+    if (hit && hit.expiresAt > Date.now()) {
+      return NextResponse.json({ success: true, data: hit.data });
     }
 
-    const mcp = new FMPMCPClient(fmpApiKey);
-    const historyFrom = getDateDaysAgo(90);
-    const historyTo = new Date().toISOString().slice(0, 10);
-
-    // Sector screener gives a bulk snapshot. limit=1000 covers every sector's
-    // active equities — important because the previous limit (250) was dropping
-    // small/mid caps that our segment definitions reference.
-    const [screenerRows, perSymbolRows] = await Promise.all([
-      mcp
-        .searchCompanyScreener({
-          sector,
-          limit: 1000,
-          isActivelyTrading: true,
-          includeAllShareClasses: false,
-        })
-        .catch(() => []),
-      runWithConcurrency(allSymbols, 10, async (symbol) => {
-        const [quoteRows, profileRows, growthRows, historyRows] = await Promise.all([
-          mcp.getQuote(symbol).catch(() => []),
-          mcp.getProfile(symbol).catch(() => []),
-          mcp.getFinancialStatementGrowth(symbol, 'annual', 1).catch(() => []),
-          mcp.getHistoricalPriceLight(symbol, historyFrom, historyTo).catch(() => []),
+    // 批量行情一次拿到价格 / 市值 / 涨跌；逐个取近三个月日线与营收增速
+    const [quoteRows, perSymbolRows] = await Promise.all([
+      getQuotes(allSymbols).catch(() => [] as Record<string, any>[]),
+      runWithConcurrency(allSymbols, 8, async (symbol) => {
+        const [chart, summary] = await Promise.all([
+          getChart(symbol, '3mo', '1d').catch(() => null),
+          getQuoteSummary(symbol, ['financialData', 'assetProfile']).catch(() => null),
         ]);
         return {
           symbol,
-          quote: Array.isArray(quoteRows) ? quoteRows[0] ?? null : null,
-          profile: Array.isArray(profileRows) ? profileRows[0] ?? null : null,
-          growth: Array.isArray(growthRows) ? growthRows[0] ?? null : null,
-          history: normalizeHistory(historyRows),
+          chartMeta: chart?.meta ?? null,
+          history: buildPriceHistory(chart).map((bar) => bar.close).reverse(),
+          revenueGrowth: num(summary?.financialData?.revenueGrowth),
+          industry: typeof summary?.assetProfile?.industry === 'string' ? summary.assetProfile.industry : '',
         };
       }),
     ]);
 
-    const screenerMap = new Map<string, any>();
-    for (const row of Array.isArray(screenerRows) ? screenerRows : []) {
+    const quoteMap = new Map<string, any>();
+    for (const row of quoteRows) {
       if (typeof row?.symbol === 'string') {
-        screenerMap.set(row.symbol, row);
+        quoteMap.set(row.symbol, row);
       }
     }
 
@@ -105,55 +91,34 @@ export async function POST(request: NextRequest) {
 
     const companies: CompanyMetrics[] = allSymbols
       .map((symbol) => {
-        const screener = screenerMap.get(symbol);
-        const fallback = perSymbolMap.get(symbol);
+        const quote = quoteMap.get(symbol);
+        const extra = perSymbolMap.get(symbol);
+        const history = extra?.history ?? [];
+        const lastClose = history[history.length - 1];
+        const prevClose = history[history.length - 2];
 
-        const marketCap =
-          pickFirstNumber([
-            fallback?.quote?.marketCap,
-            screener?.marketCap,
-            fallback?.profile?.mktCap,
-            fallback?.profile?.marketCap,
-          ]) ?? 0;
-
-        const price =
-          pickFirstNumber([
-            fallback?.quote?.price,
-            screener?.price,
-            fallback?.profile?.price,
-          ]) ?? 0;
-
+        const price = pickFirstNumber([quote?.regularMarketPrice, extra?.chartMeta?.regularMarketPrice, lastClose]) ?? 0;
         const change =
           pickFirstNumber([
-            fallback?.quote?.changePercentage,
-            fallback?.quote?.change,
-            screener?.changePercentage,
-            fallback?.profile?.changesPercentage,
-            fallback?.profile?.change,
+            quote?.regularMarketChangePercent,
+            lastClose && prevClose ? ((lastClose - prevClose) / prevClose) * 100 : null,
           ]) ?? 0;
-
-        const revenueGrowth = normalizeRevenueGrowth(fallback?.growth?.revenueGrowth) ?? 0;
 
         return {
           symbol,
           name:
-            (typeof fallback?.profile?.companyName === 'string' && fallback.profile.companyName) ||
-            (typeof screener?.companyName === 'string' && screener.companyName) ||
-            (typeof fallback?.quote?.name === 'string' && fallback.quote.name) ||
+            (typeof quote?.longName === 'string' && quote.longName) ||
+            (typeof quote?.shortName === 'string' && quote.shortName) ||
+            (typeof extra?.chartMeta?.longName === 'string' && extra.chartMeta.longName) ||
             nameMap[symbol] ||
             symbol,
-          marketCap,
+          marketCap: pickFirstNumber([quote?.marketCap]) ?? 0,
           price,
           change: round(change, 3),
-          revenueGrowth,
-          industry:
-            (typeof screener?.industry === 'string' && screener.industry) ||
-            (typeof fallback?.profile?.industry === 'string' && fallback.profile.industry) ||
-            '',
-          image:
-            (typeof fallback?.profile?.image === 'string' && fallback.profile.image) ||
-            '',
-          history: fallback?.history ?? [],
+          revenueGrowth: normalizeRevenueGrowth(extra?.revenueGrowth) ?? 0,
+          industry: extra?.industry || '',
+          image: `https://financialmodelingprep.com/image-stock/${encodeURIComponent(symbol)}.png`,
+          history,
         };
       })
       .sort((a, b) => b.marketCap - a.marketCap);
@@ -218,40 +183,38 @@ export async function POST(request: NextRequest) {
       .filter(Boolean);
 
     if (topSymbols.length > 0) {
-      try {
-        const rawNews = await mcp.searchStockNews(topSymbols, 10);
-        if (Array.isArray(rawNews)) {
-          news = rawNews
-            .map((item: any) => ({
-              title: item?.title || '',
-              url: item?.url || '',
-              date: item?.publishedDate || '',
-              source: item?.site || item?.publisher || '',
-              sentiment: deriveNewsSentiment(item?.title || ''),
-            }))
-            .filter((item) => item.title && item.url)
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-            .slice(0, 6);
-        }
-      } catch {
-        // news is optional
-      }
+      const results = await Promise.all(
+        topSymbols.map((symbol) => search(symbol, { quotesCount: 0, newsCount: 4 }).catch(() => ({ quotes: [], news: [] })))
+      );
+      const seen = new Set<string>();
+      news = results
+        .flatMap((result) => result.news)
+        .filter((item) => item?.title && item?.link && !seen.has(item.link) && seen.add(item.link))
+        .map((item) => ({
+          title: item.title,
+          url: item.link,
+          date: item.providerPublishTime ? new Date(item.providerPublishTime * 1000).toISOString() : '',
+          source: item.publisher || '',
+          sentiment: deriveNewsSentiment(item.title),
+        }))
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, 6);
     }
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        sector,
-        overview: structure.overview,
-        segments,
-        companies,
-        totalMarketCap,
-        avgGrowth: round(avgGrowth, 1),
-        companyCount: companies.filter((c) => c.marketCap > 0).length,
-        topCompany: companies[0] || null,
-        news,
-      },
-    });
+    const data = {
+      sector,
+      overview: structure.overview,
+      segments,
+      companies,
+      totalMarketCap,
+      avgGrowth: round(avgGrowth, 1),
+      companyCount: companies.filter((c) => c.marketCap > 0).length,
+      topCompany: companies[0] || null,
+      news,
+    };
+    detailCache.set(sector, { data, expiresAt: Date.now() + CACHE_TTL_MS });
+
+    return NextResponse.json({ success: true, data });
   } catch (error: any) {
     console.error('Industry detail error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -263,19 +226,6 @@ function normalizeRevenueGrowth(value: unknown): number | null {
   if (numeric === null) return null;
   const asPercent = Math.abs(numeric) <= 1 ? numeric * 100 : numeric;
   return round(asPercent, 1);
-}
-
-function normalizeHistory(rows: unknown): number[] {
-  if (!Array.isArray(rows) || rows.length === 0) return [];
-  // FMP returns rows in descending date order; reverse for chart-friendly oldest-first.
-  const sorted = [...rows].sort((a: any, b: any) => {
-    const da = new Date(a?.date ?? 0).getTime();
-    const db = new Date(b?.date ?? 0).getTime();
-    return da - db;
-  });
-  return sorted
-    .map((row: any) => Number(row?.price ?? row?.close ?? 0))
-    .filter((v) => Number.isFinite(v) && v > 0);
 }
 
 function pickFirstNumber(values: unknown[]): number | null {
@@ -300,12 +250,6 @@ function toNumber(value: unknown): number | null {
 function round(value: number, decimals: number): number {
   const factor = 10 ** decimals;
   return Math.round(value * factor) / factor;
-}
-
-function getDateDaysAgo(days: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() - days);
-  return date.toISOString().slice(0, 10);
 }
 
 function deriveNewsSentiment(title: string): 'positive' | 'negative' | 'neutral' {

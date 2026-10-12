@@ -51,7 +51,7 @@ export async function generateMetadata({
 export default function CompanyReportLayout({ children, params }: LayoutProps) {
   // Reject obviously-bogus ticker URLs at the server layout level so we
   // return a real HTTP 404 instead of rendering a broken-looking client page
-  // that just falls through to an FMP error. The page component re-checks the
+  // that just falls through to a data-provider error. The page component re-checks the
   // same regex defensively in case this layout is ever bypassed.
   if (!isValidTicker(params.ticker)) {
     notFound();

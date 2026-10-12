@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
     XIcon,
     FilterIcon,
@@ -167,25 +166,16 @@ export default function CompanyFilterModal({
     if (!isOpen) return null;
 
     return (
-        <AnimatePresence>
-            <motion.div
-                className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={onClose}
-            >
-                <motion.div
+        <>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-fade-in" onClick={onClose}>
+                <div
                     ref={dialogRef as any}
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby={titleId}
                     aria-describedby={descriptionId}
                     tabIndex={-1}
-                    className="w-full max-w-6xl max-h-[90vh] bg-surface rounded-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col focus:outline-none"
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.9, opacity: 0 }}
+                    className="w-full max-w-6xl max-h-[90vh] bg-surface rounded-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col focus:outline-none animate-fade-in"
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Header */}
@@ -258,7 +248,7 @@ export default function CompanyFilterModal({
                                 <button
                                     onClick={applyFilters}
                                     disabled={loading}
-                                    className="flex-3 px-6 py-3 bg-[#10B981] hover:bg-[#059669] text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                                    className="btn-primary flex-1"
                                 >
                                     {loading ? t.companyFilterModal.processing : t.companyFilterModal.apply}
                                 </button>
@@ -329,7 +319,7 @@ export default function CompanyFilterModal({
                                                 onSelectCompany(selectedCompany.symbol);
                                                 onClose();
                                             }}
-                                            className="w-full px-6 py-4 bg-gradient-to-r from-glacier-500 to-gemini-blue hover:from-glacier-600 hover:to-gemini-purple text-white rounded-xl font-semibold transition-all shadow-lg shadow-glacier-500/20 hover:shadow-glacier-500/40"
+                                            className="btn-primary w-full !h-11"
                                         >
                                             {t.companyFilterModal.generateReport}
                                         </button>
@@ -417,7 +407,7 @@ export default function CompanyFilterModal({
                                                             {(() => {
                                                                 const mc = getLocalizedDiagnostic(company, 'market_cap_size', locale);
                                                                 return mc ? (
-                                                                    <span className="px-2 py-1 text-xs rounded-md bg-gemini-blue/20 text-gemini-blue border border-gemini-blue/30">
+                                                                    <span className="px-2 py-1 text-xs rounded-md bg-chart-blue/20 text-chart-blue border border-chart-blue/30">
                                                                         {mc}
                                                                     </span>
                                                                 ) : null;
@@ -463,8 +453,8 @@ export default function CompanyFilterModal({
                             )}
                         </div>
                     </div>
-                </motion.div>
-            </motion.div>
-        </AnimatePresence>
+                </div>
+            </div>
+        </>
     );
 }

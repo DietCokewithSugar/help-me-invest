@@ -1,19 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { suggestSymbolWithDeepSeek } from '@/lib/deepseek-suggest';
-import { FMPClient } from '@/lib/fmp';
+import { search as yahooSearch, type YahooSearchQuote } from '@/lib/yahoo/client';
 import { formatSymbolForMarket, type MarketType } from '@/lib/markets';
 
-// Map FMP `exchangeShortName` → our MarketType. FMP returns codes like
-// "NASDAQ" / "NYSE" / "SHH" / "SHZ" / "HKSE" / "TYO" / "KOSPI" / "ASX".
-function fmpExchangeToMarket(ex: string | undefined | null): MarketType | null {
-  if (!ex) return null;
-  const e = ex.toUpperCase();
-  if (e === 'NASDAQ' || e === 'NYSE' || e === 'AMEX' || e === 'BATS') return 'US';
-  if (e === 'SHH' || e === 'SSE' || e === 'SHZ' || e === 'SZSE') return 'CN';
-  if (e === 'HKSE' || e === 'HKG') return 'HK';
-  if (e === 'TYO' || e === 'JPX' || e === 'OSE') return 'JP';
-  if (e === 'KSC' || e === 'KOSPI' || e === 'KOSDAQ' || e === 'KOE') return 'KR';
-  if (e === 'ASX') return 'AU';
+const US_EXCHANGES = new Set(['NMS', 'NGM', 'NCM', 'NAS', 'NYQ', 'NYS', 'ASE', 'PCX', 'BTS', 'NIM']);
+
+// Yahoo 的代码后缀与站内市场后缀一致（.SS/.SZ/.HK/.T/.KS/.KQ/.AX），
+// 无后缀时用交易所代码判断是否为美股。
+function yahooQuoteToMarket(symbol: string, exchange: string | undefined): MarketType | null {
+  const upper = symbol.toUpperCase();
+  if (upper.endsWith('.SS') || upper.endsWith('.SZ')) return 'CN';
+  if (upper.endsWith('.HK')) return 'HK';
+  if (upper.endsWith('.T')) return 'JP';
+  if (upper.endsWith('.KS') || upper.endsWith('.KQ')) return 'KR';
+  if (upper.endsWith('.AX')) return 'AU';
+  if (!upper.includes('.') && exchange && US_EXCHANGES.has(exchange.toUpperCase())) return 'US';
   return null;
 }
 
@@ -221,27 +222,26 @@ function normalizeSuggestion(item: any) {
   };
 }
 
-// FMP /search returns items like:
-//   { symbol: "AAPL", name: "Apple Inc.", currency: "USD",
-//     stockExchange: "NASDAQ Global Select", exchangeShortName: "NASDAQ" }
-// Map them into our suggestion shape and filter by marketHint.
-function mapFmpResults(
-  items: any[],
+// Yahoo /v1/finance/search 的 quotes 形如
+//   { symbol: "AAPL", shortname: "Apple Inc.", longname: "Apple Inc.", exchange: "NMS", quoteType: "EQUITY" }
+function mapYahooResults(
+  items: YahooSearchQuote[],
   marketHint?: MarketType
 ): Array<{ symbol: string; market: MarketType; name: string; nameCn: string; confidence?: number }> {
   const out: Array<{ symbol: string; market: MarketType; name: string; nameCn: string; confidence?: number }> = [];
   for (const item of items) {
-    const market = fmpExchangeToMarket(item?.exchangeShortName);
-    if (!market) continue;
-    if (marketHint && market !== marketHint) continue;
+    if (item?.quoteType !== 'EQUITY' && item?.quoteType !== 'ETF') continue;
     const symbol = String(item?.symbol || '').toUpperCase().trim();
     if (!symbol) continue;
+    const market = yahooQuoteToMarket(symbol, item.exchange);
+    if (!market) continue;
+    if (marketHint && market !== marketHint) continue;
     const formatted = formatSymbolForMarket(symbol, market);
     if (!MARKET_SYMBOL_REGEX[market].test(formatted)) continue;
     out.push({
       symbol: formatted,
       market,
-      name: String(item?.name || '').trim(),
+      name: String(item.longname || item.shortname || '').trim(),
       nameCn: '',
       confidence: 0.85,
     });
@@ -293,30 +293,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(payload);
     }
 
-    // ===== Tier 2: FMP /search (~100-300ms, global coverage) =====
-    const fmpApiKey = process.env.FMP_API_KEY;
-    let fmpResults: ReturnType<typeof mapFmpResults> = [];
-    if (fmpApiKey) {
-      try {
-        const fmp = new FMPClient(fmpApiKey);
-        const raw = await fmp.searchCompany(trimmedQuery);
-        if (Array.isArray(raw)) {
-          fmpResults = mapFmpResults(raw, marketHint || undefined);
-        }
-      } catch (fmpError: any) {
-        console.log('FMP search failed, will fall through:', fmpError?.message || fmpError);
-      }
+    // ===== Tier 2: Yahoo Finance search (global coverage, no key) =====
+    let remoteResults: ReturnType<typeof mapYahooResults> = [];
+    try {
+      const { quotes } = await yahooSearch(trimmedQuery, { quotesCount: 10, newsCount: 0 });
+      remoteResults = mapYahooResults(quotes, marketHint || undefined);
+    } catch (searchError: any) {
+      console.log('Yahoo search failed, will fall through:', searchError?.message || searchError);
     }
 
-    const merged = dedupeMerge(localResults, fmpResults);
+    const merged = dedupeMerge(localResults, remoteResults);
     if (merged.length >= 2) {
       const payload = {
         query: trimmedQuery,
         suggestions: merged,
-        source: localResults.length > 0 && fmpResults.length > 0
-          ? 'local+fmp'
-          : fmpResults.length > 0
-            ? 'fmp'
+        source: localResults.length > 0 && remoteResults.length > 0
+          ? 'local+yahoo'
+          : remoteResults.length > 0
+            ? 'yahoo'
             : 'local',
       };
       cacheSet(cacheKey, payload);

@@ -10,18 +10,18 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 const LOADING_STEP_ICONS = [
     { icon: FileTextIcon, color: 'from-glacier-500 to-glacier-600' },
-    { icon: BarChart3Icon, color: 'from-gemini-purple to-gemini-pink' },
-    { icon: BrainIcon, color: 'from-gemini-blue to-gemini-purple' },
-    { icon: Globe2Icon, color: 'from-glacier-400 to-gemini-blue' },
-    { icon: TrendingUpIcon, color: 'from-gemini-green to-glacier-500' },
+    { icon: BarChart3Icon, color: 'from-chart-purple to-chart-purple' },
+    { icon: BrainIcon, color: 'from-chart-blue to-chart-purple' },
+    { icon: Globe2Icon, color: 'from-glacier-400 to-chart-blue' },
+    { icon: TrendingUpIcon, color: 'from-up to-glacier-500' },
 ];
 
 export const LOADING_STEPS = [
     { text: '正在获取企业基本信息', icon: FileTextIcon, color: 'from-glacier-500 to-glacier-600' },
-    { text: '正在分析财务数据', icon: BarChart3Icon, color: 'from-gemini-purple to-gemini-pink' },
-    { text: 'AI 正在深度分析', icon: BrainIcon, color: 'from-gemini-blue to-gemini-purple' },
-    { text: '正在搜索最新动态', icon: Globe2Icon, color: 'from-glacier-400 to-gemini-blue' },
-    { text: '正在生成研究报告', icon: TrendingUpIcon, color: 'from-gemini-green to-glacier-500' },
+    { text: '正在分析财务数据', icon: BarChart3Icon, color: 'from-chart-purple to-chart-purple' },
+    { text: 'AI 正在深度分析', icon: BrainIcon, color: 'from-chart-blue to-chart-purple' },
+    { text: '正在搜索最新动态', icon: Globe2Icon, color: 'from-glacier-400 to-chart-blue' },
+    { text: '正在生成研究报告', icon: TrendingUpIcon, color: 'from-up to-glacier-500' },
 ];
 
 export function LinearLoader({ step, totalSteps }: { step: number; totalSteps: number }) {

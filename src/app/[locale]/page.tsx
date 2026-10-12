@@ -1,6 +1,5 @@
 import { cookies } from 'next/headers';
 import { zh, en } from '@/i18n';
-import { MARKET_CONFIGS } from '@/lib/markets';
 import HomeSearchIsland, {
   type FeaturedStockChip,
   type PlaceholderRotationItem,
@@ -52,13 +51,10 @@ export default function HomePage({ params }: HomePageProps) {
     label: (t.home.featuredStocks as Record<string, string>)[sym] || sym,
   }));
 
-  // Default market is US for home page; the AI market-detect badge surfaces
-  // this in the SSR output before the user types anything.
-  const currentMarketConfig = MARKET_CONFIGS.US;
-
+  // 首页默认市场为美股；输入后由 AI 自动识别实际市场。
   const labels: SearchIslandLabels = {
     aiMarketDetectPrefix: t.home.search.aiMarketDetect,
-    currentMarketName: currentMarketConfig.nameCn,
+    currentMarketName: t.markets.us,
     startAnalysis: t.home.search.startAnalysis,
     suggestionsHeading: t.home.search.suggestions,
     noMatch: t.home.search.noMatch,
@@ -97,32 +93,67 @@ export default function HomePage({ params }: HomePageProps) {
   const themeCookie = cookies().get('theme')?.value;
   const initialTheme: 'dark' | 'light' = themeCookie === 'light' ? 'light' : 'dark';
 
+  const coverage = [
+    { name: t.markets.us, code: 'NYSE · NASDAQ', example: 'AAPL' },
+    { name: t.markets.cn, code: 'SSE · SZSE', example: '600519.SS' },
+    { name: t.markets.hk, code: 'HKEX', example: '0700.HK' },
+    { name: t.markets.jp, code: 'TSE', example: '7203.T' },
+    { name: t.markets.kr, code: 'KRX', example: '005930.KS' },
+    { name: t.markets.au, code: 'ASX', example: 'BHP.AX' },
+  ];
+
   return (
     <main className="min-h-screen">
       <ThemeAwareHeader initialTheme={initialTheme} />
 
-      {/* Hero section - everything except the interactive parts is SSR'd */}
-      <section className="pt-28 md:pt-32 pb-16 md:pb-24 px-4 md:px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mt-12 md:mt-14 mb-12 md:mb-20">
-            <h2 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-light text-white mb-6 md:mb-8 leading-tight tracking-tight">
+      {/* Hero：除交互部分外全部 SSR，左对齐到页眉网格 */}
+      <section className="border-b border-line bg-panel">
+        <div className="page-container grid gap-10 py-10 md:py-14 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="min-w-0">
+            <h1 className="text-[28px] leading-9 md:text-display font-semibold tracking-tight text-fg">
               {t.home.hero.title}
-              <br className="md:hidden" />
-              <span className="gradient-text font-normal">{t.home.hero.titleHighlight}</span>
-            </h2>
-            <p className="text-base md:text-xl text-mist-400 max-w-2xl mx-auto leading-relaxed px-4">
-              {t.home.hero.subtitle}
-            </p>
+              <span className="text-brand">{t.home.hero.titleHighlight}</span>
+            </h1>
+            <p className="mt-3 max-w-2xl text-[15px] leading-6 text-text-2">{t.home.hero.subtitle}</p>
+
+            <div className="mt-8">
+              <HomeSearchIsland
+                locale={locale}
+                initialPlaceholder={rotation[0]}
+                rotation={rotation}
+                featuredStocks={featuredStocks}
+                reportTypeOptions={reportTypeOptions}
+                labels={labels}
+              />
+            </div>
           </div>
 
-          <HomeSearchIsland
-            locale={locale}
-            initialPlaceholder={rotation[0]}
-            rotation={rotation}
-            featuredStocks={featuredStocks}
-            reportTypeOptions={reportTypeOptions}
-            labels={labels}
-          />
+          <aside className="hidden lg:block">
+            <div className="panel">
+              <div className="panel-header">
+                <span className="panel-title">{t.home.globalVision.title}</span>
+              </div>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>{locale === 'zh' ? '市场' : 'Market'}</th>
+                    <th>{locale === 'zh' ? '交易所' : 'Exchange'}</th>
+                    <th className="num">{locale === 'zh' ? '代码示例' : 'Example'}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {coverage.map((market) => (
+                    <tr key={market.code}>
+                      <td className="font-medium">{market.name}</td>
+                      <td className="text-text-2">{market.code}</td>
+                      <td className="num font-mono text-text-2">{market.example}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="px-4 py-3 text-[12px] leading-5 text-text-3">{t.home.globalVision.subtitle}</p>
+            </div>
+          </aside>
         </div>
       </section>
 

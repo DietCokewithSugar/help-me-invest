@@ -59,7 +59,6 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
     pathname.startsWith('/static') ||
-    pathname.startsWith('/site-intro/') ||
     STATIC_ASSET_RE.test(pathname)
   ) {
     return NextResponse.next();
@@ -112,6 +111,6 @@ export const config = {
   matcher: [
     // Match everything except framework internals and known static assets.
     // The function above re-filters defensively in case something slips through.
-    '/((?!_next/static|_next/image|api|favicon.ico|icon.png|wechat-qr.jpg|robots.txt|sitemap.xml).*)',
+    '/((?!_next/static|_next/image|api|favicon.ico|icon.png|logo.png|wechat-qr.jpg|robots.txt|sitemap.xml).*)',
   ],
 };

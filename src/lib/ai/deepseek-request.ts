@@ -1,7 +1,7 @@
 /**
  * DeepSeek Chat Completions 传输层 - 全站唯一知道「怎么跟 DeepSeek 说话」的地方。
  *
- * 背景：deepseek-v4-flash 默认开启思考模式（reasoning_effort 默认 high），
+ * 背景：deepseek-flash 默认开启思考模式（reasoning_effort 默认 high），
  * 思维链走 reasoning_content，与 content 同级，且**推理与回答共享 max_tokens 预算**。
  * 因此这里始终显式下发 thinking 字段，绝不依赖服务端默认值。
  *

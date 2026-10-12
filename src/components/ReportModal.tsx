@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { XIcon } from 'lucide-react';
 import Report from '@/components/Report';
 import { useReportAnalysis } from '@/hooks/useReportAnalysis';
@@ -49,33 +48,24 @@ export default function ReportModal({ isOpen, onClose, symbol, market, companyNa
     if (!isOpen) return null;
 
     return (
-        <AnimatePresence>
+        <>
             {isOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
                     {/* Backdrop */}
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={onClose}
-                        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-                    />
+                    <div onClick={onClose} className="absolute inset-0 bg-black/50 animate-fade-in"/>
 
                     {/* Modal Content */}
-                    <motion.div
+                    <div
                         ref={dialogRef as any}
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby={titleId}
                         aria-describedby={descriptionId}
                         tabIndex={-1}
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="relative w-full max-w-7xl h-full max-h-[90vh] bg-obsidian border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col focus:outline-none"
+                        className="relative w-full max-w-7xl h-full max-h-[90vh] bg-obsidian border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col focus:outline-none animate-fade-in"
                     >
                         {/* Header */}
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-surface/50 backdrop-blur-md z-10">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-panel z-10">
                             <div>
                                 <h2 id={titleId} className="text-xl font-medium text-white">{companyName}</h2>
                                 <div id={descriptionId} className="flex items-center gap-2 text-sm text-mist-500 font-mono">
@@ -105,14 +95,14 @@ export default function ReportModal({ isOpen, onClose, symbol, market, companyNa
 
                             {error && (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center">
-                                    <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
-                                        <XIcon className="w-8 h-8 text-red-500" />
+                                    <div className="w-16 h-16 rounded-full bg-down/10 flex items-center justify-center mb-4">
+                                        <XIcon className="w-8 h-8 text-down" />
                                     </div>
                                     <h3 className="text-lg font-medium text-white mb-2">分析失败</h3>
                                     <p className="text-mist-400 max-w-md">{error}</p>
                                     <button
                                         onClick={() => analyze(symbol, market)}
-                                        className="mt-6 px-6 py-2 rounded-lg bg-glacier-500 text-white font-medium hover:bg-glacier-600 transition-colors"
+                                        className="btn-primary mt-6"
                                     >
                                         重试
                                     </button>
@@ -130,9 +120,9 @@ export default function ReportModal({ isOpen, onClose, symbol, market, companyNa
                                 </div>
                             )}
                         </div>
-                    </motion.div>
+                    </div>
                 </div>
             )}
-        </AnimatePresence>
+        </>
     );
 }

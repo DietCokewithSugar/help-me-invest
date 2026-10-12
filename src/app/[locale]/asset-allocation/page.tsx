@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Header from '@/components/Header';
+import PageHeader from '@/components/PageHeader';
 import ExportModal from '@/components/ExportModal';
 import AllocationCharts from '@/components/AllocationCharts';
 import AssetAllocationReport, { type AssetAllocationReportData } from '@/components/AssetAllocationReport';
@@ -9,19 +10,6 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Download } from 'lucide-react';
 
 const TOTAL_STEPS = 5;
-
-const ASSET_TYPE_ICONS: Record<string, string> = {
-  usStocks: '🇺🇸',
-  aShares: '🇨🇳',
-  hkStocks: '🇭🇰',
-  bonds: '🏛️',
-  gold: '🥇',
-  realEstate: '🏠',
-  crypto: '₿',
-  funds: '📊',
-  cash: '💵',
-  commodities: '🛢️',
-};
 
 const RETURN_LEVEL_COLORS: Record<string, string> = {
   conservative: 'border-growth/40 hover:border-growth/70',
@@ -35,13 +23,6 @@ const RETURN_LEVEL_ACTIVE: Record<string, string> = {
   moderate: 'border-glacier-500 bg-glacier-500/10',
   growth: 'border-yellow-500 bg-yellow-500/10',
   aggressive: 'border-decay bg-decay/10',
-};
-
-const OUTLOOK_ICONS: Record<string, string> = {
-  us: '🇺🇸',
-  china: '🇨🇳',
-  both: '🌐',
-  unsure: '🤖',
 };
 
 interface FormData {
@@ -207,27 +188,20 @@ export default function AssetAllocationPage() {
   const horizonKeys = ['short', 'medium', 'long', 'veryLong'] as const;
 
   return (
-    <div className="min-h-screen transition-colors duration-200" style={{ backgroundColor: 'var(--bg-obsidian)' }}>
+    <div className="min-h-screen transition-colors duration-200" style={{ backgroundColor: 'rgb(var(--c-page))' }}>
       <Header
         theme={theme}
         toggleTheme={toggleTheme}
       />
 
-      <div className="pt-32 pb-16 px-4 md:px-6">
-        <div className="max-w-3xl mx-auto">
-          {/* Title */}
-          <div className="text-center mb-10">
-            <h1 className="text-2xl md:text-3xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-              {aa.title}
-            </h1>
-            <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-              {aa.subtitle}
-            </p>
-          </div>
+      <PageHeader title={aa.title} subtitle={aa.subtitle} />
+
+      <div className="page-container py-6">
+        <div className="max-w-3xl">
 
           {/* Step indicator */}
           {!report && (
-            <div className="flex items-center justify-center gap-2 mb-8">
+            <div className="flex items-center gap-2 mb-6">
               {Array.from({ length: TOTAL_STEPS }, (_, i) => {
                 const step = i + 1;
                 const isActive = step === currentStep;
@@ -243,7 +217,7 @@ export default function AssetAllocationPage() {
                       }}
                       className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-mono font-bold transition-all ${
                         isActive
-                          ? 'bg-glacier-500 text-white'
+                          ? 'bg-accent/10 text-accent'
                           : isDone
                           ? 'bg-glacier-500/20 text-glacier-500 cursor-pointer hover:bg-glacier-500/30'
                           : 'border border-white/10 text-mist-500'
@@ -262,12 +236,12 @@ export default function AssetAllocationPage() {
 
           {/* Step content */}
           {!report && !isGenerating && (
-            <div className="gemini-card p-6 md:p-8">
+            <div className="panel p-6 md:p-8">
               {/* Step 1: Asset Types */}
               {currentStep === 1 && (
                 <div>
-                  <h2 className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{aa.step1Title}</h2>
-                  <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>{aa.step1Desc}</p>
+                  <h2 className="text-lg font-semibold mb-1" style={{ color: 'rgb(var(--c-text-1))' }}>{aa.step1Title}</h2>
+                  <p className="text-sm mb-6" style={{ color: 'rgb(var(--c-text-2))' }}>{aa.step1Desc}</p>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {assetTypeKeys.map(key => {
                       const isSelected = formData.assetTypes.includes(key);
@@ -281,8 +255,7 @@ export default function AssetAllocationPage() {
                               : 'border-white/10 hover:border-white/20 hover:bg-white/5'
                           }`}
                         >
-                          <span className="text-xl">{ASSET_TYPE_ICONS[key]}</span>
-                          <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                          <span className="text-sm font-medium" style={{ color: 'rgb(var(--c-text-1))' }}>
                             {aa.assetTypes[key]}
                           </span>
                         </button>
@@ -295,8 +268,8 @@ export default function AssetAllocationPage() {
               {/* Step 2: Return Level */}
               {currentStep === 2 && (
                 <div>
-                  <h2 className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{aa.step2Title}</h2>
-                  <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>{aa.step2Desc}</p>
+                  <h2 className="text-lg font-semibold mb-1" style={{ color: 'rgb(var(--c-text-1))' }}>{aa.step2Title}</h2>
+                  <p className="text-sm mb-6" style={{ color: 'rgb(var(--c-text-2))' }}>{aa.step2Desc}</p>
                   <div className="grid gap-3">
                     {returnLevelKeys.map(key => {
                       const isSelected = formData.returnLevel === key;
@@ -310,10 +283,10 @@ export default function AssetAllocationPage() {
                               : RETURN_LEVEL_COLORS[key]
                           }`}
                         >
-                          <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                          <span className="text-sm font-semibold" style={{ color: 'rgb(var(--c-text-1))' }}>
                             {aa.returnLevels[key as keyof typeof aa.returnLevels]}
                           </span>
-                          <span className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                          <span className="text-xs mt-1" style={{ color: 'rgb(var(--c-text-2))' }}>
                             {aa.returnLevels[`${key}Desc` as keyof typeof aa.returnLevels]}
                           </span>
                         </button>
@@ -326,12 +299,12 @@ export default function AssetAllocationPage() {
               {/* Step 3: Financial Situation */}
               {currentStep === 3 && (
                 <div>
-                  <h2 className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{aa.step3Title}</h2>
-                  <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>{aa.step3Desc}</p>
+                  <h2 className="text-lg font-semibold mb-1" style={{ color: 'rgb(var(--c-text-1))' }}>{aa.step3Title}</h2>
+                  <p className="text-sm mb-6" style={{ color: 'rgb(var(--c-text-2))' }}>{aa.step3Desc}</p>
                   <div className="space-y-5">
                     {/* Currency selector */}
                     <div>
-                      <label className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+                      <label className="block text-xs font-medium mb-2" style={{ color: 'rgb(var(--c-text-2))' }}>
                         {aa.currency}
                       </label>
                       <div className="flex gap-3">
@@ -344,7 +317,7 @@ export default function AssetAllocationPage() {
                                 ? 'border-glacier-500 bg-glacier-500/10 text-glacier-500'
                                 : 'border-white/10 hover:border-white/20'
                             }`}
-                            style={{ color: formData.currency === cur ? undefined : 'var(--text-primary)' }}
+                            style={{ color: formData.currency === cur ? undefined : 'rgb(var(--c-text-1))' }}
                           >
                             {cur === 'CNY' ? aa.currencyCNY : aa.currencyUSD}
                           </button>
@@ -354,7 +327,7 @@ export default function AssetAllocationPage() {
 
                     {/* Invest amount */}
                     <div>
-                      <label className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+                      <label className="block text-xs font-medium mb-2" style={{ color: 'rgb(var(--c-text-2))' }}>
                         {aa.investAmount}
                       </label>
                       <input
@@ -362,13 +335,13 @@ export default function AssetAllocationPage() {
                         value={formData.investAmount}
                         onChange={e => setFormData(prev => ({ ...prev, investAmount: e.target.value }))}
                         placeholder={aa.investAmountPlaceholder}
-                        className="gemini-input w-full px-4 py-3 rounded-[12px] text-sm font-mono"
+                        className="input-field w-full px-4 py-3 rounded-[12px] text-sm font-mono"
                       />
                     </div>
 
                     {/* Total assets */}
                     <div>
-                      <label className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+                      <label className="block text-xs font-medium mb-2" style={{ color: 'rgb(var(--c-text-2))' }}>
                         {aa.totalAssets}
                       </label>
                       <input
@@ -376,7 +349,7 @@ export default function AssetAllocationPage() {
                         value={formData.totalAssets}
                         onChange={e => setFormData(prev => ({ ...prev, totalAssets: e.target.value }))}
                         placeholder={aa.totalAssetsPlaceholder}
-                        className="gemini-input w-full px-4 py-3 rounded-[12px] text-sm font-mono"
+                        className="input-field w-full px-4 py-3 rounded-[12px] text-sm font-mono"
                       />
                     </div>
                   </div>
@@ -386,12 +359,12 @@ export default function AssetAllocationPage() {
               {/* Step 4: Market Outlook */}
               {currentStep === 4 && (
                 <div>
-                  <h2 className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{aa.step4Title}</h2>
-                  <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>{aa.step4Desc}</p>
+                  <h2 className="text-lg font-semibold mb-1" style={{ color: 'rgb(var(--c-text-1))' }}>{aa.step4Title}</h2>
+                  <p className="text-sm mb-6" style={{ color: 'rgb(var(--c-text-2))' }}>{aa.step4Desc}</p>
                   <div className="space-y-6">
                     {/* Market outlook */}
                     <div>
-                      <label className="block text-xs font-medium mb-3" style={{ color: 'var(--text-secondary)' }}>
+                      <label className="block text-xs font-medium mb-3" style={{ color: 'rgb(var(--c-text-2))' }}>
                         {aa.marketOutlook}
                       </label>
                       <div className="grid grid-cols-2 gap-3">
@@ -407,12 +380,11 @@ export default function AssetAllocationPage() {
                                   : 'border-white/10 hover:border-white/20 hover:bg-white/5'
                               }`}
                             >
-                              <span className="text-xl mt-0.5">{OUTLOOK_ICONS[key]}</span>
                               <div>
-                                <span className="text-sm font-medium block" style={{ color: 'var(--text-primary)' }}>
+                                <span className="text-sm font-medium block" style={{ color: 'rgb(var(--c-text-1))' }}>
                                   {aa.outlookOptions[key as keyof typeof aa.outlookOptions]}
                                 </span>
-                                <span className="text-xs mt-0.5 block" style={{ color: 'var(--text-secondary)' }}>
+                                <span className="text-xs mt-0.5 block" style={{ color: 'rgb(var(--c-text-2))' }}>
                                   {aa.outlookOptions[`${key}Desc` as keyof typeof aa.outlookOptions]}
                                 </span>
                               </div>
@@ -424,7 +396,7 @@ export default function AssetAllocationPage() {
 
                     {/* Investment horizon */}
                     <div>
-                      <label className="block text-xs font-medium mb-3" style={{ color: 'var(--text-secondary)' }}>
+                      <label className="block text-xs font-medium mb-3" style={{ color: 'rgb(var(--c-text-2))' }}>
                         {aa.investmentHorizon}
                       </label>
                       <div className="flex flex-wrap gap-2">
@@ -439,7 +411,7 @@ export default function AssetAllocationPage() {
                                   ? 'border-glacier-500 bg-glacier-500/10 text-glacier-500'
                                   : 'border-white/10 hover:border-white/20'
                               }`}
-                              style={{ color: isSelected ? undefined : 'var(--text-primary)' }}
+                              style={{ color: isSelected ? undefined : 'rgb(var(--c-text-1))' }}
                             >
                               {aa.horizonOptions[key as keyof typeof aa.horizonOptions]}
                             </button>
@@ -454,11 +426,11 @@ export default function AssetAllocationPage() {
               {/* Step 5: Preferences */}
               {currentStep === 5 && (
                 <div>
-                  <h2 className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>{aa.step5Title}</h2>
-                  <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>{aa.step5Desc}</p>
+                  <h2 className="text-lg font-semibold mb-1" style={{ color: 'rgb(var(--c-text-1))' }}>{aa.step5Title}</h2>
+                  <p className="text-sm mb-6" style={{ color: 'rgb(var(--c-text-2))' }}>{aa.step5Desc}</p>
                   <div className="space-y-5">
                     <div>
-                      <label className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+                      <label className="block text-xs font-medium mb-2" style={{ color: 'rgb(var(--c-text-2))' }}>
                         {aa.existingAssets}
                       </label>
                       <textarea
@@ -466,11 +438,11 @@ export default function AssetAllocationPage() {
                         onChange={e => setFormData(prev => ({ ...prev, existingAssets: e.target.value }))}
                         placeholder={aa.existingAssetsPlaceholder}
                         rows={3}
-                        className="gemini-input w-full px-4 py-3 rounded-[12px] text-sm resize-none"
+                        className="input-field w-full px-4 py-3 rounded-[12px] text-sm resize-none"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+                      <label className="block text-xs font-medium mb-2" style={{ color: 'rgb(var(--c-text-2))' }}>
                         {aa.interests}
                       </label>
                       <textarea
@@ -478,7 +450,7 @@ export default function AssetAllocationPage() {
                         onChange={e => setFormData(prev => ({ ...prev, interests: e.target.value }))}
                         placeholder={aa.interestsPlaceholder}
                         rows={3}
-                        className="gemini-input w-full px-4 py-3 rounded-[12px] text-sm resize-none"
+                        className="input-field w-full px-4 py-3 rounded-[12px] text-sm resize-none"
                       />
                     </div>
                   </div>
@@ -502,7 +474,7 @@ export default function AssetAllocationPage() {
                       ? 'border-white/5 text-mist-500 cursor-not-allowed'
                       : 'border-white/10 hover:border-white/20 hover:bg-white/5'
                   }`}
-                  style={{ color: currentStep === 1 ? undefined : 'var(--text-primary)' }}
+                  style={{ color: currentStep === 1 ? undefined : 'rgb(var(--c-text-1))' }}
                 >
                   {aa.prev}
                 </button>
@@ -510,14 +482,14 @@ export default function AssetAllocationPage() {
                   {currentStep < TOTAL_STEPS ? (
                     <button
                       onClick={goNext}
-                      className="px-6 py-2.5 rounded-md bg-glacier-500 hover:bg-glacier-600 text-white text-sm font-medium transition-all"
+                      className="btn-primary"
                     >
                       {aa.next}
                     </button>
                   ) : (
                     <button
                       onClick={handleGenerate}
-                      className="px-6 py-2.5 rounded-md bg-glacier-500 hover:bg-glacier-600 text-white text-sm font-medium transition-all"
+                      className="btn-primary"
                     >
                       {aa.generate}
                     </button>
@@ -529,13 +501,13 @@ export default function AssetAllocationPage() {
 
           {/* Loading state */}
           {isGenerating && (
-            <div className="gemini-card p-8 md:p-12 text-center">
+            <div className="panel p-8 md:p-12 text-center">
               <div className="inline-flex items-center gap-3">
                 <div className="relative w-8 h-8">
                   <div className="absolute inset-0 rounded-full border-2 border-glacier-500/20" />
                   <div className="absolute inset-0 rounded-full border-2 border-glacier-500 border-t-transparent animate-spin" />
                 </div>
-                <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                <span className="text-sm" style={{ color: 'rgb(var(--c-text-2))' }}>
                   {aa.generating}
                 </span>
               </div>
@@ -565,7 +537,7 @@ export default function AssetAllocationPage() {
         {report && (
           <div ref={resultRef} className="max-w-4xl mx-auto mt-8">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+              <h2 className="text-lg font-semibold" style={{ color: 'rgb(var(--c-text-1))' }}>
                 {aa.resultTitle}
               </h2>
               <div className="flex gap-2">
@@ -580,26 +552,26 @@ export default function AssetAllocationPage() {
                   onClick={handleGenerate}
                   disabled={isGenerating}
                   className="px-4 py-2 rounded-md border border-white/10 hover:border-white/20 hover:bg-white/5 text-xs transition-all"
-                  style={{ color: 'var(--text-primary)' }}
+                  style={{ color: 'rgb(var(--c-text-1))' }}
                 >
                   {aa.regenerate}
                 </button>
                 <button
                   onClick={handleStartOver}
                   className="px-4 py-2 rounded-md border border-white/10 hover:border-white/20 hover:bg-white/5 text-xs transition-all"
-                  style={{ color: 'var(--text-primary)' }}
+                  style={{ color: 'rgb(var(--c-text-1))' }}
                 >
                   {aa.startOver}
                 </button>
               </div>
             </div>
-            <div ref={reportRef} className="gemini-card p-6 md:p-8">
+            <div ref={reportRef} className="panel p-6 md:p-8">
               {chartData && (
                 <AllocationCharts chartData={chartData} theme={theme} currency={formData.currency} />
               )}
               <AssetAllocationReport report={report} currency={formData.currency} />
             </div>
-            <p className="mt-4 text-xs text-center" style={{ color: 'var(--text-muted, #64748b)' }}>
+            <p className="mt-4 text-xs text-center" style={{ color: 'rgb(var(--c-text-3))' }}>
               {aa.disclaimer}
             </p>
           </div>

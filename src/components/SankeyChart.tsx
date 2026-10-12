@@ -53,13 +53,13 @@ export default function SankeyChart({
 
   // 实用主义风格配色
   // 传统色配色 (窈蓝 Yao Lan, 黄润 Huang Run, 鞠尘 Ju Chen)
-  const REVENUE_COLOR = '#88ABDA';   // 窈蓝
-  const EXPENSE_COLOR = '#CB523E';   // 艳炽
-  const PROFIT_COLOR = '#C0D09D';    // 鞠尘
-  const TEXT_COLOR = isLight ? '#1e293b' : '#e2e8f0';     // Slate 800 vs Mist 200
-  const SUB_TEXT_COLOR = isLight ? '#475569' : '#94a3b8'; // Slate 600 vs Mist 400
-  const TOOLTIP_BG = isLight ? '#ffffff' : '#121212';
-  const TOOLTIP_BORDER = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+  const REVENUE_COLOR = '#4A86E8';   // 窈蓝
+  const EXPENSE_COLOR = '#D9534F';   // 艳炽
+  const PROFIT_COLOR = '#3FA66B';    // 鞠尘
+  const TEXT_COLOR = isLight ? '#222222' : '#D8DCE2';     // Slate 800 vs Mist 200
+  const SUB_TEXT_COLOR = isLight ? '#545B65' : '#A3ABB6'; // Slate 600 vs Mist 400
+  const TOOLTIP_BG = isLight ? '#FFFFFF' : '#1B1F24';
+  const TOOLTIP_BORDER = isLight ? 'rgba(23,25,28,0.12)' : 'rgba(236,238,241,0.10)';
 
   const revenueNodes = new Set(['主营业务收入', '其他收入', '总营收']);
   const expenseNodes = new Set(['营业成本', '研发费用', '销售及管理费用', '税费及其他']);
@@ -97,7 +97,7 @@ export default function SankeyChart({
       textStyle: {
         color: TEXT_COLOR,
         fontSize: 12,
-        fontFamily: 'JetBrains Mono, monospace',
+        fontFamily: 'Inter, system-ui, sans-serif',
       },
       formatter: (params: any) => {
         if (params.dataType === 'edge') {
@@ -178,7 +178,7 @@ export default function SankeyChart({
 
   if (!data.links || data.links.length === 0) {
     return (
-      <div className="bg-white/5 border border-white/10 rounded-sm p-8 text-center text-slate-500 font-mono text-xs">
+      <div className="bg-white/5 border border-white/10 rounded-sm p-8 text-center text-mist-500 font-mono text-xs">
         <p>{sankeyT.noData}</p>
       </div>
     );

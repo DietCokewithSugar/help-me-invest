@@ -306,7 +306,7 @@ export default function FinancialRatiosTTMDisplay({
     metricKey,
     gradient = 'from-glacier-500/20 to-glacier-600/20',
     highlight = false,
-    highlightColor = 'gemini-blue',
+    highlightColor = 'chart-blue',
     suffix = '',
   }: { 
     label: string; 
@@ -346,7 +346,7 @@ export default function FinancialRatiosTTMDisplay({
         
         {/* Tooltip */}
         {showTooltip && (
-          <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-80 max-w-[calc(100vw-2rem)] p-4 bg-midnight border border-white/20 rounded-lg shadow-xl text-xs text-mist-200 leading-relaxed pointer-events-none">
+          <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-80 max-w-[calc(100vw-2rem)] p-4 bg-raised border border-white/20 rounded-lg shadow-xl text-xs text-mist-200 leading-relaxed pointer-events-none">
             <div className="flex items-start gap-2 mb-2">
               <Info className="w-4 h-4 text-glacier-400 shrink-0 mt-0.5" />
               <div>
@@ -357,7 +357,7 @@ export default function FinancialRatiosTTMDisplay({
             {desc.insight && (
               <div className="mt-3 pt-3 border-t border-white/10">
                 <div className="flex items-start gap-2">
-                  <Zap className="w-3 h-3 text-amber-400 shrink-0 mt-0.5" />
+                  <Zap className="w-3 h-3 text-warn shrink-0 mt-0.5" />
                   <p className="text-amber-200/80">{desc.insight}</p>
                 </div>
               </div>
@@ -395,12 +395,12 @@ export default function FinancialRatiosTTMDisplay({
         onMouseLeave={() => setHoveredMetric(null)}
       >
         <span className="text-mist-400">{label}</span>
-        <span className={`font-mono font-medium ${isGood ? 'text-gemini-green' : 'text-mist-300'}`}>
+        <span className={`font-mono font-medium ${isGood ? 'text-up' : 'text-mist-300'}`}>
           {format(value)}
         </span>
         
         {showTooltip && desc && (
-          <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-3 bg-midnight border border-white/20 rounded-lg shadow-xl text-xs leading-relaxed pointer-events-none">
+          <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-3 bg-raised border border-white/20 rounded-lg shadow-xl text-xs leading-relaxed pointer-events-none">
             <p className="font-semibold text-white mb-1">{desc.title}</p>
             <p className="text-mist-300">{desc.description}</p>
             {desc.insight && (
@@ -434,7 +434,7 @@ export default function FinancialRatiosTTMDisplay({
         icon: Building2,
         metricKey: 'enterpriseValueTTM',
         highlight: evLessThanMarketCap,
-        highlightColor: 'gemini-green',
+        highlightColor: 'up',
       },
       { 
         label: 'EV/EBITDA', 
@@ -524,7 +524,7 @@ export default function FinancialRatiosTTMDisplay({
     } : null;
 
     return (
-      <div className="bg-midnight/30 rounded-xl p-6 border border-white/5 max-md:border-0">
+      <div className="bg-raised rounded-xl p-6 border border-white/5 max-md:border-0">
         <div className="flex items-start justify-between mb-4">
           <div>
             <h3 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -549,8 +549,8 @@ export default function FinancialRatiosTTMDisplay({
 
         {/* EV < MarketCap 提示 */}
         {evLessThanMarketCap && (
-          <div className="mb-4 p-4 bg-gemini-green/10 border border-gemini-green/20 rounded-lg">
-            <div className="flex items-center gap-2 text-gemini-green text-sm mb-1">
+          <div className="mb-4 p-4 bg-up/10 border border-up/20 rounded-lg">
+            <div className="flex items-center gap-2 text-up text-sm mb-1">
               <Zap className="w-4 h-4" />
               <span className="font-medium">极其健康的信号</span>
             </div>
@@ -566,7 +566,7 @@ export default function FinancialRatiosTTMDisplay({
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs text-mist-400">收益率对比</span>
               {fcfHigherThanEarnings && (
-                <span className="text-xs text-gemini-green flex items-center gap-1">
+                <span className="text-xs text-up flex items-center gap-1">
                   <ArrowUpRight className="w-3 h-3" />
                   自由现金流收益率更高，含金量极高
                 </span>
@@ -612,7 +612,7 @@ export default function FinancialRatiosTTMDisplay({
         icon: Activity,
         metricKey: 'incomeQualityTTM',
         highlight: !!(latestTTM.incomeQualityTTM && latestTTM.incomeQualityTTM > 1),
-        highlightColor: 'gemini-green',
+        highlightColor: 'up',
       },
     ].filter(m => m.value !== undefined && m.value !== null && !isNaN(m.value));
 
@@ -672,11 +672,11 @@ export default function FinancialRatiosTTMDisplay({
     const roicStrong = roic !== null && roic > 20;
 
     return (
-      <div className="bg-midnight/30 rounded-xl p-6 border border-white/5 max-md:border-0">
+      <div className="bg-raised rounded-xl p-6 border border-white/5 max-md:border-0">
         <div className="flex items-start justify-between mb-4">
           <div>
             <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-              <span className="w-2 h-2 bg-gemini-blue rounded-full"></span>
+              <span className="w-2 h-2 bg-chart-blue rounded-full"></span>
               真实盈利能力
             </h3>
             <p className="text-xs text-mist-500 mt-1">
@@ -692,8 +692,8 @@ export default function FinancialRatiosTTMDisplay({
         </div>
 
         {roicStrong && (
-          <div className="mb-4 p-4 bg-gemini-blue/10 border border-gemini-blue/20 rounded-lg">
-            <div className="flex items-center gap-2 text-gemini-blue text-sm mb-1">
+          <div className="mb-4 p-4 bg-chart-blue/10 border border-chart-blue/20 rounded-lg">
+            <div className="flex items-center gap-2 text-chart-blue text-sm mb-1">
               <Target className="w-4 h-4" />
               <span className="font-medium">顶级护城河信号</span>
             </div>
@@ -813,7 +813,7 @@ export default function FinancialRatiosTTMDisplay({
     } : null;
 
     return (
-      <div className="bg-midnight/30 rounded-xl p-6 border border-white/5 max-md:border-0">
+      <div className="bg-raised rounded-xl p-6 border border-white/5 max-md:border-0">
         <div className="flex items-start justify-between mb-4">
           <div>
             <h3 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -834,15 +834,15 @@ export default function FinancialRatiosTTMDisplay({
 
         {/* 现金循环周期特殊展示 */}
         {ccc !== undefined && ccc !== null && !isNaN(ccc) && (
-          <div className={`p-4 rounded-lg border ${cccNegative ? 'bg-gemini-green/10 border-gemini-green/20' : 'bg-white/5 border-white/10'}`}>
+          <div className={`p-4 rounded-lg border ${cccNegative ? 'bg-up/10 border-up/20' : 'bg-white/5 border-white/10'}`}>
             <div className="flex items-center justify-between">
               <div 
                 className="flex items-center gap-3 cursor-help"
                 onMouseEnter={() => setHoveredMetric('cashConversionCycleTTM')}
                 onMouseLeave={() => setHoveredMetric(null)}
               >
-                <div className={`w-10 h-10 rounded-lg ${cccNegative ? 'bg-gemini-green/20' : 'bg-white/10'} flex items-center justify-center`}>
-                  <Zap className={`w-5 h-5 ${cccNegative ? 'text-gemini-green' : 'text-mist-400'}`} />
+                <div className={`w-10 h-10 rounded-lg ${cccNegative ? 'bg-up/20' : 'bg-white/10'} flex items-center justify-center`}>
+                  <Zap className={`w-5 h-5 ${cccNegative ? 'text-up' : 'text-mist-400'}`} />
                 </div>
                 <div>
                   <div className="text-sm text-mist-400">现金循环周期 (CCC)</div>
@@ -850,11 +850,11 @@ export default function FinancialRatiosTTMDisplay({
                 </div>
               </div>
               <div className="text-right">
-                <div className={`text-2xl font-bold font-mono ${cccNegative ? 'text-gemini-green' : 'text-white'}`}>
+                <div className={`text-2xl font-bold font-mono ${cccNegative ? 'text-up' : 'text-white'}`}>
                   {formatDays(ccc)}
                 </div>
                 {cccNegative && (
-                  <div className="text-xs text-gemini-green mt-1 flex items-center gap-1 justify-end">
+                  <div className="text-xs text-up mt-1 flex items-center gap-1 justify-end">
                     <ArrowDownRight className="w-3 h-3" />
                     极其强势
                   </div>
@@ -898,7 +898,7 @@ export default function FinancialRatiosTTMDisplay({
         icon: Calculator,
         metricKey: 'netDebtToEBITDATTM',
         highlight: latestTTM.netDebtToEBITDATTM !== undefined && latestTTM.netDebtToEBITDATTM < 1,
-        highlightColor: 'gemini-green',
+        highlightColor: 'up',
       },
       { 
         label: '利息负担', 
@@ -990,11 +990,11 @@ export default function FinancialRatiosTTMDisplay({
     };
 
     return (
-      <div className="bg-midnight/30 rounded-xl p-6 border border-white/5 max-md:border-0">
+      <div className="bg-raised rounded-xl p-6 border border-white/5 max-md:border-0">
         <div className="flex items-start justify-between mb-4">
           <div>
             <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-              <span className="w-2 h-2 bg-gemini-green rounded-full"></span>
+              <span className="w-2 h-2 bg-up rounded-full"></span>
               财务健康
             </h3>
             <p className="text-xs text-mist-500 mt-1">
@@ -1014,8 +1014,8 @@ export default function FinancialRatiosTTMDisplay({
             
             {/* 警告提示 */}
             {(workingCapitalNegative || currentRatioLow) && (
-              <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                <div className="flex items-center gap-2 text-amber-400 text-sm mb-1">
+              <div className="mt-4 p-4 bg-warn/10 border border-warn/20 rounded-lg">
+                <div className="flex items-center gap-2 text-warn text-sm mb-1">
                   <AlertTriangle className="w-4 h-4" />
                   <span className="font-medium">注意</span>
                 </div>
@@ -1033,7 +1033,7 @@ export default function FinancialRatiosTTMDisplay({
             <ReactECharts option={gaugeOption} style={{ height: '150px', width: '100%' }} />
             <div className="text-center -mt-4">
               <div className="text-xs text-mist-400">财务健康评分</div>
-              <div className={`text-xs mt-1 ${healthScore >= 70 ? 'text-gemini-green' : healthScore >= 40 ? 'text-amber-400' : 'text-red-400'}`}>
+              <div className={`text-xs mt-1 ${healthScore >= 70 ? 'text-up' : healthScore >= 40 ? 'text-warn' : 'text-down'}`}>
                 {healthScore >= 70 ? '优秀' : healthScore >= 40 ? '良好' : '需关注'}
               </div>
             </div>
@@ -1067,7 +1067,7 @@ export default function FinancialRatiosTTMDisplay({
         icon: Activity,
         metricKey: 'capexToOperatingCashFlowTTM',
         highlight: latestTTM.capexToOperatingCashFlowTTM !== undefined && (Math.abs(latestTTM.capexToOperatingCashFlowTTM) > 1 ? latestTTM.capexToOperatingCashFlowTTM : latestTTM.capexToOperatingCashFlowTTM * 100) < 20,
-        highlightColor: 'gemini-green',
+        highlightColor: 'up',
       },
       { 
         label: '股权激励占比', 
@@ -1127,7 +1127,7 @@ export default function FinancialRatiosTTMDisplay({
     const lowCapexReinvestment = capexToOCF !== null && capexToOCF < 20;
 
     return (
-      <div className="bg-midnight/30 rounded-xl p-6 border border-white/5 max-md:border-0">
+      <div className="bg-raised rounded-xl p-6 border border-white/5 max-md:border-0">
         <div className="flex items-start justify-between mb-4">
           <div>
             <h3 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -1149,8 +1149,8 @@ export default function FinancialRatiosTTMDisplay({
             </div>
             
             {lowCapexReinvestment && capexToOCF !== null && (
-              <div className="mt-4 p-4 bg-gemini-green/10 border border-gemini-green/20 rounded-lg">
-                <div className="flex items-center gap-2 text-gemini-green text-sm mb-1">
+              <div className="mt-4 p-4 bg-up/10 border border-up/20 rounded-lg">
+                <div className="flex items-center gap-2 text-up text-sm mb-1">
                   <PiggyBank className="w-4 h-4" />
                   <span className="font-medium">轻资产高回报</span>
                 </div>
@@ -1201,11 +1201,11 @@ export default function FinancialRatiosTTMDisplay({
     if (metrics.length === 0) return null;
 
     return (
-      <div className="bg-midnight/30 rounded-xl p-6 border border-white/5 max-md:border-0">
+      <div className="bg-raised rounded-xl p-6 border border-white/5 max-md:border-0">
         <div className="flex items-start justify-between mb-4">
           <div>
             <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-              <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
+              <span className="w-2 h-2 bg-warn rounded-full"></span>
               深度价值模型
             </h3>
             <p className="text-xs text-mist-500 mt-1">
@@ -1214,8 +1214,8 @@ export default function FinancialRatiosTTMDisplay({
           </div>
         </div>
 
-        <div className="mb-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-          <div className="flex items-center gap-2 text-amber-400 text-sm mb-1">
+        <div className="mb-4 p-4 bg-warn/10 border border-warn/20 rounded-lg">
+          <div className="flex items-center gap-2 text-warn text-sm mb-1">
             <Info className="w-4 h-4" />
             <span className="font-medium">适用范围提示</span>
           </div>
@@ -1234,9 +1234,9 @@ export default function FinancialRatiosTTMDisplay({
   };
 
   return (
-    <div className="space-y-6 animate-fade-in mt-8">
+    <div className="space-y-6 mt-8">
       {/* TTM 说明头部 */}
-      <div className="mb-6 p-4 bg-gradient-to-r from-glacier-500/10 to-gemini-blue/10 border border-glacier-500/20 rounded-xl">
+      <div className="mb-6 p-4 bg-accent/5 border border-accent/20 rounded-md">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-glacier-500/20 flex items-center justify-center">
             <Clock className="w-5 h-5 text-glacier-400" />

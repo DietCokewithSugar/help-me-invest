@@ -4,12 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-    SunIcon,
-    MoonIcon,
-    SettingsIcon,
-} from '@/components/Icons';
+import { SunIcon, MoonIcon } from '@/components/Icons';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCompare } from '@/contexts/CompareContext';
 import { withLocale } from '@/lib/locale-path';
@@ -21,55 +16,39 @@ interface HeaderProps {
 }
 
 /**
- * Aptos-style floating pill navbar.
- *
- * Desktop: a single horizontally-centred pill containing logo · nav links
- *          (mono uppercase) · language toggle · theme toggle · primary CTA.
- *          The pill is `position: fixed` and never changes shape on scroll.
- *
- * Mobile : the same pill collapses to logo + theme + language + hamburger.
- *          Tapping the hamburger expands a dropdown sheet anchored to the
- *          pill, with the same nav links stacked vertically.
+ * 顶部导航栏（参考 IBKR）：贴顶全宽、56px 高、底部 1px 分隔线。
+ * 当前页面在导航项下方以品牌红下划线标示；主题与语言直接一键切换，
+ * 不再藏在二级设置菜单里。移动端折叠为汉堡菜单，展开即显示，不做高度动画。
  */
-export default function Header({
-    theme,
-    toggleTheme,
-    onReset,
-}: HeaderProps) {
+export default function Header({ theme, toggleTheme, onReset }: HeaderProps) {
     const router = useRouter();
     const pathname = usePathname();
     const { locale, setLocale, t } = useLanguage();
     const { companies: compareCompanies } = useCompare();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const [settingsOpen, setSettingsOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         setMobileMenuOpen(false);
-        setSettingsOpen(false);
     }, [pathname]);
 
     useEffect(() => {
+        if (!mobileMenuOpen) return;
         const handleClickOutside = (e: MouseEvent) => {
             if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
                 setMobileMenuOpen(false);
-                setSettingsOpen(false);
             }
         };
-        if (mobileMenuOpen || settingsOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [mobileMenuOpen, settingsOpen]);
-
-    useEffect(() => {
-        if (!settingsOpen) return;
         const handleEscape = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') setSettingsOpen(false);
+            if (e.key === 'Escape') setMobileMenuOpen(false);
         };
+        document.addEventListener('mousedown', handleClickOutside);
         document.addEventListener('keydown', handleEscape);
-        return () => document.removeEventListener('keydown', handleEscape);
-    }, [settingsOpen]);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('keydown', handleEscape);
+        };
+    }, [mobileMenuOpen]);
 
     const handleLogoClick = () => {
         if (onReset) {
@@ -88,251 +67,135 @@ export default function Header({
     ];
     const feedbackHref = withLocale(locale, '/feedback');
 
-    return (
-        <header className="fixed top-3 md:top-5 left-0 right-0 z-50 px-3 md:px-6">
-            <div ref={menuRef} className="relative mx-auto w-full max-w-6xl">
-            <div
-                // The pill container also hosts the mobile dropdown panel.
-                // `rounded-pill` resolves to `min(width, height) / 2`, so the
-                // moment the container grows tall enough to fit a vertical
-                // menu the bottom corners curve inward by ~half-the-height
-                // and start clipping menu-item text. Drop the radius to a
-                // sane 24px while the mobile sheet is open. On `lg+` the
-                // sheet never opens, so the pill stays a pill there.
-                // `overflow-hidden` keeps the height transition clean and
-                // prevents children from poking out of the rounded corners.
-                className={`glass-card overflow-hidden transition-[border-radius] duration-200 ${
-                    mobileMenuOpen ? 'rounded-3xl lg:rounded-pill' : 'rounded-pill'
-                }`}
-            >
-                <div className="flex items-center justify-between px-3 md:px-3 py-2">
-                    {/* Logo */}
-                    <button
-                        type="button"
-                        onClick={handleLogoClick}
-                        className="group flex items-center gap-2.5 pl-1 pr-3 md:pr-4 py-1 rounded-pill hover:bg-white/5 transition-colors cursor-pointer"
-                    >
-                        <span className="relative inline-flex">
-                            <span className="w-8 h-8 md:w-9 md:h-9 rounded-pill overflow-hidden ring-1 ring-white/15">
-                                <Image
-                                    src="/icon.png"
-                                    alt="智投研究"
-                                    width={36}
-                                    height={36}
-                                    className="w-full h-full object-cover"
-                                />
-                            </span>
-                        </span>
-                        <span className="hidden sm:flex flex-col leading-none">
-                            <span className="font-serif text-[15px] md:text-base text-mist-100 group-hover:text-mist-50 transition-colors tracking-tight">
-                                {t.header.title}
-                            </span>
-                        </span>
-                    </button>
+    const isActive = (href: string) => pathname === href || pathname?.startsWith(`${href}/`);
 
-                    {/* Desktop nav (centered) */}
-                    <nav className="hidden lg:flex items-center">
-                        {navLinks.map(link => (
+    const ThemeIcon = theme === 'dark' ? SunIcon : MoonIcon;
+    const themeLabel = theme === 'dark' ? t.header.light : t.header.dark;
+
+    return (
+        <header ref={menuRef} className="sticky top-0 z-50 bg-panel border-b border-line">
+            <div className="page-container flex h-14 items-center gap-6">
+                <button
+                    type="button"
+                    onClick={handleLogoClick}
+                    className="flex shrink-0 items-center gap-2.5"
+                >
+                    <Image
+                        src="/logo.png"
+                        alt=""
+                        width={28}
+                        height={28}
+                        className="h-7 w-7 rounded-sm object-cover"
+                    />
+                    <span className="text-[15px] font-semibold text-fg whitespace-nowrap">
+                        {t.header.title}
+                    </span>
+                </button>
+
+                <nav className="hidden lg:flex h-full items-stretch gap-1" aria-label="Primary">
+                    {navLinks.map((link) => {
+                        const active = isActive(link.href);
+                        return (
                             <Link
                                 key={link.href}
                                 href={link.href}
-                                className="relative px-3 xl:px-4 py-2 rounded-pill font-mono text-[11px] uppercase tracking-[0.12em] text-mist-300 hover:text-mist-50 hover:bg-white/5 transition-colors whitespace-nowrap"
+                                aria-current={active ? 'page' : undefined}
+                                className={`relative flex items-center gap-1.5 px-3 text-[13px] font-medium border-b-2 transition-colors whitespace-nowrap ${
+                                    active
+                                        ? 'border-brand text-fg'
+                                        : 'border-transparent text-text-2 hover:text-fg'
+                                }`}
                             >
                                 {link.label}
                                 {link.badge && link.badge > 0 ? (
-                                    <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-pill bg-glacier-500 text-[9px] font-bold text-obsidian flex items-center justify-center">
+                                    <span className="inline-flex min-w-[18px] h-[18px] items-center justify-center rounded-sm bg-accent px-1 text-[11px] font-semibold text-pure-white font-mono">
                                         {link.badge}
                                     </span>
                                 ) : null}
                             </Link>
-                        ))}
-                    </nav>
+                        );
+                    })}
+                </nav>
 
-                    {/* Right cluster: settings · CTA */}
-                    <div className="flex items-center gap-1.5 md:gap-2">
-                        {/* Settings (combines theme + language) */}
-                        <button
-                            type="button"
-                            onClick={() => setSettingsOpen(prev => !prev)}
-                            className="flex items-center justify-center w-9 h-9 rounded-pill border border-white/10 hover:bg-white/5 hover:border-white/20 transition-all cursor-pointer"
-                            title={t.header.settings}
-                            aria-label={t.header.settings}
-                            aria-expanded={settingsOpen}
-                            aria-haspopup="menu"
-                        >
-                            <SettingsIcon size={16} className="text-mist-200" />
-                        </button>
-
-                        {/* Mobile hamburger */}
-                        <button
-                            type="button"
-                            onClick={() => setMobileMenuOpen(prev => !prev)}
-                            className="lg:hidden flex items-center justify-center w-9 h-9 rounded-pill border border-white/10 hover:bg-white/5 transition-all"
-                            aria-label={mobileMenuOpen ? t.header.closeMenu : t.header.openMenu}
-                            aria-expanded={mobileMenuOpen}
-                            aria-controls="mobile-nav-sheet"
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-mist-200">
-                                {mobileMenuOpen ? (
-                                    <>
-                                        <line x1="18" y1="6" x2="6" y2="18" />
-                                        <line x1="6" y1="6" x2="18" y2="18" />
-                                    </>
-                                ) : (
-                                    <>
-                                        <line x1="4" y1="7" x2="20" y2="7" />
-                                        <line x1="4" y1="12" x2="20" y2="12" />
-                                        <line x1="4" y1="17" x2="20" y2="17" />
-                                    </>
-                                )}
-                            </svg>
-                        </button>
-
-                        {/* Desktop primary CTA — pill */}
-                        <Link
-                            href={feedbackHref}
-                            className="hidden xl:inline-flex pill-btn !py-2 !px-4 !text-[10px]"
-                        >
-                            {t.header.contact}
-                        </Link>
-                    </div>
-                </div>
-
-                {/* Mobile dropdown sheet (lives inside the pill so it shares
-                    the rounded surface and overflow clipping). */}
-                <AnimatePresence initial={false}>
-                    {mobileMenuOpen && (
-                        <motion.div
-                            id="mobile-nav-sheet"
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-                            className="lg:hidden overflow-hidden"
-                        >
-                            {/* Horizontal padding is generous so menu items
-                                clear the 24px corner radius on both sides;
-                                pb-5 keeps the last row well clear of the
-                                bottom curve. */}
-                            <nav className="flex flex-col gap-0.5 px-4 pt-3 pb-5 border-t border-white/10 mt-1">
-                                <div className="flex items-center justify-between px-1 pb-2">
-                                    <span className="mono-kicker">Menu</span>
-                                </div>
-                                {navLinks.map(link => (
-                                    <Link
-                                        key={link.href}
-                                        href={link.href}
-                                        className="flex items-center justify-between gap-3 px-3 py-3 min-h-[44px] rounded-md text-sm font-mono uppercase tracking-[0.1em] text-mist-300 hover:text-mist-50 hover:bg-white/5 transition-colors"
-                                    >
-                                        <span className="truncate">{link.label}</span>
-                                        {link.badge && link.badge > 0 ? (
-                                            <span className="shrink-0 inline-flex items-center justify-center min-w-[20px] h-5 px-1 rounded-pill bg-glacier-500 text-[10px] font-bold text-obsidian">
-                                                {link.badge}
-                                            </span>
-                                        ) : null}
-                                    </Link>
-                                ))}
-                            </nav>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
-
-            {/* Settings dropdown — sits outside the pill's overflow-hidden so
-                it can float beneath the navbar without being clipped. */}
-            <AnimatePresence initial={false}>
-                {settingsOpen && (
-                    <motion.div
-                        id="settings-menu"
-                        role="menu"
-                        aria-label={t.header.settings}
-                        initial={{ opacity: 0, y: -6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -6 }}
-                        transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
-                        className="absolute right-2 md:right-3 top-full mt-2 w-[260px] glass-card rounded-2xl shadow-lg p-4 z-10"
+                <div className="ml-auto flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setLocale(locale === 'zh' ? 'en' : 'zh')}
+                        className="btn-ghost !h-8 !px-2.5 !text-[13px] !font-medium"
+                        aria-label={t.header.language}
+                        title={t.header.language}
                     >
-                        <div className="space-y-4">
-                            {/* Theme */}
-                            <div>
-                                <div className="mono-kicker mb-2">{t.header.theme}</div>
-                                <div
-                                    role="radiogroup"
-                                    aria-label={t.header.theme}
-                                    className="flex p-1 rounded-pill border border-white/10 bg-white/5"
-                                >
-                                    <button
-                                        type="button"
-                                        role="radio"
-                                        aria-checked={theme === 'light'}
-                                        onClick={() => { if (theme !== 'light') toggleTheme(); }}
-                                        className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-pill text-[11px] font-mono uppercase tracking-[0.12em] transition-colors ${
-                                            theme === 'light'
-                                                ? 'bg-glacier-500 text-obsidian'
-                                                : 'text-mist-300 hover:text-mist-100'
-                                        }`}
-                                    >
-                                        <SunIcon size={13} />
-                                        <span>{t.header.light}</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        role="radio"
-                                        aria-checked={theme === 'dark'}
-                                        onClick={() => { if (theme !== 'dark') toggleTheme(); }}
-                                        className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-pill text-[11px] font-mono uppercase tracking-[0.12em] transition-colors ${
-                                            theme === 'dark'
-                                                ? 'bg-glacier-500 text-obsidian'
-                                                : 'text-mist-300 hover:text-mist-100'
-                                        }`}
-                                    >
-                                        <MoonIcon size={13} />
-                                        <span>{t.header.dark}</span>
-                                    </button>
-                                </div>
-                            </div>
+                        {locale === 'zh' ? 'EN' : '中文'}
+                    </button>
 
-                            {/* Language */}
-                            <div>
-                                <div className="mono-kicker mb-2">{t.header.language}</div>
-                                <div
-                                    role="radiogroup"
-                                    aria-label={t.header.language}
-                                    className="flex p-1 rounded-pill border border-white/10 bg-white/5"
-                                >
-                                    <button
-                                        type="button"
-                                        role="radio"
-                                        aria-checked={locale === 'zh'}
-                                        onClick={() => { if (locale !== 'zh') setLocale('zh'); setSettingsOpen(false); }}
-                                        className={`flex-1 px-3 py-1.5 rounded-pill text-[11px] font-mono uppercase tracking-[0.12em] transition-colors ${
-                                            locale === 'zh'
-                                                ? 'bg-glacier-500 text-obsidian'
-                                                : 'text-mist-300 hover:text-mist-100'
-                                        }`}
-                                    >
-                                        中文
-                                    </button>
-                                    <button
-                                        type="button"
-                                        role="radio"
-                                        aria-checked={locale === 'en'}
-                                        onClick={() => { if (locale !== 'en') setLocale('en'); setSettingsOpen(false); }}
-                                        className={`flex-1 px-3 py-1.5 rounded-pill text-[11px] font-mono uppercase tracking-[0.12em] transition-colors ${
-                                            locale === 'en'
-                                                ? 'bg-glacier-500 text-obsidian'
-                                                : 'text-mist-300 hover:text-mist-100'
-                                        }`}
-                                    >
-                                        EN
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                    <button
+                        type="button"
+                        onClick={toggleTheme}
+                        className="btn-ghost !h-8 !w-8 !p-0"
+                        aria-label={themeLabel}
+                        title={themeLabel}
+                    >
+                        <ThemeIcon size={16} />
+                    </button>
+
+                    <Link href={feedbackHref} className="hidden md:inline-flex btn-secondary !h-8 !px-3">
+                        {t.header.contact}
+                    </Link>
+
+                    <button
+                        type="button"
+                        onClick={() => setMobileMenuOpen((prev) => !prev)}
+                        className="lg:hidden btn-ghost !h-8 !w-8 !p-0"
+                        aria-label={mobileMenuOpen ? t.header.closeMenu : t.header.openMenu}
+                        aria-expanded={mobileMenuOpen}
+                        aria-controls="mobile-nav-sheet"
+                    >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            {mobileMenuOpen ? (
+                                <>
+                                    <line x1="18" y1="6" x2="6" y2="18" />
+                                    <line x1="6" y1="6" x2="18" y2="18" />
+                                </>
+                            ) : (
+                                <>
+                                    <line x1="4" y1="7" x2="20" y2="7" />
+                                    <line x1="4" y1="12" x2="20" y2="12" />
+                                    <line x1="4" y1="17" x2="20" y2="17" />
+                                </>
+                            )}
+                        </svg>
+                    </button>
+                </div>
             </div>
+
+            {mobileMenuOpen && (
+                <nav id="mobile-nav-sheet" className="lg:hidden border-t border-line bg-panel" aria-label="Primary">
+                    <div className="page-container py-2">
+                        {[...navLinks, { href: feedbackHref, label: t.header.contact, badge: 0 }].map((link) => {
+                            const active = isActive(link.href);
+                            return (
+                                <Link
+                                    key={link.href}
+                                    href={link.href}
+                                    aria-current={active ? 'page' : undefined}
+                                    className={`flex min-h-[44px] items-center justify-between border-l-2 px-3 text-sm font-medium ${
+                                        active
+                                            ? 'border-brand bg-hover text-fg'
+                                            : 'border-transparent text-text-2 hover:bg-hover hover:text-fg'
+                                    }`}
+                                >
+                                    <span>{link.label}</span>
+                                    {link.badge && link.badge > 0 ? (
+                                        <span className="inline-flex min-w-[20px] h-5 items-center justify-center rounded-sm bg-accent px-1 text-[11px] font-semibold text-pure-white font-mono">
+                                            {link.badge}
+                                        </span>
+                                    ) : null}
+                                </Link>
+                            );
+                        })}
+                    </div>
+                </nav>
+            )}
         </header>
     );
 }

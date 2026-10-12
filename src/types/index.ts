@@ -1,3 +1,7 @@
+import type { AnalystConsensus, KeyStatistics } from '@/lib/yahoo/normalize';
+
+export type { AnalystConsensus, KeyStatistics };
+
 export interface CompanyProfile {
   symbol: string;
   companyName: string;
@@ -554,6 +558,12 @@ export interface ReportData {
   incomeStatementsQuarter?: IncomeStatement[];
   balanceSheetsQuarter?: BalanceSheet[];
   cashFlowStatementsQuarter?: CashFlowStatement[];
+
+  // 分析师一致预期与关键统计（Yahoo Finance）
+  analystConsensus?: AnalystConsensus | null;
+  keyStats?: KeyStatistics | null;
+  // 本份报告实际用到的数据源，用于页面署名
+  dataSources?: string[];
 
   // 报告生成时间
   reportGeneratedAt?: string;

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/Header';
+import PageHeader from '@/components/PageHeader';
 import CompanyOverviewModal from '@/components/CompanyOverviewModal';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { withLocale } from '@/lib/locale-path';
@@ -51,21 +52,21 @@ interface DetailData {
 }
 
 const darkPanelStyle = {
-  backgroundColor: '#121212',
-  borderColor: 'rgba(255, 255, 255, 0.12)',
+  backgroundColor: 'rgb(var(--c-panel))',
+  borderColor: 'var(--line)',
 } as const;
 
 const darkTableHeaderStyle = {
-  backgroundColor: 'rgba(255, 255, 255, 0.02)',
+  backgroundColor: 'rgb(var(--c-raised))',
 } as const;
 
 const POSITION_COLOR: Record<ValueChainPosition, string> = {
-  upstream: '#88ABDA',
-  midstream: '#C0D09D',
-  downstream: '#CB523E',
-  platform: '#BADBEE',
-  service: '#DFD6B8',
-  infrastructure: '#98B6C2',
+  upstream: '#4A86E8',
+  midstream: '#3FA66B',
+  downstream: '#D9534F',
+  platform: '#8DB4E2',
+  service: '#C9A227',
+  infrastructure: '#7FA3BF',
 };
 
 export default function IndustryDetailPage() {
@@ -204,33 +205,33 @@ export default function IndustryDetailPage() {
         avgGrowth: s.avgGrowth,
         position: s.position,
         itemStyle: {
-          color: s.position ? POSITION_COLOR[s.position] : '#88ABDA',
+          color: s.position ? POSITION_COLOR[s.position] : '#4A86E8',
         },
       }));
 
     return {
-      backgroundColor: isDark ? '#121212' : 'transparent',
+      backgroundColor: 'transparent',
       tooltip: {
         trigger: 'item',
-        backgroundColor: isDark ? '#121212' : '#ffffff',
-        borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-        textStyle: { color: isDark ? '#e2e8f0' : '#1e293b', fontFamily: 'Inter', fontSize: 12 },
+        backgroundColor: isDark ? '#1B1F24' : '#FFFFFF',
+        borderColor: isDark ? 'rgba(236,238,241,0.14)' : 'rgba(23,25,28,0.14)',
+        textStyle: { color: isDark ? '#D8DCE2' : '#222222', fontFamily: 'Inter', fontSize: 12 },
         formatter: (params: any) => {
           const d = params.data;
           if (!d) return '';
           return `<div style="font-family:Inter;min-width:160px">
             <div style="font-weight:600;margin-bottom:4px">${stripEmoji(d.name)}</div>
-            <div style="font-family:'JetBrains Mono';font-size:11px;display:flex;justify-content:space-between;gap:12px">
+            <div style="font-family:Inter,system-ui,sans-serif;font-size:11px;display:flex;justify-content:space-between;gap:12px">
               <span style="opacity:0.6">${t.industry.detail.segmentMarketCap}</span>
               <span>${formatMarketCap(d.value, locale)}</span>
             </div>
-            <div style="font-family:'JetBrains Mono';font-size:11px;display:flex;justify-content:space-between;gap:12px">
+            <div style="font-family:Inter,system-ui,sans-serif;font-size:11px;display:flex;justify-content:space-between;gap:12px">
               <span style="opacity:0.6">${t.industry.detail.segmentShare}</span>
               <span>${d.share.toFixed(1)}%</span>
             </div>
-            <div style="font-family:'JetBrains Mono';font-size:11px;display:flex;justify-content:space-between;gap:12px">
+            <div style="font-family:Inter,system-ui,sans-serif;font-size:11px;display:flex;justify-content:space-between;gap:12px">
               <span style="opacity:0.6">${t.industry.detail.companyTableCols.revenueGrowth}</span>
-              <span style="color:${d.avgGrowth >= 0 ? '#10B981' : '#EF4444'}">${d.avgGrowth > 0 ? '+' : ''}${d.avgGrowth}%</span>
+              <span style="color:${d.avgGrowth >= 0 ? (isDark ? '#26BA69' : '#0C803E') : (isDark ? '#F05050' : '#CF222E')}">${d.avgGrowth > 0 ? '+' : ''}${d.avgGrowth}%</span>
             </div>
           </div>`;
         },
@@ -238,10 +239,14 @@ export default function IndustryDetailPage() {
       series: [
         {
           type: 'treemap',
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: 0,
           roam: false,
           nodeClick: false,
           breadcrumb: { show: false },
-          itemStyle: { borderColor: isDark ? '#0A0A0B' : '#F8FAFC', borderWidth: 2, gapWidth: 2 },
+          itemStyle: { borderColor: isDark ? '#15181C' : '#FFFFFF', borderWidth: 2, gapWidth: 2 },
           label: {
             show: true,
             formatter: (params: any) => {
@@ -250,8 +255,8 @@ export default function IndustryDetailPage() {
               return `{name|${stripEmoji(d.name)}}\n{val|${d.share.toFixed(1)}%}`;
             },
             rich: {
-              name: { fontSize: 12, fontWeight: 600, fontFamily: 'Inter', color: '#0F0E0B', lineHeight: 18 },
-              val: { fontSize: 10, fontFamily: '"JetBrains Mono"', color: 'rgba(15,14,11,0.7)', lineHeight: 14 },
+              name: { fontSize: 12, fontWeight: 600, fontFamily: 'Inter', color: '#FFFFFF', lineHeight: 18 },
+              val: { fontSize: 10, fontFamily: 'Inter, system-ui, sans-serif', color: 'rgba(255,255,255,0.8)', lineHeight: 14 },
             },
           },
           data: items,
@@ -266,18 +271,24 @@ export default function IndustryDetailPage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-obsidian)' }}>
+    <div className="min-h-screen" style={{ backgroundColor: 'rgb(var(--c-page))' }}>
       <Header theme={theme} toggleTheme={toggleTheme} />
 
-      <main className="max-w-7xl mx-auto px-4 md:px-6 pt-28 pb-16">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm mb-6">
-          <Link href={withLocale(locale, '/industry')} className="text-glacier-500 hover:text-glacier-400 transition-colors">
-            {t.industry.detail.backToOverview}
-          </Link>
-          <span className="text-mist-500">/</span>
-          <span style={{ color: 'var(--text-primary)' }}>{sectorName}</span>
-        </div>
+      <PageHeader
+        eyebrow={
+          <span className="flex items-center gap-1.5">
+            <Link href={withLocale(locale, '/industry')} className="text-accent hover:underline">
+              {t.industry.detail.backToOverview}
+            </Link>
+            <span>/</span>
+            <span>{t.industry.detail.sectorPanorama}</span>
+          </span>
+        }
+        title={sectorName}
+        subtitle={data?.overview ? (locale === 'zh' ? data.overview.zh : data.overview.en) : undefined}
+      />
+
+      <main className="page-container py-6">
 
         {loading ? (
           <div className="flex items-center justify-center py-32">
@@ -295,19 +306,6 @@ export default function IndustryDetailPage() {
           </div>
         ) : data ? (
           <div className="space-y-6">
-            {/* Sector title + overview narrative */}
-            <div>
-              <div className="mono-kicker text-mist-500 mb-2">{t.industry.detail.sectorPanorama}</div>
-              <h1 className="text-2xl md:text-3xl font-bold mb-3" style={{ color: 'var(--text-heading)' }}>
-                {sectorName}
-              </h1>
-              {data.overview && (
-                <p className="text-sm md:text-base leading-relaxed max-w-4xl" style={{ color: 'var(--text-secondary)' }}>
-                  {locale === 'zh' ? data.overview.zh : data.overview.en}
-                </p>
-              )}
-            </div>
-
             {/* Overview Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {(() => {
@@ -327,9 +325,9 @@ export default function IndustryDetailPage() {
                   });
                 }
                 return stats.map((stat) => (
-                  <div key={stat.label} className="gemini-card p-4 transition-colors hover:border-white/20" style={isDark ? darkPanelStyle : undefined}>
+                  <div key={stat.label} className="panel p-4 transition-colors hover:border-white/20" style={isDark ? darkPanelStyle : undefined}>
                     <div className="text-xs text-mist-500 mb-1">{stat.label}</div>
-                    <div className={`text-lg font-mono font-semibold ${stat.color || ''}`} style={stat.color ? undefined : { color: 'var(--text-heading)' }}>
+                    <div className={`text-lg font-mono font-semibold ${stat.color || ''}`} style={stat.color ? undefined : { color: 'rgb(var(--c-fg))' }}>
                       {stat.value}
                     </div>
                   </div>
@@ -338,7 +336,7 @@ export default function IndustryDetailPage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-1 p-1 rounded-md w-fit border" style={isDark ? darkPanelStyle : { backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)' }}>
+            <div className="flex gap-1 p-1 rounded-md w-fit border" style={isDark ? darkPanelStyle : { backgroundColor: 'rgb(var(--c-panel))', border: '1px solid var(--line)' }}>
               {(['structure', 'companies', 'news'] as const).map((tab) => {
                 const labels = {
                   structure: t.industry.detail.structure,
@@ -365,12 +363,12 @@ export default function IndustryDetailPage() {
               <div className="space-y-6">
                 {/* Segment treemap */}
                 {data.segments.some((s) => s.totalMarketCap > 0) && (
-                  <section className="gemini-card p-4 md:p-6" style={isDark ? darkPanelStyle : undefined}>
+                  <section className="panel p-4 md:p-6" style={isDark ? darkPanelStyle : undefined}>
                     <div className="flex items-baseline justify-between mb-1">
-                      <h3 className="text-sm font-semibold" style={{ color: 'var(--text-heading)' }}>
+                      <h3 className="text-sm font-semibold" style={{ color: 'rgb(var(--c-fg))' }}>
                         {t.industry.detail.segmentDistribution}
                       </h3>
-                      <span className="text-[10px] mono-kicker text-mist-500">
+                      <span className="text-[10px] label-caps text-mist-500">
                         {t.industry.detail.segmentDistributionHint}
                       </span>
                     </div>
@@ -380,8 +378,8 @@ export default function IndustryDetailPage() {
                     <div
                       className="rounded-sm p-2"
                       style={{
-                        backgroundColor: isDark ? '#121212' : 'transparent',
-                        border: isDark ? '1px solid rgba(255,255,255,0.08)' : undefined,
+                        backgroundColor: 'transparent',
+                        border: '1px solid var(--line)',
                       }}
                     >
                       <ReactECharts
@@ -397,7 +395,7 @@ export default function IndustryDetailPage() {
                 {/* Segment cards */}
                 <section className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold" style={{ color: 'var(--text-heading)' }}>
+                    <h3 className="text-sm font-semibold" style={{ color: 'rgb(var(--c-fg))' }}>
                       {t.industry.detail.segmentList}
                     </h3>
                     <div className="flex gap-2 text-xs">
@@ -429,7 +427,7 @@ export default function IndustryDetailPage() {
                     return (
                       <article
                         key={segment.id}
-                        className="gemini-card overflow-hidden transition-colors"
+                        className="panel overflow-hidden transition-colors"
                         style={isDark ? darkPanelStyle : undefined}
                       >
                         {/* Card header (clickable) */}
@@ -439,7 +437,7 @@ export default function IndustryDetailPage() {
                         >
                           <div className="flex items-start justify-between gap-4 mb-2">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <h4 className="text-base font-semibold" style={{ color: 'var(--text-heading)' }}>
+                              <h4 className="text-base font-semibold" style={{ color: 'rgb(var(--c-fg))' }}>
                                 {stripEmoji(segName)}
                               </h4>
                               {positionTag && positionColor && (
@@ -459,7 +457,7 @@ export default function IndustryDetailPage() {
                             </div>
                             <div className="flex items-center gap-3 shrink-0">
                               {segment.totalMarketCap > 0 && (
-                                <span className="text-xs font-mono" style={{ color: 'var(--text-primary)' }}>
+                                <span className="text-xs font-mono" style={{ color: 'rgb(var(--c-text-1))' }}>
                                   {formatMarketCap(segment.totalMarketCap, locale)}
                                 </span>
                               )}
@@ -471,7 +469,7 @@ export default function IndustryDetailPage() {
                               <span className={`text-mist-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
                             </div>
                           </div>
-                          <p className="text-xs md:text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                          <p className="text-xs md:text-sm leading-relaxed" style={{ color: 'rgb(var(--c-text-2))' }}>
                             {stripEmoji(segDesc)}
                           </p>
                           {themes.length > 0 && (
@@ -480,7 +478,7 @@ export default function IndustryDetailPage() {
                                 <span
                                   key={idx}
                                   className="px-2 py-0.5 text-[10px] rounded-sm border border-white/10 text-mist-400"
-                                  style={isDark ? { backgroundColor: 'rgba(255,255,255,0.02)' } : undefined}
+                                  
                                 >
                                   {stripEmoji(theme)}
                                 </span>
@@ -491,7 +489,7 @@ export default function IndustryDetailPage() {
 
                         {/* Expanded company table */}
                         {isExpanded && (
-                          <div className="border-t" style={{ borderColor: 'var(--border-color)' }}>
+                          <div className="border-t" style={{ borderColor: 'var(--line)' }}>
                             <div className="overflow-x-auto">
                               <table className="w-full text-sm">
                                 <thead>
@@ -509,7 +507,7 @@ export default function IndustryDetailPage() {
                                     <tr
                                       key={co.symbol}
                                       className={`border-t cursor-pointer transition-colors hover:bg-white/5 ${loadingCompany === co.symbol ? 'opacity-60' : ''}`}
-                                      style={{ borderColor: 'var(--border-color)' }}
+                                      style={{ borderColor: 'var(--line)' }}
                                       onClick={() => handleCompanyClick(co.symbol)}
                                     >
                                       <td className="px-4 md:px-5 py-3 font-mono text-xs text-glacier-500 whitespace-nowrap align-top">
@@ -517,11 +515,11 @@ export default function IndustryDetailPage() {
                                       </td>
                                       <td className="px-2 md:px-3 py-3">
                                         <div className="flex flex-col gap-0.5">
-                                          <span className="text-xs md:text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                                          <span className="text-xs md:text-sm font-medium" style={{ color: 'rgb(var(--c-text-1))' }}>
                                             {stripEmoji(co.name)}
                                           </span>
                                           {co.note && (
-                                            <span className="text-[11px] md:text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                                            <span className="text-[11px] md:text-xs leading-relaxed" style={{ color: 'rgb(var(--c-text-2))' }}>
                                               {stripEmoji(locale === 'zh' ? co.note.zh : co.note.en)}
                                             </span>
                                           )}
@@ -543,9 +541,9 @@ export default function IndustryDetailPage() {
 
             {/* Companies tab */}
             {activeTab === 'companies' && (
-              <section className="gemini-card overflow-hidden" style={isDark ? darkPanelStyle : undefined}>
+              <section className="panel overflow-hidden" style={isDark ? darkPanelStyle : undefined}>
                 <div className="p-4 md:p-6 pb-3">
-                  <h3 className="text-sm font-semibold" style={{ color: 'var(--text-heading)' }}>
+                  <h3 className="text-sm font-semibold" style={{ color: 'rgb(var(--c-fg))' }}>
                     {t.industry.detail.companyTable}
                   </h3>
                   <p className="text-xs text-mist-500 mt-1">{t.industry.detail.companyTableDesc}</p>
@@ -553,7 +551,7 @@ export default function IndustryDetailPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b" style={{ borderColor: 'var(--border-color)', ...(isDark ? darkTableHeaderStyle : {}) }}>
+                      <tr className="border-b" style={{ borderColor: 'var(--line)', ...(isDark ? darkTableHeaderStyle : {}) }}>
                         <th className="text-left px-4 md:px-6 py-2 text-mist-500 font-medium text-[10px] uppercase tracking-wider w-20">
                           {t.industry.detail.companyTableCols.symbol}
                         </th>
@@ -568,8 +566,8 @@ export default function IndustryDetailPage() {
                           key={c.symbol}
                           className="border-b cursor-pointer transition-colors hover:bg-white/5"
                           style={{
-                            borderColor: 'var(--border-color)',
-                            backgroundColor: isDark && idx % 2 === 1 ? 'rgba(255,255,255,0.012)' : undefined,
+                            borderColor: 'var(--line)',
+                            
                           }}
                           onClick={() => handleCompanyClick(c.symbol)}
                         >
@@ -578,9 +576,9 @@ export default function IndustryDetailPage() {
                           </td>
                           <td className="px-4 md:px-6 py-3">
                             <div className="flex flex-col gap-0.5">
-                              <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{stripEmoji(c.name)}</span>
+                              <span className="font-medium" style={{ color: 'rgb(var(--c-text-1))' }}>{stripEmoji(c.name)}</span>
                               {c.note && (
-                                <span className="text-[11px] md:text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                                <span className="text-[11px] md:text-xs leading-relaxed" style={{ color: 'rgb(var(--c-text-2))' }}>
                                   {stripEmoji(locale === 'zh' ? c.note.zh : c.note.en)}
                                 </span>
                               )}
@@ -596,8 +594,8 @@ export default function IndustryDetailPage() {
 
             {/* News tab */}
             {activeTab === 'news' && (
-              <section className="gemini-card p-4 md:p-6" style={isDark ? darkPanelStyle : undefined}>
-                <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--text-heading)' }}>
+              <section className="panel p-4 md:p-6" style={isDark ? darkPanelStyle : undefined}>
+                <h3 className="text-sm font-semibold mb-4" style={{ color: 'rgb(var(--c-fg))' }}>
                   {t.industry.detail.news}
                 </h3>
                 {data.news.length === 0 ? (
@@ -627,7 +625,7 @@ export default function IndustryDetailPage() {
                               : t.industry.detail.newsNeutral}
                         </span>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm leading-snug" style={{ color: 'var(--text-primary)' }}>
+                          <p className="text-sm leading-snug" style={{ color: 'rgb(var(--c-text-1))' }}>
                             {stripEmoji(n.title)}
                           </p>
                           <div className="flex items-center gap-2 mt-1 text-[10px] text-mist-500 font-mono">

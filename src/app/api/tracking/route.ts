@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { FMPClient } from '@/lib/fmp';
+import { fetchQuoteWithHistory } from '@/lib/market-data';
 
 export const maxDuration = 60;
+
+const MAX_SYMBOLS = 50;
 
 export async function POST(request: NextRequest) {
     try {
@@ -11,39 +13,18 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: '请提供股票代码列表' }, { status: 400 });
         }
 
-        const fmpApiKey = process.env.FMP_API_KEY;
-        if (!fmpApiKey) {
-            return NextResponse.json({ error: 'FMP API 密钥未配置' }, { status: 500 });
-        }
+        const list = symbols
+            .filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
+            .slice(0, MAX_SYMBOLS);
 
-        const fmp = new FMPClient(fmpApiKey);
-
-        // 并行获取所有股票的实时行情和简要历史数据
+        // 一次 chart 请求同时返回最新价与近一个月日线
         const results = await Promise.all(
-            symbols.map(async (symbol) => {
+            list.map(async (symbol) => {
                 try {
-                    const [quote, historyData] = await Promise.all([
-                        fmp.getQuote(symbol),
-                        // 获取一个月的历史数据用于趋势图
-                        fmp.getHistoricalPrice(symbol, undefined, undefined)
-                    ]);
-
-                    // Debug: 打印历史数据格式
-                    if (historyData && symbol === 'AAPL') {
-                        console.log('Historical data sample for AAPL:', JSON.stringify(historyData).substring(0, 500));
-                    }
-
-                    // FMP stable API 直接返回数组，取前30条（最近一个月）
-                    const history = Array.isArray(historyData) ? historyData.slice(0, 30) :
-                        (historyData as any)?.historical?.slice(0, 30) || [];
-
-                    return {
-                        symbol,
-                        quote: (quote as any[])[0] || null,
-                        history,
-                    };
-                } catch (e) {
-                    console.error(`Error fetching data for ${symbol}:`, e);
+                    const { quote, history } = await fetchQuoteWithHistory(symbol, '1mo');
+                    return { symbol, quote, history };
+                } catch (e: any) {
+                    console.error(`Error fetching data for ${symbol}:`, e?.message || e);
                     return { symbol, quote: null, history: [], error: true };
                 }
             })

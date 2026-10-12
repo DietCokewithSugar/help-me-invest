@@ -12,40 +12,8 @@ export interface MarketConfig {
   // 股票代码格式说明
   symbolFormat: string;
   symbolExample: string;
-  // FMP 股票代码后缀（如果需要）
+  // 股票代码后缀（与 Yahoo Finance 一致）
   symbolSuffix?: string;
-  // 该市场支持的数据类型
-  supportedFeatures: {
-    // 基础数据
-    profile: boolean;
-    quote: boolean;
-    peers: boolean;
-    // 财务报表
-    incomeStatement: boolean;
-    balanceSheet: boolean;
-    cashFlow: boolean;
-    // 关键指标
-    keyMetrics: boolean;
-    financialRatios: boolean;
-    financialGrowth: boolean;
-    // 估值
-    dcf: boolean;
-    enterpriseValue: boolean;
-    // 事件
-    earningsCalendar: boolean;
-    dividendHistory: boolean;
-    stockSplits: boolean;
-    // 持仓（仅美股）
-    institutionalHolders: boolean;
-    insiderTrading: boolean;
-    mutualFundHolders: boolean;
-    etfHolders: boolean;
-    // 其他
-    news: boolean;
-    earningsTranscript: boolean;
-    historicalPrices: boolean;
-    analystRatings: boolean;
-  };
   // 热门股票
   featuredStocks: { symbol: string; name: string }[];
 }
@@ -61,30 +29,6 @@ export const MARKET_CONFIGS: Record<MarketType, MarketConfig> = {
     exchanges: ['NYSE', 'NASDAQ', 'AMEX'],
     symbolFormat: '直接输入股票代码',
     symbolExample: 'AAPL, TSLA, NVDA',
-    supportedFeatures: {
-      profile: true,
-      quote: true,
-      peers: true,
-      incomeStatement: true,
-      balanceSheet: true,
-      cashFlow: true,
-      keyMetrics: true,
-      financialRatios: true,
-      financialGrowth: true,
-      dcf: true,
-      enterpriseValue: true,
-      earningsCalendar: true,
-      dividendHistory: true,
-      stockSplits: true,
-      institutionalHolders: true,
-      insiderTrading: true,
-      mutualFundHolders: true,
-      etfHolders: true,
-      news: true,
-      earningsTranscript: true,
-      historicalPrices: true,
-      analystRatings: true,
-    },
     featuredStocks: [
       { symbol: 'AAPL', name: 'Apple' },
       { symbol: 'TSLA', name: 'Tesla' },
@@ -104,30 +48,6 @@ export const MARKET_CONFIGS: Record<MarketType, MarketConfig> = {
     symbolFormat: '股票代码 + 交易所后缀',
     symbolExample: '600519.SS (茅台), 000001.SZ (平安)',
     symbolSuffix: '.SS/.SZ',
-    supportedFeatures: {
-      profile: true,
-      quote: true,
-      peers: false, // FMP 可能不支持 A 股的同业比较
-      incomeStatement: true,
-      balanceSheet: true,
-      cashFlow: true,
-      keyMetrics: true,
-      financialRatios: true,
-      financialGrowth: true,
-      dcf: true,
-      enterpriseValue: true,
-      earningsCalendar: false,
-      dividendHistory: true,
-      stockSplits: true,
-      institutionalHolders: false,
-      insiderTrading: false,
-      mutualFundHolders: false,
-      etfHolders: false,
-      news: false, // FMP 新闻可能不覆盖 A 股
-      earningsTranscript: false,
-      historicalPrices: true,
-      analystRatings: false,
-    },
     featuredStocks: [
       { symbol: '600519.SS', name: '贵州茅台' },
       { symbol: '000001.SZ', name: '平安银行' },
@@ -146,30 +66,6 @@ export const MARKET_CONFIGS: Record<MarketType, MarketConfig> = {
     symbolFormat: '股票代码 + .HK 后缀',
     symbolExample: '0700.HK (腾讯), 9988.HK (阿里)',
     symbolSuffix: '.HK',
-    supportedFeatures: {
-      profile: true,
-      quote: true,
-      peers: false,
-      incomeStatement: true,
-      balanceSheet: true,
-      cashFlow: true,
-      keyMetrics: true,
-      financialRatios: true,
-      financialGrowth: true,
-      dcf: true,
-      enterpriseValue: true,
-      earningsCalendar: false,
-      dividendHistory: true,
-      stockSplits: true,
-      institutionalHolders: false,
-      insiderTrading: false,
-      mutualFundHolders: false,
-      etfHolders: false,
-      news: false,
-      earningsTranscript: false,
-      historicalPrices: true,
-      analystRatings: false,
-    },
     featuredStocks: [
       { symbol: '0700.HK', name: '腾讯控股' },
       { symbol: '9988.HK', name: '阿里巴巴' },
@@ -191,30 +87,6 @@ export const MARKET_CONFIGS: Record<MarketType, MarketConfig> = {
     symbolFormat: '股票代码 + .T 后缀',
     symbolExample: '7203.T (丰田), 6758.T (索尼)',
     symbolSuffix: '.T',
-    supportedFeatures: {
-      profile: true,
-      quote: true,
-      peers: false,
-      incomeStatement: true,
-      balanceSheet: true,
-      cashFlow: true,
-      keyMetrics: true,
-      financialRatios: true,
-      financialGrowth: true,
-      dcf: true,
-      enterpriseValue: true,
-      earningsCalendar: false,
-      dividendHistory: true,
-      stockSplits: true,
-      institutionalHolders: false,
-      insiderTrading: false,
-      mutualFundHolders: false,
-      etfHolders: false,
-      news: false,
-      earningsTranscript: false,
-      historicalPrices: true,
-      analystRatings: false,
-    },
     featuredStocks: [
       { symbol: '7203.T', name: '丰田汽车' },
       { symbol: '6758.T', name: '索尼' },
@@ -236,30 +108,6 @@ export const MARKET_CONFIGS: Record<MarketType, MarketConfig> = {
     symbolFormat: '股票代码 + .KS / .KQ 后缀',
     symbolExample: '005930.KS (三星电子), 035420.KS (NAVER)',
     symbolSuffix: '.KS/.KQ',
-    supportedFeatures: {
-      profile: true,
-      quote: true,
-      peers: false,
-      incomeStatement: true,
-      balanceSheet: true,
-      cashFlow: true,
-      keyMetrics: true,
-      financialRatios: true,
-      financialGrowth: true,
-      dcf: true,
-      enterpriseValue: true,
-      earningsCalendar: false,
-      dividendHistory: true,
-      stockSplits: true,
-      institutionalHolders: false,
-      insiderTrading: false,
-      mutualFundHolders: false,
-      etfHolders: false,
-      news: false,
-      earningsTranscript: false,
-      historicalPrices: true,
-      analystRatings: false,
-    },
     featuredStocks: [
       { symbol: '005930.KS', name: '三星电子' },
       { symbol: '000660.KS', name: 'SK海力士' },
@@ -281,30 +129,6 @@ export const MARKET_CONFIGS: Record<MarketType, MarketConfig> = {
     symbolFormat: '股票代码 + .AX 后缀',
     symbolExample: 'CBA.AX (澳洲联邦银行), BHP.AX (必和必拓)',
     symbolSuffix: '.AX',
-    supportedFeatures: {
-      profile: true,
-      quote: true,
-      peers: false,
-      incomeStatement: true,
-      balanceSheet: true,
-      cashFlow: true,
-      keyMetrics: true,
-      financialRatios: true,
-      financialGrowth: true,
-      dcf: true,
-      enterpriseValue: true,
-      earningsCalendar: false,
-      dividendHistory: true,
-      stockSplits: true,
-      institutionalHolders: false,
-      insiderTrading: false,
-      mutualFundHolders: false,
-      etfHolders: false,
-      news: false,
-      earningsTranscript: false,
-      historicalPrices: true,
-      analystRatings: false,
-    },
     featuredStocks: [
       { symbol: 'CBA.AX', name: '澳洲联邦银行' },
       { symbol: 'BHP.AX', name: '必和必拓' },
@@ -382,13 +206,6 @@ export function getMarketConfig(market: MarketType): MarketConfig {
   return MARKET_CONFIGS[market];
 }
 
-// 检查某个功能在特定市场是否可用
-export function isFeatureSupported(
-  market: MarketType,
-  feature: keyof MarketConfig['supportedFeatures']
-): boolean {
-  return MARKET_CONFIGS[market].supportedFeatures[feature];
-}
 
 // 获取所有市场列表
 export function getAllMarkets(): MarketConfig[] {

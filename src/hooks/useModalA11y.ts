@@ -89,7 +89,7 @@ export function useModalA11y({
     if (!isOpen) return;
     previouslyFocusedRef.current = (document.activeElement as HTMLElement) || null;
 
-    // Wait one frame so framer-motion / portal mounting can settle and the
+    // Wait one frame so portal mounting can settle and the
     // first focusable child actually exists.
     const id = window.requestAnimationFrame(() => {
       const node = dialogRef.current;

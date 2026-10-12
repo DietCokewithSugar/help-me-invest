@@ -4,8 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
 import Header from '@/components/Header';
+import PageHeader from '@/components/PageHeader';
 import CompanyOverviewModal from '@/components/CompanyOverviewModal';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { withLocale } from '@/lib/locale-path';
@@ -359,7 +359,7 @@ function MultiSelectDropdown({ label, options, selected, onChange, selectAllLabe
                 ref={buttonRef}
                 type="button"
                 onClick={handleOpen}
-                className="w-full flex items-center justify-between px-3 py-2.5 rounded-sm text-sm bg-white/5 border border-white/10 hover:border-white/20 text-text-primary transition-colors"
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-sm text-sm bg-white/5 border border-white/10 hover:border-white/20 text-text-1 transition-colors"
             >
                 <span className="truncate">
                     {selected.length === 0
@@ -368,7 +368,7 @@ function MultiSelectDropdown({ label, options, selected, onChange, selectAllLabe
                 </span>
                 <ChevronDownIcon
                     size={14}
-                    className={`text-text-muted transition-transform ml-2 flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`}
+                    className={`text-text-3 transition-transform ml-2 flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`}
                 />
             </button>
 
@@ -380,20 +380,13 @@ function MultiSelectDropdown({ label, options, selected, onChange, selectAllLabe
                         style={{ zIndex: 9998 }}
                         onClick={() => setIsOpen(false)}
                     />
-                    <motion.div
-                        initial={{ opacity: 0, y: -4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -4 }}
-                        transition={{ duration: 0.15 }}
-                        className="glass-card rounded-sm border border-white/10 shadow-xl max-h-64 overflow-hidden"
-                        style={{
+                    <div className="panel rounded-sm border border-white/10 shadow-xl max-h-64 overflow-hidden animate-fade-in" style={{
                             position: 'absolute',
                             zIndex: 9999,
                             top: dropdownPosition.top,
                             left: dropdownPosition.left,
                             width: dropdownPosition.width,
-                        }}
-                    >
+                        }}>
                         {/* 搜索框 */}
                         <div className="p-2 border-b border-white/5">
                             <label className="sr-only" htmlFor="multi-select-search">
@@ -408,7 +401,7 @@ function MultiSelectDropdown({ label, options, selected, onChange, selectAllLabe
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 placeholder={searchPlaceholder}
                                 aria-label={searchPlaceholder}
-                                className="w-full px-2 py-1.5 text-xs bg-white/5 border border-white/10 rounded-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50"
+                                className="w-full px-2 py-1.5 text-xs bg-white/5 border border-white/10 rounded-sm text-text-1 placeholder:text-text-3 focus:outline-none focus:border-accent/50"
                                 onClick={(e) => e.stopPropagation()}
                             />
                         </div>
@@ -422,11 +415,11 @@ function MultiSelectDropdown({ label, options, selected, onChange, selectAllLabe
                             >
                                 {selectAllLabel}
                             </button>
-                            <span className="text-text-muted text-[10px]">|</span>
+                            <span className="text-text-3 text-[10px]">|</span>
                             <button
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); handleDeselectAll(); }}
-                                className="text-[10px] text-text-muted hover:text-text-secondary"
+                                className="text-[10px] text-text-3 hover:text-text-2"
                             >
                                 {deselectAllLabel}
                             </button>
@@ -439,7 +432,7 @@ function MultiSelectDropdown({ label, options, selected, onChange, selectAllLabe
                                     key={option.value}
                                     type="button"
                                     onClick={(e) => { e.stopPropagation(); handleToggle(option.value); }}
-                                    className={`w-full text-left px-3 py-1.5 text-xs hover:bg-white/5 transition-colors flex items-center gap-2 ${selected.includes(option.value) ? 'text-accent' : 'text-text-secondary'
+                                    className={`w-full text-left px-3 py-1.5 text-xs hover:bg-white/5 transition-colors flex items-center gap-2 ${selected.includes(option.value) ? 'text-accent' : 'text-text-2'
                                         }`}
                                 >
                                     <div className={`w-3 h-3 rounded-sm border flex-shrink-0 flex items-center justify-center ${selected.includes(option.value)
@@ -456,10 +449,10 @@ function MultiSelectDropdown({ label, options, selected, onChange, selectAllLabe
                                 </button>
                             ))}
                             {filteredOptions.length === 0 && (
-                                <div className="px-3 py-2 text-xs text-text-muted">{noMatchLabel}</div>
+                                <div className="px-3 py-2 text-xs text-text-3">{noMatchLabel}</div>
                             )}
                         </div>
-                    </motion.div>
+                    </div>
                 </>,
                 document.body
             )}
@@ -628,9 +621,8 @@ export default function CompaniesPage() {
     }));
 
     return (
-        <div className="min-h-screen bg-main-bg transition-colors duration-200">
+        <div className="min-h-screen transition-colors duration-200">
             {/* Background Pattern */}
-            <div className="fixed inset-0 bg-pattern opacity-[0.03] dark:opacity-[0.05] pointer-events-none" />
 
             {/* Header */}
             <Header
@@ -639,54 +631,43 @@ export default function CompaniesPage() {
                 onReset={() => router.push(withLocale(locale, '/'))}
             />
 
-            {/* Main Content */}
-            <div className="pt-32 pb-12 px-4 md:px-6">
-                <div className="max-w-7xl mx-auto space-y-6">
-                    {/* Page Header */}
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                        <div>
-                            <h2 className="text-3xl md:text-4xl font-bold text-text-primary mb-2">
-                                {t.companies.title}
-                            </h2>
-                            <p className="text-text-secondary">
-                                {t.companies.subtitle}
-                            </p>
-                        </div>
-                        <div className="glass-card p-4 rounded-sm border border-white/10 dark:border-white/10 light:border-black/5 flex items-center gap-4">
-                            <div className="text-right">
-                                <div className="text-2xl font-mono font-bold text-text-primary leading-none">{total}</div>
-                                <div className="text-xs text-text-muted mt-1">{t.companies.matchingCompanies}</div>
-                            </div>
-                        </div>
+            <PageHeader
+                title={t.companies.title}
+                subtitle={t.companies.subtitle}
+                actions={
+                    <div className="text-right">
+                        <div className="font-mono text-[22px] font-semibold leading-none text-fg">{total}</div>
+                        <div className="mt-1 text-[12px] text-text-3">{t.companies.matchingCompanies}</div>
                     </div>
+                }
+            />
+
+            {/* Main Content */}
+            <div className="page-container py-6">
+                <div className="space-y-6">
 
                     {/* Filter Section - Now Vertical */}
                     <div className="space-y-4">
-                        <div className="glass-card rounded-sm border border-white/10 dark:border-white/10 light:border-black/10 overflow-hidden">
+                        <div className="panel rounded-sm border border-white/10 dark:border-white/10 overflow-hidden">
                             <button
                                 onClick={() => setIsFilterExpanded(!isFilterExpanded)}
                                 className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
                             >
-                                <div className="flex items-center gap-2 text-sm font-semibold text-text-primary">
+                                <div className="flex items-center gap-2 text-sm font-semibold text-text-1">
                                     <FilterIcon size={16} />
                                     {t.companies.filterTitle}
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <ChevronDownIcon
                                         size={16}
-                                        className={`text-text-muted transition-transform ${isFilterExpanded ? 'rotate-180' : ''}`}
+                                        className={`text-text-3 transition-transform ${isFilterExpanded ? 'rotate-180' : ''}`}
                                     />
                                 </div>
                             </button>
 
-                            <AnimatePresence>
+                            <>
                                 {isFilterExpanded && (
-                                    <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: 'auto', opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
-                                        transition={{ duration: 0.2 }}
-                                    >
+                                    <div>
                                         <div className="p-6 pt-6 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-6">
                                             {Object.entries(DIMENSION_OPTIONS).map(([key, config]) => {
                                                 const isProfitModel = key === 'profitModel';
@@ -695,7 +676,7 @@ export default function CompaniesPage() {
                                                         key={key}
                                                         className={`space-y-2 ${isProfitModel ? 'lg:col-span-2' : ''}`}
                                                     >
-                                                        <h4 className="text-[11px] font-bold text-text-muted uppercase tracking-wider">
+                                                        <h4 className="text-[11px] font-bold text-text-3 uppercase tracking-wider">
                                                             {t.companies.dimensions[key as keyof typeof t.companies.dimensions]}
                                                         </h4>
                                                         <div className={`grid gap-2 ${isProfitModel
@@ -711,7 +692,7 @@ export default function CompaniesPage() {
                                                                         onClick={() => toggleFilter(key as keyof CompanyFilterRequest, option.value)}
                                                                         className={`px-2 py-1.5 rounded-sm text-xs transition-all border text-center ${isActive
                                                                             ? 'bg-accent/15 border-accent text-accent shadow-[0_0_8px_rgba(20,184,166,0.1)]'
-                                                                            : 'bg-white/5 border-transparent text-text-muted hover:border-text-muted/30 hover:text-text-secondary hover:bg-white/10'
+                                                                            : 'bg-white/5 border-transparent text-text-3 hover:border-text-3/30 hover:text-text-2 hover:bg-white/10'
                                                                             }`}
                                                                     >
                                                                         {translationKey
@@ -734,7 +715,7 @@ export default function CompaniesPage() {
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                 {/* 市值范围 */}
                                                 <div className="space-y-2">
-                                                    <h5 className="text-[11px] font-bold text-text-muted uppercase tracking-wider">
+                                                    <h5 className="text-[11px] font-bold text-text-3 uppercase tracking-wider">
                                                         {t.companies.marketCapUsd}
                                                     </h5>
                                                     <div className="grid grid-cols-2 gap-2">
@@ -746,7 +727,7 @@ export default function CompaniesPage() {
                                                                     onClick={() => handleMarketCapRangeSelect(range.value)}
                                                                     className={`px-2 py-1.5 rounded-sm text-xs transition-all border text-center ${isActive
                                                                         ? 'bg-accent/15 border-accent text-accent shadow-[0_0_8px_rgba(20,184,166,0.1)]'
-                                                                        : 'bg-white/5 border-transparent text-text-muted hover:border-text-muted/30 hover:text-text-secondary hover:bg-white/10'
+                                                                        : 'bg-white/5 border-transparent text-text-3 hover:border-text-3/30 hover:text-text-2 hover:bg-white/10'
                                                                         }`}
                                                                     title={range.desc}
                                                                 >
@@ -759,7 +740,7 @@ export default function CompaniesPage() {
 
                                                 {/* 行业板块 */}
                                                 <div className="space-y-2">
-                                                    <h5 className="text-[11px] font-bold text-text-muted uppercase tracking-wider">
+                                                    <h5 className="text-[11px] font-bold text-text-3 uppercase tracking-wider">
                                                         {t.companies.sectorLabel}
                                                     </h5>
                                                     <MultiSelectDropdown
@@ -777,7 +758,7 @@ export default function CompaniesPage() {
 
                                                 {/* 细分行业 */}
                                                 <div className="space-y-2">
-                                                    <h5 className="text-[11px] font-bold text-text-muted uppercase tracking-wider">
+                                                    <h5 className="text-[11px] font-bold text-text-3 uppercase tracking-wider">
                                                         {t.companies.industryLabel}
                                                     </h5>
                                                     <MultiSelectDropdown
@@ -797,21 +778,21 @@ export default function CompaniesPage() {
                                         <div className="p-4 bg-white/5 border-t border-white/5 flex justify-end items-center gap-4">
                                             <button
                                                 onClick={resetFilters}
-                                                className="text-sm text-text-muted hover:text-text-primary transition-colors"
+                                                className="text-sm text-text-3 hover:text-text-1 transition-colors"
                                             >
                                                 {t.common.reset}
                                             </button>
                                             <button
                                                 onClick={applyFilters}
                                                 disabled={loading}
-                                                className="px-6 py-2 bg-[#10B981] hover:bg-[#059669] text-white rounded-sm font-medium text-sm transition-colors disabled:opacity-50"
+                                                className="btn-primary"
                                             >
                                                 {loading ? t.common.loading : t.common.apply}
                                             </button>
                                         </div>
-                                    </motion.div>
+                                    </div>
                                 )}
-                            </AnimatePresence>
+                            </>
                         </div>
 
                         {/* Search Bar */}
@@ -827,7 +808,7 @@ export default function CompaniesPage() {
                             <label htmlFor="companies-search" className="sr-only">
                                 {t.companies.searchPlaceholder}
                             </label>
-                            <SearchIcon className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
+                            <SearchIcon className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-3" />
                             <input
                                 id="companies-search"
                                 name="q"
@@ -839,7 +820,7 @@ export default function CompaniesPage() {
                                 onChange={(e) => handleSearchChange(e.target.value)}
                                 placeholder={t.companies.searchPlaceholder}
                                 aria-label={t.companies.searchPlaceholder}
-                                className="w-full pl-12 pr-4 py-4 glass-card border border-white/10 dark:border-white/10 light:border-black/10 rounded-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent/50 transition-colors"
+                                className="w-full pl-12 pr-4 py-4 panel border border-white/10 dark:border-white/10 rounded-sm text-text-1 placeholder:text-text-3 focus:outline-none focus:border-accent/50 transition-colors"
                             />
                         </form>
                     </div>
@@ -848,11 +829,11 @@ export default function CompaniesPage() {
                     <div className="space-y-4">
                         {loading ? (
                             <div className="flex items-center justify-center py-20">
-                                <div className="text-text-muted font-mono animate-pulse">{t.companies.loadingData}</div>
+                                <div className="text-text-3 font-mono animate-pulse">{t.companies.loadingData}</div>
                             </div>
                         ) : companies.length === 0 ? (
-                            <div className="glass-card p-12 rounded-sm border border-white/10 text-center">
-                                <div className="text-text-muted mb-4 font-mono">{t.companies.noResultsFound}</div>
+                            <div className="panel p-12 rounded-sm border border-white/10 text-center">
+                                <div className="text-text-3 mb-4 font-mono">{t.companies.noResultsFound}</div>
                                 <button
                                     onClick={resetFilters}
                                     className="text-sm text-accent hover:underline"
@@ -864,29 +845,27 @@ export default function CompaniesPage() {
                             <>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {companies.map((company) => (
-                                        <motion.div
+                                        <div
                                             key={company.id}
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            className="glass-card p-5 rounded-sm border border-white/10 dark:border-white/10 light:border-black/5 hover:border-accent/50 transition-all group cursor-pointer relative overflow-hidden"
+                                            className="panel p-5 rounded-sm border border-white/10 dark:border-white/10 hover:border-accent/50 transition-all group cursor-pointer relative overflow-hidden"
                                             onClick={() => handleOpenOverview(company)}
                                         >
                                             <div className="flex items-start justify-between mb-4">
                                                 <div className="flex-1">
-                                                    <h3 className="font-bold text-text-primary mb-1 group-hover:text-accent transition-colors line-clamp-1">
+                                                    <h3 className="font-bold text-text-1 mb-1 group-hover:text-accent transition-colors line-clamp-1">
                                                         {company.company_name}
                                                     </h3>
                                                     <div className="flex items-center gap-2 text-xs">
                                                         <span className="font-mono text-accent bg-accent/10 px-1.5 py-0.5 rounded-sm">{company.symbol}</span>
-                                                        <span className="text-text-muted">•</span>
-                                                        <span className="text-text-secondary truncate max-w-[150px]">{company.sector}</span>
+                                                        <span className="text-text-3">•</span>
+                                                        <span className="text-text-2 truncate max-w-[150px]">{company.sector}</span>
                                                     </div>
                                                 </div>
                                                 <div className="text-right">
-                                                    <div className="text-sm font-mono font-bold text-text-primary">
+                                                    <div className="text-sm font-mono font-bold text-text-1">
                                                         {formatMarketCap(company.market_cap)}
                                                     </div>
-                                                    <div className="text-[10px] text-text-muted uppercase tracking-wider">Market Cap</div>
+                                                    <div className="text-[10px] text-text-3 uppercase tracking-wider">Market Cap</div>
                                                 </div>
                                             </div>
 
@@ -895,7 +874,7 @@ export default function CompaniesPage() {
                                                 {(() => {
                                                     const sp = getLocalizedDiagnostic(company, 'strategic_positioning', locale);
                                                     return sp ? (
-                                                        <span className="px-1.5 py-0.5 text-[10px] rounded-sm bg-white/5 text-text-secondary border border-white/10">
+                                                        <span className="px-1.5 py-0.5 text-[10px] rounded-sm bg-white/5 text-text-2 border border-white/10">
                                                             {sp}
                                                         </span>
                                                     ) : null;
@@ -903,7 +882,7 @@ export default function CompaniesPage() {
                                                 {(() => {
                                                     const mc = getLocalizedDiagnostic(company, 'market_cap_size', locale);
                                                     return mc ? (
-                                                        <span className="px-1.5 py-0.5 text-[10px] rounded-sm bg-white/5 text-text-secondary border border-white/10">
+                                                        <span className="px-1.5 py-0.5 text-[10px] rounded-sm bg-white/5 text-text-2 border border-white/10">
                                                             {mc}
                                                         </span>
                                                     ) : null;
@@ -911,7 +890,7 @@ export default function CompaniesPage() {
                                                 {(() => {
                                                     const pm = getLocalizedDiagnostic(company, 'profit_model', locale);
                                                     return pm ? (
-                                                        <span className="px-1.5 py-0.5 text-[10px] rounded-sm bg-white/5 text-text-secondary border border-white/10">
+                                                        <span className="px-1.5 py-0.5 text-[10px] rounded-sm bg-white/5 text-text-2 border border-white/10">
                                                             {pm}
                                                         </span>
                                                     ) : null;
@@ -922,26 +901,26 @@ export default function CompaniesPage() {
                                                 <span className="font-bold uppercase tracking-tighter">{t.companies.viewReport}</span>
                                                 <TrendingUpIcon size={12} />
                                             </div>
-                                        </motion.div>
+                                        </div>
                                     ))}
                                 </div>
 
                                 {/* Pagination */}
-                                <div className="glass-card p-4 rounded-sm border border-white/10 dark:border-white/10 light:border-black/5 flex items-center justify-between">
+                                <div className="panel p-4 rounded-sm border border-white/10 dark:border-white/10 flex items-center justify-between">
                                     <button
                                         onClick={() => setFilters({ ...filters, page: (filters.page || 1) - 1 })}
                                         disabled={(filters.page || 1) <= 1}
-                                        className="px-4 py-2 bg-white/5 hover:bg-white/10 text-text-secondary rounded-sm font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-mono"
+                                        className="px-4 py-2 bg-white/5 hover:bg-white/10 text-text-2 rounded-sm font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-mono"
                                     >
                                         PREV
                                     </button>
-                                    <div className="text-xs text-text-muted font-mono">
+                                    <div className="text-xs text-text-3 font-mono">
                                         PAGE {filters.page || 1} / {Math.ceil(total / (filters.limit || 50))}
                                     </div>
                                     <button
                                         onClick={() => setFilters({ ...filters, page: (filters.page || 1) + 1 })}
                                         disabled={(filters.page || 1) * (filters.limit || 50) >= total}
-                                        className="px-4 py-2 bg-white/5 hover:bg-white/10 text-text-secondary rounded-sm font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-mono"
+                                        className="px-4 py-2 bg-white/5 hover:bg-white/10 text-text-2 rounded-sm font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-mono"
                                     >
                                         NEXT
                                     </button>

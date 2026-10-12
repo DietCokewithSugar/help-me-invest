@@ -39,15 +39,15 @@ export default function FinancialScoresDisplay({ financialScores, theme = 'dark'
   };
 
   function getZScoreInfo(score: number) {
-    if (score < 1.8) return { label: zScoreT.labelDanger, color: 'text-red-500', bg: 'bg-red-500' };
-    if (score < 3.0) return { label: zScoreT.labelWarn, color: 'text-amber-500', bg: 'bg-amber-500' };
-    return { label: zScoreT.labelSafe, color: 'text-emerald-500', bg: 'bg-emerald-500' };
+    if (score < 1.8) return { label: zScoreT.labelDanger, color: 'text-down', bg: 'bg-red-500' };
+    if (score < 3.0) return { label: zScoreT.labelWarn, color: 'text-warn', bg: 'bg-warn' };
+    return { label: zScoreT.labelSafe, color: 'text-up', bg: 'bg-emerald-500' };
   }
 
   function getFScoreInfo(score: number) {
-    if (score <= 2) return { label: fScoreT.labelBad, color: 'text-red-500', bg: 'bg-red-500' };
-    if (score <= 6) return { label: fScoreT.labelMid, color: 'text-amber-500', bg: 'bg-amber-500' };
-    return { label: fScoreT.labelGood, color: 'text-emerald-500', bg: 'bg-emerald-500' };
+    if (score <= 2) return { label: fScoreT.labelBad, color: 'text-down', bg: 'bg-red-500' };
+    if (score <= 6) return { label: fScoreT.labelMid, color: 'text-warn', bg: 'bg-warn' };
+    return { label: fScoreT.labelGood, color: 'text-up', bg: 'bg-emerald-500' };
   }
 
   const zScore = financialScores.altmanZScore;
@@ -130,7 +130,7 @@ export default function FinancialScoresDisplay({ financialScores, theme = 'dark'
 
             <div className="h-1.5 w-full bg-white/10 rounded-sm overflow-hidden flex gap-0.5">
               <div className={`h-full flex-1 ${zScore < 1.8 ? 'bg-red-500' : (isLight ? 'bg-red-100' : 'bg-red-900/30')}`} />
-              <div className={`h-full flex-1 ${zScore >= 1.8 && zScore < 3.0 ? 'bg-amber-500' : (isLight ? 'bg-amber-100' : 'bg-amber-900/30')}`} />
+              <div className={`h-full flex-1 ${zScore >= 1.8 && zScore < 3.0 ? 'bg-warn' : (isLight ? 'bg-amber-100' : 'bg-amber-900/30')}`} />
               <div className={`h-full flex-1 ${zScore >= 3.0 ? 'bg-emerald-500' : (isLight ? 'bg-emerald-100' : 'bg-emerald-900/30')}`} />
             </div>
             <div className="flex justify-between text-[10px] text-mist-600 font-mono mt-1">
@@ -214,7 +214,7 @@ export default function FinancialScoresDisplay({ financialScores, theme = 'dark'
               label={scoresT.rows.retainedEarnings}
               value={formatNumber(financialScores.retainedEarnings)}
               metricKey="retainedEarnings"
-              highlightColor={financialScores.retainedEarnings < 0 ? 'text-amber-500' : undefined}
+              highlightColor={financialScores.retainedEarnings < 0 ? 'text-warn' : undefined}
             />
             <MetricRow label={scoresT.rows.ebit} value={formatNumber(financialScores.ebit)} metricKey="ebit" />
           </div>
@@ -225,7 +225,7 @@ export default function FinancialScoresDisplay({ financialScores, theme = 'dark'
               label={scoresT.rows.workingCapital}
               value={formatNumber(financialScores.workingCapital)}
               metricKey="workingCapital"
-              highlightColor={financialScores.workingCapital < 0 ? 'text-amber-500' : undefined}
+              highlightColor={financialScores.workingCapital < 0 ? 'text-warn' : undefined}
             />
             <MetricRow label={scoresT.rows.totalLiabilities} value={formatNumber(financialScores.totalLiabilities)} metricKey="totalLiabilities" />
           </div>
