@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { toPng } from 'html-to-image';
 import {
     X,
@@ -36,30 +35,6 @@ interface ShareExportModalProps {
     symbol?: string;
     theme?: 'dark' | 'light';
 }
-
-// ==================== Animation Variants ====================
-const overlayVariants: Variants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1 },
-    exit: { opacity: 0 },
-};
-
-const modalVariants: Variants = {
-    hidden: { opacity: 0, scale: 0.95, y: 20 },
-    visible: {
-        opacity: 1,
-        scale: 1,
-        y: 0,
-        transition: { type: 'spring', damping: 25, stiffness: 300 },
-    },
-    exit: { opacity: 0, scale: 0.95, y: 20, transition: { duration: 0.2 } },
-};
-
-const buttonVariants: Variants = {
-    idle: { scale: 1 },
-    hover: { scale: 1.02 },
-    tap: { scale: 0.98 },
-};
 
 type ExportStatus = 'idle' | 'exporting' | 'success' | 'error';
 
@@ -173,7 +148,7 @@ function processContentHtml(html: string, inputTheme: typeof themeConfig.dark | 
                 style.color = '#14b8a6';
                 break;
             case 'code':
-                style.fontFamily = '"JetBrains Mono", monospace';
+                style.fontFamily = 'Inter, system-ui, sans-serif';
                 style.fontSize = '0.9em';
                 break;
             case 'blockquote':
@@ -199,7 +174,7 @@ function processContentHtml(html: string, inputTheme: typeof themeConfig.dark | 
                 // 为 div 设置默认颜色
                 style.color = theme.content;
                 // 清理可能的背景和边框（用于卡片容器）
-                if (className.includes('bg-white') || className.includes('gemini-card')) {
+                if (className.includes('bg-white') || className.includes('panel')) {
                     style.background = 'transparent';
                     style.border = 'none';
                     style.padding = '0';
@@ -343,7 +318,7 @@ const ExportCard = React.forwardRef<
                                 fontSize: '12px',
                                 color: theme.subtitle,
                                 margin: '4px 0 0 0',
-                                fontFamily: '"JetBrains Mono", monospace',
+                                fontFamily: 'Inter, system-ui, sans-serif',
                             }}
                         >
                             {symbol && `${symbol} · `}{title}
@@ -390,7 +365,7 @@ const ExportCard = React.forwardRef<
                                 style={{
                                     fontSize: '11px',
                                     color: theme.footerText,
-                                    fontFamily: '"JetBrains Mono", monospace',
+                                    fontFamily: 'Inter, system-ui, sans-serif',
                                 }}
                             >
                                 https://www.help-me-invest.com
@@ -432,7 +407,7 @@ const ExportCard = React.forwardRef<
                         textAlign: 'center',
                         fontSize: '10px',
                         color: theme.watermark,
-                        fontFamily: '"JetBrains Mono", monospace',
+                        fontFamily: 'Inter, system-ui, sans-serif',
                     }}
                 >
                     智投研究 · help-me-invest.com · AI Powered
@@ -640,26 +615,14 @@ export default function ShareExportModal({
     };
 
     return (
-        <AnimatePresence>
+        <>
             {isOpen && (
-                <motion.div
-                    className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-                    variants={overlayVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                    onClick={handleBackdropClick}
-                >
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={handleBackdropClick}>
                     {/* Backdrop */}
-                    <motion.div
-                        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                    />
+                    <div className="absolute inset-0 bg-black/50 animate-fade-in"/>
 
                     {/* Modal */}
-                    <motion.div
+                    <div
                         ref={dialogRef as any}
                         role="dialog"
                         aria-modal="true"
@@ -667,33 +630,27 @@ export default function ShareExportModal({
                         aria-describedby={descriptionId}
                         tabIndex={-1}
                         className="relative w-full max-w-2xl bg-surface border border-white/10 rounded-lg overflow-hidden max-h-[90vh] flex flex-col focus:outline-none"
-                        variants={modalVariants}
-                        initial="hidden"
-                        animate="visible"
-                        exit="exit"
                     >
                         {/* Header */}
                         <div className="flex items-center justify-between p-4 border-b border-white/10">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-glacier-500 to-blue-500 flex items-center justify-center">
-                                    <Share2 className="w-5 h-5 text-white" />
+                                <div className="w-10 h-10 rounded-md bg-accent/10 flex items-center justify-center">
+                                    <Share2 className="w-5 h-5 text-accent" />
                                 </div>
                                 <div>
                                     <h2 id={titleId} className="text-lg font-semibold text-white">{t.shareModal.title}</h2>
                                     <p id={descriptionId} className="text-xs text-mist-500">{companyName ? `${companyName} · ${title}` : title}</p>
                                 </div>
                             </div>
-                            <motion.button
+                            <button
                                 type="button"
                                 className="inline-flex h-11 w-11 items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-mist-400 hover:text-white transition-colors disabled:opacity-50"
                                 onClick={onClose}
                                 disabled={status === 'exporting'}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
                                 aria-label={t.common.close || 'Close'}
                             >
                                 <X className="w-4 h-4" />
-                            </motion.button>
+                            </button>
                         </div>
 
                         {/* Preview Area */}
@@ -726,7 +683,7 @@ export default function ShareExportModal({
                                                 key={size}
                                                 onClick={() => setSettings((s) => ({ ...s, fontSize: size }))}
                                                 className={`px-3 py-1 text-xs font-medium rounded transition-all ${settings.fontSize === size
-                                                    ? 'bg-glacier-500 text-white'
+                                                    ? 'bg-accent/10 text-accent'
                                                     : 'text-mist-400 hover:text-white'
                                                     }`}
                                             >
@@ -757,7 +714,7 @@ export default function ShareExportModal({
                                                 key={q}
                                                 onClick={() => setSettings((s) => ({ ...s, quality: q }))}
                                                 className={`px-2 py-1 text-xs font-medium rounded transition-all ${settings.quality === q
-                                                    ? 'bg-glacier-500 text-white'
+                                                    ? 'bg-accent/10 text-accent'
                                                     : 'text-mist-400 hover:text-white'
                                                     }`}
                                             >
@@ -771,7 +728,7 @@ export default function ShareExportModal({
                                 <button
                                     onClick={() => setSettings((s) => ({ ...s, theme: s.theme === 'dark' ? 'light' : 'dark' }))}
                                     className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs transition-all ${settings.theme === 'light'
-                                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                        ? 'bg-warn/20 text-warn border border-warn/30'
                                         : 'bg-white/5 text-mist-400 border border-white/10 hover:border-white/20'
                                         }`}
                                 >
@@ -785,42 +742,26 @@ export default function ShareExportModal({
                             </div>
 
                             {/* Status Messages */}
-                            <AnimatePresence mode="wait">
+                            <>
                                 {status === 'success' && (
-                                    <motion.div
-                                        key="success"
-                                        initial={{ opacity: 0, y: -10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -10 }}
-                                        className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3"
-                                    >
-                                        <CheckCircle className="w-4 h-4 text-emerald-400" />
-                                        <span className="text-emerald-400 text-sm">导出成功！</span>
-                                    </motion.div>
+                                    <div key="success" className="p-3 rounded-lg bg-up/10 border border-up/20 flex items-center gap-3 animate-fade-in">
+                                        <CheckCircle className="w-4 h-4 text-up" />
+                                        <span className="text-up text-sm">导出成功！</span>
+                                    </div>
                                 )}
 
                                 {status === 'error' && (
-                                    <motion.div
-                                        key="error"
-                                        initial={{ opacity: 0, y: -10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -10 }}
-                                        className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-3"
-                                    >
-                                        <AlertCircle className="w-4 h-4 text-red-400" />
-                                        <span className="text-red-400 text-sm">{errorMessage}</span>
-                                    </motion.div>
+                                    <div key="error" className="p-3 rounded-lg bg-down/10 border border-down/20 flex items-center gap-3 animate-fade-in">
+                                        <AlertCircle className="w-4 h-4 text-down" />
+                                        <span className="text-down text-sm">{errorMessage}</span>
+                                    </div>
                                 )}
-                            </AnimatePresence>
+                            </>
 
                             {/* Action Buttons */}
                             <div className="flex gap-3">
-                                <motion.button
-                                    className="flex-1 gemini-btn gemini-btn-primary flex items-center justify-center gap-2 py-3"
-                                    variants={buttonVariants}
-                                    initial="idle"
-                                    whileHover="hover"
-                                    whileTap="tap"
+                                <button
+                                    className="flex-1 btn-primary flex items-center justify-center gap-2 py-3"
                                     onClick={handleDownload}
                                     disabled={status === 'exporting'}
                                 >
@@ -835,21 +776,17 @@ export default function ShareExportModal({
                                             保存图片
                                         </>
                                     )}
-                                </motion.button>
+                                </button>
 
                                 {supportsShare && (
-                                    <motion.button
-                                        className="gemini-btn gemini-btn-secondary flex items-center justify-center gap-2 py-3 px-6"
-                                        variants={buttonVariants}
-                                        initial="idle"
-                                        whileHover="hover"
-                                        whileTap="tap"
+                                    <button
+                                        className="btn-secondary flex items-center justify-center gap-2 py-3 px-6"
                                         onClick={handleShare}
                                         disabled={status === 'exporting'}
                                     >
                                         <Share2 className="w-4 h-4" />
                                         分享
-                                    </motion.button>
+                                    </button>
                                 )}
                             </div>
 
@@ -862,9 +799,9 @@ export default function ShareExportModal({
                                 </p>
                             </div>
                         </div>
-                    </motion.div>
-                </motion.div>
+                    </div>
+                </div>
             )}
-        </AnimatePresence>
+        </>
     );
 }

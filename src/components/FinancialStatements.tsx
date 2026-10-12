@@ -66,13 +66,13 @@ export default function FinancialStatements({
   // ==================== 利润表图表 ====================
   const renderIncomeChart = () => {
     // 颜色定义
-    const TEXT_PRIMARY = isLight ? '#1e293b' : '#e2e8f0';
-    const TEXT_SECONDARY = isLight ? '#475569' : '#94a3b8';
-    const TEXT_MUTED = isLight ? '#64748b' : '#64748b';
-    const BORDER_COLOR = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
-    const AXIS_LINE_COLOR = isLight ? '#e2e8f0' : '#334155';
-    const SPLIT_LINE_COLOR = isLight ? '#f1f5f9' : '#1e293b';
-    const TOOLTIP_BG = isLight ? '#ffffff' : '#121212';
+    const TEXT_PRIMARY = isLight ? '#222222' : '#D8DCE2';
+    const TEXT_SECONDARY = isLight ? '#545B65' : '#A3ABB6';
+    const TEXT_MUTED = isLight ? '#78808B' : '#7A838F';
+    const BORDER_COLOR = isLight ? 'rgba(23,25,28,0.12)' : 'rgba(236,238,241,0.10)';
+    const AXIS_LINE_COLOR = isLight ? 'rgba(23,25,28,0.18)' : 'rgba(236,238,241,0.18)';
+    const SPLIT_LINE_COLOR = isLight ? 'rgba(23,25,28,0.07)' : 'rgba(236,238,241,0.07)';
+    const TOOLTIP_BG = isLight ? '#FFFFFF' : '#1B1F24';
 
     const years = activeIncome.map(i => {
       if (period === 'quarter') return `${i.fiscalYear} ${i.period}`;
@@ -95,7 +95,7 @@ export default function FinancialStatements({
         borderColor: BORDER_COLOR,
         borderWidth: 1,
         padding: [8, 12],
-        textStyle: { color: TEXT_PRIMARY, fontFamily: 'JetBrains Mono, monospace', fontSize: 12 },
+        textStyle: { color: TEXT_PRIMARY, fontFamily: 'Inter, system-ui, sans-serif', fontSize: 12 },
         axisPointer: {
           type: 'line',
           lineStyle: {
@@ -130,7 +130,7 @@ export default function FinancialStatements({
         type: 'category',
         data: years,
         axisLine: { lineStyle: { color: AXIS_LINE_COLOR } },
-        axisLabel: { color: TEXT_SECONDARY, fontSize: 12, fontFamily: 'JetBrains Mono, monospace' },
+        axisLabel: { color: TEXT_SECONDARY, fontSize: 12, fontFamily: 'Inter, system-ui, sans-serif' },
         axisTick: { show: true, lineStyle: { color: AXIS_LINE_COLOR } },
       },
       yAxis: {
@@ -139,7 +139,7 @@ export default function FinancialStatements({
         nameTextStyle: { color: TEXT_MUTED, fontSize: 11, padding: [0, 0, 8, 0] },
         axisLine: { show: false },
         axisLabel: { color: TEXT_MUTED, fontSize: 11, formatter: (v: number) => `${currencyPrefix}${v}${chartUnit}${currencySuffix}` },
-        splitLine: { lineStyle: { color: SPLIT_LINE_COLOR, type: 'dashed', opacity: isLight ? 0.8 : 0.5 } },
+        splitLine: { lineStyle: { color: SPLIT_LINE_COLOR, opacity: 1 } },
       },
       series: [
         {
@@ -147,32 +147,32 @@ export default function FinancialStatements({
           type: 'bar',
           data: revenues,
           barWidth: '20%',
-          itemStyle: { color: '#88ABDA', borderRadius: 0 },
-          label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `${currencyPrefix}${params.value.toFixed(1)}${chartUnit}${currencySuffix}` },
+          itemStyle: { color: '#4A86E8', borderRadius: 0 },
+          label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 10, fontFamily: 'Inter, system-ui, sans-serif', formatter: (params: any) => `${currencyPrefix}${params.value.toFixed(1)}${chartUnit}${currencySuffix}` },
         },
         {
           name: incomeT.legend.grossProfit,
           type: 'bar',
           data: grossProfits,
           barWidth: '20%',
-          itemStyle: { color: '#98B6C2', borderRadius: 0 },
-          label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `${currencyPrefix}${params.value.toFixed(1)}${chartUnit}${currencySuffix}` },
+          itemStyle: { color: '#7FA3BF', borderRadius: 0 },
+          label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 10, fontFamily: 'Inter, system-ui, sans-serif', formatter: (params: any) => `${currencyPrefix}${params.value.toFixed(1)}${chartUnit}${currencySuffix}` },
         },
         {
           name: incomeT.legend.operatingIncome,
           type: 'bar',
           data: operatingIncomes,
           barWidth: '20%',
-          itemStyle: { color: '#CB523E', borderRadius: 0 },
-          label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `${currencyPrefix}${params.value.toFixed(1)}${chartUnit}${currencySuffix}` },
+          itemStyle: { color: '#D9534F', borderRadius: 0 },
+          label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 10, fontFamily: 'Inter, system-ui, sans-serif', formatter: (params: any) => `${currencyPrefix}${params.value.toFixed(1)}${chartUnit}${currencySuffix}` },
         },
         {
           name: incomeT.legend.netIncome,
           type: 'bar',
           data: netIncomes,
           barWidth: '20%',
-          itemStyle: { color: '#C0D09D', borderRadius: 0 },
-          label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', formatter: (params: any) => `${currencyPrefix}${params.value.toFixed(1)}${chartUnit}${currencySuffix}` },
+          itemStyle: { color: '#3FA66B', borderRadius: 0 },
+          label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 10, fontFamily: 'Inter, system-ui, sans-serif', formatter: (params: any) => `${currencyPrefix}${params.value.toFixed(1)}${chartUnit}${currencySuffix}` },
         },
       ],
     };
@@ -196,13 +196,13 @@ export default function FinancialStatements({
     const totalDebt = activeBalance.map(b => (b.totalDebt || 0) / chartScale).reverse();
     const cash = activeBalance.map(b => (b.cashAndCashEquivalents || 0) / chartScale).reverse();
 
-    const TEXT_PRIMARY = isLight ? '#1e293b' : '#e2e8f0';
-    const TEXT_SECONDARY = isLight ? '#475569' : '#94a3b8';
-    const TEXT_MUTED = isLight ? '#64748b' : '#64748b';
-    const BORDER_COLOR = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
-    const AXIS_LINE_COLOR = isLight ? '#e2e8f0' : '#334155';
-    const SPLIT_LINE_COLOR = isLight ? '#f1f5f9' : '#1e293b';
-    const TOOLTIP_BG = isLight ? '#ffffff' : '#121212';
+    const TEXT_PRIMARY = isLight ? '#222222' : '#D8DCE2';
+    const TEXT_SECONDARY = isLight ? '#545B65' : '#A3ABB6';
+    const TEXT_MUTED = isLight ? '#78808B' : '#7A838F';
+    const BORDER_COLOR = isLight ? 'rgba(23,25,28,0.12)' : 'rgba(236,238,241,0.10)';
+    const AXIS_LINE_COLOR = isLight ? 'rgba(23,25,28,0.18)' : 'rgba(236,238,241,0.18)';
+    const SPLIT_LINE_COLOR = isLight ? 'rgba(23,25,28,0.07)' : 'rgba(236,238,241,0.07)';
+    const TOOLTIP_BG = isLight ? '#FFFFFF' : '#1B1F24';
 
     const option = {
       backgroundColor: 'transparent',
@@ -212,7 +212,7 @@ export default function FinancialStatements({
         borderColor: BORDER_COLOR,
         borderWidth: 1,
         padding: [8, 12],
-        textStyle: { color: TEXT_PRIMARY, fontFamily: 'JetBrains Mono, monospace', fontSize: 12 },
+        textStyle: { color: TEXT_PRIMARY, fontFamily: 'Inter, system-ui, sans-serif', fontSize: 12 },
         formatter: (params: any) => {
           let result = `<div style="font-weight: 500; margin-bottom: 4px; color: ${TEXT_SECONDARY}; font-size: 11px;">${params[0].axisValue}</div>`;
           result += '<table style="width:100%; border-collapse: collapse;">';
@@ -240,7 +240,7 @@ export default function FinancialStatements({
         type: 'category',
         data: years,
         axisLine: { lineStyle: { color: AXIS_LINE_COLOR } },
-        axisLabel: { color: TEXT_SECONDARY, fontSize: 12, fontFamily: 'JetBrains Mono, monospace' },
+        axisLabel: { color: TEXT_SECONDARY, fontSize: 12, fontFamily: 'Inter, system-ui, sans-serif' },
         axisTick: { show: true, lineStyle: { color: AXIS_LINE_COLOR } },
       },
       yAxis: {
@@ -249,14 +249,14 @@ export default function FinancialStatements({
         nameTextStyle: { color: TEXT_MUTED, fontSize: 11, padding: [0, 0, 8, 0] },
         axisLine: { show: false },
         axisLabel: { color: TEXT_MUTED, fontSize: 11, formatter: (v: number) => `${currencyPrefix}${v}${chartUnit}${currencySuffix}` },
-        splitLine: { lineStyle: { color: SPLIT_LINE_COLOR, type: 'dashed', opacity: isLight ? 0.8 : 0.5 } },
+        splitLine: { lineStyle: { color: SPLIT_LINE_COLOR, opacity: 1 } },
       },
       series: [
-        { name: balanceT.legend.totalAssets, type: 'line', data: totalAssets, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#88ABDA' }, symbol: 'none', label: { show: true, position: 'top', color: TEXT_MUTED, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
-        { name: balanceT.legend.totalLiabilities, type: 'line', data: totalLiabilities, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#CB523E' }, symbol: 'none', label: { show: true, position: 'bottom', color: '#CB523E', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
-        { name: balanceT.legend.totalEquity, type: 'line', data: totalEquity, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#C0D09D' }, symbol: 'none', label: { show: true, position: 'top', color: '#C0D09D', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
-        { name: balanceT.legend.totalDebt, type: 'line', data: totalDebt, smooth: false, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: '#EAE4D1' }, symbol: 'none', label: { show: true, position: 'bottom', color: '#EAE4D1', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
-        { name: balanceT.legend.cash, type: 'line', data: cash, smooth: false, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: TEXT_SECONDARY }, symbol: 'none', label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
+        { name: balanceT.legend.totalAssets, type: 'line', data: totalAssets, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#4A86E8' }, symbol: 'none', label: { show: true, position: 'top', color: TEXT_MUTED, fontSize: 9, fontFamily: 'Inter, system-ui, sans-serif', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
+        { name: balanceT.legend.totalLiabilities, type: 'line', data: totalLiabilities, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#D9534F' }, symbol: 'none', label: { show: true, position: 'bottom', color: '#D9534F', fontSize: 9, fontFamily: 'Inter, system-ui, sans-serif', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
+        { name: balanceT.legend.totalEquity, type: 'line', data: totalEquity, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#3FA66B' }, symbol: 'none', label: { show: true, position: 'top', color: '#3FA66B', fontSize: 9, fontFamily: 'Inter, system-ui, sans-serif', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
+        { name: balanceT.legend.totalDebt, type: 'line', data: totalDebt, smooth: false, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: '#B8B2A0' }, symbol: 'none', label: { show: true, position: 'bottom', color: '#B8B2A0', fontSize: 9, fontFamily: 'Inter, system-ui, sans-serif', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
+        { name: balanceT.legend.cash, type: 'line', data: cash, smooth: false, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: TEXT_SECONDARY }, symbol: 'none', label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'Inter, system-ui, sans-serif', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
       ],
     };
 
@@ -279,13 +279,13 @@ export default function FinancialStatements({
     const freeCF = activeCashFlow.map(c => (c.freeCashFlow || 0) / chartScale).reverse();
     const capex = activeCashFlow.map(c => (c.capitalExpenditure || 0) / chartScale).reverse();
 
-    const TEXT_PRIMARY = isLight ? '#1e293b' : '#e2e8f0';
-    const TEXT_SECONDARY = isLight ? '#475569' : '#94a3b8';
-    const TEXT_MUTED = isLight ? '#64748b' : '#64748b';
-    const BORDER_COLOR = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
-    const AXIS_LINE_COLOR = isLight ? '#e2e8f0' : '#334155';
-    const SPLIT_LINE_COLOR = isLight ? '#f1f5f9' : '#1e293b';
-    const TOOLTIP_BG = isLight ? '#ffffff' : '#121212';
+    const TEXT_PRIMARY = isLight ? '#222222' : '#D8DCE2';
+    const TEXT_SECONDARY = isLight ? '#545B65' : '#A3ABB6';
+    const TEXT_MUTED = isLight ? '#78808B' : '#7A838F';
+    const BORDER_COLOR = isLight ? 'rgba(23,25,28,0.12)' : 'rgba(236,238,241,0.10)';
+    const AXIS_LINE_COLOR = isLight ? 'rgba(23,25,28,0.18)' : 'rgba(236,238,241,0.18)';
+    const SPLIT_LINE_COLOR = isLight ? 'rgba(23,25,28,0.07)' : 'rgba(236,238,241,0.07)';
+    const TOOLTIP_BG = isLight ? '#FFFFFF' : '#1B1F24';
 
     const option = {
       backgroundColor: 'transparent',
@@ -295,7 +295,7 @@ export default function FinancialStatements({
         borderColor: BORDER_COLOR,
         borderWidth: 1,
         padding: [8, 12],
-        textStyle: { color: TEXT_PRIMARY, fontFamily: 'JetBrains Mono, monospace', fontSize: 12 },
+        textStyle: { color: TEXT_PRIMARY, fontFamily: 'Inter, system-ui, sans-serif', fontSize: 12 },
         formatter: (params: any) => {
           let result = `<div style="font-weight: 500; margin-bottom: 4px; color: ${TEXT_SECONDARY}; font-size: 11px;">${params[0].axisValue}</div>`;
           result += '<table style="width:100%; border-collapse: collapse;">';
@@ -323,7 +323,7 @@ export default function FinancialStatements({
         type: 'category',
         data: years,
         axisLine: { lineStyle: { color: AXIS_LINE_COLOR } },
-        axisLabel: { color: TEXT_SECONDARY, fontSize: 12, fontFamily: 'JetBrains Mono, monospace' },
+        axisLabel: { color: TEXT_SECONDARY, fontSize: 12, fontFamily: 'Inter, system-ui, sans-serif' },
         axisTick: { show: true, lineStyle: { color: AXIS_LINE_COLOR } },
       },
       yAxis: {
@@ -332,14 +332,14 @@ export default function FinancialStatements({
         nameTextStyle: { color: TEXT_MUTED, fontSize: 11, padding: [0, 0, 8, 0] },
         axisLine: { show: false },
         axisLabel: { color: TEXT_MUTED, fontSize: 11, formatter: (v: number) => `${currencyPrefix}${v}${chartUnit}${currencySuffix}` },
-        splitLine: { lineStyle: { color: SPLIT_LINE_COLOR, type: 'dashed', opacity: isLight ? 0.8 : 0.5 } },
+        splitLine: { lineStyle: { color: SPLIT_LINE_COLOR, opacity: 1 } },
       },
       series: [
-        { name: cashflowT.legend.operatingCF, type: 'bar', data: operatingCF, barWidth: '18%', itemStyle: { color: '#C0D09D', borderRadius: 0 }, label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
-        { name: cashflowT.legend.investingCF, type: 'bar', data: investingCF, barWidth: '18%', itemStyle: { color: '#CB523E', borderRadius: 0 }, label: { show: true, position: 'bottom', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
-        { name: cashflowT.legend.financingCF, type: 'bar', data: financingCF, barWidth: '18%', itemStyle: { color: '#EAE4D1', borderRadius: 0 }, label: { show: true, position: 'bottom', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
-        { name: cashflowT.legend.freeCF, type: 'line', data: freeCF, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#98B6C2' }, symbol: 'none', label: { show: true, position: 'top', color: '#98B6C2', fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
-        { name: cashflowT.legend.capex, type: 'line', data: capex, smooth: false, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: TEXT_SECONDARY }, symbol: 'none', label: { show: true, position: 'bottom', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
+        { name: cashflowT.legend.operatingCF, type: 'bar', data: operatingCF, barWidth: '18%', itemStyle: { color: '#3FA66B', borderRadius: 0 }, label: { show: true, position: 'top', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'Inter, system-ui, sans-serif', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
+        { name: cashflowT.legend.investingCF, type: 'bar', data: investingCF, barWidth: '18%', itemStyle: { color: '#D9534F', borderRadius: 0 }, label: { show: true, position: 'bottom', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'Inter, system-ui, sans-serif', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
+        { name: cashflowT.legend.financingCF, type: 'bar', data: financingCF, barWidth: '18%', itemStyle: { color: '#B8B2A0', borderRadius: 0 }, label: { show: true, position: 'bottom', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'Inter, system-ui, sans-serif', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
+        { name: cashflowT.legend.freeCF, type: 'line', data: freeCF, smooth: false, lineStyle: { width: 2 }, itemStyle: { color: '#7FA3BF' }, symbol: 'none', label: { show: true, position: 'top', color: '#7FA3BF', fontSize: 9, fontFamily: 'Inter, system-ui, sans-serif', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
+        { name: cashflowT.legend.capex, type: 'line', data: capex, smooth: false, lineStyle: { width: 2, type: 'dashed' }, itemStyle: { color: TEXT_SECONDARY }, symbol: 'none', label: { show: true, position: 'bottom', color: TEXT_SECONDARY, fontSize: 9, fontFamily: 'Inter, system-ui, sans-serif', formatter: (p: any) => `${currencyPrefix}${p.value.toFixed(0)}${chartUnit}${currencySuffix}` } },
       ],
     };
 
@@ -352,9 +352,9 @@ export default function FinancialStatements({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-white/10">
-            <th className="text-left py-3 px-4 text-slate-400 font-medium whitespace-nowrap">{fsT.metricHeader}</th>
+            <th className="text-left py-2 px-3 text-mist-400 font-medium whitespace-nowrap">{fsT.metricHeader}</th>
             {activeIncome.map((s, i) => (
-              <th key={i} className="text-right py-3 px-4 text-slate-400 font-mono whitespace-nowrap">
+              <th key={i} className="text-right py-2 px-3 text-mist-400 font-mono whitespace-nowrap">
                 {period === 'quarter' ? `${s.fiscalYear} ${s.period}` : s.date?.split('-')[0]}
               </th>
             ))}
@@ -375,9 +375,9 @@ export default function FinancialStatements({
             { label: incomeT.rows.epsdiluted, key: 'epsdiluted' },
           ].map((row) => (
             <tr key={row.key} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-              <td className="py-3 px-4 text-slate-300 whitespace-nowrap">{row.label}</td>
+              <td className="py-2 px-3 text-mist-300 whitespace-nowrap">{row.label}</td>
               {activeIncome.map((s: any, i) => (
-                <td key={i} className={`text-right py-3 px-4 font-mono whitespace-nowrap ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                <td key={i} className={`text-right py-2 px-3 font-mono whitespace-nowrap ${isLight ? 'text-slate-900' : 'text-white'}`}>
                   {row.key === 'epsdiluted'
                     ? `${currencyPrefix}${s[row.key]?.toFixed(2) || 'N/A'}${currencySuffix}`
                     : `${currencyPrefix}${formatNumber(s[row.key])}${currencySuffix}`}
@@ -395,9 +395,9 @@ export default function FinancialStatements({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-white/10">
-            <th className="text-left py-3 px-4 text-slate-400 font-medium whitespace-nowrap">{fsT.metricHeader}</th>
+            <th className="text-left py-2 px-3 text-mist-400 font-medium whitespace-nowrap">{fsT.metricHeader}</th>
             {activeBalance.map((s, i) => (
-              <th key={i} className="text-right py-3 px-4 text-slate-400 font-mono whitespace-nowrap">
+              <th key={i} className="text-right py-2 px-3 text-mist-400 font-mono whitespace-nowrap">
                 {period === 'quarter' ? `${s.fiscalYear} ${s.period}` : s.date?.split('-')[0]}
               </th>
             ))}
@@ -427,9 +427,9 @@ export default function FinancialStatements({
               row.key === 'totalCurrentLiabilities' || row.key === 'totalLiabilities' ||
               row.key === 'totalStockholdersEquity' ? 'bg-white/5 font-semibold' : ''
               }`}>
-              <td className="py-3 px-4 text-slate-300 whitespace-nowrap">{row.label}</td>
+              <td className="py-2 px-3 text-mist-300 whitespace-nowrap">{row.label}</td>
               {activeBalance.map((s: any, i) => (
-                <td key={i} className={`text-right py-3 px-4 font-mono whitespace-nowrap ${s[row.key] < 0 ? (isLight ? 'text-red-600' : 'text-red-400') : (isLight ? 'text-slate-900' : 'text-white')
+                <td key={i} className={`text-right py-2 px-3 font-mono whitespace-nowrap ${s[row.key] < 0 ? (isLight ? 'text-down' : 'text-down') : (isLight ? 'text-slate-900' : 'text-white')
                   }`}>
                   {currencyPrefix}{formatNumber(s[row.key])}{currencySuffix}
                 </td>
@@ -446,9 +446,9 @@ export default function FinancialStatements({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-white/10">
-            <th className="text-left py-3 px-4 text-slate-400 font-medium whitespace-nowrap">{fsT.metricHeader}</th>
+            <th className="text-left py-2 px-3 text-mist-400 font-medium whitespace-nowrap">{fsT.metricHeader}</th>
             {activeCashFlow.map((s, i) => (
-              <th key={i} className="text-right py-3 px-4 text-slate-400 font-mono whitespace-nowrap">
+              <th key={i} className="text-right py-2 px-3 text-mist-400 font-mono whitespace-nowrap">
                 {period === 'quarter' ? `${s.fiscalYear} ${s.period}` : s.date?.split('-')[0]}
               </th>
             ))}
@@ -474,9 +474,9 @@ export default function FinancialStatements({
           ].map((row) => (
             <tr key={row.key} className={`border-b border-white/5 hover:bg-white/5 transition-colors ${row.key.includes('netCash') || row.key === 'freeCashFlow' ? 'bg-white/5 font-semibold' : ''
               }`}>
-              <td className="py-3 px-4 text-slate-300 whitespace-nowrap">{row.label}</td>
+              <td className="py-2 px-3 text-mist-300 whitespace-nowrap">{row.label}</td>
               {activeCashFlow.map((s: any, i) => (
-                <td key={i} className={`text-right py-3 px-4 font-mono whitespace-nowrap ${s[row.key] < 0 ? (isLight ? 'text-red-600' : 'text-red-400') : (isLight ? 'text-slate-900' : 'text-white')
+                <td key={i} className={`text-right py-2 px-3 font-mono whitespace-nowrap ${s[row.key] < 0 ? (isLight ? 'text-down' : 'text-down') : (isLight ? 'text-slate-900' : 'text-white')
                   }`}>
                   {currencyPrefix}{formatNumber(s[row.key])}{currencySuffix}
                 </td>
@@ -493,53 +493,49 @@ export default function FinancialStatements({
   }
 
   return (
-    <div className="bg-obsidian border-y border-white/10 py-6 animate-fade-in-up">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
-        <div className="flex items-center gap-4 min-w-0">
-          <div className="relative shrink-0">
-            <div className="w-8 h-8 rounded-sm bg-white/5 flex items-center justify-center border border-white/10">
-              <FileSpreadsheet className="w-4 h-4 text-mist-400" />
-            </div>
-          </div>
+    <div className="panel">
+      <div className="flex flex-col gap-3 px-4 pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3 min-w-0">
+          <FileSpreadsheet className="w-4 h-4 shrink-0 text-text-3" />
           <div className="min-w-0">
-            <h2 className="text-base font-semibold text-white uppercase tracking-wider">{fsT.title}</h2>
+            <h3 className="panel-title">{fsT.title}</h3>
             <p className="text-xs text-mist-500 mt-0.5 font-mono">{period === 'quarter' ? fsT.subtitleQuarter : fsT.subtitleAnnual}</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
-          <div className="flex p-0.5 bg-white/5 border border-white/10 rounded-sm">
+          <div className="inline-flex overflow-hidden rounded-md border border-line-strong">
             <button
               onClick={() => setPeriod('annual')}
-              className={`px-3 py-1 text-xs font-mono rounded-sm transition-all ${period === 'annual'
-                ? 'bg-glacier-500 text-obsidian font-bold'
-                : 'text-mist-500 hover:text-mist-200'
+              className={`h-7 px-3 text-[12px] font-medium transition-colors ${period === 'annual'
+                ? 'bg-accent/10 text-accent font-semibold'
+                : 'text-text-2 hover:bg-hover hover:text-fg'
                 }`}
             >
               {fsT.period.annual}
             </button>
             <button
               onClick={() => setPeriod('quarter')}
-              className={`px-3 py-1 text-xs font-mono rounded-sm transition-all ${period === 'quarter'
-                ? 'bg-glacier-500 text-obsidian font-bold'
-                : 'text-mist-500 hover:text-mist-200'
+              className={`h-7 border-l border-line px-3 text-[12px] font-medium transition-colors ${period === 'quarter'
+                ? 'bg-accent/10 text-accent font-semibold'
+                : 'text-text-2 hover:bg-hover hover:text-fg'
                 }`}
             >
               {fsT.period.quarter}
             </button>
           </div>
 
-          <div className="flex items-center gap-1 bg-white/5 rounded-sm p-0.5 border border-white/5">
+          <div className="inline-flex overflow-hidden rounded-md border border-line-strong">
             <button
               onClick={() => setViewMode('chart')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-sm transition-colors ${viewMode === 'chart' ? 'bg-white/10 text-white' : 'text-mist-500 hover:text-mist-300'
+              className={`h-7 px-3 text-[12px] font-medium transition-colors ${viewMode === 'chart' ? 'bg-accent/10 text-accent' : 'text-text-2 hover:bg-hover hover:text-fg'
                 }`}
             >
               {fsT.view.chart}
             </button>
             <button
               onClick={() => setViewMode('table')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-sm transition-colors ${viewMode === 'table' ? 'bg-white/10 text-white' : 'text-mist-500 hover:text-mist-300'
+              className={`h-7 border-l border-line px-3 text-[12px] font-medium transition-colors ${viewMode === 'table' ? 'bg-accent/10 text-accent' : 'text-text-2 hover:bg-hover hover:text-fg'
                 }`}
             >
               {fsT.view.table}
@@ -550,15 +546,15 @@ export default function FinancialStatements({
 
       {/* 标签栏 — horizontal scroll on narrow viewports so long labels
           ("Cash Flow Statement") never wrap or push siblings off-screen. */}
-      <div className="flex gap-2 mb-6 border-b border-white/5 pb-4 overflow-x-auto -mx-1 px-1">
+      <div role="tablist" className="mt-2 flex overflow-x-auto border-b border-line px-4">
         {tabs.map((tab) => (
           <button
             key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`shrink-0 whitespace-nowrap flex items-center gap-2 px-3 sm:px-4 py-2 rounded-sm transition-all text-sm font-medium ${activeTab === tab.key
-              ? 'bg-white/10 text-white border-b-2 border-glacier-500'
-              : 'text-mist-500 hover:text-mist-300 hover:bg-white/5'
-              }`}
+            className={`tab shrink-0 whitespace-nowrap ${activeTab === tab.key ? 'tab-active' : ''}`}
           >
             {tab.label}
           </button>
@@ -566,7 +562,7 @@ export default function FinancialStatements({
       </div>
 
       {/* 内容区域 */}
-      <div className="bg-white/5 rounded-sm p-4 border border-white/10">
+      <div className="p-4">
         {activeTab === 'income' && (
           viewMode === 'chart' ? renderIncomeChart() : renderIncomeTable()
         )}

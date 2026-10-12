@@ -1,135 +1,79 @@
-# UI Design System: Aptos Editorial Mode
+# UI Design System: Brokerage Terminal (IBKR-inspired)
 
-> Inspired by [aptosnetwork.com](https://aptosnetwork.com).
-> Full extraction artefacts live in [`design-extractor/`](./design-extractor/)
-> (tokens.json · palette.md · design-system.md · components.md · playground.html).
+> Visual reference: Interactive Brokers (interactivebrokers.com, Client Portal).
+> Brand values used: IBKR corporate red `#DB1222`, corporate black `#222222`.
+> Tokens live in `src/app/globals.css` (CSS variables) and `tailwind.config.js` (Tailwind mapping).
 
-## Design Philosophy
+## Principles
 
-- **Editorial First** — display + body both use a variable serif (Fraunces); reads like a magazine, not a SaaS dashboard.
-- **Warmth Over Sterility** — no pure `#FFFFFF` / `#000000`. Light is `#F9F9F0` (warm white), dark is `#0F0E0B` (warm black). All neutrals carry a yellow undertone.
-- **Pill Geometry** — the signature shape is `border-radius: 9999px`. Navbar, primary buttons and theme toggles are pills. Cards stay at `12px`.
-- **Motion as Meaning** — animation is reserved for editorial moments (hero text reveal, card stacking, marquee). No bouncy springs, no parallax for decoration only.
-- **Dual Mode Native** — every theme value is driven by CSS variables under `[data-theme="dark"]` / `[data-theme="light"]`. There is no third "system" mode at runtime; SSR seeds from cookie.
-- **No Decoration** — zero background gradients, zero glassmorphism, zero hover-lift shadows. The only effects allowed are 1px translucent borders and a single warm `shadow-md` for floating elements.
+- **Data first** — dense, scannable, aligned. Pages read like a broker's research screen, not a marketing site.
+- **Alignment is non-negotiable** — every page uses `.page-container` (max 1280px, 16/24px gutters), so the header logo, page title and panel edges share one left edge. Text is left-aligned; numbers are right-aligned with tabular figures.
+- **Restrained colour** — neutral grey page, white (or dark) panels, 1px hairlines. Brand red is reserved for the primary action and the active-navigation underline. Interactive blue marks links, selections and focus. Green/red only mean up/down.
+- **Motion only as feedback** — no entrance animations, scroll reveals, auto-rotating carousels, typing effects, number flips, hover lifts or springy modals. Allowed: 120ms colour transitions on hover, a 120ms fade when an overlay appears, spinners while something is actually loading. Tab/section switches and accordions are instant. `prefers-reduced-motion` is honoured globally.
+- **No decoration** — no gradients, glows, blurs, glassmorphism or pill shapes.
 
-## Core Palette
+## Tokens
 
-### Dark Mode (Default)
-- **Main BG**: `bg-obsidian` (`#0F0E0B` — Aptos black, warm)
-- **Surface**: `bg-surface` (`#171612` — Aptos ink)
-- **Elevated**: `bg-coal` (`#21201C`) / `bg-graphite` (`#2F2D28`)
-- **Text Heading**: `text-mist-50` (`#FFFFFA`)
-- **Text Primary**: `text-mist-100` / `text-mist-200` (`#F9F9F0` / `#EFECCA`)
-- **Text Secondary**: `text-mist-300` / `text-mist-400` (`#CCC5A3` sand / `#9D937C` tan)
-- **Text Muted**: `text-mist-500` (`#3D3B34` ash)
-- **Borders**: `border-white/10` (1px translucent)
-- **Accent (CTA / link)**: `text-glacier-500` / `bg-glacier-500` — re-mapped to Aptos coral `#FF8866`
-- **Accent Mint**: `bg-mint` (`#D5FAD3`) — hero backgrounds
-- **Accent Blue**: `bg-gemini-blue` (`#BADBEE`) — informational blocks
-- **Growth / Decay**: `#10B981` / `#EF4444` (kept for financial convention)
+All theme colours are RGB-channel CSS variables under `[data-theme="dark"]` (default) and `[data-theme="light"]`, so every utility supports `/alpha`.
 
-### Light Mode (`[data-theme="light"]`)
-- **Main BG**: `#F9F9F0` (Aptos warm white)
-- **Surface**: `#FFFFFA`
-- **Elevated**: `#EFECCA` (cream)
-- **Text Heading**: `#0F0E0B`
-- **Text Primary**: `#171612`
-- **Text Secondary**: `#3D3B34` (ash)
-- **Text Muted**: `#9D937C` (tan)
-- **Borders**: `rgba(0, 0, 0, 0.10)`
-- **Accent**: darker coral `#E5704F` for sufficient contrast on light bg
-- **Growth / Decay**: `#059669` / `#DC2626`
+| Token (Tailwind) | Dark | Light | Use |
+| --- | --- | --- | --- |
+| `bg-page` | `#0D0F12` | `#F3F4F6` | page background |
+| `bg-panel` | `#15181C` | `#FFFFFF` | panels, header, toolbars |
+| `bg-raised` | `#1B1F24` | `#F8F9FA` | table headers, secondary surfaces |
+| `bg-hover` | `#21262C` | `#F1F3F5` | row / button hover |
+| `text-fg` | `#ECEEF1` | `#17191C` | headings, key values |
+| `text-text-1` | `#D8DCE2` | `#222222` | body |
+| `text-text-2` | `#A3ABB6` | `#545B65` | secondary |
+| `text-text-3` | `#7A838F` | `#78808B` | labels, captions |
+| `text-text-4` | `#545C66` | `#A8AFB8` | placeholder / disabled |
+| `brand` | `#E62B3A` | `#DB1222` | primary button, active nav |
+| `accent` | `#5CA0FF` | `#1565C0` | links, selection, focus |
+| `up` / `down` | `#26BA69` / `#F05050` | `#0C803E` / `#CF222E` | price & growth direction |
+| `warn` | `#E6A23C` | `#B46E0A` | data caveats |
 
-> Accent colours `mint / blue / coral` **do not invert** between modes — they are part of brand identity.
+Borders: `border-line` (fg at 10–12%) and `border-line-strong`. `border-white/10` also works — in this codebase `white` maps to the foreground token, so legacy `text-white`, `bg-white/5`, `border-white/10` render correctly in both themes. Use `text-pure-white` when you genuinely need `#FFF` (text on a brand button).
+
+Legacy aliases (`mist-*`, `glacier-*`, `surface`, `obsidian`, `growth`, `decay`) map onto the tokens above; prefer the semantic names in new code.
 
 ## Typography
 
-- **Display & headings**: `font-serif` → Fraunces (variable; we use `opsz`, `SOFT`, `WONK` axes). Falls back to Instrument Serif → Times New Roman.
-- **UI / body**: `font-sans` → Inter.
-- **Data / labels / kickers**: `font-mono` → JetBrains Mono. **Always uppercase + `tracking-[0.12em]`** when used as a label (use the `.mono-kicker` utility).
-- **Hero**: use `.editorial-title` (Fraunces with `SOFT 50, WONK 0`) or `.gradient-text` for the highlighted phrase (Fraunces italic, coral→blue gradient).
+- One family: **Inter**, with PingFang SC / Microsoft YaHei fallbacks so CJK and Latin share a baseline. `font-serif`/`font-display` resolve to the same stack.
+- `font-mono` = Inter with `tabular-nums` (it is the *numeric* face, not a monospace). Use it for every price, percentage, ratio and ticker. True monospace for code: `font-code`.
+- Scale: `text-display` 40 · `text-h1` 28 · `text-h2` 22 · `text-h3` 18 · `text-lead` 16 · `text-body` 14 · `text-caption` 12 · `text-kicker` 11. Body text is 14px; tables 13px.
+- Headings are 600 weight, no letter-spacing tricks. Uppercase is only for `.label-caps` (11px, 0.04em).
 
-### Scale (Tailwind)
-| Class | Size | Use |
-| --- | --- | --- |
-| `text-mega` | 120px | XL hero |
-| `text-display` | 90px | hero h1 |
-| `text-h1` | 55px | page h1 |
-| `text-h2` | 36px | section h2 |
-| `text-h3` | 24px | module h3 |
-| `text-lead` | 18px | hero subtitle / lede |
-| `text-body` | 16px | body |
-| `text-caption` | 13px | meta |
-| `text-kicker` | 11px | mono uppercase eyebrow |
+## Components (`globals.css`)
 
-Mobile: heading sizes auto-clamp via `clamp()` inside `globals.css`.
+- Layout: `.page-container`; `PageHeader` component (title bar under the nav, optional eyebrow/actions).
+- Buttons: `.btn-primary` (brand red), `.btn-secondary` (outlined), `.btn-ghost`. Height 36px, radius 4px.
+- Surfaces: `.panel`, `.panel-header`, `.panel-title`.
+- Data: `.data-table` (+ `.num` cells for right-aligned tabular numbers), `.kv-row` / `.kv-label` / `.kv-value` for label–value lists.
+- Navigation: `.tab` / `.tab-active` (2px brand underline). Segmented controls: bordered group, active segment `bg-accent/10 text-accent`.
+- Inputs: `.input-field` (36px, 4px radius, blue focus ring). Badges: `.badge`. Labels: `.label-caps`.
+- AI markdown: `.prose-report`.
 
-## Shape & Components
+Radius scale: `sm` 2px · `md` 4px · `lg`/`xl` 6px · `2xl` 8px. `rounded-pill` is 4px (pills are retired).
 
-- **Radius**: `rounded-sm` (4px tags) · `rounded-md` (6px inputs/secondary cards) · `rounded-lg` (12px cards) · `rounded-pill` (9999px — buttons, navbar, toggles).
-  *Exception*: text inputs use `12px` for legibility.
-- **Borders**: 1px. Dark: `border-white/10`. Light: `rgba(0, 0, 0, 0.10)`. Use `border-white/20` for emphasis.
-- **Shadows**: keep flat. Only `shadow-md` (`0 4px 12px rgba(15,14,11,0.08)`) on the floating navbar. `shadow-lg` for dropdowns / modals.
-- **Glass surfaces**: the legacy `.glass-card` is now a **solid** surface with 1px border and a soft warm shadow (no heavy blur). Backdrop-filter is reduced to `blur(8px)` so navbar text stays sharp.
+## Layout patterns
 
-### Primary CTA
-Use `.pill-btn` (or any `.gemini-btn` / `.gemini-btn-primary` — they alias to the same Aptos pill).
+- **Top nav** (`Header.tsx`): sticky, full width, 56px, logo left, nav items with brand underline for the active route, language/theme toggles right. Mobile collapses to a menu that opens instantly.
+- **Inner pages**: `PageHeader` → `<div className="page-container py-6">` → panels.
+- **Company report** (`Report.tsx`): company header (name/ticker left, last price & change right, key facts row) → sticky toolbar under the nav (report version · section links · actions) → overview grid (`PriceChart`, `KeyStatsPanel`, `AnalystPanel`) → sections.
 
-```html
-<button class="pill-btn">Start Analysis</button>
-```
+## Charts
 
-Secondary: `.gemini-btn-secondary` — outline pill.
+Use `getChartTheme(theme)` / `tooltipStyle()` from `src/lib/chart-theme.ts` for ECharts colours; set `animation: false` for charts that redraw on user input. Charts must react to `document.documentElement.dataset.theme`. Categorical palette: `#4A86E8 #7FA3BF #3FA66B #D9534F #C9A227 #E07B39 #8DB4E2`.
 
-### Floating Navbar
-The site uses a single fixed pill anchored at `top-3` (mobile) / `top-5` (desktop), max-w-6xl centered, always pill-shaped, never reshapes on scroll. Implementation lives in `src/components/Header.tsx`.
+## Implementation rules
 
-## Data Visualization Palette
+1. Numbers: `font-mono`, right-aligned in tables, consistent decimals per column, `—` for missing values.
+2. Theme: read colours from tokens/utilities; never hardcode a colour that lacks a light-mode counterpart.
+3. Spacing: use Tailwind's 4px scale; panels pad 16–20px; vertical rhythm between page sections is 24px (`space-y-6`).
+4. Interactive rows: `hover:bg-hover`; whole row clickable when it navigates.
+5. Dialogs: `bg-black/50` scrim, `panel` body, `animate-fade-in`, Escape closes.
 
-### Semantic Colors (Standard Report)
-- **Revenue / Primary**: `窈蓝` (`#88ABDA`) — kept
-- **Profit / Positive**: `鞠尘` (`#C0D09D`)
-- **Expense / Negative**: `艳炽` (`#CB523E`)
-- **Secondary / Assets**: `白青` (`#98B6C2`)
-- **Neutral / Secondary**: `缟羽` (`#EFEFEF`)
+## Data & AI
 
-### Categorical Palette (Aptos accent layer applied)
-For pie / multi-series charts, alternate between traditional named colours and Aptos accents:
-
-1. **窈蓝 (Yao Lan)**: `#88ABDA`
-2. **白青 (Bai Qing)**: `#98B6C2`
-3. **鞠尘 (Ju Chen)**: `#C0D09D`
-4. **Aptos Coral**: `#FF8866`
-5. **Aptos Mint**: `#D5FAD3`
-6. **Aptos Blue**: `#BADBEE`
-7. **黄润 (Huang Run)**: `#DFD6B8`
-8. **艳炽 (Yan Chi)**: `#CB523E`
-
-## Implementation Rules
-
-1. **Financial Precision**: Always use `font-mono` (`tabular-nums`) for currency / percentage values.
-2. **Theme Consistency**: Read from CSS variables (`--bg-surface`, `--text-primary`, etc.) or theme-aware utility classes (`theme-text-primary`, `bg-surface`, `border-white/10`). Never hardcode colors that don't have a light-mode override in `globals.css`.
-3. **Chart Adaptation**: ECharts / SVG must detect `document.documentElement.dataset.theme` and switch background / tooltip / label colors.
-4. **No Gradients**: Avoid background gradients. The only allowed gradient is the `.gradient-text` accent applied to ≤ 5 words of a single hero phrase.
-5. **Transition**: `transition: background-color 0.2s, color 0.2s, border-color 0.2s` applied globally in light mode for smooth theme swap.
-6. **Mono Labels**: Section eyebrows, table headers, ticker symbols, button text in navbar — all `font-mono uppercase tracking-[0.12em]`. Use `.mono-kicker`.
-7. **Editorial Titles**: All `<h1>` / `<h2>` / `<h3>` default to Fraunces serif in `globals.css`. To opt out (e.g. for code / inline mono), add `font-sans` or `font-mono`.
-
-## Interactive Data Rows (Hint UI/UX)
-
-Used in report modules like "Calculation Factor Details", "Financial Indicators", and "Capital & Return".
-- **Interaction**: Rows must be clickable with a hover state.
-- **Hover State**: `hover:bg-white/5 px-2 -mx-2 rounded-md transition-colors`.
-- **Tooltip / Hint**:
-  - Implementation: non-transparent overlay (`bg-surface` or `bg-obsidian`) with `border border-white/10`.
-  - Position: typically `bottom-full right-0 mb-2`.
-  - Visibility: controlled by local state (`hoveredMetric`).
-- **Typography**: Label uses `text-mist-400` (mono uppercase). Value uses `font-mono` (tabular-nums).
-
-## Responsive
-
-- Breakpoints follow Tailwind defaults; `lg` (1024px) is where the floating navbar reveals the full menu row.
-- Mobile pill collapses to logo + theme + lang + hamburger; the dropdown sheet inherits the same surface treatment.
-- Hero `text-display` clamps from 90px → 44px on mobile via CSS `clamp()` in `globals.css`.
-- All `padding`/`gap` values respect the Aptos `5px` base spacing unit (multiples of 5).
+- Market data: Yahoo Finance is the primary source for all markets (`src/lib/yahoo/*`, orchestrated in `src/lib/market-data.ts`). FMP (free plan, optional) adds 5-year US annual statements and DCF behind a circuit breaker; SEC EDGAR adds 10-year US history for long-run CAGR. Derived metrics come from `src/lib/financial-metrics.ts`.
+- AI: DeepSeek only (`src/lib/deepseek.ts`, `src/lib/ai/*`), default model `deepseek-flash`. There is no other AI provider.

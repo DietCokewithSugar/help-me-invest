@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquarePlus, X } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { withLocale } from '@/lib/locale-path';
@@ -67,20 +66,16 @@ export default function FeedbackWidget() {
 
   return (
     <div className="fixed bottom-5 right-5 md:bottom-6 md:right-6 z-[55] flex flex-col items-end gap-3">
-      <AnimatePresence>
+      <>
         {open && (
-          <motion.div
-            ref={dialogRef as any}
-            role="dialog"
-            aria-modal="false"
-            aria-labelledby={titleId}
-            aria-describedby={descriptionId}
-            tabIndex={-1}
-            initial={{ opacity: 0, y: 12, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 12, scale: 0.96 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 320 }}
-            className="w-[min(360px,calc(100vw-2.5rem))] rounded-md bg-surface border border-white/10 shadow-2xl shadow-black/40 overflow-hidden focus:outline-none"
+          <div
+              ref={dialogRef as any}
+              role="dialog"
+              aria-modal="false"
+              aria-labelledby={titleId}
+              aria-describedby={descriptionId}
+              tabIndex={-1}
+              className="w-[min(360px,calc(100vw-2.5rem))] rounded-md bg-panel border border-line shadow-xl overflow-hidden focus:outline-none animate-fade-in"
           >
             <div className="flex items-start justify-between p-4 border-b border-white/5">
               <div>
@@ -108,7 +103,7 @@ export default function FeedbackWidget() {
                         setOpen(false);
                         router.push(withLocale(locale, `/feedback/${lastSubmitted.id}`));
                       }}
-                      className="px-3 py-1.5 text-xs rounded-sm bg-glacier-500 hover:bg-glacier-400 text-obsidian font-semibold transition-colors"
+                      className="px-3 py-1.5 text-xs rounded-sm bg-brand hover:bg-brand-strong text-pure-white font-semibold transition-colors"
                     >
                       {widgetT.viewAll}
                     </button>
@@ -128,15 +123,15 @@ export default function FeedbackWidget() {
                 />
               )}
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
+      </>
 
       <button
         onClick={() => setOpen((v) => !v)}
         title={widgetT.tooltip}
         aria-label={widgetT.tooltip}
-        className="glass-card inline-flex items-center gap-2 px-4 py-2.5 rounded-pill font-mono text-[11px] uppercase tracking-[0.12em] text-mist-300 hover:text-mist-50 transition-colors"
+        className="btn-secondary shadow-md"
       >
         <MessageSquarePlus className="w-4 h-4" />
         <span className="hidden sm:inline">{widgetT.open}</span>

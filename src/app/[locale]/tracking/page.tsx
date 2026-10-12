@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
 import ReactECharts from 'echarts-for-react';
 import {
     TrendingUpIcon,
@@ -14,6 +13,7 @@ import {
     FilterIcon,
 } from '@/components/Icons';
 import Header from '@/components/Header';
+import PageHeader from '@/components/PageHeader';
 import {
     ChevronLeft as ChevronLeftIcon,
     LayoutGrid as LayoutGridIcon,
@@ -237,21 +237,16 @@ function PositionGroup({
             </button>
 
             {/* 股票列表 */}
-            <AnimatePresence>
+            <>
                 {expanded && (
-                    <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 gap-3" : "space-y-2"}
-                    >
+                    <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 gap-3" : "space-y-2"}>
                         {stocks.map((stock) => {
                             const data = stockData[stock.symbol];
                             const price = data?.quote?.price || 0;
+                            const hasQuote = typeof data?.quote?.price === 'number';
                             const change = data?.quote?.changesPercentage || 0;
                             const isPositive = change >= 0;
-                            const brandColor = isPositive ? '#10b981' : '#ef4444';
+                            const brandColor = isPositive ? '#26BA69' : '#F05050';
 
                             if (viewMode === 'grid') {
                                 return (
@@ -269,7 +264,7 @@ function PositionGroup({
 
                                             <div className="flex items-center gap-2 text-[10px]">
                                                 {isRecommendation && stock.rating ? (
-                                                    <span className="text-amber-400 font-mono">{renderStars(stock.rating)}</span>
+                                                    <span className="text-warn font-mono">{renderStars(stock.rating)}</span>
                                                 ) : (
                                                     <>
                                                         {stock.portfolioPercent && (
@@ -297,12 +292,12 @@ function PositionGroup({
 
                                         {/* Column 3: Price & Change */}
                                         <div className="w-24 shrink-0 text-right flex flex-col justify-center">
-                                            <span className="text-sm font-mono font-medium theme-text-heading">${price.toFixed(2)}</span>
+                                            <span className="text-sm font-mono font-medium theme-text-heading">{hasQuote ? price.toFixed(2) : '—'}</span>
                                             {(() => {
                                                 const monthChange = calcMonthlyChange(data?.history || []);
                                                 const isMonthPositive = monthChange >= 0;
                                                 return (
-                                                    <div className={`flex items-center justify-end gap-0.5 text-[10px] font-bold ${isMonthPositive ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                                    <div className={`flex items-center justify-end gap-0.5 text-[10px] font-bold ${isMonthPositive ? 'text-up' : 'text-down'}`}>
                                                         {isMonthPositive ? <ArrowUpIcon size={8} /> : <ArrowDownIcon size={8} />}
                                                         <span>{isMonthPositive ? '+' : ''}{monthChange.toFixed(2)}%</span>
                                                         <span className="text-mist-600 text-[8px] font-medium">1M</span>
@@ -331,7 +326,7 @@ function PositionGroup({
                                         {/* 持仓占比 / 推荐评级 */}
                                         <div className="w-24 text-center">
                                             {isRecommendation && stock.rating ? (
-                                                <span className="text-amber-400 text-xs font-mono">{renderStars(stock.rating)}</span>
+                                                <span className="text-warn text-xs font-mono">{renderStars(stock.rating)}</span>
                                             ) : stock.portfolioPercent ? (
                                                 <span className="font-mono text-xs font-medium" style={{ color: config.color }}>{stock.portfolioPercent.toFixed(1)}%</span>
                                             ) : null}
@@ -360,12 +355,12 @@ function PositionGroup({
                                         </div>
 
                                         <div className="w-28 text-right flex flex-col">
-                                            <span className="text-sm font-mono font-medium theme-text-heading">${price.toFixed(2)}</span>
+                                            <span className="text-sm font-mono font-medium theme-text-heading">{hasQuote ? price.toFixed(2) : '—'}</span>
                                             {(() => {
                                                 const monthChange = calcMonthlyChange(data?.history || []);
                                                 const isMonthPositive = monthChange >= 0;
                                                 return (
-                                                    <span className={`text-[10px] font-bold flex items-center justify-end gap-0.5 ${isMonthPositive ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                                    <span className={`text-[10px] font-bold flex items-center justify-end gap-0.5 ${isMonthPositive ? 'text-up' : 'text-down'}`}>
                                                         {isMonthPositive ? '+' : ''}{monthChange.toFixed(2)}%
                                                         <span className="text-mist-600">月</span>
                                                     </span>
@@ -380,9 +375,9 @@ function PositionGroup({
                                 );
                             }
                         })}
-                    </motion.div>
+                    </div>
                 )}
-            </AnimatePresence>
+            </>
         </div>
     );
 }
@@ -472,32 +467,39 @@ export default function TrackingPage() {
                 toggleTheme={toggleTheme}
             />
 
-            {/* 二级工具栏 - 视图切换 */}
-            <div className="pt-28 pb-2 mx-4">
-                <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between">
-                    <h1 className="text-2xl font-light tracking-tight theme-text-heading">组合追踪</h1>
-                    <div className="hidden sm:flex p-1 bg-white/5 rounded-lg border border-white/10">
+            <PageHeader
+                title={locale === 'zh' ? '组合追踪' : 'Portfolio Tracker'}
+                actions={
+                    <div role="radiogroup" className="hidden sm:inline-flex overflow-hidden rounded-md border border-line bg-panel">
                         <button
+                            type="button"
+                            role="radio"
+                            aria-checked={viewMode === 'grid'}
+                            aria-label="Grid"
                             onClick={() => setViewMode('grid')}
-                            className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-glacier-500 text-white shadow-sm' : 'text-mist-500 hover:text-mist-300'}`}
+                            className={`flex h-8 w-9 items-center justify-center ${viewMode === 'grid' ? 'bg-accent/10 text-accent' : 'text-text-3 hover:bg-hover hover:text-fg'}`}
                         >
-                            <LayoutGridIcon size={18} />
+                            <LayoutGridIcon size={16} />
                         </button>
                         <button
+                            type="button"
+                            role="radio"
+                            aria-checked={viewMode === 'list'}
+                            aria-label="List"
                             onClick={() => setViewMode('list')}
-                            className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-glacier-500 text-white shadow-sm' : 'text-mist-500 hover:text-mist-300'}`}
+                            className={`flex h-8 w-9 items-center justify-center border-l border-line ${viewMode === 'list' ? 'bg-accent/10 text-accent' : 'text-text-3 hover:bg-hover hover:text-fg'}`}
                         >
-                            <ListIcon size={18} />
+                            <ListIcon size={16} />
                         </button>
                     </div>
-                </div>
-            </div>
+                }
+            />
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+            <div className="page-container py-6">
                 <div className="flex flex-col lg:flex-row gap-8">
                     {/* Sidebar - Portfolio Selection (按分类分组) */}
                     <aside className="w-full lg:w-72 shrink-0">
-                        <div className="sticky top-24 space-y-6">
+                        <div className="sticky top-20 space-y-6">
                             {groupedPortfolios.map((group) => (
                                 <div key={group.category}>
                                     <h2 className="text-xs font-semibold text-mist-500 uppercase tracking-wider mb-3 px-2 flex items-center gap-2">
@@ -588,15 +590,8 @@ export default function TrackingPage() {
                                 ))}
                             </div>
                         ) : (
-                            <AnimatePresence mode="wait">
-                                <motion.div
-                                    key={selectedPortfolio.id + viewMode}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -10 }}
-                                    transition={{ duration: 0.2 }}
-                                    className="space-y-6"
-                                >
+                            <>
+                                <div key={selectedPortfolio.id + viewMode} className="space-y-6">
                                     {selectedPortfolio.category === 'recommendation' ? (
                                         // 投资建议类：按评级分组显示
                                         <>
@@ -663,8 +658,8 @@ export default function TrackingPage() {
                                             />
                                         </>
                                     )}
-                                </motion.div>
-                            </AnimatePresence>
+                                </div>
+                            </>
                         )}
                     </div>
                 </div>

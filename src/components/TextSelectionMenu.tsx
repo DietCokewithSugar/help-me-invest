@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Copy, Loader2, MessageSquare } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface SelectionState {
@@ -160,43 +159,27 @@ export default function TextSelectionMenu() {
     return createPortal(
         <>
             {/* Trigger Button */}
-            <AnimatePresence>
+            <>
                 {showButton && !showPopover && (
-                    <motion.button
+                    <button
                         ref={buttonRef}
-                        initial={{ opacity: 0, y: 20, x: "-50%" }}
-                        animate={{ opacity: 1, y: 0, x: "-50%" }}
-                        exit={{ opacity: 0, y: 20, x: "-50%" }}
-                        className="fixed bottom-6 left-1/2 z-[9999] flex items-center gap-2 px-6 py-3 bg-surface border border-slate-200 dark:border-white/10 rounded-full shadow-xl hover:scale-105 transition-transform cursor-pointer"
+                        className="fixed bottom-6 left-1/2 z-[9999] flex items-center gap-2 px-6 py-3 bg-surface border border-slate-200 dark:border-white/10 rounded-full shadow-xl hover:scale-105 transition-transform cursor-pointer animate-fade-in -translate-x-1/2"
                         onClick={handleExplain}
                     >
                         <MessageSquare size={16} className="text-teal-600 dark:text-glacier-500" />
                         <span className="font-medium text-sm theme-text-primary whitespace-nowrap">{t.textSelection.aiExplain}</span>
-                    </motion.button>
+                    </button>
                 )}
-            </AnimatePresence>
+            </>
 
             {/* Result Popover / Sheet */}
-            <AnimatePresence>
+            <>
                 {showPopover && (
                     isMobile ? (
                         // Mobile: Bottom Sheet Overlay
                         <>
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                className="fixed inset-0 bg-black/40 z-[9998] backdrop-blur-[2px]"
-                                onClick={() => setShowPopover(false)}
-                            />
-                            <motion.div
-                                ref={popoverRef}
-                                initial={{ y: "100%" }}
-                                animate={{ y: 0 }}
-                                exit={{ y: "100%" }}
-                                transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                                className="fixed bottom-0 left-0 right-0 z-[9999] bg-surface rounded-t-2xl shadow-2xl border-t border-slate-200 dark:border-white/10 max-h-[80vh] flex flex-col"
-                            >
+                            <div className="fixed inset-0 bg-black/40 z-[9998] animate-fade-in" onClick={() => setShowPopover(false)}/>
+                            <div ref={popoverRef} className="fixed bottom-0 left-0 right-0 z-[9999] bg-surface rounded-t-2xl shadow-2xl border-t border-slate-200 dark:border-white/10 max-h-[80vh] flex flex-col">
                                 {/* Mobile Header */}
                                 <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-white/10">
                                     <div className="flex items-center gap-2">
@@ -205,11 +188,11 @@ export default function TextSelectionMenu() {
                                     </div>
                                     <div className="flex gap-3">
                                         {!loading && !error && (
-                                            <button onClick={handleCopy} className="p-2 bg-slate-100 dark:bg-white/5 rounded-full text-slate-500 dark:text-mist-400">
+                                            <button onClick={handleCopy} className="p-2 bg-slate-100 dark:bg-white/5 rounded-full text-mist-500 dark:text-mist-400">
                                                 <Copy size={16} />
                                             </button>
                                         )}
-                                        <button onClick={() => setShowPopover(false)} className="p-2 bg-slate-100 dark:bg-white/5 rounded-full text-slate-500 dark:text-mist-400">
+                                        <button onClick={() => setShowPopover(false)} className="p-2 bg-slate-100 dark:bg-white/5 rounded-full text-mist-500 dark:text-mist-400">
                                             <X size={16} />
                                         </button>
                                     </div>
@@ -223,11 +206,11 @@ export default function TextSelectionMenu() {
                                             <span className="text-sm text-mist-500">{t.textSelection.analyzing}</span>
                                         </div>
                                     ) : error ? (
-                                        <div className="text-decay p-4 bg-red-500/5 border border-decay/20 rounded-lg text-sm">
+                                        <div className="text-decay p-4 bg-down/5 border border-decay/20 rounded-lg text-sm">
                                             {error}
                                         </div>
                                     ) : (
-                                        <div className="prose-gemini prose-sm max-w-none prose-p:my-2 leading-relaxed">
+                                        <div className="prose-report prose-sm max-w-none prose-p:my-2 leading-relaxed">
                                             <ReactMarkdown>{explanation}</ReactMarkdown>
                                         </div>
                                     )}
@@ -237,23 +220,19 @@ export default function TextSelectionMenu() {
                                         SELECTED: {selection.text.substring(0, 40)}{selection.text.length > 40 ? '...' : ''}
                                     </div>
                                 )}
-                            </motion.div>
+                            </div>
                         </>
                     ) : (
                         // Desktop: Popover
-                        <motion.div
+                        <div
                             ref={popoverRef}
-                            initial={{ opacity: 0, scale: 0.98, y: 5 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.98, y: 5 }}
-                            transition={{ duration: 0.15 }}
                             style={{
                                 position: 'absolute',
                                 top: popoverTop,
                                 left: popoverLeft,
                                 zIndex: 9999,
                             }}
-                            className="w-[320px] md:w-[360px] bg-surface border border-slate-200 dark:border-white/10 rounded-md shadow-2xl overflow-hidden flex flex-col transition-colors"
+                            className="w-[320px] md:w-[360px] bg-surface border border-slate-200 dark:border-white/10 rounded-md shadow-2xl overflow-hidden flex flex-col transition-colors animate-fade-in"
                         >
                             {/* Existing Desktop Header & Content logic... copied for consistency */}
                             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02]">
@@ -262,11 +241,11 @@ export default function TextSelectionMenu() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                     {!loading && !error && (
-                                        <button onClick={handleCopy} className="p-1.5 text-slate-400 dark:text-mist-500 hover:text-slate-700 dark:hover:text-mist-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-sm transition-colors" title="复制结果">
+                                        <button onClick={handleCopy} className="p-1.5 text-mist-400 dark:text-mist-500 hover:text-slate-700 dark:hover:text-mist-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-sm transition-colors" title="复制结果">
                                             <Copy size={13} />
                                         </button>
                                     )}
-                                    <button onClick={() => setShowPopover(false)} className="p-1.5 text-slate-400 dark:text-mist-500 hover:text-slate-700 dark:hover:text-mist-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-sm transition-colors" title="关闭">
+                                    <button onClick={() => setShowPopover(false)} className="p-1.5 text-mist-400 dark:text-mist-500 hover:text-slate-700 dark:hover:text-mist-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-sm transition-colors" title="关闭">
                                         <X size={14} />
                                     </button>
                                 </div>
@@ -279,25 +258,25 @@ export default function TextSelectionMenu() {
                                         <span className="text-xs text-mist-500 dark:text-mist-500 font-medium">{t.textSelection.analyzingShort}</span>
                                     </div>
                                 ) : error ? (
-                                    <div className="text-decay text-xs p-2 bg-red-500/5 border border-decay/20 rounded-sm">
+                                    <div className="text-decay text-xs p-2 bg-down/5 border border-decay/20 rounded-sm">
                                         {error}
                                     </div>
                                 ) : (
-                                    <div className="prose-gemini prose-sm max-w-none prose-p:my-2 first:prose-p:mt-0 last:prose-p:mb-0">
+                                    <div className="prose-report prose-sm max-w-none prose-p:my-2 first:prose-p:mt-0 last:prose-p:mb-0">
                                         <ReactMarkdown>{explanation}</ReactMarkdown>
                                     </div>
                                 )}
                             </div>
 
                             {selection.text && (
-                                <div className="px-4 py-2.5 bg-slate-50/30 dark:bg-white/[0.01] border-t border-slate-100 dark:border-white/10 text-[11px] text-slate-400 dark:text-mist-500 truncate font-mono">
+                                <div className="px-4 py-2.5 bg-slate-50/30 dark:bg-white/[0.01] border-t border-slate-100 dark:border-white/10 text-[11px] text-mist-400 dark:text-mist-500 truncate font-mono">
                                     SOURCE: "{selection.text}"
                                 </div>
                             )}
-                        </motion.div>
+                        </div>
                     )
                 )}
-            </AnimatePresence>
+            </>
         </>,
         document.body
     );

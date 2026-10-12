@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import {
     XIcon,
@@ -43,23 +42,23 @@ const DIMENSION_FIELD_MAP: Record<typeof DIMENSION_KEYS[number], DiagnosticDimen
 const DIMENSION_VALUE_COLORS: Record<string, string> = {
     // 战略定位
     '开拓者': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-    '稳固者': 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-    '分红者': 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+    '稳固者': 'bg-up/20 text-up border-up/30',
+    '分红者': 'bg-warn/20 text-warn border-warn/30',
     // 市场体量
     '实力股': 'bg-purple-500/20 text-purple-400 border-purple-500/30',
     '潜力股': 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
     '弹簧股': 'bg-pink-500/20 text-pink-400 border-pink-500/30',
     // 周期特性
-    '防御型': 'bg-green-500/20 text-green-400 border-green-500/30',
+    '防御型': 'bg-up/20 text-up border-up/30',
     '周期型': 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-    '探险型': 'bg-red-500/20 text-red-400 border-red-500/30',
+    '探险型': 'bg-down/20 text-down border-down/30',
     // 资金状况
-    '健康型': 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-    '贫血型': 'bg-rose-500/20 text-rose-400 border-rose-500/30',
+    '健康型': 'bg-up/20 text-up border-up/30',
+    '贫血型': 'bg-down/20 text-down border-down/30',
     // 债务结构
     '轻装型': 'bg-teal-500/20 text-teal-400 border-teal-500/30',
-    '平衡型': 'bg-slate-500/20 text-slate-400 border-slate-500/30',
-    '背债型': 'bg-red-500/20 text-red-400 border-red-500/30',
+    '平衡型': 'bg-slate-500/20 text-mist-400 border-slate-500/30',
+    '背债型': 'bg-down/20 text-down border-down/30',
     // 外部敏感点
     '政策型': 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
     '汇率型': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
@@ -67,8 +66,8 @@ const DIMENSION_VALUE_COLORS: Record<string, string> = {
     // 盈利模式
     '薄利多销型': 'bg-sky-500/20 text-sky-400 border-sky-500/30',
     '高利少销型': 'bg-violet-500/20 text-violet-400 border-violet-500/30',
-    '坐地收租型': 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-    '烧钱圈地型': 'bg-rose-500/20 text-rose-400 border-rose-500/30',
+    '坐地收租型': 'bg-warn/20 text-warn border-warn/30',
+    '烧钱圈地型': 'bg-down/20 text-down border-down/30',
 };
 
 interface CompanyOverviewModalProps {
@@ -165,27 +164,17 @@ export default function CompanyOverviewModal({
     if (!company) return null;
 
     return (
-        <AnimatePresence>
+        <>
             {isOpen && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
-                    onClick={onClose}
-                >
-                    <motion.div
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 animate-fade-in" onClick={onClose}>
+                    <div
                         ref={dialogRef as any}
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby={titleId}
                         aria-describedby={descriptionId}
                         tabIndex={-1}
-                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                        className="relative bg-surface rounded-sm border border-white/10 shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col focus:outline-none"
+                        className="relative bg-surface rounded-sm border border-white/10 shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col focus:outline-none animate-fade-in"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Header */}
@@ -195,17 +184,17 @@ export default function CompanyOverviewModal({
                                     <span className="font-mono text-lg font-bold text-accent bg-accent/10 px-2 py-1 rounded-sm">
                                         {company.symbol}
                                     </span>
-                                    <span id={descriptionId} className="text-xs text-text-muted bg-white/5 px-2 py-1 rounded-sm">
+                                    <span id={descriptionId} className="text-xs text-text-3 bg-white/5 px-2 py-1 rounded-sm">
                                         {company.exchange_short_name}
                                     </span>
                                 </div>
-                                <h2 id={titleId} className="text-xl font-bold text-text-primary mb-2">
+                                <h2 id={titleId} className="text-xl font-bold text-text-1 mb-2">
                                     {company.company_name}
                                 </h2>
                                 <div className="flex items-center gap-4 text-sm">
-                                    <span className="text-text-secondary">{company.sector}</span>
-                                    <span className="text-text-muted">•</span>
-                                    <span className="text-text-muted">{company.industry}</span>
+                                    <span className="text-text-2">{company.sector}</span>
+                                    <span className="text-text-3">•</span>
+                                    <span className="text-text-3">{company.industry}</span>
                                 </div>
                             </div>
                             <button
@@ -214,7 +203,7 @@ export default function CompanyOverviewModal({
                                 className="inline-flex items-center justify-center h-11 w-11 rounded-sm bg-white/5 hover:bg-white/10 transition-colors"
                                 aria-label={t.common.close || 'Close'}
                             >
-                                <XIcon size={18} className="text-text-muted" />
+                                <XIcon size={18} className="text-text-3" />
                             </button>
                         </div>
 
@@ -223,26 +212,26 @@ export default function CompanyOverviewModal({
                             {/* 基本信息 */}
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <div className="bg-white/5 p-4 rounded-sm border border-white/5">
-                                    <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">{t.common.marketCap}</div>
-                                    <div className="text-lg font-mono font-bold text-text-primary">
+                                    <div className="text-[10px] text-text-3 uppercase tracking-wider mb-1">{t.common.marketCap}</div>
+                                    <div className="text-lg font-mono font-bold text-text-1">
                                         {formatMarketCap(company.market_cap)}
                                     </div>
                                 </div>
                                 <div className="bg-white/5 p-4 rounded-sm border border-white/5">
-                                    <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">{t.common.price}</div>
-                                    <div className="text-lg font-mono font-bold text-text-primary">
+                                    <div className="text-[10px] text-text-3 uppercase tracking-wider mb-1">{t.common.price}</div>
+                                    <div className="text-lg font-mono font-bold text-text-1">
                                         ${company.price?.toFixed(2) || 'N/A'}
                                     </div>
                                 </div>
                                 <div className="bg-white/5 p-4 rounded-sm border border-white/5">
-                                    <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">{t.companyOverviewModal.beta}</div>
-                                    <div className="text-lg font-mono font-bold text-text-primary">
+                                    <div className="text-[10px] text-text-3 uppercase tracking-wider mb-1">{t.companyOverviewModal.beta}</div>
+                                    <div className="text-lg font-mono font-bold text-text-1">
                                         {company.beta?.toFixed(2) || 'N/A'}
                                     </div>
                                 </div>
                                 <div className="bg-white/5 p-4 rounded-sm border border-white/5">
-                                    <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">{t.companyOverviewModal.annualDividend}</div>
-                                    <div className="text-lg font-mono font-bold text-text-primary">
+                                    <div className="text-[10px] text-text-3 uppercase tracking-wider mb-1">{t.companyOverviewModal.annualDividend}</div>
+                                    <div className="text-lg font-mono font-bold text-text-1">
                                         ${company.last_annual_dividend?.toFixed(2) || '0.00'}
                                     </div>
                                 </div>
@@ -250,7 +239,7 @@ export default function CompanyOverviewModal({
 
                             {/* 7个诊断维度 */}
                             <div>
-                                <h3 className="text-sm font-bold text-text-primary mb-4 flex items-center gap-2">
+                                <h3 className="text-sm font-bold text-text-1 mb-4 flex items-center gap-2">
                                     <span className="w-1 h-4 bg-accent rounded-full"></span>
                                     {t.companyOverviewModal.aiDiagnosis}
                                 </h3>
@@ -258,15 +247,15 @@ export default function CompanyOverviewModal({
                                     {DIMENSION_KEYS.map((dimKey) => {
                                         const value = getDimensionValue(dimKey);
                                         if (!value) return null;
-                                        const colorClass = DIMENSION_VALUE_COLORS[value.colorKey] || 'bg-white/10 text-text-secondary border-white/10';
+                                        const colorClass = DIMENSION_VALUE_COLORS[value.colorKey] || 'bg-white/10 text-text-2 border-white/10';
                                         return (
                                             <div
                                                 key={dimKey}
                                                 className="flex items-center justify-between p-3 bg-white/[0.02] rounded-sm border border-white/5 hover:bg-white/5 transition-colors"
                                             >
                                                 <div>
-                                                    <div className="text-xs text-text-secondary mb-0.5">{t.companyOverviewModal.dimLabels[dimKey]}</div>
-                                                    <div className="text-[10px] text-text-muted">{t.companyOverviewModal.dimDescs[dimKey]}</div>
+                                                    <div className="text-xs text-text-2 mb-0.5">{t.companyOverviewModal.dimLabels[dimKey]}</div>
+                                                    <div className="text-[10px] text-text-3">{t.companyOverviewModal.dimDescs[dimKey]}</div>
                                                 </div>
                                                 <span className={`px-2.5 py-1 text-xs font-medium rounded-sm border ${colorClass}`}>
                                                     {value.display}
@@ -280,12 +269,12 @@ export default function CompanyOverviewModal({
                             {/* AI 分析摘要 */}
                             {localizedReasoning && (
                                 <div>
-                                    <h3 className="text-sm font-bold text-text-primary mb-4 flex items-center gap-2">
+                                    <h3 className="text-sm font-bold text-text-1 mb-4 flex items-center gap-2">
                                         <span className="w-1 h-4 bg-accent rounded-full"></span>
                                         {t.companyOverviewModal.aiSummary}
                                     </h3>
                                     <div className="bg-white/[0.02] p-4 rounded-sm border border-white/5">
-                                        <p className="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">
+                                        <p className="text-sm text-text-2 leading-relaxed whitespace-pre-wrap">
                                             {localizedReasoning}
                                         </p>
                                     </div>
@@ -294,16 +283,16 @@ export default function CompanyOverviewModal({
 
                             {/* 相关公司推荐 */}
                             <div>
-                                <h3 className="text-sm font-bold text-text-primary mb-4 flex items-center gap-2">
+                                <h3 className="text-sm font-bold text-text-1 mb-4 flex items-center gap-2">
                                     <span className="w-1 h-4 bg-accent rounded-full"></span>
                                     {t.companyOverviewModal.relatedCompanies}
-                                    <span className="text-xs font-normal text-text-muted ml-1">
+                                    <span className="text-xs font-normal text-text-3 ml-1">
                                         {t.companyOverviewModal.basedOnFilters}
                                     </span>
                                 </h3>
                                 {loadingRelated ? (
                                     <div className="flex items-center justify-center py-8">
-                                        <div className="text-text-muted font-mono text-xs animate-pulse">
+                                        <div className="text-text-3 font-mono text-xs animate-pulse">
                                             {t.companyOverviewModal.loading}
                                         </div>
                                     </div>
@@ -319,21 +308,21 @@ export default function CompanyOverviewModal({
                                                     <span className="font-mono text-xs text-accent bg-accent/10 px-1.5 py-0.5 rounded-sm">
                                                         {related.symbol}
                                                     </span>
-                                                    <span className="text-sm text-text-secondary group-hover:text-text-primary transition-colors line-clamp-1">
+                                                    <span className="text-sm text-text-2 group-hover:text-text-1 transition-colors line-clamp-1">
                                                         {related.company_name}
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center gap-3">
-                                                    <span className="font-mono text-xs text-text-muted">
+                                                    <span className="font-mono text-xs text-text-3">
                                                         {formatMarketCap(related.market_cap)}
                                                     </span>
-                                                    <ChevronRightIcon size={14} className="text-text-muted group-hover:text-accent transition-colors" />
+                                                    <ChevronRightIcon size={14} className="text-text-3 group-hover:text-accent transition-colors" />
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="text-center py-6 text-text-muted text-xs">
+                                    <div className="text-center py-6 text-text-3 text-xs">
                                         {t.companyOverviewModal.noRelated}
                                     </div>
                                 )}
@@ -342,7 +331,7 @@ export default function CompanyOverviewModal({
                             {/* 数据来源 - 只展示第一个 */}
                             {company.sources && company.sources.length > 0 && (
                                 <div className="pt-2 border-t border-white/5">
-                                    <span className="text-[10px] text-text-muted">
+                                    <span className="text-[10px] text-text-3">
                                         {t.companyOverviewModal.dataSource(company.sources[0])}
                                     </span>
                                 </div>
@@ -373,15 +362,15 @@ export default function CompanyOverviewModal({
                                 </button>
                                 <button
                                     onClick={() => handleGenerateReport(company.symbol)}
-                                    className="flex-1 px-6 py-3 bg-[#10B981] hover:bg-[#059669] text-white rounded-sm font-semibold transition-all"
+                                    className="btn-primary flex-1"
                                 >
                                     {t.companyOverviewModal.generateReport}
                                 </button>
                             </div>
                         </div>
-                    </motion.div>
-                </motion.div>
+                    </div>
+                </div>
             )}
-        </AnimatePresence>
+        </>
     );
 }

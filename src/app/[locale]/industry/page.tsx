@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
+import PageHeader from '@/components/PageHeader';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { withLocale } from '@/lib/locale-path';
 import { getTrendColor } from '@/lib/industry-data';
@@ -26,12 +27,12 @@ type SortKey = 'marketCapWeight' | 'cagr3y' | 'sentiment' | 'change1D';
 type SortDir = 'asc' | 'desc';
 
 const darkPanelStyle = {
-  backgroundColor: '#121212',
-  borderColor: 'rgba(255, 255, 255, 0.12)',
+  backgroundColor: 'rgb(var(--c-panel))',
+  borderColor: 'var(--line)',
 } as const;
 
 const darkTableHeaderStyle = {
-  backgroundColor: 'rgba(255, 255, 255, 0.02)',
+  backgroundColor: 'rgb(var(--c-raised))',
 } as const;
 
 export default function IndustryPage() {
@@ -113,27 +114,27 @@ export default function IndustryPage() {
     if (sectors.length === 0) return {};
     const isDark = theme === 'dark';
     return {
-      backgroundColor: isDark ? '#121212' : 'transparent',
+      backgroundColor: 'transparent',
       tooltip: {
         trigger: 'item',
-        backgroundColor: isDark ? '#121212' : '#ffffff',
-        borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-        textStyle: { color: isDark ? '#e2e8f0' : '#1e293b', fontFamily: 'Inter' },
+        backgroundColor: isDark ? '#1B1F24' : '#FFFFFF',
+        borderColor: isDark ? 'rgba(236,238,241,0.14)' : 'rgba(23,25,28,0.14)',
+        textStyle: { color: isDark ? '#D8DCE2' : '#222222', fontFamily: 'Inter' },
         formatter: (params: any) => {
           const d = params.data;
           if (!d || !d.sectorData) return '';
           const sd = d.sectorData as SectorData;
           return `<div style="font-family:Inter;min-width:160px">
             <div style="font-weight:600;margin-bottom:4px">${sectorName(sd.sector)}</div>
-            <div style="font-family:'JetBrains Mono';font-size:12px;display:flex;justify-content:space-between;gap:12px">
+            <div style="font-family:Inter,system-ui,sans-serif;font-size:12px;display:flex;justify-content:space-between;gap:12px">
               <span style="opacity:0.6">${t.industry.treemapTooltipCap}</span>
               <span>${sd.marketCapWeight}%</span>
             </div>
-            <div style="font-family:'JetBrains Mono';font-size:12px;display:flex;justify-content:space-between;gap:12px">
+            <div style="font-family:Inter,system-ui,sans-serif;font-size:12px;display:flex;justify-content:space-between;gap:12px">
               <span style="opacity:0.6">${t.industry.treemapTooltipCagr}</span>
-              <span style="color:${sd.cagr3y >= 0 ? '#10B981' : '#EF4444'}">${sd.cagr3y > 0 ? '+' : ''}${sd.cagr3y}%</span>
+              <span style="color:${sd.cagr3y >= 0 ? (isDark ? '#26BA69' : '#0C803E') : (isDark ? '#F05050' : '#CF222E')}">${sd.cagr3y > 0 ? '+' : ''}${sd.cagr3y}%</span>
             </div>
-            <div style="font-family:'JetBrains Mono';font-size:12px;display:flex;justify-content:space-between;gap:12px">
+            <div style="font-family:Inter,system-ui,sans-serif;font-size:12px;display:flex;justify-content:space-between;gap:12px">
               <span style="opacity:0.6">${t.industry.treemapTooltipSentiment}</span>
               <span>${sentimentLabel(sd.sentiment)}</span>
             </div>
@@ -143,11 +144,15 @@ export default function IndustryPage() {
       series: [
         {
           type: 'treemap',
+          left: 0,
+          right: 0,
+          top: 0,
+          bottom: 0,
           roam: false,
           nodeClick: false,
           breadcrumb: { show: false },
           itemStyle: {
-            borderColor: isDark ? '#0A0A0B' : '#F8FAFC',
+            borderColor: isDark ? '#15181C' : '#FFFFFF',
             borderWidth: 2,
             gapWidth: 2,
           },
@@ -168,7 +173,7 @@ export default function IndustryPage() {
               },
               val: {
                 fontSize: 11,
-                fontFamily: '"JetBrains Mono"',
+                fontFamily: 'Inter, system-ui, sans-serif',
                 color: 'rgba(255,255,255,0.7)',
                 lineHeight: 16,
               },
@@ -229,7 +234,7 @@ export default function IndustryPage() {
       case 'fastGrowth':
         return `${base} bg-growth/20 text-growth`;
       case 'slowGrowth':
-        return `${base} bg-emerald-500/10 text-emerald-400`;
+        return `${base} bg-up/10 text-up`;
       case 'stagnant':
         return `${base} bg-mist-500/10 text-mist-400`;
       case 'decline':
@@ -248,19 +253,12 @@ export default function IndustryPage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-obsidian)' }}>
+    <div className="min-h-screen" style={{ backgroundColor: 'rgb(var(--c-page))' }}>
       <Header theme={theme} toggleTheme={toggleTheme} />
 
-      <main className="max-w-7xl mx-auto px-4 md:px-6 pt-28 pb-16">
-        {/* Title */}
-        <div className="mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold" style={{ color: 'var(--text-heading)' }}>
-            {t.industry.title}
-          </h1>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-            {t.industry.subtitle}
-          </p>
-        </div>
+      <PageHeader title={t.industry.title} subtitle={t.industry.subtitle} />
+
+      <main className="page-container py-6">
 
         {loading ? (
           <div className="flex items-center justify-center py-32">
@@ -282,8 +280,8 @@ export default function IndustryPage() {
         ) : (
           <div className="space-y-8">
             {/* Treemap */}
-            <section className="gemini-card p-4 md:p-6">
-              <h2 className="text-base font-semibold mb-4" style={{ color: 'var(--text-heading)' }}>
+            <section className="panel p-4 md:p-6">
+              <h2 className="text-base font-semibold mb-4" style={{ color: 'rgb(var(--c-fg))' }}>
                 {t.industry.treemapTitle}
               </h2>
               <div className="w-full" style={{ minHeight: 400 }}>
@@ -310,16 +308,16 @@ export default function IndustryPage() {
             </section>
 
             {/* Data Grid */}
-            <section className="gemini-card overflow-hidden" style={isDark ? darkPanelStyle : undefined}>
+            <section className="panel overflow-hidden" style={isDark ? darkPanelStyle : undefined}>
               <div className="p-4 md:p-6 pb-0">
-                <h2 className="text-base font-semibold" style={{ color: 'var(--text-heading)' }}>
+                <h2 className="text-base font-semibold" style={{ color: 'rgb(var(--c-fg))' }}>
                   {t.industry.rankingTitle}
                 </h2>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b" style={{ borderColor: 'var(--border-color)', ...(isDark ? darkTableHeaderStyle : {}) }}>
+                    <tr className="border-b" style={{ borderColor: 'var(--line)', ...(isDark ? darkTableHeaderStyle : {}) }}>
                       <th className="text-left px-4 md:px-6 py-3 text-mist-400 font-medium text-xs">
                         {t.industry.rankingCols.sector}
                       </th>
@@ -359,17 +357,17 @@ export default function IndustryPage() {
                         key={sd.sector}
                         className="border-b cursor-pointer transition-colors hover:bg-white/5"
                         style={{
-                          borderColor: 'var(--border-color)',
-                          backgroundColor: isDark && idx % 2 === 1 ? 'rgba(255,255,255,0.012)' : undefined,
+                          borderColor: 'var(--line)',
+                          
                         }}
                         onClick={() => handleRowClick(sd.sector)}
                       >
                         <td className="px-4 md:px-6 py-3">
-                          <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                          <span className="font-medium" style={{ color: 'rgb(var(--c-text-1))' }}>
                             {sectorName(sd.sector)}
                           </span>
                         </td>
-                        <td className="px-4 md:px-6 py-3 font-mono text-xs" style={{ color: 'var(--text-primary)' }}>
+                        <td className="px-4 md:px-6 py-3 font-mono text-xs" style={{ color: 'rgb(var(--c-text-1))' }}>
                           {sd.marketCapWeight}%
                         </td>
                         <td className="px-4 md:px-6 py-3 font-mono text-xs">

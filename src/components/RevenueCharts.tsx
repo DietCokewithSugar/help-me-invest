@@ -31,7 +31,7 @@ export default function RevenueCharts({
 
   if (!activeStatements || activeStatements.length === 0) {
     return (
-      <div className="text-center text-slate-400 p-8">
+      <div className="text-center text-mist-400 p-8">
         {rcT.noData}
       </div>
     );
@@ -45,17 +45,17 @@ export default function RevenueCharts({
   const currencySuffix = ` ${currencyCode}`;
 
   // 颜色定义
-  const TEXT_PRIMARY = isLight ? '#1e293b' : '#e2e8f0';
-  const TEXT_SECONDARY = isLight ? '#475569' : '#94a3b8';
-  const TEXT_MUTED = isLight ? '#64748b' : '#64748b';
-  const BORDER_COLOR = isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
-  const AXIS_LINE_COLOR = isLight ? '#e2e8f0' : '#334155';
-  const SPLIT_LINE_COLOR = isLight ? '#f1f5f9' : '#1e293b';
-  const TOOLTIP_BG = isLight ? '#ffffff' : '#121212';
-  const ACCENT_COLOR = isLight ? '#0d9488' : '#14b8a6';
+  const TEXT_PRIMARY = isLight ? '#222222' : '#D8DCE2';
+  const TEXT_SECONDARY = isLight ? '#545B65' : '#A3ABB6';
+  const TEXT_MUTED = isLight ? '#78808B' : '#7A838F';
+  const BORDER_COLOR = isLight ? 'rgba(23,25,28,0.12)' : 'rgba(236,238,241,0.10)';
+  const AXIS_LINE_COLOR = isLight ? 'rgba(23,25,28,0.18)' : 'rgba(236,238,241,0.18)';
+  const SPLIT_LINE_COLOR = isLight ? 'rgba(23,25,28,0.07)' : 'rgba(236,238,241,0.07)';
+  const TOOLTIP_BG = isLight ? '#FFFFFF' : '#1B1F24';
+  const ACCENT_COLOR = isLight ? '#1565C0' : '#5CA0FF';
 
   // 传统色分类配色 (白青 Bai Qing, 窈蓝 Yao Lan, 鞠尘 Ju Chen, 艳炽 Yan Chi)
-  const CATEGORICAL_COLORS = ['#98B6C2', '#88ABDA', '#C0D09D', '#CB523E'];
+  const CATEGORICAL_COLORS = ['#7FA3BF', '#4A86E8', '#3FA66B', '#D9534F'];
 
   const years = activeStatements.map(i => {
     if (period === 'quarter') return `${i.fiscalYear} ${i.period}`;
@@ -79,7 +79,7 @@ export default function RevenueCharts({
       borderColor: BORDER_COLOR,
       borderWidth: 1,
       padding: [8, 12],
-      textStyle: { color: TEXT_PRIMARY, fontFamily: 'JetBrains Mono, monospace', fontSize: 12 },
+      textStyle: { color: TEXT_PRIMARY, fontFamily: 'Inter, system-ui, sans-serif', fontSize: 12 },
       axisPointer: {
         type: 'line',
         lineStyle: {
@@ -125,7 +125,7 @@ export default function RevenueCharts({
       axisLabel: {
         color: TEXT_SECONDARY,
         fontSize: 10,
-        fontFamily: 'JetBrains Mono, monospace',
+        fontFamily: 'Inter, system-ui, sans-serif',
       },
       axisTick: { show: true, lineStyle: { color: AXIS_LINE_COLOR } },
     },
@@ -137,7 +137,7 @@ export default function RevenueCharts({
         axisLabel: {
           color: TEXT_MUTED,
           fontSize: 10,
-          fontFamily: 'JetBrains Mono, monospace',
+          fontFamily: 'Inter, system-ui, sans-serif',
           formatter: (value: number) => `${currencyPrefix}${value}${chartUnit}${currencySuffix}`,
         },
         splitLine: {
@@ -168,7 +168,7 @@ export default function RevenueCharts({
         yAxisIndex: 0,
         data: revenues,
         barWidth: '20%',
-        itemStyle: { color: '#88ABDA', borderRadius: 0 },
+        itemStyle: { color: '#4A86E8', borderRadius: 0 },
       },
       {
         name: rcT.legend.grossProfit,
@@ -176,7 +176,7 @@ export default function RevenueCharts({
         yAxisIndex: 0,
         data: grossProfits,
         barWidth: '20%',
-        itemStyle: { color: '#98B6C2', borderRadius: 0 },
+        itemStyle: { color: '#7FA3BF', borderRadius: 0 },
       },
       {
         name: rcT.legend.netIncome,
@@ -184,7 +184,7 @@ export default function RevenueCharts({
         yAxisIndex: 0,
         data: netIncomes,
         barWidth: '20%',
-        itemStyle: { color: '#C0D09D', borderRadius: 0 },
+        itemStyle: { color: '#3FA66B', borderRadius: 0 },
       },
       {
         name: rcT.legend.grossMargin,
@@ -193,8 +193,8 @@ export default function RevenueCharts({
         data: grossProfitMargins,
         smooth: false,
         symbol: 'none',
-        lineStyle: { color: '#CB523E', width: 1.5 },
-        itemStyle: { color: '#CB523E' },
+        lineStyle: { color: '#D9534F', width: 1.5 },
+        itemStyle: { color: '#D9534F' },
       },
     ],
   };
@@ -255,7 +255,7 @@ export default function RevenueCharts({
           value: {
             color: ACCENT_COLOR,
             fontSize: 12,
-            fontFamily: 'JetBrains Mono, monospace',
+            fontFamily: 'Inter, system-ui, sans-serif',
             fontWeight: 600,
           },
           percent: {
@@ -294,21 +294,21 @@ export default function RevenueCharts({
   return (
     <div className="space-y-6">
       <div className="flex justify-end">
-        <div className="flex p-0.5 bg-white/5 border border-white/10 rounded-sm">
+        <div className="inline-flex overflow-hidden rounded-md border border-line-strong">
           <button
             onClick={() => setPeriod('annual')}
-            className={`px-3 py-1 text-xs font-mono rounded-sm transition-all ${period === 'annual'
-              ? 'bg-glacier-500 text-white'
-              : 'text-mist-500 hover:text-mist-200'
+            className={`h-7 px-3 text-[12px] font-medium transition-colors ${period === 'annual'
+              ? 'bg-accent/10 text-accent'
+              : 'text-text-2 hover:bg-hover hover:text-fg'
               }`}
           >
             {rcT.annual}
           </button>
           <button
             onClick={() => setPeriod('quarter')}
-            className={`px-3 py-1 text-xs font-mono rounded-sm transition-all ${period === 'quarter'
-              ? 'bg-glacier-500 text-white'
-              : 'text-mist-500 hover:text-mist-200'
+            className={`h-7 border-l border-line px-3 text-[12px] font-medium transition-colors ${period === 'quarter'
+              ? 'bg-accent/10 text-accent'
+              : 'text-text-2 hover:bg-hover hover:text-fg'
               }`}
           >
             {rcT.quarter}

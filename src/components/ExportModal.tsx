@@ -1,7 +1,6 @@
 'use client';
 
 import { forwardRef, useState, useCallback } from 'react';
-import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { toPng } from 'html-to-image';
 import {
   X,
@@ -23,43 +22,7 @@ interface ExportModalProps {
 }
 
 // 动画变体
-const overlayVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1 },
-  exit: { opacity: 0 },
-};
 
-const modalVariants: Variants = {
-  hidden: { 
-    opacity: 0, 
-    scale: 0.95,
-    y: 20,
-  },
-  visible: { 
-    opacity: 1, 
-    scale: 1,
-    y: 0,
-    transition: {
-      type: 'spring' as const,
-      damping: 25,
-      stiffness: 300,
-    },
-  },
-  exit: { 
-    opacity: 0, 
-    scale: 0.95,
-    y: 20,
-    transition: {
-      duration: 0.2,
-    },
-  },
-};
-
-const buttonVariants: Variants = {
-  idle: { scale: 1 },
-  hover: { scale: 1.02 },
-  tap: { scale: 0.98 },
-};
 
 type ExportStatus = 'idle' | 'exporting' | 'success' | 'error';
 
@@ -209,63 +172,42 @@ export default function ExportModal({
   };
 
   return (
-    <AnimatePresence>
+    <>
       {isOpen && (
-        <motion.div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-          variants={overlayVariants}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          onClick={handleBackdropClick}
-        >
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={handleBackdropClick}>
           {/* 背景遮罩 */}
-          <motion.div 
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          />
+          <div className="absolute inset-0 bg-black/50 animate-fade-in"/>
 
           {/* 模态框内容 */}
-          <motion.div
-            ref={dialogRef as any}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={titleId}
-            aria-describedby={descriptionId}
-            tabIndex={-1}
-            className="relative w-full max-w-md gemini-card p-8 overflow-hidden focus:outline-none"
-            variants={modalVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
+          <div
+              ref={dialogRef as any}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={titleId}
+              aria-describedby={descriptionId}
+              tabIndex={-1}
+              className="relative w-full max-w-md panel p-8 overflow-hidden focus:outline-none"
           >
             {/* 装饰背景 */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-gemini-blue/10 to-gemini-purple/5 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-gemini-pink/10 to-gemini-yellow/5 rounded-full blur-3xl pointer-events-none" />
 
             {/* 关闭按钮 */}
-            <motion.button
-              type="button"
-              className="absolute top-4 right-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 text-mist-400 hover:text-white transition-colors disabled:opacity-50"
-              onClick={onClose}
-              disabled={status === 'exporting'}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              aria-label="关闭"
+            <button
+                type="button"
+                className="absolute top-4 right-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 text-mist-400 hover:text-white transition-colors disabled:opacity-50"
+                onClick={onClose}
+                disabled={status === 'exporting'}
+                aria-label="关闭"
             >
               <X className="w-5 h-5" />
-            </motion.button>
+            </button>
 
             {/* 标题区域 */}
             <div className="relative mb-8">
               <div className="flex items-center gap-4">
                 <div className="relative">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-gemini-blue via-gemini-purple to-gemini-pink flex items-center justify-center">
-                    <ImageIcon className="w-6 h-6 text-white" />
+                  <div className="w-10 h-10 rounded-md bg-accent/10 flex items-center justify-center">
+                    <ImageIcon className="w-5 h-5 text-accent" />
                   </div>
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-gemini-blue to-gemini-pink opacity-40 blur-2xl" />
                 </div>
                 <div>
                   <h2 id={titleId} className="text-2xl font-bold text-white">导出报告</h2>
@@ -275,45 +217,29 @@ export default function ExportModal({
             </div>
 
             {/* 状态提示 */}
-            <AnimatePresence mode="wait">
+            <>
               {status === 'success' && (
-                <motion.div
-                  key="success"
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="mb-6 p-4 rounded-2xl bg-gemini-green/10 border border-gemini-green/20 flex items-center gap-3"
-                >
-                  <CheckCircle className="w-5 h-5 text-gemini-green" />
-                  <span className="text-gemini-green text-sm">导出成功！</span>
-                </motion.div>
+                <div key="success" className="mb-6 p-4 rounded-2xl bg-up/10 border border-up/20 flex items-center gap-3 animate-fade-in">
+                  <CheckCircle className="w-5 h-5 text-up" />
+                  <span className="text-up text-sm">导出成功！</span>
+                </div>
               )}
 
               {status === 'error' && (
-                <motion.div
-                  key="error"
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center gap-3"
-                >
-                  <AlertCircle className="w-5 h-5 text-red-400" />
-                  <span className="text-red-400 text-sm">{errorMessage}</span>
-                </motion.div>
+                <div key="error" className="mb-6 p-4 rounded-2xl bg-down/10 border border-down/20 flex items-center gap-3 animate-fade-in">
+                  <AlertCircle className="w-5 h-5 text-down" />
+                  <span className="text-down text-sm">{errorMessage}</span>
+                </div>
               )}
-            </AnimatePresence>
+            </>
 
             {/* 操作按钮 */}
             <div className="relative space-y-3">
               {/* 下载按钮 */}
-              <motion.button
-                className="w-full gemini-btn gemini-btn-primary flex items-center justify-center gap-3 py-4 text-base"
-                variants={buttonVariants}
-                initial="idle"
-                whileHover="hover"
-                whileTap="tap"
-                onClick={handleDownload}
-                disabled={status === 'exporting'}
+              <button
+                  className="w-full btn-primary flex items-center justify-center gap-3 py-4 text-base"
+                  onClick={handleDownload}
+                  disabled={status === 'exporting'}
               >
                 {status === 'exporting' ? (
                   <>
@@ -326,22 +252,18 @@ export default function ExportModal({
                     下载为 PNG 图片
                   </>
                 )}
-              </motion.button>
+              </button>
 
               {/* 分享按钮（仅在支持时显示） */}
               {supportsShare && (
-                <motion.button
-                  className="w-full gemini-btn gemini-btn-secondary flex items-center justify-center gap-3 py-4 text-base"
-                  variants={buttonVariants}
-                  initial="idle"
-                  whileHover="hover"
-                  whileTap="tap"
-                  onClick={handleShare}
-                  disabled={status === 'exporting'}
+                <button
+                    className="w-full btn-secondary flex items-center justify-center gap-3 py-4 text-base"
+                    onClick={handleShare}
+                    disabled={status === 'exporting'}
                 >
                   <Share2 className="w-5 h-5" />
                   分享到其他应用
-                </motion.button>
+                </button>
               )}
             </div>
 
@@ -355,10 +277,10 @@ export default function ExportModal({
                 </p>
               </div>
             </div>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
       )}
-    </AnimatePresence>
+    </>
   );
 }
 

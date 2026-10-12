@@ -2,75 +2,60 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { notFound, useParams, useRouter, useSearchParams } from 'next/navigation';
-import { motion } from 'framer-motion';
 import Header from '@/components/Header';
 import Report from '@/components/Report';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { withLocale } from '@/lib/locale-path';
 import { useCompanyReport, type ReportType } from '@/hooks/useCompanyReport';
-import {
-  TrendingUpIcon,
-  FileTextIcon,
-  BarChart3Icon,
-  BrainIcon,
-  Globe2Icon,
-} from '@/components/Icons';
+import { Check as CheckIcon } from 'lucide-react';
+import PageHeader from '@/components/PageHeader';
 import { detectMarketFromSymbol, getMarketConfig } from '@/lib/markets';
 import type { MarketType } from '@/types';
 
-const LOADING_STEPS_META = [
-  { icon: FileTextIcon, color: 'from-glacier-500 to-glacier-600' },
-  { icon: BarChart3Icon, color: 'from-gemini-purple to-gemini-pink' },
-  { icon: BrainIcon, color: 'from-gemini-blue to-gemini-purple' },
-  { icon: Globe2Icon, color: 'from-glacier-400 to-gemini-blue' },
-  { icon: TrendingUpIcon, color: 'from-gemini-green to-glacier-500' },
-];
+const LOADING_STEP_COUNT = 5;
 
-function GeminiLoader() {
+function Spinner({ size = 16 }: { size?: number }) {
   return (
-    <div className="flex items-center gap-2">
-      <div className="w-3 h-3 rounded-full bg-glacier-500 animate-bounce" style={{ animationDelay: '0ms' }} />
-      <div className="w-3 h-3 rounded-full bg-gemini-blue animate-bounce" style={{ animationDelay: '100ms' }} />
-      <div className="w-3 h-3 rounded-full bg-gemini-purple animate-bounce" style={{ animationDelay: '200ms' }} />
-      <div className="w-3 h-3 rounded-full bg-aurora-3 animate-bounce" style={{ animationDelay: '300ms' }} />
-    </div>
+    <span
+      className="inline-block shrink-0 rounded-full border-2 border-text-4 border-t-accent animate-spin"
+      style={{ width: size, height: size }}
+      aria-hidden="true"
+    />
   );
 }
 
-function LinearLoader({
+/**
+ * 加载状态：列出各阶段，已完成打勾、当前阶段显示转圈。
+ * 阶段只前进不回绕，停在最后一步直到数据返回——不制造循环往复的「假进度」。
+ */
+function LoadingSteps({
   step,
-  totalSteps,
   stepTexts,
   estimateText,
 }: {
   step: number;
-  totalSteps: number;
   stepTexts: string[];
   estimateText: string;
 }) {
-  const progress = ((step + 1) / totalSteps) * 100;
-  const Icon = LOADING_STEPS_META[step].icon;
-
   return (
-    <div className="w-full max-w-sm">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-8 h-8 rounded-xl bg-glacier-500/15 flex items-center justify-center">
-          <Icon className="w-4 h-4 text-glacier-500" />
-        </div>
-        <span className="text-sm text-mist-300">{stepTexts[step]}</span>
-      </div>
-      <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-glacier-500 rounded-full transition-all duration-500 ease-out"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-      <div className="flex items-center justify-between mt-3 text-xs text-mist-600">
-        <span>
-          {step + 1} / {totalSteps}
-        </span>
-        <span>{estimateText}</span>
-      </div>
+    <div className="panel w-full max-w-md">
+      <ol className="divide-y divide-white/10">
+        {stepTexts.map((text, index) => {
+          const done = index < step;
+          const current = index === step;
+          return (
+            <li key={text} className="flex items-center gap-3 px-4 py-2.5 text-[13px]">
+              <span className="flex h-4 w-4 items-center justify-center">
+                {done ? <CheckIcon size={14} className="text-up" /> : current ? <Spinner size={14} /> : (
+                  <span className="h-1.5 w-1.5 rounded-full bg-text-4" />
+                )}
+              </span>
+              <span className={current ? 'text-fg font-medium' : done ? 'text-text-2' : 'text-text-3'}>{text}</span>
+            </li>
+          );
+        })}
+      </ol>
+      <div className="border-t border-line bg-raised px-4 py-2 text-[12px] text-text-3">{estimateText}</div>
     </div>
   );
 }
@@ -140,11 +125,11 @@ function CompanyReportPageContent() {
     analyze(ticker, { reportType });
   }, [ticker, locale, reportType, analyze]);
 
-  // loading step rotator
+  // 阶段提示只前进不回绕，停在最后一步等待数据
   useEffect(() => {
     if (loading) {
       const interval = setInterval(() => {
-        setLoadingStep((prev) => (prev + 1) % LOADING_STEPS_META.length);
+        setLoadingStep((prev) => Math.min(prev + 1, LOADING_STEP_COUNT - 1));
       }, 3000);
       return () => clearInterval(interval);
     }
@@ -174,71 +159,46 @@ function CompanyReportPageContent() {
         onReset={goHome}
       />
 
+      {(loading || (error && !reportData)) && (
+        <PageHeader
+          eyebrow={marketConfig.nameCn}
+          title={<span className="font-mono">{ticker}</span>}
+        />
+      )}
+
       {/* Loading screen */}
       {loading && (
-        <section className="pt-28 md:pt-32 pb-8 px-4 md:px-6">
-          <div className="max-w-3xl mx-auto">
-            <motion.div
-              className="text-center mt-8 mb-10"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <h2 className="text-2xl md:text-3xl font-light text-white tracking-tight">
-                <span className="font-mono">{ticker}</span>
-                <span className="text-mist-500"> · </span>
-                <span>{marketConfig.nameCn}</span>
-              </h2>
-            </motion.div>
-            <motion.div
-              className="flex justify-center"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <div className="glass-card p-6 md:p-8 w-full max-w-md">
-                <LinearLoader
-                  step={loadingStep}
-                  totalSteps={LOADING_STEPS_META.length}
-                  stepTexts={loadingStepTexts}
-                  estimateText={t.home.loading.estimate}
-                />
-              </div>
-            </motion.div>
-          </div>
+        <section className="page-container py-6">
+          <LoadingSteps
+            step={loadingStep}
+            stepTexts={loadingStepTexts}
+            estimateText={t.home.loading.estimate}
+          />
         </section>
       )}
 
       {/* Error panel */}
       {!loading && error && !reportData && (
-        <section className="pt-28 md:pt-32 pb-12 px-4 md:px-6">
-          <div className="max-w-3xl mx-auto">
-            <motion.div
-              className="p-4 rounded-xl bg-red-500/5 border border-red-500/10"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <div className="flex items-start gap-3">
-                <div className="w-1.5 h-1.5 bg-red-400 rounded-full mt-2 shrink-0" />
-                <div className="flex-1">
-                  <span className="text-red-400/80 text-sm whitespace-pre-line">{error}</span>
-                  {isRetryable && (
-                    <button
-                      onClick={() => analyze(ticker, { reportType })}
-                      disabled={loading}
-                      className="mt-3 px-4 py-2 text-sm font-medium rounded-lg bg-glacier-500/20 text-glacier-400 hover:bg-glacier-500/30 transition-colors disabled:opacity-50"
-                    >
-                      {retryCount > 0 ? t.home.errors.retryWithCount(retryCount) : t.common.retry}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </motion.div>
+        <section className="page-container py-6">
+          <div className="max-w-3xl rounded-md border border-down/30 bg-down/5 px-4 py-3">
+            <p className="whitespace-pre-line text-[13px] text-down">{error}</p>
+            {isRetryable && (
+              <button
+                type="button"
+                onClick={() => analyze(ticker, { reportType })}
+                disabled={loading}
+                className="btn-secondary mt-3"
+              >
+                {retryCount > 0 ? t.home.errors.retryWithCount(retryCount) : t.common.retry}
+              </button>
+            )}
           </div>
         </section>
       )}
 
       {/* Report */}
       {reportData && (
-        <div className="pt-24 md:pt-28">
+        <div>
           <Report
             data={reportData}
             initialReportVersion={
@@ -265,8 +225,8 @@ export default function CompanyReportPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-[#0A0A0B]">
-          <GeminiLoader />
+        <div className="min-h-screen flex items-center justify-center">
+          <Spinner size={20} />
         </div>
       }
     >

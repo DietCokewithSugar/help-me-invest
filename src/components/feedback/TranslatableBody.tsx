@@ -73,7 +73,7 @@ export default function TranslatableBody({
             </>
           )}
           {!loading && error && (
-            <span className="text-red-400/80">{translateT.error}</span>
+            <span className="text-down/80">{translateT.error}</span>
           )}
           {!loading && showToggle && (
             <button

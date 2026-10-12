@@ -7,7 +7,6 @@ import { UnitModeProvider } from '@/lib/UnitModeContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { CompareProvider } from '@/contexts/CompareContext';
 import { defaultMetadata, siteName, siteUrl } from '@/lib/seo';
-import HomeButton from '@/components/HomeButton';
 import './globals.css';
 
 export const metadata: Metadata = defaultMetadata;
@@ -25,8 +24,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: 'cover',
   themeColor: [
-    { media: '(prefers-color-scheme: dark)', color: '#0F0E0B' },
-    { media: '(prefers-color-scheme: light)', color: '#F9F9F0' },
+    { media: '(prefers-color-scheme: dark)', color: '#15181C' },
+    { media: '(prefers-color-scheme: light)', color: '#FFFFFF' },
   ],
 };
 
@@ -100,7 +99,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..900,0..100,0..1&family=Instrument+Serif:ital@0;1&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
         <script
@@ -119,8 +118,7 @@ export default function RootLayout({
         <LanguageProvider>
           <CompareProvider>
             <UnitModeProvider>
-              <div className="relative z-10">{children}</div>
-              <HomeButton />
+              {children}
               <FeedbackWidget />
               <Analytics />
               <TextSelectionMenu />

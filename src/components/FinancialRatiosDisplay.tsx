@@ -65,7 +65,7 @@ export default function FinancialRatiosDisplay({
 
   if (!financialRatios || financialRatios.length === 0) {
     return (
-      <div className="gemini-card p-6 text-center text-mist-400">
+      <div className="panel p-6 text-center text-mist-400">
         暂无财务比率数据
       </div>
     );
@@ -113,7 +113,7 @@ export default function FinancialRatiosDisplay({
 
     return (
       <div 
-        className={`relative p-4 rounded-xl bg-white/5 border ${highlight ? 'border-gemini-blue/30' : 'border-white/5'} max-md:border-0 group cursor-help transition-all hover:bg-white/10`}
+        className={`relative p-4 rounded-xl bg-white/5 border ${highlight ? 'border-chart-blue/30' : 'border-white/5'} max-md:border-0 group cursor-help transition-all hover:bg-white/10`}
         onMouseEnter={() => metricKey && setHoveredMetric(metricKey)}
         onMouseLeave={() => setHoveredMetric(null)}
       >
@@ -121,13 +121,13 @@ export default function FinancialRatiosDisplay({
           <Icon className="w-4 h-4" />
           <span className="text-xs font-medium">{label}</span>
         </div>
-        <p className={`text-lg md:text-xl font-bold font-mono ${highlight ? 'text-gemini-blue' : 'text-white'} whitespace-nowrap`}>
+        <p className={`text-lg md:text-xl font-bold font-mono ${highlight ? 'text-chart-blue' : 'text-white'} whitespace-nowrap`}>
           {format(value)}
         </p>
         
         {/* Tooltip */}
         {showTooltip && (
-          <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-80 max-w-[calc(100vw-2rem)] p-4 bg-midnight border border-white/20 rounded-lg shadow-xl text-xs text-mist-200 leading-relaxed pointer-events-none">
+          <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-80 max-w-[calc(100vw-2rem)] p-4 bg-raised border border-white/20 rounded-lg shadow-xl text-xs text-mist-200 leading-relaxed pointer-events-none">
             <div className="flex items-start gap-2">
               <Info className="w-4 h-4 text-glacier-400 shrink-0 mt-0.5" />
               <p>{description}</p>
@@ -229,9 +229,9 @@ export default function FinancialRatiosDisplay({
     };
 
     return (
-      <div className="bg-midnight/30 rounded-xl p-6 border border-white/5 max-md:border-0">
+      <div className="bg-raised rounded-xl p-6 border border-white/5 max-md:border-0">
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <span className="w-2 h-2 bg-gemini-blue rounded-full"></span>
+          <span className="w-2 h-2 bg-chart-blue rounded-full"></span>
           利润率 (Margins) —— 赚钱有多"轻松"？
         </h3>
         <p className="text-xs text-mist-500 mb-4">
@@ -324,7 +324,7 @@ export default function FinancialRatiosDisplay({
     };
 
     return (
-      <div className="bg-midnight/30 rounded-xl p-6 border border-white/5 max-md:border-0">
+      <div className="bg-raised rounded-xl p-6 border border-white/5 max-md:border-0">
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
           运营效率 (Efficiency/Turnover) —— 资产转得有多快？
@@ -427,9 +427,9 @@ export default function FinancialRatiosDisplay({
     };
 
     return (
-      <div className="bg-midnight/30 rounded-xl p-6 border border-white/5 max-md:border-0">
+      <div className="bg-raised rounded-xl p-6 border border-white/5 max-md:border-0">
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <span className="w-2 h-2 bg-gemini-green rounded-full"></span>
+          <span className="w-2 h-2 bg-up rounded-full"></span>
           流动性与偿债能力 (Liquidity & Solvency) —— 会不会倒闭？
         </h3>
         <p className="text-xs text-mist-500 mb-4">
@@ -538,9 +538,9 @@ export default function FinancialRatiosDisplay({
     };
 
     return (
-      <div className="bg-midnight/30 rounded-xl p-6 border border-white/5 max-md:border-0">
+      <div className="bg-raised rounded-xl p-6 border border-white/5 max-md:border-0">
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
+          <span className="w-2 h-2 bg-warn rounded-full"></span>
           估值比率 (Valuation) —— 现在买贵不贵？
         </h3>
         <p className="text-xs text-mist-500 mb-4">
@@ -641,9 +641,9 @@ export default function FinancialRatiosDisplay({
     };
 
     return (
-      <div className="bg-midnight/30 rounded-xl p-6 border border-white/5 max-md:border-0">
+      <div className="bg-raised rounded-xl p-6 border border-white/5 max-md:border-0">
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <span className="w-2 h-2 bg-gemini-purple rounded-full"></span>
+          <span className="w-2 h-2 bg-chart-purple rounded-full"></span>
           现金流与分红 (Cash Flow & Dividends) —— 股东回报
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -748,7 +748,7 @@ export default function FinancialRatiosDisplay({
       : false;
 
     return (
-      <div className="bg-midnight/30 rounded-xl p-6 border border-white/5 max-md:border-0">
+      <div className="bg-raised rounded-xl p-6 border border-white/5 max-md:border-0">
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <span className="w-2 h-2 bg-mist-500 rounded-full"></span>
           每股数据 (Per Share Metrics)
@@ -762,8 +762,8 @@ export default function FinancialRatiosDisplay({
           ))}
         </div>
         {fcfVsEps && (
-          <div className="mb-4 p-4 bg-gemini-green/10 border border-gemini-green/20 rounded-lg">
-            <div className="flex items-center gap-2 text-gemini-green text-sm">
+          <div className="mb-4 p-4 bg-up/10 border border-up/20 rounded-lg">
+            <div className="flex items-center gap-2 text-up text-sm">
               <Info className="w-4 h-4" />
               <span className="font-medium">优质公司特征</span>
             </div>
@@ -783,7 +783,7 @@ export default function FinancialRatiosDisplay({
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6">
       {renderMargins()}
       {renderEfficiency()}
       {renderLiquidity()}

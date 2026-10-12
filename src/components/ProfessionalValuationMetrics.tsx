@@ -239,21 +239,21 @@ export default function ProfessionalValuationMetrics({
         value: formatPercent(latestMetricsTTM?.roeTTM || latestMetrics.roe),
         metricKey: 'returnOnEquity',
         highlight: (latestMetricsTTM?.roeTTM || latestMetrics.roe) > 0.15,
-        highlightColor: 'text-gemini-green',
+        highlightColor: 'text-up',
       },
       {
         label: metricLabels.roic,
         value: formatPercent(latestMetricsTTM?.roicTTM || latestMetrics.roic),
         metricKey: 'returnOnInvestedCapital',
         highlight: (latestMetricsTTM?.roicTTM || latestMetrics.roic) > 0.15,
-        highlightColor: 'text-gemini-green',
+        highlightColor: 'text-up',
       },
       {
         label: metricLabels.incomeQuality,
         value: formatRatio(latestMetrics.incomeQuality),
         metricKey: 'incomeQuality',
         highlight: latestMetrics.incomeQuality > 1,
-        highlightColor: 'text-gemini-green',
+        highlightColor: 'text-up',
       },
     ];
 
@@ -270,7 +270,7 @@ export default function ProfessionalValuationMetrics({
         value: formatDays(ccc),
         metricKey: 'cashConversionCycle',
         highlight: ccc && ccc < 0,
-        highlightColor: 'text-gemini-green',
+        highlightColor: 'text-up',
       },
       {
         label: metricLabels.daysOfInventoryOutstanding,
@@ -301,7 +301,7 @@ export default function ProfessionalValuationMetrics({
     if (!hasValuation && !hasProfitability && !hasEfficiency) return null;
 
     return (
-      <div className="bg-white/5 border border-white/10 p-6 md:p-8 rounded-md">
+      <div className="panel p-5">
         <h3 className="text-sm font-semibold text-mist-200 mb-6 flex items-center gap-2">
           <span className="w-1 h-4 bg-glacier-500 rounded-sm"></span>
           {proValuation.financialMetrics}
@@ -339,7 +339,7 @@ export default function ProfessionalValuationMetrics({
         value: formatPercent(latestMetricsTTM?.stockBasedCompensationToRevenueTTM || latestMetrics.stockBasedCompensationToRevenue),
         metricKey: 'stockBasedCompensationToRevenue',
         highlight: (latestMetricsTTM?.stockBasedCompensationToRevenueTTM || latestMetrics.stockBasedCompensationToRevenue) > 0.1,
-        highlightColor: 'text-gemini-red',
+        highlightColor: 'text-down',
       },
     ];
 
@@ -373,9 +373,9 @@ export default function ProfessionalValuationMetrics({
     if (!hasCapital && !hasReturns) return null;
 
     return (
-      <div className="bg-white/5 border border-white/10 p-6 md:p-8 rounded-md">
+      <div className="panel p-5">
         <h3 className="text-sm font-semibold text-mist-200 mb-6 flex items-center gap-2">
-          <span className="w-1 h-4 bg-amber-500 rounded-sm"></span>
+          <span className="w-1 h-4 bg-warn rounded-sm"></span>
           {proValuation.capitalAndReturns}
         </h3>
 
@@ -388,7 +388,7 @@ export default function ProfessionalValuationMetrics({
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6">
       {renderCoreRiskScores()}
       {renderFundamentals()}
       {renderCapitalAndReturns()}

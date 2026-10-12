@@ -31,36 +31,16 @@ import ReactMarkdown, { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 // 专业版报告的 Markdown 表格组件配置
+// GFM 表格：沿用 markdown 中声明的列对齐（数字列通常为右对齐），数字使用等宽数字
 const proMarkdownComponents: Components = {
   table: ({ children }) => (
-    <div className="overflow-x-auto my-4">
-      <table className="w-full text-sm border-collapse">
-        {children}
-      </table>
+    <div className="not-prose my-4 overflow-x-auto rounded-md border border-line">
+      <table className="data-table">{children}</table>
     </div>
   ),
-  thead: ({ children }) => (
-    <thead className="bg-white/5 border-b border-white/10">
-      {children}
-    </thead>
-  ),
-  tbody: ({ children }) => (
-    <tbody className="divide-y divide-white/5">
-      {children}
-    </tbody>
-  ),
-  tr: ({ children }) => (
-    <tr className="hover:bg-white/5 transition-colors">
-      {children}
-    </tr>
-  ),
-  th: ({ children }) => (
-    <th className="px-3 py-2 text-left text-mist-300 font-medium text-xs uppercase tracking-wider whitespace-nowrap">
-      {children}
-    </th>
-  ),
-  td: ({ children }) => (
-    <td className="px-3 py-2 text-mist-200 font-mono text-xs whitespace-nowrap">
+  th: ({ children, style }) => <th style={style}>{children}</th>,
+  td: ({ children, style }) => (
+    <td style={style} className="font-mono whitespace-nowrap">
       {children}
     </td>
   ),
@@ -68,7 +48,7 @@ const proMarkdownComponents: Components = {
 
 // 专业版报告的 Markdown 渲染组件
 const ProMarkdown = ({ children }: { children: string }) => (
-  <div className="prose prose-gemini max-w-none prose-p:text-mist-300 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-300 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-h2:text-glacier-400 prose-h2:text-base prose-h2:font-medium prose-h2:mt-6 prose-h2:mb-3 prose-h3:text-mist-200 prose-h3:text-sm prose-h3:font-medium prose-h3:mt-4 prose-h3:mb-2 text-sm">
+  <div className="prose prose-report max-w-none prose-p:text-mist-300 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-300 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-h2:text-glacier-400 prose-h2:text-base prose-h2:font-medium prose-h2:mt-6 prose-h2:mb-3 prose-h3:text-mist-200 prose-h3:text-sm prose-h3:font-medium prose-h3:mt-4 prose-h3:mb-2 text-sm">
     <ReactMarkdown remarkPlugins={[remarkGfm]} components={proMarkdownComponents}>
       {children}
     </ReactMarkdown>
@@ -82,6 +62,9 @@ import ProfessionalValuationMetrics from './ProfessionalValuationMetrics';
 import EventCalendar from './EventCalendar';
 import HoldingsAnalysis from './HoldingsAnalysis';
 import ShareExportModal from './ShareExportModal';
+import PriceChart from './report/PriceChart';
+import KeyStatsPanel from './report/KeyStatsPanel';
+import AnalystPanel from './report/AnalystPanel';
 import type { ReportData, MarketType } from '@/types';
 import { detectMarketFromSymbol, getMarketConfig } from '@/lib/markets';
 import { buildSankeyData } from '@/lib/sankey-utils';
@@ -93,77 +76,29 @@ import { formatCurrencyCompact, formatCurrencyFixed, resolveReportCurrency } fro
 import { useModalA11y } from '@/hooks/useModalA11y';
 
 // 市场标识徽章 - 极简设计，无 emoji，直角
-const MarketBadge = ({ market }: { market: MarketType }) => {
-  const marketInfo: Record<MarketType, { name: string; abbr: string }> = {
-    US: { name: '美股', abbr: 'US' },
-    CN: { name: 'A股', abbr: 'CN' },
-    HK: { name: '港股', abbr: 'HK' },
-    JP: { name: '日股', abbr: 'JP' },
-    KR: { name: '韩股', abbr: 'KR' },
-    AU: { name: '澳股', abbr: 'AU' },
-  };
-  const info = marketInfo[market] || marketInfo.US;
-  return (
-    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-white/5 border border-white/10 text-mist-300 text-xs font-medium">
-      <span className="text-glacier-500 font-mono">{info.abbr}</span>
-      <span className="text-mist-700">|</span>
-      <span>{info.name}</span>
-    </span>
-  );
-};
+const MarketBadge = ({ market }: { market: MarketType }) => (
+  <span className="badge font-mono">{market}</span>
+);
 
-// 公司 Logo 组件 - 处理图片加载失败或超时时显示备用图标
+// 公司 Logo：加载失败时显示占位图标（不显示加载动画）
 function CompanyLogo({ src, alt }: { src?: string; alt: string }) {
   const [hasError, setHasError] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasTimeout, setHasTimeout] = useState(false);
 
-  // 5秒超时处理
-  React.useEffect(() => {
-    if (!src || hasError || !isLoading) return;
-
-    const timeoutId = setTimeout(() => {
-      if (isLoading) {
-        setHasTimeout(true);
-        setIsLoading(false);
-      }
-    }, 5000);
-
-    return () => clearTimeout(timeoutId);
-  }, [src, hasError, isLoading]);
-
-  const handleError = useCallback(() => {
-    setHasError(true);
-    setIsLoading(false);
-  }, []);
-
-  const handleLoad = useCallback(() => {
-    setIsLoading(false);
-    setHasTimeout(false);
-  }, []);
-
-  // 如果没有图片 URL、加载失败或超时，显示备用图标
-  if (!src || hasError || hasTimeout) {
+  if (!src || hasError) {
     return (
-      <div className="w-16 h-16 md:w-20 md:h-20 rounded-md bg-white/5 flex items-center justify-center shrink-0 border border-white/10">
-        <Building2 className="w-8 h-8 text-mist-500" />
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md border border-line bg-raised">
+        <Building2 className="h-6 w-6 text-text-3" />
       </div>
     );
   }
 
   return (
-    <div className="w-16 h-16 md:w-20 md:h-20 rounded-md bg-white/5 flex items-center justify-center p-3 shrink-0 border border-white/10 relative overflow-hidden">
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-obsidian">
-          <div className="w-5 h-5 border-2 border-white/10 border-t-glacier-500 rounded-full animate-spin" />
-        </div>
-      )}
+    <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md border border-line bg-pure-white p-1.5">
       <img
         src={src}
         alt={alt}
-        className={`w-full h-full object-contain transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
-        onError={handleError}
-        onLoad={handleLoad}
+        className="h-full w-full object-contain"
+        onError={() => setHasError(true)}
         crossOrigin="anonymous"
       />
     </div>
@@ -208,18 +143,19 @@ function AnalysisCard({
   };
 
   return (
-    <div className="streaming-card bg-white/5 border border-white/10 p-6 rounded-md hover:border-white/20 transition-colors relative group">
+    <div className="streaming-card panel">
       <div
-        className={`flex items-center justify-between gap-3 border-b border-white/5 pb-3 ${collapsible ? 'cursor-pointer' : ''}`}
+        className={`panel-header ${collapsible ? 'cursor-pointer select-none' : ''} ${isExpanded ? '' : '!border-b-0'}`}
         onClick={() => collapsible && setIsExpanded(!isExpanded)}
       >
-        <h3 className="text-sm font-medium text-white uppercase tracking-wider">{title}</h3>
-        <div className="flex items-center gap-2">
+        <h3 className="panel-title">{title}</h3>
+        <div className="flex items-center gap-1">
           {onShare && (
             <button
               onClick={handleShare}
-              className="w-7 h-7 rounded-md bg-white/5 flex items-center justify-center text-mist-500 hover:text-white hover:bg-white/10 transition-all opacity-0 group-hover:opacity-100"
+              className="btn-ghost !h-7 !w-7 !p-0"
               title={t.report.shareModule}
+              aria-label={t.report.shareModule}
             >
               <Share2 className="w-3.5 h-3.5" />
             </button>
@@ -230,7 +166,8 @@ function AnalysisCard({
                 e.stopPropagation();
                 setIsExpanded(!isExpanded);
               }}
-              className="w-7 h-7 rounded-md bg-white/5 flex items-center justify-center text-mist-500 hover:text-white hover:bg-white/10 transition-all"
+              aria-expanded={isExpanded}
+              className="btn-ghost !h-7 !w-7 !p-0"
             >
               {isExpanded ? (
                 <ChevronUp className="w-3.5 h-3.5" />
@@ -243,8 +180,7 @@ function AnalysisCard({
       </div>
       <div
         ref={contentRef}
-        className={`prose prose-gemini max-w-none prose-p:text-mist-300 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-300 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 text-sm transition-all duration-300 ease-in-out ${isExpanded ? 'mt-4 opacity-100' : 'h-0 opacity-0 overflow-hidden'
-          }`}
+        className={`prose prose-report max-w-none prose-p:leading-relaxed prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 px-5 py-4 ${isExpanded ? '' : 'hidden'}`}
       >
         {children}
       </div>
@@ -284,75 +220,33 @@ function CollapsibleSection({
 
   return (
     <section id={id} className="scroll-mt-28">
-      <div className="flex items-center justify-between mb-4 group">
-        <button
-          className="flex-1 flex items-center gap-3"
-          onClick={onToggle}
-        >
-          {/* 编号 */}
-          {sectionNumber && (
-            <span className="text-xl font-light text-mist-600 font-mono hidden md:block w-8 border-r border-white/10 mr-2">{sectionNumber}</span>
-          )}
-          <div className="text-left">
-            <h2 className="text-lg font-medium text-white uppercase tracking-wide group-hover:text-glacier-500 transition-colors">{title}</h2>
-            {subtitle && <p className="text-xs text-mist-500 font-mono">{subtitle}</p>}
-          </div>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <button type="button" className="flex min-w-0 items-baseline gap-3 text-left" onClick={onToggle} aria-expanded={expanded}>
+          {sectionNumber && <span className="font-mono text-[13px] text-text-3">{sectionNumber}</span>}
+          <h2 className="text-h3">{title}</h2>
+          {subtitle && <span className="hidden truncate text-[12px] text-text-3 md:inline">{subtitle}</span>}
         </button>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {onShare && (
             <button
               onClick={handleShare}
-              className="w-8 h-8 rounded-sm bg-white/5 flex items-center justify-center border border-white/10 hover:bg-white/10 transition-colors text-mist-400 hover:text-white"
+              className="btn-ghost !h-8 !w-8 !p-0"
               title={t.report.shareModule}
+              aria-label={t.report.shareModule}
             >
               <Share2 className="w-4 h-4" />
             </button>
           )}
-          <button
-            onClick={onToggle}
-            className="w-8 h-8 rounded-sm bg-white/5 flex items-center justify-center border border-white/10 group-hover:bg-white/10 transition-colors"
-          >
-            {expanded ? (
-              <ChevronUp className="w-4 h-4 text-mist-400 group-hover:text-white" />
-            ) : (
-              <ChevronDown className="w-4 h-4 text-mist-400 group-hover:text-white" />
-            )}
+          <button onClick={onToggle} className="btn-ghost !h-8 !w-8 !p-0" aria-label={title}>
+            {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
         </div>
       </div>
 
-      <div ref={contentRef} className={`transition-all duration-300 ease-out ${expanded ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
+      <div ref={contentRef} className={expanded ? '' : 'hidden'}>
         {children}
       </div>
     </section>
-  );
-}
-
-// 侧边锚点导航组件
-function SideAnchorNav({ sections, activeSection }: { sections: Array<{ id: string; label: string; number: string }>; activeSection: string }) {
-  return (
-    <nav className="fixed left-6 top-1/2 -translate-y-1/2 z-40 hidden xl:block">
-      <div className="flex flex-col gap-3">
-        {sections.map((section) => (
-          <button
-            key={section.id}
-            onClick={() => {
-              const element = document.getElementById(section.id);
-              element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }}
-            className={`group flex items-center gap-2 transition-all ${activeSection === section.id ? 'opacity-100' : 'opacity-40 hover:opacity-70'
-              }`}
-          >
-            <span className={`text-xs font-mono transition-colors ${activeSection === section.id ? 'text-glacier-500' : 'text-mist-600'
-              }`}>{section.number}</span>
-            <span className={`w-6 h-0.5 rounded-full transition-all ${activeSection === section.id ? 'bg-glacier-500 w-8' : 'bg-mist-700 group-hover:w-8'
-              }`} />
-            <span className={`text-xs transition-all max-w-0 overflow-hidden group-hover:max-w-[100px] whitespace-nowrap ${activeSection === section.id ? 'text-mist-300 max-w-[100px]' : 'text-mist-600'
-              }`}>{section.label}</span>
-          </button>
-        ))}
-      </div>
-    </nav>
   );
 }
 
@@ -408,14 +302,11 @@ function IconActionButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`group relative inline-flex h-9 w-9 items-center justify-center rounded-sm border border-white/10 bg-white/5 text-mist-300 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 ${className}`}
+      className={`inline-flex h-8 w-8 items-center justify-center rounded-md border border-line-strong bg-panel text-text-2 transition-colors hover:bg-hover hover:text-fg disabled:cursor-not-allowed disabled:opacity-40 ${className}`}
       aria-label={tooltip}
       title={tooltip}
     >
       <Icon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-      <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-sm border border-white/10 bg-surface px-2 py-1 text-[10px] text-mist-300 opacity-0 transition-opacity group-hover:opacity-100">
-        {tooltip}
-      </span>
     </button>
   );
 }
@@ -435,28 +326,28 @@ interface DimensionTag {
 // 极简黑白高级感样式配置
 const LEVEL_STYLES: Record<DimensionLevel, { bg: string; border: string; text: string; iconColor: string }> = {
   'good': {
-    bg: 'bg-white',
-    border: 'border-transparent',
-    text: 'text-black',
-    iconColor: 'text-black',
+    bg: 'bg-up/10',
+    border: 'border-up/30',
+    text: 'text-up',
+    iconColor: 'text-up',
   },
   'neutral': {
-    bg: 'bg-white/10',
-    border: 'border-white/20',
-    text: 'text-mist-200',
-    iconColor: 'text-mist-400',
+    bg: 'bg-raised',
+    border: 'border-line-strong',
+    text: 'text-text-1',
+    iconColor: 'text-text-3',
   },
   'bad': {
-    bg: 'bg-transparent',
-    border: 'border-white/10',
-    text: 'text-mist-500 line-through decoration-mist-700',
-    iconColor: 'text-mist-600',
+    bg: 'bg-down/5',
+    border: 'border-down/25',
+    text: 'text-down',
+    iconColor: 'text-down',
   },
   'special': {
-    bg: 'bg-white',
-    border: 'border-transparent',
-    text: 'text-black',
-    iconColor: 'text-black',
+    bg: 'bg-accent/10',
+    border: 'border-accent/30',
+    text: 'text-accent',
+    iconColor: 'text-accent',
   },
 };
 
@@ -466,11 +357,11 @@ function DimensionBadge({ tag }: { tag: DimensionTag }) {
   const { locale } = useLanguage();
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-[10px] text-mist-500 font-mono uppercase tracking-widest">{translateDiagnosticTag(tag.dimension, locale)}</span>
-      <div className={`inline-flex items-center px-3 py-1.5 rounded-sm text-xs font-medium border transition-all ${style.bg} ${style.border} ${style.text}`}>
-        <span className="tracking-wide">{translateDiagnosticTag(tag.label, locale)}</span>
-      </div>
+    <div className="flex flex-col gap-1">
+      <span className="text-[11px] text-text-3">{translateDiagnosticTag(tag.dimension, locale)}</span>
+      <span className={`inline-flex h-6 items-center rounded-sm border px-2 text-[12px] font-medium ${style.bg} ${style.border} ${style.text}`}>
+        {translateDiagnosticTag(tag.label, locale)}
+      </span>
     </div>
   );
 }
@@ -605,11 +496,9 @@ function CompanyTags({
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-2 mt-4">
-        <div className="flex items-center gap-2 text-xs text-mist-500">
-          <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
-          <span>{t.report.analyzingCompanyFeatures}</span>
-        </div>
+      <div className="mt-3 flex items-center gap-2 border-t border-line pt-3 text-[12px] text-text-3">
+        <span className="h-3 w-3 rounded-full border-2 border-text-4 border-t-accent animate-spin" aria-hidden="true" />
+        <span>{t.report.analyzingCompanyFeatures}</span>
       </div>
     );
   }
@@ -619,8 +508,8 @@ function CompanyTags({
   }
 
   return (
-    <div className="mt-6 border-t border-white/5 pt-6">
-      <div className="flex flex-wrap items-start gap-6">
+    <div className="mt-3 border-t border-line pt-3">
+      <div className="flex flex-wrap items-start gap-x-6 gap-y-3">
         {tags.map((tag, index) => (
           <DimensionBadge key={`${tag.dimensionKey}-${index}`} tag={tag} />
         ))}
@@ -880,9 +769,6 @@ export default function Report({
   // 添加编号
   const sections = baseSections.map((s, i) => ({ ...s, number: String(i + 1).padStart(2, '0') }));
 
-  // 为侧边导航准备的 sections
-  const navSections = sections.map((s) => ({ id: s.id, label: s.label, number: s.number }));
-
   // 货币符号（优先使用报表返回币种，其次按市场兜底）
   const currencySymbol = currency.symbol;
   const currencyCode = currency.code;
@@ -1006,8 +892,8 @@ export default function Report({
   const showRecentDevelopmentsInStandard = true;
 
   const renderReportVersionSwitcher = () => (
-    <div className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 p-1">
-      {(['beginner', 'standard', 'professional'] as const).map((ver) => {
+    <div role="radiogroup" className="inline-flex shrink-0 overflow-hidden rounded-md border border-line-strong bg-panel">
+      {(['beginner', 'standard', 'professional'] as const).map((ver, index) => {
         const labels = {
           beginner: t.report.beginnerReport,
           standard: t.report.basicVersion,
@@ -1017,19 +903,21 @@ export default function Report({
         return (
           <button
             key={ver}
+            type="button"
+            role="radio"
+            aria-checked={isActive}
             onClick={() => {
+              if (isActive) return;
               setReportVersion(ver);
               if (onVersionChange) {
                 onVersionChange(ver);
               }
             }}
-            className={`min-w-[96px] rounded-sm px-3 py-2 text-center transition-all ${
-              isActive
-                ? 'border border-accent/30 bg-accent/20 text-accent'
-                : 'border border-transparent text-mist-400 hover:bg-white/10 hover:text-mist-200'
+            className={`h-8 px-3 text-[13px] font-medium whitespace-nowrap ${index > 0 ? 'border-l border-line' : ''} ${
+              isActive ? 'bg-accent/10 text-accent' : 'text-text-2 hover:bg-hover hover:text-fg'
             }`}
           >
-            <div className="text-xs font-semibold uppercase tracking-wide">{labels[ver]}</div>
+            {labels[ver]}
           </button>
         );
       })}
@@ -1092,130 +980,108 @@ export default function Report({
     </>
   );
 
+  const priceUp = priceChange >= 0;
+  const employees = profile.fullTimeEmployees ? parseInt(profile.fullTimeEmployees, 10) : NaN;
+  const headerFacts: Array<[string, string]> = [
+    [t.common.marketCap, formatAmountCompact(marketCap)],
+    [t.common.employees, Number.isFinite(employees) ? employees.toLocaleString() : '—'],
+    ['IPO', profile.ipoDate || '—'],
+    ['CEO', profile.ceo || '—'],
+  ];
+
+  const jumpToSection = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ block: 'start' });
+  };
+
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 overflow-x-hidden">
-      {/* 侧边锚点导航 */}
-      <SideAnchorNav sections={navSections} activeSection={activeSection} />
-
-      {/* 操作栏 */}
-      <div className="mb-8 animate-fade-in-up">
-        {/* Mobile */}
-        <div className="flex flex-col gap-3 lg:hidden">
-          <div className="flex justify-center">
-            {renderReportVersionSwitcher()}
-          </div>
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            {!isModalView && (
-              <IconActionButton
-                icon={ArrowLeft}
-                tooltip={t.report.backToSearch}
-                onClick={onReset}
-              />
-            )}
-            {renderActionIcons()}
-          </div>
-        </div>
-
-        {/* Desktop */}
-        <div className="hidden items-center gap-4 lg:grid lg:grid-cols-[1fr_auto_1fr]">
-          <div className="flex items-center gap-2">
-            {!isModalView && (
-              <IconActionButton
-                icon={ArrowLeft}
-                tooltip={t.report.backToSearch}
-                onClick={onReset}
-              />
-            )}
-          </div>
-          <div className="flex justify-center">{renderReportVersionSwitcher()}</div>
-          <div className="flex items-center gap-2 justify-end">{renderActionIcons()}</div>
-        </div>
-
-        {shareNotice && (
-          <div className="mt-3 text-center text-xs text-glacier-500">{shareNotice}</div>
-        )}
-      </div>
-
-      <div ref={reportRef} className="space-y-6 bg-obsidian py-4">
-        {/* 公司头部信息 */}
-        <header className="border-b border-white/10 pb-6 mb-8 animate-fade-in-up">
-          <div className="flex flex-col md:flex-row items-start gap-6">
-            <CompanyLogo src={profile.image} alt={profile.companyName} />
-
-            <div className="flex-1 min-w-0">
-              {/* 公司名称和代码 */}
-              <div className="flex flex-wrap items-center gap-3 mb-3">
-                <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
-                  {profile.companyName}
-                </h1>
-                <span className="px-2 py-0.5 rounded-sm bg-white/5 border border-white/10 text-mist-300 text-sm font-mono font-semibold">
-                  {profile.symbol}
-                </span>
-                <MarketBadge market={resolvedMarket} />
-                <span className="px-2 py-0.5 bg-white/5 text-mist-400 rounded-sm text-xs border border-white/10 font-mono">
-                  {exchangeName}
-                </span>
-                <span className="px-2 py-0.5 bg-white/5 text-mist-400 rounded-sm text-xs border border-white/10 font-mono">
-                  {currencyCode}
-                </span>
-              </div>
-
-              {/* 公司信息 */}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-mist-500 text-xs mb-4 font-mono uppercase tracking-wider">
-                <span className="flex items-center gap-1.5">
-                  <Building2 className="w-3 h-3" />
-                  {profile.sector || 'N/A'}
-                </span>
-                <span className="text-mist-700">|</span>
-                <span>{profile.industry || 'N/A'}</span>
-                <span className="text-mist-700">|</span>
-                <span className="flex items-center gap-1.5">
-                  <Globe className="w-3 h-3" />
-                  {profile.country || 'N/A'}
-                </span>
-              </div>
-
-              {/* 基础数据 - 紧凑内联样式 */}
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm py-3 px-4 bg-white/[0.03] rounded-lg border border-white/5">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="w-3.5 h-3.5 text-mist-600" />
-                  <span className="text-mist-500 text-xs">{t.common.marketCap}</span>
-                  <span className="font-mono font-medium text-white">{formatAmountCompact(marketCap)}</span>
+    <div className="overflow-x-clip">
+      <div ref={reportRef} className="bg-page">
+        {/* 公司头部：名称与代码在左，最新价与涨跌在右，下方一行关键信息 */}
+        <header className="border-b border-line bg-panel">
+          <div className="page-container py-5">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div className="flex min-w-0 items-start gap-4">
+                <CompanyLogo src={profile.image} alt={profile.companyName} />
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <h1 className="text-[22px] font-semibold leading-7 text-fg">{profile.companyName}</h1>
+                    <span className="font-mono text-[15px] font-semibold text-text-2">{profile.symbol}</span>
+                  </div>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-text-3">
+                    <MarketBadge market={resolvedMarket} />
+                    {exchangeName && <span>{exchangeName}</span>}
+                    {currencyCode && <><span aria-hidden="true">·</span><span>{currencyCode}</span></>}
+                    {profile.sector && <><span aria-hidden="true">·</span><span>{profile.sector}</span></>}
+                    {profile.industry && <><span aria-hidden="true">·</span><span>{profile.industry}</span></>}
+                    {profile.country && <><span aria-hidden="true">·</span><span>{profile.country}</span></>}
+                  </div>
                 </div>
-                <span className="text-mist-700">·</span>
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-3.5 h-3.5 text-mist-600" />
-                  <span className="text-mist-500 text-xs">{t.common.price}</span>
-                  <span className="font-mono font-medium text-white">{formatAmountFixed(profile.price, 2)}</span>
-                  <span className={`text-xs font-mono px-1.5 py-0.5 rounded ${priceChange >= 0 ? 'text-growth bg-growth/10' : 'text-decay bg-decay/10'}`}>
-                    {priceChange >= 0 ? '+' : ''}{priceChangePercent}
+              </div>
+
+              <div className="shrink-0 md:text-right">
+                <div className="flex items-baseline gap-2 md:justify-end">
+                  <span className="font-mono text-[28px] font-semibold leading-8 text-fg">
+                    {typeof profile.price === 'number' ? profile.price.toFixed(2) : '—'}
                   </span>
+                  <span className="text-[12px] text-text-3">{currencyCode}</span>
                 </div>
-                <span className="text-mist-700 hidden sm:inline">·</span>
-                <div className="flex items-center gap-2">
-                  <Users2 className="w-3.5 h-3.5 text-mist-600" />
-                  <span className="text-mist-500 text-xs">{t.common.employees}</span>
-                  <span className="font-mono font-medium text-white">{profile.fullTimeEmployees ? parseInt(profile.fullTimeEmployees).toLocaleString() : 'N/A'}</span>
-                </div>
-                <span className="text-mist-700 hidden md:inline">·</span>
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-3.5 h-3.5 text-mist-600" />
-                  <span className="text-mist-500 text-xs">IPO</span>
-                  <span className="font-mono font-medium text-white">{profile.ipoDate || 'N/A'}</span>
+                <div className={`mt-1 font-mono text-[14px] font-medium ${priceUp ? 'text-up' : 'text-down'}`}>
+                  {priceUp ? '+' : ''}{Number(priceChange).toFixed(2)} ({priceUp && !String(priceChangePercent).startsWith('-') ? '+' : ''}{priceChangePercent})
                 </div>
               </div>
-
-              {/* 智能标签 */}
-              <CompanyTags
-                aiAnalysis={aiAnalysis}
-                profile={profile}
-                financialGrowth={financialGrowth}
-                news={news}
-                isLoading={aiLoading && !aiAnalysis}
-              />
             </div>
+
+            <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 border-t border-line pt-3 sm:grid-cols-4">
+              {headerFacts.map(([label, value]) => (
+                <div key={label} className="min-w-0">
+                  <dt className="text-[12px] text-text-3">{label}</dt>
+                  <dd className="mt-0.5 truncate font-mono text-[14px] font-medium text-fg">{value}</dd>
+                </div>
+              ))}
+            </dl>
+
+            <CompanyTags
+              aiAnalysis={aiAnalysis}
+              profile={profile}
+              financialGrowth={financialGrowth}
+              news={news}
+              isLoading={aiLoading && !aiAnalysis}
+            />
           </div>
         </header>
+
+        {/* 工具栏：报告版本 · 章节跳转 · 操作（吸顶，位于全站导航下方） */}
+        <div className="sticky top-14 z-30 border-b border-line bg-panel">
+          <div className="page-container flex h-12 items-center gap-4">
+            {renderReportVersionSwitcher()}
+            <nav className="hidden h-full min-w-0 flex-1 items-stretch overflow-x-auto lg:flex" aria-label={t.report.sections.aiAnalysis}>
+              {sections.map((section) => (
+                <button
+                  key={section.id}
+                  type="button"
+                  onClick={() => jumpToSection(section.id)}
+                  className={`tab !h-full whitespace-nowrap ${activeSection === section.id ? 'tab-active' : ''}`}
+                >
+                  {section.label}
+                </button>
+              ))}
+            </nav>
+            <div className="ml-auto flex items-center gap-2">
+              {shareNotice && <span className="hidden text-[12px] text-accent sm:inline">{shareNotice}</span>}
+              {renderActionIcons()}
+            </div>
+          </div>
+        </div>
+
+        <div className="page-container space-y-8 py-6">
+        {/* 概览：价格走势 · 关键统计 · 分析师评级 */}
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <div className="min-w-0 space-y-6">
+            <PriceChart history={data.historicalPrices || []} theme={theme} currencyCode={currencyCode} />
+            <AnalystPanel consensus={data.analystConsensus} currentPrice={profile.price} />
+          </div>
+          <KeyStatsPanel stats={data.keyStats} quote={data.quote} marketCap={marketCap} />
+        </div>
 
         {/* ==================== Beginner Analysis Section ==================== */}
         {showBeginnerArea && (
@@ -1228,14 +1094,14 @@ export default function Report({
             sectionNumber={getSectionNumber('beginnerAnalysis')}
             onShare={handleShareModule}
           >
-            <div className="space-y-6 animate-fade-in">
+            <div className="space-y-4">
               {/* Verdict */}
               <AnalysisCard title={t.report.beginnerSections.verdict} onShare={handleShareModule}>
                 {data.beginnerAiAnalysis?.beginnerVerdict ? (
-                  <ReactMarkdown>{data.beginnerAiAnalysis.beginnerVerdict}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={proMarkdownComponents}>{data.beginnerAiAnalysis.beginnerVerdict}</ReactMarkdown>
                 ) : (
-                  <div className="flex items-center gap-2 text-mist-500 text-sm">
-                    <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                  <div className="flex items-center gap-2 text-text-3 text-[13px]">
+                    <div className="w-3 h-3 border-2 border-text-4 border-t-accent rounded-full animate-spin" />
                     <span>{t.report.beginnerSections.verdictLoading}</span>
                   </div>
                 )}
@@ -1244,10 +1110,10 @@ export default function Report({
               {/* Company Intro */}
               <AnalysisCard title={t.report.beginnerSections.companyIntro} onShare={handleShareModule}>
                 {data.beginnerAiAnalysis?.beginnerCompanyIntro ? (
-                  <ReactMarkdown>{data.beginnerAiAnalysis.beginnerCompanyIntro}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={proMarkdownComponents}>{data.beginnerAiAnalysis.beginnerCompanyIntro}</ReactMarkdown>
                 ) : (
-                  <div className="flex items-center gap-2 text-mist-500 text-sm">
-                    <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                  <div className="flex items-center gap-2 text-text-3 text-[13px]">
+                    <div className="w-3 h-3 border-2 border-text-4 border-t-accent rounded-full animate-spin" />
                     <span>{t.report.beginnerSections.companyIntroLoading}</span>
                   </div>
                 )}
@@ -1256,10 +1122,10 @@ export default function Report({
               {/* Risk / Reward */}
               <AnalysisCard title={t.report.beginnerSections.riskReward} onShare={handleShareModule}>
                 {data.beginnerAiAnalysis?.beginnerRiskReward ? (
-                  <ReactMarkdown>{data.beginnerAiAnalysis.beginnerRiskReward}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={proMarkdownComponents}>{data.beginnerAiAnalysis.beginnerRiskReward}</ReactMarkdown>
                 ) : (
-                  <div className="flex items-center gap-2 text-mist-500 text-sm">
-                    <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                  <div className="flex items-center gap-2 text-text-3 text-[13px]">
+                    <div className="w-3 h-3 border-2 border-text-4 border-t-accent rounded-full animate-spin" />
                     <span>{t.report.beginnerSections.riskRewardLoading}</span>
                   </div>
                 )}
@@ -1268,10 +1134,10 @@ export default function Report({
               {/* Action Plan */}
               <AnalysisCard title={t.report.beginnerSections.actionPlan} onShare={handleShareModule}>
                 {data.beginnerAiAnalysis?.beginnerActionPlan ? (
-                  <ReactMarkdown>{data.beginnerAiAnalysis.beginnerActionPlan}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={proMarkdownComponents}>{data.beginnerAiAnalysis.beginnerActionPlan}</ReactMarkdown>
                 ) : (
-                  <div className="flex items-center gap-2 text-mist-500 text-sm">
-                    <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                  <div className="flex items-center gap-2 text-text-3 text-[13px]">
+                    <div className="w-3 h-3 border-2 border-text-4 border-t-accent rounded-full animate-spin" />
                     <span>{t.report.beginnerSections.actionPlanLoading}</span>
                   </div>
                 )}
@@ -1282,28 +1148,11 @@ export default function Report({
 
         {/* ==================== AI 生成中提示（仅普通版） ==================== */}
         {showAiLoading && showAiSectionArea && (
-          <div className="bg-white/5 border border-white/10 p-4 border-l-2 border-l-glacier-500 animate-fade-in rounded-sm">
-            {/* 标题区域 */}
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-4 h-4 border-2 border-white/10 border-t-glacier-500 rounded-full animate-spin" />
-              <h3 className="text-sm font-medium text-white font-mono uppercase tracking-wider">{t.report.aiAnalysis}</h3>
-            </div>
-
-            {/* 分析步骤指示器 */}
-            <div className="space-y-2 mb-4 pl-7">
-              <div className="flex items-center gap-3 text-xs font-mono">
-                <div className="w-1 h-1 rounded-full bg-glacier-500" />
-                <span className="text-mist-300">{t.report.dataLoaded}</span>
-              </div>
-              <div className="flex items-center gap-3 text-xs font-mono">
-                <div className="w-1 h-1 rounded-full bg-glacier-500 animate-pulse" />
-                <span className="text-mist-400">{t.report.analyzingMoat}</span>
-              </div>
-            </div>
-
-            {/* 线性进度条 */}
-            <div className="h-0.5 bg-white/10 w-full">
-              <div className="h-full w-2/3 bg-glacier-500 animate-pulse" />
+          <div className="panel flex items-center gap-3 border-l-2 !border-l-accent px-4 py-3">
+            <span className="h-4 w-4 shrink-0 rounded-full border-2 border-text-4 border-t-accent animate-spin" aria-hidden="true" />
+            <div className="text-[13px]">
+              <span className="font-medium text-fg">{t.report.aiAnalysis}</span>
+              <span className="ml-2 text-text-3">{t.report.dataLoaded} · {t.report.analyzingMoat}</span>
             </div>
           </div>
         )}
@@ -1318,10 +1167,10 @@ export default function Report({
             sectionNumber={getSectionNumber('aiAnalysis')}
             onShare={handleShareModule}
           >
-            <div className="space-y-6 animate-fade-in">
+            <div className="space-y-4">
               {aiError && (
-                <div className="gemini-card p-6 md:p-8 border border-red-500/20 bg-red-500/10">
-                  <p className="text-red-400 text-sm">{aiError}</p>
+                <div className="panel p-6 md:p-8 border border-down/20 bg-down/10">
+                  <p className="text-down text-sm">{aiError}</p>
                 </div>
               )}
 
@@ -1329,10 +1178,10 @@ export default function Report({
                 {/* 企业概况 */}
                 <AnalysisCard title={t.report.analysis.companyOverview} onShare={handleShareModule}>
                   {aiAnalysis?.companyOverview ? (
-                    <ReactMarkdown>{aiAnalysis.companyOverview}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={proMarkdownComponents}>{aiAnalysis.companyOverview}</ReactMarkdown>
                   ) : (
-                    <div className="flex items-center gap-2 text-mist-500 text-sm">
-                      <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                    <div className="flex items-center gap-2 text-text-3 text-[13px]">
+                      <div className="w-3 h-3 border-2 border-text-4 border-t-accent rounded-full animate-spin" />
                       <span>{t.report.analysis.companyOverviewLoading}</span>
                     </div>
                   )}
@@ -1342,11 +1191,11 @@ export default function Report({
                 <AnalysisCard title={t.report.analysis.industryCombined} onShare={handleShareModule}>
                   <div className="space-y-5">
                     <div>
-                      <h4 className="text-xs font-mono uppercase tracking-[0.12em] text-mist-400 mb-2">
+                      <h4 className="label-caps mb-2">
                         {t.report.analysis.industryOverviewSub}
                       </h4>
                       {aiAnalysis?.industryAnalysis ? (
-                        <ReactMarkdown>{aiAnalysis.industryAnalysis}</ReactMarkdown>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={proMarkdownComponents}>{aiAnalysis.industryAnalysis}</ReactMarkdown>
                       ) : (
                         <div className="flex items-center gap-2 text-mist-500 text-sm">
                           <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
@@ -1355,11 +1204,11 @@ export default function Report({
                       )}
                     </div>
                     <div className="pt-4 border-t border-white/5">
-                      <h4 className="text-xs font-mono uppercase tracking-[0.12em] text-mist-400 mb-2">
+                      <h4 className="label-caps mb-2">
                         {t.report.analysis.industryPainPointsSub}
                       </h4>
                       {aiAnalysis?.industryPainPoints ? (
-                        <ReactMarkdown>{aiAnalysis.industryPainPoints}</ReactMarkdown>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={proMarkdownComponents}>{aiAnalysis.industryPainPoints}</ReactMarkdown>
                       ) : (
                         <div className="flex items-center gap-2 text-mist-500 text-sm">
                           <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
@@ -1374,19 +1223,23 @@ export default function Report({
                 <AnalysisCard title={t.report.analysis.competitiveCombined} onShare={handleShareModule}>
                   <div className="space-y-5">
                     <div>
-                      <h4 className="text-xs font-mono uppercase tracking-[0.12em] text-mist-400 mb-2">
+                      <h4 className="label-caps mb-2">
                         {t.report.analysis.competitiveLandscapeSub}
                       </h4>
                       {aiAnalysis?.competitors ? (
                         <>
-                          <ReactMarkdown>{aiAnalysis.competitors}</ReactMarkdown>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]} components={proMarkdownComponents}>{aiAnalysis.competitors}</ReactMarkdown>
                           {peers && peers.length > 0 && (
-                            <div className="flex flex-wrap gap-2 pt-4 mt-4 border-t border-white/5">
-                              <span className="text-xs text-mist-500 mr-2">{t.report.analysis.mainCompetitors}</span>
+                            <div className="not-prose mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-4">
+                              <span className="mr-1 text-[12px] text-text-3">{t.report.analysis.mainCompetitors}</span>
                               {peers.slice(0, 8).map((peer) => (
-                                <span key={peer} className="px-3 py-1 bg-glacier-500/10 border border-glacier-500/20 rounded-full text-glacier-400 text-sm font-mono hover:bg-glacier-500/15 transition-colors cursor-default">
+                                <a
+                                  key={peer}
+                                  href={`/${locale}/companies/${encodeURIComponent(peer)}`}
+                                  className="inline-flex h-7 items-center rounded-sm border border-line-strong px-2 font-mono text-[12px] font-semibold text-accent hover:bg-hover"
+                                >
                                   {peer}
-                                </span>
+                                </a>
                               ))}
                             </div>
                           )}
@@ -1399,11 +1252,11 @@ export default function Report({
                       )}
                     </div>
                     <div className="pt-4 border-t border-white/5">
-                      <h4 className="text-xs font-mono uppercase tracking-[0.12em] text-mist-400 mb-2">
+                      <h4 className="label-caps mb-2">
                         {t.report.analysis.competitiveAdvantageSub}
                       </h4>
                       {aiAnalysis?.competitiveAdvantage ? (
-                        <ReactMarkdown>{aiAnalysis.competitiveAdvantage}</ReactMarkdown>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={proMarkdownComponents}>{aiAnalysis.competitiveAdvantage}</ReactMarkdown>
                       ) : (
                         <div className="flex items-center gap-2 text-mist-500 text-sm">
                           <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
@@ -1412,11 +1265,11 @@ export default function Report({
                       )}
                     </div>
                     <div className="pt-4 border-t border-white/5">
-                      <h4 className="text-xs font-mono uppercase tracking-[0.12em] text-mist-400 mb-2">
+                      <h4 className="label-caps mb-2">
                         {t.report.analysis.coreMoatSub}
                       </h4>
                       {aiAnalysis?.moat ? (
-                        <ReactMarkdown>{aiAnalysis.moat}</ReactMarkdown>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={proMarkdownComponents}>{aiAnalysis.moat}</ReactMarkdown>
                       ) : (
                         <div className="flex items-center gap-2 text-mist-500 text-sm">
                           <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
@@ -1432,12 +1285,12 @@ export default function Report({
               {showRecentDevelopmentsInStandard && (
                 <AnalysisCard title={t.report.analysis.recentDevelopments} onShare={handleShareModule}>
                   {aiAnalysis?.recentDevelopments ? (
-                    <div className="prose prose-gemini max-w-none prose-p:text-mist-300 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-300 prose-a:text-glacier-500 prose-a:no-underline hover:prose-a:underline text-sm">
-                      <ReactMarkdown>{aiAnalysis.recentDevelopments}</ReactMarkdown>
+                    <div className="prose prose-report max-w-none prose-p:text-mist-300 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-300 prose-a:text-glacier-500 prose-a:no-underline hover:prose-a:underline text-sm">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]} components={proMarkdownComponents}>{aiAnalysis.recentDevelopments}</ReactMarkdown>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 text-mist-500 text-sm">
-                      <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                    <div className="flex items-center gap-2 text-text-3 text-[13px]">
+                      <div className="w-3 h-3 border-2 border-text-4 border-t-accent rounded-full animate-spin" />
                       <span>{t.report.analysis.recentDevelopmentsLoading}</span>
                     </div>
                   )}
@@ -1449,7 +1302,7 @@ export default function Report({
                 <AnalysisCard title={t.report.analysis.earningsCallSummary} onShare={handleShareModule}>
                   {earningsCallSummary ? (
                     <>
-                      <ReactMarkdown>{earningsCallSummary}</ReactMarkdown>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]} components={proMarkdownComponents}>{earningsCallSummary}</ReactMarkdown>
                       {transcriptText && (
                         <div className="not-prose mt-4 space-y-3">
                           <button
@@ -1457,7 +1310,7 @@ export default function Report({
                               e.stopPropagation();
                               setShowTranscript((prev) => !prev);
                             }}
-                            className="gemini-btn gemini-btn-secondary text-sm"
+                            className="btn-secondary text-sm"
                           >
                             {showTranscript ? t.report.analysis.hideOriginal : t.report.analysis.viewOriginal}
                           </button>
@@ -1472,8 +1325,8 @@ export default function Report({
                       )}
                     </>
                   ) : (
-                    <div className="flex items-center gap-2 text-mist-500 text-sm">
-                      <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                    <div className="flex items-center gap-2 text-text-3 text-[13px]">
+                      <div className="w-3 h-3 border-2 border-text-4 border-t-accent rounded-full animate-spin" />
                       <span>{t.report.analysis.earningsCallSummaryLoading}</span>
                     </div>
                   )}
@@ -1483,12 +1336,12 @@ export default function Report({
               {/* 投资建议总结 */}
               <AnalysisCard title={t.report.analysis.investmentConclusion} onShare={handleShareModule}>
                 {aiAnalysis?.investmentConclusion ? (
-                  <div className="prose prose-gemini max-w-none prose-p:text-mist-200 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-200 text-sm">
-                    <ReactMarkdown>{aiAnalysis.investmentConclusion}</ReactMarkdown>
+                  <div className="prose prose-report max-w-none prose-p:text-mist-200 prose-p:leading-relaxed prose-headings:text-white prose-strong:text-white prose-li:text-mist-200 text-sm">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={proMarkdownComponents}>{aiAnalysis.investmentConclusion}</ReactMarkdown>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 text-mist-500 text-sm">
-                    <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                  <div className="flex items-center gap-2 text-text-3 text-[13px]">
+                    <div className="w-3 h-3 border-2 border-text-4 border-t-accent rounded-full animate-spin" />
                     <span>{t.report.analysis.investmentConclusionLoading}</span>
                   </div>
                 )}
@@ -1508,25 +1361,26 @@ export default function Report({
             sectionNumber={getSectionNumber('financialStatements')}
             onShare={handleShareModule}
           >
-            <div className="space-y-6 animate-fade-in">
+            <div className="space-y-4">
               {/* 桑基图和营收图表 */}
-              <div className="bg-white/5 border border-white/10 p-6 md:p-8 rounded-md">
+              <div className="panel p-5">
                 {/* 桑基图 */}
                 {currentSankeyData && currentSankeyData.links && currentSankeyData.links.length > 0 && (
                   <div className="mb-10">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                      <h4 className="text-sm font-medium text-mist-300">{t.report.sankey.title}</h4>
+                      <h4 className="panel-title">{t.report.sankey.title}</h4>
                       {availableYears.length > 1 && (
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs text-mist-500 whitespace-nowrap">{t.report.sankey.selectYear}</span>
-                          <div className="flex p-1 bg-white/5 border border-white/10 rounded-lg flex-wrap gap-1">
-                            {availableYears.map((year) => (
+                          <div className="inline-flex flex-wrap overflow-hidden rounded-md border border-line-strong">
+                            {availableYears.map((year, yearPos) => (
                               <button
                                 key={year.index}
+                                type="button"
                                 onClick={() => setSankeyYearIndex(year.index)}
-                                className={`px-3 py-1 text-xs font-medium rounded-md transition-all whitespace-nowrap ${sankeyYearIndex === year.index
-                                  ? 'bg-glacier-500 text-white shadow-sm'
-                                  : 'text-mist-400 hover:text-mist-200'
+                                className={`h-7 px-2.5 font-mono text-[12px] font-medium whitespace-nowrap ${yearPos > 0 ? 'border-l border-line' : ''} ${sankeyYearIndex === year.index
+                                  ? 'bg-accent/10 text-accent'
+                                  : 'text-text-2 hover:bg-hover hover:text-fg'
                                   }`}
                               >
                                 {year.label}
@@ -1582,32 +1436,32 @@ export default function Report({
             sectionNumber={getSectionNumber('proAnalysis')}
             onShare={handleShareModule}
           >
-            <div className="space-y-6 animate-fade-in">
+            <div className="space-y-4">
               {/* 1. 公司与商业模式（合并生意模式 + 运营模式） */}
               <AnalysisCard title={t.report.proAnalysis.businessAndOperating} onShare={handleShareModule}>
                 <div className="space-y-5">
                   <div>
-                    <h4 className="text-xs font-mono uppercase tracking-[0.12em] text-mist-400 mb-2">
+                    <h4 className="label-caps mb-2">
                       {t.report.proAnalysis.businessModelSub}
                     </h4>
                     {proAiAnalysis?.proBusinessModel ? (
                       <ProMarkdown>{proAiAnalysis.proBusinessModel}</ProMarkdown>
                     ) : (
-                      <div className="flex items-center gap-2 text-mist-500 text-sm">
-                        <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                      <div className="flex items-center gap-2 text-text-3 text-[13px]">
+                        <div className="w-3 h-3 border-2 border-text-4 border-t-accent rounded-full animate-spin" />
                         <span>{t.report.proAnalysis.businessModelLoading}</span>
                       </div>
                     )}
                   </div>
                   <div className="pt-4 border-t border-white/5">
-                    <h4 className="text-xs font-mono uppercase tracking-[0.12em] text-mist-400 mb-2">
+                    <h4 className="label-caps mb-2">
                       {t.report.proAnalysis.operatingModelSub}
                     </h4>
                     {proAiAnalysis?.proOperatingModel ? (
                       <ProMarkdown>{proAiAnalysis.proOperatingModel}</ProMarkdown>
                     ) : (
-                      <div className="flex items-center gap-2 text-mist-500 text-sm">
-                        <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                      <div className="flex items-center gap-2 text-text-3 text-[13px]">
+                        <div className="w-3 h-3 border-2 border-text-4 border-t-accent rounded-full animate-spin" />
                         <span>{t.report.proAnalysis.operatingModelLoading}</span>
                       </div>
                     )}
@@ -1620,8 +1474,8 @@ export default function Report({
                 {proAiAnalysis?.proIndustryOutlook ? (
                   <ProMarkdown>{proAiAnalysis.proIndustryOutlook}</ProMarkdown>
                 ) : (
-                  <div className="flex items-center gap-2 text-mist-500 text-sm">
-                    <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                  <div className="flex items-center gap-2 text-text-3 text-[13px]">
+                    <div className="w-3 h-3 border-2 border-text-4 border-t-accent rounded-full animate-spin" />
                     <span>{t.report.proAnalysis.industryOutlookLoading}</span>
                   </div>
                 )}
@@ -1632,8 +1486,8 @@ export default function Report({
                 {proAiAnalysis?.proMoatAnalysis ? (
                   <ProMarkdown>{proAiAnalysis.proMoatAnalysis}</ProMarkdown>
                 ) : (
-                  <div className="flex items-center gap-2 text-mist-500 text-sm">
-                    <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                  <div className="flex items-center gap-2 text-text-3 text-[13px]">
+                    <div className="w-3 h-3 border-2 border-text-4 border-t-accent rounded-full animate-spin" />
                     <span>{t.report.proAnalysis.moatAnalysisLoading}</span>
                   </div>
                 )}
@@ -1644,8 +1498,8 @@ export default function Report({
                 {proAiAnalysis?.proFinancialHealth ? (
                   <ProMarkdown>{proAiAnalysis.proFinancialHealth}</ProMarkdown>
                 ) : (
-                  <div className="flex items-center gap-2 text-mist-500 text-sm">
-                    <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                  <div className="flex items-center gap-2 text-text-3 text-[13px]">
+                    <div className="w-3 h-3 border-2 border-text-4 border-t-accent rounded-full animate-spin" />
                     <span>{t.report.proAnalysis.financialHealthLoading}</span>
                   </div>
                 )}
@@ -1656,8 +1510,8 @@ export default function Report({
                 {proAiAnalysis?.proValuation ? (
                   <ProMarkdown>{proAiAnalysis.proValuation}</ProMarkdown>
                 ) : (
-                  <div className="flex items-center gap-2 text-mist-500 text-sm">
-                    <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                  <div className="flex items-center gap-2 text-text-3 text-[13px]">
+                    <div className="w-3 h-3 border-2 border-text-4 border-t-accent rounded-full animate-spin" />
                     <span>{t.report.proAnalysis.valuationLoading}</span>
                   </div>
                 )}
@@ -1668,8 +1522,8 @@ export default function Report({
                 {proAiAnalysis?.proInvestmentConclusion ? (
                   <ProMarkdown>{proAiAnalysis.proInvestmentConclusion}</ProMarkdown>
                 ) : (
-                  <div className="flex items-center gap-2 text-mist-500 text-sm">
-                    <div className="w-3 h-3 border border-mist-600 border-t-glacier-500 rounded-full animate-spin" />
+                  <div className="flex items-center gap-2 text-text-3 text-[13px]">
+                    <div className="w-3 h-3 border-2 border-text-4 border-t-accent rounded-full animate-spin" />
                     <span>{t.report.proAnalysis.investmentConclusionLoading}</span>
                   </div>
                 )}
@@ -1688,7 +1542,7 @@ export default function Report({
             sectionNumber={getSectionNumber('valuation')}
             onShare={handleShareModule}
           >
-            <div className="animate-fade-in">
+            <div>
               <ProfessionalValuationMetrics
                 profile={profile}
                 keyMetrics={keyMetrics}
@@ -1715,7 +1569,7 @@ export default function Report({
             sectionNumber={getSectionNumber('events')}
             onShare={handleShareModule}
           >
-            <div className="animate-fade-in">
+            <div>
               <EventCalendar
                 earningsCalendar={earningsCalendar}
                 dividendHistory={dividendHistory}
@@ -1739,7 +1593,7 @@ export default function Report({
             sectionNumber={getSectionNumber('holdings')}
             onShare={handleShareModule}
           >
-            <div className="animate-fade-in">
+            <div>
               <HoldingsAnalysis
                 institutionalHolders={institutionalHolders}
                 insiderTrading={insiderTrading}
@@ -1753,14 +1607,12 @@ export default function Report({
 
         {/* 非美股市场的数据限制提示 */}
         {!isUSMarket && (
-          <div className="gemini-card p-6 border border-amber-500/20 bg-amber-500/5">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
-                <Info className="w-5 h-5 text-amber-400" />
-              </div>
+          <div className="rounded-md border border-warn/30 bg-warn/5 px-4 py-3">
+            <div className="flex items-start gap-3">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-warn" />
               <div>
-                <h4 className="text-amber-300 font-medium mb-2">{t.report.dataNotice.title}</h4>
-                <p className="text-sm text-mist-400 leading-relaxed">
+                <h4 className="text-[13px] font-semibold text-warn">{t.report.dataNotice.title}</h4>
+                <p className="mt-1 text-[13px] leading-5 text-text-2">
                   {t.report.dataNotice.content(marketConfig.nameCn)}
                 </p>
               </div>
@@ -1778,83 +1630,75 @@ export default function Report({
             sectionNumber={getSectionNumber('news')}
             onShare={handleShareModule}
           >
-            <div className="animate-fade-in">
-              <div className="bg-white/5 border border-white/10 p-6 md:p-8 rounded-md">
-                <div className="divide-y divide-white/5">
-                  {news.slice(0, 8).map((item, index) => (
-                    <a
-                      key={index}
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group flex items-start gap-4 py-4 first:pt-0 last:pb-0 hover:bg-white/[0.02] -mx-2 px-2 rounded-lg transition-colors"
-                    >
-                      <span className="text-sm text-mist-600 font-mono w-6 shrink-0 pt-0.5">{String(index + 1).padStart(2, '0')}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-mist-200 font-medium mb-2 line-clamp-2 group-hover:text-white transition-colors leading-relaxed">
-                          {item.title}
-                        </p>
-                        <div className="flex items-center gap-3 text-xs text-mist-500">
-                          <span className="truncate max-w-[120px]">{item.site}</span>
-                          <span className="text-mist-700">·</span>
-                          <span>{formatDate(item.publishedDate)}</span>
-                        </div>
-                      </div>
-                      <ExternalLink className="w-4 h-4 text-mist-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
-                    </a>
-                  ))}
-                </div>
+            <div>
+              <div className="panel divide-y divide-white/10">
+                {news.slice(0, 10).map((item, index) => (
+                  <a
+                    key={index}
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4 px-4 py-3 hover:bg-hover"
+                  >
+                    <span className="min-w-0">
+                      <span className="line-clamp-2 text-[14px] font-medium leading-5 text-fg">{item.title}</span>
+                      <span className="mt-1 block truncate text-[12px] text-text-3">{item.site}</span>
+                    </span>
+                    <span className="whitespace-nowrap font-mono text-[12px] text-text-3">{formatDate(item.publishedDate)}</span>
+                  </a>
+                ))}
               </div>
             </div>
           </CollapsibleSection>
         )}
 
         {/* 免责声明 */}
-        <footer className="text-center py-12">
-          <div className="gemini-divider mb-8" />
-
-          {/* 报告生成时间和重新生成按钮 */}
-          {data.reportGeneratedAt && (
-            <div className="flex flex-col items-center gap-4 mb-8">
-              <p className="text-sm text-mist-400">
-                {t.report.footer.generatedAt(new Date(data.reportGeneratedAt).toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                }))}
-              </p>
-              {onRegenerate && (
-                <button
-                  onClick={async () => {
-                    setIsRegenerating(true);
-                    try {
-                      await onRegenerate();
-                    } finally {
-                      setIsRegenerating(false);
-                    }
-                  }}
-                  disabled={isRegenerating || aiLoading}
-                  className="gemini-btn gemini-btn-secondary flex items-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <RefreshCw className={`w-4 h-4 ${isRegenerating ? 'animate-spin' : ''}`} />
-                  {isRegenerating ? t.report.regenerating : t.report.regenerateAi}
-                </button>
+        <footer className="border-t border-line pt-6 text-[12px] leading-5 text-text-3">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-1">
+              {data.reportGeneratedAt && (
+                <p>
+                  {t.report.footer.generatedAt(new Date(data.reportGeneratedAt).toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  }))}
+                </p>
+              )}
+              {data.dataSources && data.dataSources.length > 0 && (
+                <p>{t.report.overview.dataSources}: {data.dataSources.join(' · ')} · DeepSeek</p>
               )}
             </div>
-          )}
-
-          <p className="text-xs text-mist-400 max-w-2xl mx-auto leading-relaxed font-sans">
-            {t.report.footer.disclaimer}
-          </p>
+            {data.reportGeneratedAt && onRegenerate && (
+              <button
+                type="button"
+                onClick={async () => {
+                  setIsRegenerating(true);
+                  try {
+                    await onRegenerate();
+                  } finally {
+                    setIsRegenerating(false);
+                  }
+                }}
+                disabled={isRegenerating || aiLoading}
+                className="btn-secondary self-start md:self-auto"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRegenerating ? 'animate-spin' : ''}`} />
+                {isRegenerating ? t.report.regenerating : t.report.regenerateAi}
+              </button>
+            )}
+          </div>
+          <p className="mt-4 max-w-4xl">{t.report.footer.disclaimer}</p>
         </footer>
+        </div>
       </div>
 
       {isSharePickerOpen && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
           <button
-            className="absolute inset-0 bg-black/70"
+            className="absolute inset-0 bg-black/50"
             aria-label={t.common.close || 'Close'}
             onClick={() => setIsSharePickerOpen(false)}
           />
@@ -1864,41 +1708,41 @@ export default function Report({
             aria-modal="true"
             aria-labelledby={sharePickerA11y.titleId}
             tabIndex={-1}
-            className="relative w-full max-w-sm rounded-md border border-white/10 bg-surface p-4 focus:outline-none"
+            className="relative w-full max-w-sm overflow-hidden rounded-md border border-line bg-panel shadow-xl focus:outline-none animate-fade-in"
           >
-            <h3 id={sharePickerA11y.titleId} className="mb-3 text-sm font-semibold text-white">{t.common.share}</h3>
-            <div className="space-y-1">
+            <h3 id={sharePickerA11y.titleId} className="panel-header panel-title">{t.common.share}</h3>
+            <div className="py-1">
               <button
                 onClick={() => runShareAction(handleShareAsImage)}
-                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm text-mist-300 transition-colors hover:bg-white/10 hover:text-white"
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-[13px] text-text-1 hover:bg-hover"
               >
                 <ImageIcon className="h-4 w-4" />
                 {t.report.shareActions.image}
               </button>
               <button
                 onClick={() => runShareAction(handleShareAsExcel)}
-                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm text-mist-300 transition-colors hover:bg-white/10 hover:text-white"
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-[13px] text-text-1 hover:bg-hover"
               >
                 <FileDown className="h-4 w-4" />
                 {t.report.shareActions.excel}
               </button>
               <button
                 onClick={() => runShareAction(handleShareLink)}
-                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm text-mist-300 transition-colors hover:bg-white/10 hover:text-white"
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-[13px] text-text-1 hover:bg-hover"
               >
                 <Link2 className="h-4 w-4" />
                 {t.report.shareActions.link}
               </button>
               <button
                 onClick={() => runShareAction(handleShareToWeChat)}
-                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm text-mist-300 transition-colors hover:bg-white/10 hover:text-white"
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-[13px] text-text-1 hover:bg-hover"
               >
                 <MessageCircle className="h-4 w-4" />
                 {t.report.shareActions.wechat}
               </button>
               <button
                 onClick={() => runShareAction(handleShareToFacebook)}
-                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm text-mist-300 transition-colors hover:bg-white/10 hover:text-white"
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-[13px] text-text-1 hover:bg-hover"
               >
                 <ExternalLink className="h-4 w-4" />
                 {t.report.shareActions.facebook}

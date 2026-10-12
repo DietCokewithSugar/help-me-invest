@@ -176,7 +176,7 @@ export default function FeedbackComposer({
           id={ids.error}
           role="alert"
           aria-live="polite"
-          className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-sm px-3 py-2"
+          className="text-xs text-down bg-down/10 border border-down/20 rounded-sm px-3 py-2"
         >
           {error}
         </div>
@@ -196,7 +196,7 @@ export default function FeedbackComposer({
         <button
           type="submit"
           disabled={submitting || !ready}
-          className="px-4 py-1.5 text-sm rounded-sm bg-glacier-500 hover:bg-glacier-400 text-obsidian font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-4 py-1.5 text-sm rounded-sm bg-brand hover:bg-brand-strong text-pure-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {submitting ? composerT.submitting : composerT.submit}
         </button>

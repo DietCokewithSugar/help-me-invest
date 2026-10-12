@@ -2238,22 +2238,15 @@ export function getTrendCategory(cagr: number): 'fastGrowth' | 'slowGrowth' | 's
 }
 
 export function getTrendColor(trend: string, theme: 'dark' | 'light' = 'dark'): string {
-  const colors: Record<string, Record<string, string>> = {
-    dark: {
-      fastGrowth: '#10B981',
-      slowGrowth: '#6EE7B7',
-      stagnant: '#94A3B8',
-      decline: '#F87171',
-      severeDecline: '#EF4444',
-    },
-    light: {
-      fastGrowth: '#059669',
-      slowGrowth: '#34D399',
-      stagnant: '#64748B',
-      decline: '#EF4444',
-      severeDecline: '#DC2626',
-    },
+  // 热力图配色：涨跌语义色的深浅两档 + 中性灰，块上文字统一为白色
+  const palette = {
+    fastGrowth: '#1F9D57',
+    slowGrowth: '#4FA97A',
+    stagnant: '#5B6470',
+    decline: '#C2504F',
+    severeDecline: '#A93B3B',
   };
+  const colors: Record<string, Record<string, string>> = { dark: palette, light: palette };
   return colors[theme]?.[trend] || colors.dark.stagnant;
 }
 

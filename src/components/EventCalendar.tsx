@@ -62,7 +62,7 @@ export default function EventCalendar({
   // ==================== 财报发布记录 ====================
   const renderEarningsCalendar = () => {
     if (!earningsCalendar?.length) {
-      return <div className="text-center py-8 text-slate-400">暂无财报发布记录</div>;
+      return <div className="text-center py-8 text-mist-400">暂无财报发布记录</div>;
     }
 
     // 计算盈利/亏损统计
@@ -74,52 +74,52 @@ export default function EventCalendar({
         {/* 统计卡片 */}
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="bg-white/5 rounded-lg p-4 text-center">
-            <p className="text-sm text-slate-400 mb-1">财报记录数</p>
+            <p className="text-sm text-mist-400 mb-1">财报记录数</p>
             <p className="text-2xl font-bold font-mono text-white">{earningsCalendar.length}</p>
           </div>
-          <div className="bg-green-500/10 rounded-lg p-4 text-center">
-            <p className="text-sm text-slate-400 mb-1">超预期次数</p>
+          <div className="bg-up/10 rounded-lg p-4 text-center">
+            <p className="text-sm text-mist-400 mb-1">超预期次数</p>
             <p className="text-2xl font-bold font-mono" style={{ color: isLight ? '#059669' : '#4dd483' }}>{beats}</p>
           </div>
-          <div className="bg-red-500/10 rounded-lg p-4 text-center">
-            <p className="text-sm text-slate-400 mb-1">低于预期次数</p>
+          <div className="bg-down/10 rounded-lg p-4 text-center">
+            <p className="text-sm text-mist-400 mb-1">低于预期次数</p>
             <p className="text-2xl font-bold font-mono" style={{ color: isLight ? '#dc2626' : '#ef4444' }}>{misses}</p>
           </div>
         </div>
 
         {/* EPS 历史图表 */}
         {earningsCalendar.filter(e => e.epsActual !== null).length > 0 && (
-          <div className="bg-midnight/30 rounded-xl p-3 md:p-4 border border-white/5 max-md:border-0 mb-4">
-            <h4 className="text-sm font-semibold text-slate-300 mb-4">EPS 历史表现</h4>
+          <div className="bg-raised rounded-xl p-3 md:p-4 border border-white/5 max-md:border-0 mb-4">
+            <h4 className="text-sm font-semibold text-mist-300 mb-4">EPS 历史表现</h4>
             <ReactECharts
               option={{
                 backgroundColor: 'transparent',
                 tooltip: {
                   trigger: 'axis',
-                  backgroundColor: isLight ? '#ffffff' : '#121212',
-                  borderColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)',
+                  backgroundColor: isLight ? '#FFFFFF' : '#1B1F24',
+                  borderColor: isLight ? 'rgba(23,25,28,0.12)' : 'rgba(236,238,241,0.10)',
                   borderWidth: 1,
                   textStyle: { color: isLight ? '#1e293b' : '#f8fafc' },
                 },
                 legend: {
                   data: ['预期 EPS', '实际 EPS'],
-                  textStyle: { color: isLight ? '#475569' : '#94a3b8' },
+                  textStyle: { color: isLight ? '#545B65' : '#A3ABB6' },
                   top: 0,
                 },
                 grid: { left: '3%', right: '4%', bottom: '3%', top: '50px', containLabel: true },
                 xAxis: {
                   type: 'category',
                   data: earningsCalendar.map(e => formatDate(e.date)).reverse(),
-                  axisLine: { lineStyle: { color: isLight ? '#e2e8f0' : '#334155' } },
-                  axisLabel: { color: isLight ? '#475569' : '#94a3b8', rotate: 45 },
+                  axisLine: { lineStyle: { color: isLight ? 'rgba(23,25,28,0.18)' : 'rgba(236,238,241,0.18)' } },
+                  axisLabel: { color: isLight ? '#545B65' : '#A3ABB6', rotate: 45 },
                 },
                 yAxis: {
                   type: 'value',
                   name: `EPS (${currencyCode})`,
-                  nameTextStyle: { color: isLight ? '#64748b' : '#64748b' },
+                  nameTextStyle: { color: isLight ? '#78808B' : '#7A838F' },
                   axisLine: { show: false },
-                  axisLabel: { color: isLight ? '#64748b' : '#64748b', formatter: (v: number) => `${currencySymbol}${v.toFixed(2)} ${currencyCode}` },
-                  splitLine: { lineStyle: { color: isLight ? '#f1f5f9' : '#1e293b', type: 'dashed' } },
+                  axisLabel: { color: isLight ? '#78808B' : '#7A838F', formatter: (v: number) => `${currencySymbol}${v.toFixed(2)} ${currencyCode}` },
+                  splitLine: { lineStyle: { color: isLight ? 'rgba(23,25,28,0.07)' : 'rgba(236,238,241,0.07)', type: 'dashed' } },
                 },
                 series: [
                   {
@@ -156,12 +156,12 @@ export default function EventCalendar({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/10">
-                <th className="text-left py-3 px-4 text-slate-400 font-medium">日期</th>
-                <th className="text-right py-3 px-4 text-slate-400 font-medium">预期 EPS</th>
-                <th className="text-right py-3 px-4 text-slate-400 font-medium">实际 EPS</th>
-                <th className="text-right py-3 px-4 text-slate-400 font-medium">预期营收</th>
-                <th className="text-right py-3 px-4 text-slate-400 font-medium">实际营收</th>
-                <th className="text-center py-3 px-4 text-slate-400 font-medium">结果</th>
+                <th className="text-left py-2 px-3 text-mist-400 font-medium">日期</th>
+                <th className="text-right py-2 px-3 text-mist-400 font-medium">预期 EPS</th>
+                <th className="text-right py-2 px-3 text-mist-400 font-medium">实际 EPS</th>
+                <th className="text-right py-2 px-3 text-mist-400 font-medium">预期营收</th>
+                <th className="text-right py-2 px-3 text-mist-400 font-medium">实际营收</th>
+                <th className="text-center py-2 px-3 text-mist-400 font-medium">结果</th>
               </tr>
             </thead>
             <tbody>
@@ -170,33 +170,33 @@ export default function EventCalendar({
                 const miss = e.epsActual && e.epsEstimated && e.epsActual < e.epsEstimated;
                 return (
                   <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                    <td className="py-3 px-4 text-white font-mono">{formatDate(e.date)}</td>
-                    <td className="text-right py-3 px-4 font-mono text-slate-400">
+                    <td className="py-2 px-3 text-white font-mono">{formatDate(e.date)}</td>
+                    <td className="text-right py-2 px-3 font-mono text-mist-400">
                       {formatFixedAmount(e.epsEstimated, 2)}
                     </td>
-                    <td className={`text-right py-3 px-4 font-mono font-semibold ${beat ? (isLight ? 'text-emerald-600' : 'text-green-400') :
-                        miss ? (isLight ? 'text-red-600' : 'text-red-400') :
+                    <td className={`text-right py-2 px-3 font-mono font-semibold ${beat ? (isLight ? 'text-up' : 'text-up') :
+                        miss ? (isLight ? 'text-down' : 'text-down') :
                           'text-white'
                       }`}>
                       {formatFixedAmount(e.epsActual, 2)}
                     </td>
-                    <td className="text-right py-3 px-4 font-mono text-slate-400">
+                    <td className="text-right py-2 px-3 font-mono text-mist-400">
                       {formatNumber(e.revenueEstimated)}
                     </td>
-                    <td className="text-right py-3 px-4 font-mono text-white">
+                    <td className="text-right py-2 px-3 font-mono text-white">
                       {formatNumber(e.revenueActual)}
                     </td>
-                    <td className="text-center py-3 px-4">
+                    <td className="text-center py-2 px-3">
                       {beat ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs">
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-up/20 text-up rounded text-xs">
                           <CheckCircle className="w-3 h-3" /> 超预期
                         </span>
                       ) : miss ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs">
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-down/20 text-down rounded text-xs">
                           <XCircle className="w-3 h-3" /> 低于预期
                         </span>
                       ) : (
-                        <span className="text-slate-500">-</span>
+                        <span className="text-mist-500">-</span>
                       )}
                     </td>
                   </tr>
@@ -212,7 +212,7 @@ export default function EventCalendar({
   // ==================== 分红记录 ====================
   const renderDividendHistory = () => {
     if (!dividendHistory?.length) {
-      return <div className="text-center py-8 text-slate-400">暂无分红记录</div>;
+      return <div className="text-center py-8 text-mist-400">暂无分红记录</div>;
     }
 
     // 按年汇总分红
@@ -232,18 +232,18 @@ export default function EventCalendar({
         {/* 统计卡片 */}
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="bg-white/5 rounded-lg p-4 text-center">
-            <p className="text-sm text-slate-400 mb-1">分红次数</p>
+            <p className="text-sm text-mist-400 mb-1">分红次数</p>
             <p className="text-2xl font-bold font-mono text-white">{dividendHistory.length}</p>
           </div>
-          <div className="bg-green-500/10 rounded-lg p-4 text-center">
-            <p className="text-sm text-slate-400 mb-1">最新分红</p>
-            <p className="text-2xl font-bold font-mono text-green-400">
+          <div className="bg-up/10 rounded-lg p-4 text-center">
+            <p className="text-sm text-mist-400 mb-1">最新分红</p>
+            <p className="text-2xl font-bold font-mono text-up">
               {formatFixedAmount(dividendHistory[0]?.dividend, 4)}
             </p>
           </div>
-          <div className="bg-aurora-500/10 rounded-lg p-4 text-center">
-            <p className="text-sm text-slate-400 mb-1">年度分红 ({years[years.length - 1]})</p>
-            <p className="text-2xl font-bold font-mono text-aurora-400">
+          <div className="bg-accent/10 rounded-lg p-4 text-center">
+            <p className="text-sm text-mist-400 mb-1">年度分红 ({years[years.length - 1]})</p>
+            <p className="text-2xl font-bold font-mono text-accent">
               {formatFixedAmount(dividends[dividends.length - 1], 2)}
             </p>
           </div>
@@ -251,15 +251,15 @@ export default function EventCalendar({
 
         {/* 年度分红趋势图 */}
         {years.length > 1 && (
-          <div className="bg-midnight/30 rounded-xl p-3 md:p-4 border border-white/5 max-md:border-0 mb-4">
-            <h4 className="text-sm font-semibold text-slate-300 mb-4">年度分红趋势</h4>
+          <div className="bg-raised rounded-xl p-3 md:p-4 border border-white/5 max-md:border-0 mb-4">
+            <h4 className="text-sm font-semibold text-mist-300 mb-4">年度分红趋势</h4>
             <ReactECharts
               option={{
                 backgroundColor: 'transparent',
                 tooltip: {
                   trigger: 'axis',
-                  backgroundColor: isLight ? '#ffffff' : '#121212',
-                  borderColor: isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)',
+                  backgroundColor: isLight ? '#FFFFFF' : '#1B1F24',
+                  borderColor: isLight ? 'rgba(23,25,28,0.12)' : 'rgba(236,238,241,0.10)',
                   borderWidth: 1,
                   textStyle: { color: isLight ? '#1e293b' : '#f8fafc' },
                 },
@@ -267,16 +267,16 @@ export default function EventCalendar({
                 xAxis: {
                   type: 'category',
                   data: years,
-                  axisLine: { lineStyle: { color: isLight ? '#e2e8f0' : '#334155' } },
-                  axisLabel: { color: isLight ? '#475569' : '#94a3b8' },
+                  axisLine: { lineStyle: { color: isLight ? 'rgba(23,25,28,0.18)' : 'rgba(236,238,241,0.18)' } },
+                  axisLabel: { color: isLight ? '#545B65' : '#A3ABB6' },
                 },
                 yAxis: {
                   type: 'value',
                   name: `分红 (${currencyCode})`,
-                  nameTextStyle: { color: isLight ? '#64748b' : '#64748b' },
+                  nameTextStyle: { color: isLight ? '#78808B' : '#7A838F' },
                   axisLine: { show: false },
-                  axisLabel: { color: isLight ? '#64748b' : '#64748b', formatter: (v: number) => `${currencySymbol}${v.toFixed(2)} ${currencyCode}` },
-                  splitLine: { lineStyle: { color: isLight ? '#f1f5f9' : '#1e293b', type: 'dashed' } },
+                  axisLabel: { color: isLight ? '#78808B' : '#7A838F', formatter: (v: number) => `${currencySymbol}${v.toFixed(2)} ${currencyCode}` },
+                  splitLine: { lineStyle: { color: isLight ? 'rgba(23,25,28,0.07)' : 'rgba(236,238,241,0.07)', type: 'dashed' } },
                 },
                 series: [
                   {
@@ -296,7 +296,7 @@ export default function EventCalendar({
                     label: {
                       show: true,
                       position: 'top',
-                      color: isLight ? '#475569' : '#94a3b8',
+                      color: isLight ? '#545B65' : '#A3ABB6',
                       formatter: (params: any) => `${currencySymbol}${params.value.toFixed(2)} ${currencyCode}`,
                     },
                   },
@@ -312,25 +312,25 @@ export default function EventCalendar({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/10">
-                <th className="text-left py-3 px-4 text-slate-400 font-medium">除息日</th>
-                <th className="text-right py-3 px-4 text-slate-400 font-medium">每股分红</th>
-                <th className="text-right py-3 px-4 text-slate-400 font-medium">调整后分红</th>
-                <th className="text-left py-3 px-4 text-slate-400 font-medium">支付日</th>
-                <th className="text-left py-3 px-4 text-slate-400 font-medium">宣布日</th>
+                <th className="text-left py-2 px-3 text-mist-400 font-medium">除息日</th>
+                <th className="text-right py-2 px-3 text-mist-400 font-medium">每股分红</th>
+                <th className="text-right py-2 px-3 text-mist-400 font-medium">调整后分红</th>
+                <th className="text-left py-2 px-3 text-mist-400 font-medium">支付日</th>
+                <th className="text-left py-2 px-3 text-mist-400 font-medium">宣布日</th>
               </tr>
             </thead>
             <tbody>
               {dividendHistory.slice(0, 20).map((d, i) => (
                 <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                  <td className="py-3 px-4 text-white font-mono">{formatDate(d.date)}</td>
-                  <td className="text-right py-3 px-4 font-mono text-green-400 font-semibold">
+                  <td className="py-2 px-3 text-white font-mono">{formatDate(d.date)}</td>
+                  <td className="text-right py-2 px-3 font-mono text-up font-semibold">
                     {formatFixedAmount(d.dividend, 4)}
                   </td>
-                  <td className="text-right py-3 px-4 font-mono text-slate-400">
+                  <td className="text-right py-2 px-3 font-mono text-mist-400">
                     {formatFixedAmount(d.adjDividend, 4)}
                   </td>
-                  <td className="py-3 px-4 font-mono text-slate-400">{formatDate(d.paymentDate)}</td>
-                  <td className="py-3 px-4 font-mono text-slate-400">{formatDate(d.declarationDate)}</td>
+                  <td className="py-2 px-3 font-mono text-mist-400">{formatDate(d.paymentDate)}</td>
+                  <td className="py-2 px-3 font-mono text-mist-400">{formatDate(d.declarationDate)}</td>
                 </tr>
               ))}
             </tbody>
@@ -343,18 +343,18 @@ export default function EventCalendar({
   // ==================== 股票拆分 ====================
   const renderStockSplits = () => {
     if (!stockSplits?.length) {
-      return <div className="text-center py-8 text-slate-400">暂无股票拆分记录</div>;
+      return <div className="text-center py-8 text-mist-400">暂无股票拆分记录</div>;
     }
 
     return (
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div className="bg-white/5 rounded-lg p-4 text-center">
-            <p className="text-sm text-slate-400 mb-1">拆分次数</p>
+            <p className="text-sm text-mist-400 mb-1">拆分次数</p>
             <p className="text-2xl font-bold font-mono text-white">{stockSplits.length}</p>
           </div>
           <div className="bg-purple-500/10 rounded-lg p-4 text-center">
-            <p className="text-sm text-slate-400 mb-1">最近拆分</p>
+            <p className="text-sm text-mist-400 mb-1">最近拆分</p>
             <p className="text-xl font-bold font-mono text-purple-400">
               {stockSplits[0]?.numerator}:{stockSplits[0]?.denominator}
             </p>
@@ -365,22 +365,22 @@ export default function EventCalendar({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/10">
-                <th className="text-left py-3 px-4 text-slate-400 font-medium">日期</th>
-                <th className="text-center py-3 px-4 text-slate-400 font-medium">拆分比例</th>
-                <th className="text-left py-3 px-4 text-slate-400 font-medium">说明</th>
+                <th className="text-left py-2 px-3 text-mist-400 font-medium">日期</th>
+                <th className="text-center py-2 px-3 text-mist-400 font-medium">拆分比例</th>
+                <th className="text-left py-2 px-3 text-mist-400 font-medium">说明</th>
               </tr>
             </thead>
             <tbody>
               {stockSplits.map((s, i) => (
                 <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                  <td className="py-3 px-4 text-white font-mono">{formatDate(s.date)}</td>
-                  <td className="text-center py-3 px-4">
+                  <td className="py-2 px-3 text-white font-mono">{formatDate(s.date)}</td>
+                  <td className="text-center py-2 px-3">
                     <span className="inline-flex items-center gap-2 px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full font-mono font-semibold">
                       <Scissors className="w-4 h-4" />
                       {s.numerator}:{s.denominator}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-slate-400">
+                  <td className="py-2 px-3 text-mist-400">
                     {s.numerator > s.denominator
                       ? `每 ${s.denominator} 股拆分为 ${s.numerator} 股`
                       : `每 ${s.denominator} 股合并为 ${s.numerator} 股`
@@ -402,10 +402,10 @@ export default function EventCalendar({
   }
 
   return (
-    <div className="bg-white/5 border border-white/10 p-6 rounded-md animate-fade-in-up">
+    <div className="panel p-5">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-md bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
-          <Calendar className="w-5 h-5 text-amber-500" />
+        <div className="w-10 h-10 rounded-md bg-warn/10 flex items-center justify-center border border-warn/20">
+          <Calendar className="w-5 h-5 text-warn" />
         </div>
         <div>
           <h2 className="text-lg font-semibold text-white">市场事件日历</h2>
@@ -421,7 +421,7 @@ export default function EventCalendar({
             onClick={() => setActiveTab(tab.key)}
             disabled={tab.count === 0}
             className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all text-sm font-medium ${activeTab === tab.key
-              ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+              ? 'bg-warn/10 text-warn border border-warn/20'
               : tab.count === 0
                 ? 'text-mist-600 cursor-not-allowed'
                 : 'text-mist-400 hover:text-white hover:bg-white/5'
@@ -430,7 +430,7 @@ export default function EventCalendar({
             {tab.icon}
             {tab.label}
             {tab.count > 0 && (
-              <span className={`text-xs px-1.5 py-0.5 rounded-sm ${activeTab === tab.key ? 'bg-amber-500/20 text-amber-400' : 'bg-white/10 text-mist-400'}`}>{tab.count}</span>
+              <span className={`text-xs px-1.5 py-0.5 rounded-sm ${activeTab === tab.key ? 'bg-warn/20 text-warn' : 'bg-white/10 text-mist-400'}`}>{tab.count}</span>
             )}
           </button>
         ))}

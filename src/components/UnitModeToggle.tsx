@@ -16,7 +16,7 @@ export default function UnitModeToggle({ className = '' }: UnitModeToggleProps) 
     return (
         <button
             onClick={toggleUnitMode}
-            className={`gemini-btn gemini-btn-secondary flex items-center gap-2 ${className}`}
+            className={`btn-secondary flex items-center gap-2 ${className}`}
             title={unitMode === 'en' ? '切换到中文单位 (万/亿)' : '切换到英文单位 (M/B)'}
         >
             <RefreshCw className="w-4 h-4 text-current shrink-0" />
