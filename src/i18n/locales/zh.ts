@@ -160,7 +160,7 @@ export const zh = {
       feature1Title: '穿透表象的 AI 逻辑',
       feature1Desc: 'AI 不止总结数据，而是理解财报背后的商业动机，洞察企业真正的经营本质。',
       feature2Title: '多维数据印证',
-      feature2Desc: '整合 Yahoo Finance、SEC EDGAR 等财务数据与 AI 推理，对基本面、经营质量与风险因素进行交叉验证。',
+      feature2Desc: '整合 SEC EDGAR、东方财富等财务数据与 AI 推理，对基本面、经营质量与风险因素进行交叉验证。',
       feature3Title: '极致克制的研报',
       feature3Desc: '告别繁琐的传统报告，用可视化（如桑基图）还原经营本质，只留下真正重要的信息。',
     },
@@ -201,7 +201,7 @@ export const zh = {
       reportCount: '已产出',
       reportUnit: '篇企业研报',
       copyright: (year: number) => `© ${year} 智投研究 · AI Investment Research`,
-      dataSource: '数据来源：Yahoo Finance · SEC EDGAR · Financial Modeling Prep · AI 由 DeepSeek 提供支持',
+      dataSource: '数据来源：SEC EDGAR · 东方财富 · Financial Modeling Prep · Yahoo Finance · AI 由 DeepSeek 提供支持',
     },
     loading: {
       step1: '正在获取企业基本信息',

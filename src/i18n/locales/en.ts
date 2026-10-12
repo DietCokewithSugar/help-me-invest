@@ -162,7 +162,7 @@ export const en: TranslationKeys = {
       feature1Title: 'AI Logic Beyond the Surface',
       feature1Desc: 'AI doesn\'t just summarize data — it understands the business motives behind financial reports, revealing the true operating essence of companies.',
       feature2Title: 'Multi-dimensional Data Verification',
-      feature2Desc: 'Combines Yahoo Finance and SEC EDGAR financials with AI reasoning to cross-check fundamentals, operating quality, and risk factors.',
+      feature2Desc: 'Combines SEC EDGAR and Eastmoney financials with AI reasoning to cross-check fundamentals, operating quality, and risk factors.',
       feature3Title: 'Minimalist Research Reports',
       feature3Desc: 'Say goodbye to tedious traditional reports. Visualizations like Sankey charts reveal business essence, keeping only what truly matters.',
     },
@@ -203,7 +203,7 @@ export const en: TranslationKeys = {
       reportCount: 'Generated',
       reportUnit: 'research reports',
       copyright: (year: number) => `© ${year} AI Invest · AI Investment Research`,
-      dataSource: 'Data: Yahoo Finance · SEC EDGAR · Financial Modeling Prep · AI powered by DeepSeek',
+      dataSource: 'Data: SEC EDGAR · Eastmoney · Financial Modeling Prep · Yahoo Finance · AI powered by DeepSeek',
     },
     loading: {
       step1: 'Fetching company information',

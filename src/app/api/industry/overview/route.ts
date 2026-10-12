@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getTrendCategory } from '@/lib/industry-data';
 import { getChart, getQuotes, getSector } from '@/lib/yahoo/client';
 import { buildPriceHistory, num } from '@/lib/yahoo/normalize';
+import { fetchQuoteWithHistory } from '@/lib/market-data';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -109,8 +110,11 @@ async function loadSnapshot(sector: string): Promise<SectorSnapshot> {
     etf ? getChart(etf, '5y', '1d').catch(() => null) : Promise.resolve(null),
   ]);
 
-  // 新→旧
-  const bars = buildPriceHistory(etfChart).map((bar) => ({ date: bar.date, close: bar.adjClose ?? bar.close }));
+  // 新→旧；Yahoo 不可用时改用东方财富日 K（前复权）
+  let bars = buildPriceHistory(etfChart).map((bar) => ({ date: bar.date, close: bar.adjClose ?? bar.close }));
+  if (bars.length === 0 && etf) {
+    bars = (await fetchQuoteWithHistory(etf, '5y').catch(() => null))?.history ?? [];
+  }
   const change1D = bars.length >= 2 && bars[1].close ? ((bars[0].close - bars[1].close) / bars[1].close) * 100 : null;
   const threeYearsAgo = getDateYearsAgo(3);
   const start = bars.find((bar) => bar.date <= threeYearsAgo);

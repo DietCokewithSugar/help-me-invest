@@ -6,7 +6,7 @@ const FMP_BASE_URL = 'https://financialmodelingprep.com/stable';
 // 请求队列配置
 const QUEUE_CONFIG = {
   maxConcurrent: 5,        // 最大并发请求数
-  maxRetries: 3,           // 最大重试次数
+  maxRetries: 1,           // 最大重试次数（FMP 只是补充源，失败要快速让位给其他数据源）
   baseDelay: 1000,         // 基础重试延迟（毫秒）
   maxDelay: 8000,          // 最大重试延迟（毫秒）
   jitterFactor: 0.3,       // 抖动因子（防止雷群效应）
@@ -15,13 +15,16 @@ const QUEUE_CONFIG = {
 // 不同类型端点的超时配置
 const TIMEOUT_CONFIG: Record<string, number> = {
   // 关键端点 - 快速超时
-  '/discounted-cash-flow': 15000,
+  '/discounted-cash-flow': 10000,
+  '/profile': 10000,
+  '/quote': 8000,
   // 数据密集型端点 - 较长超时
-  '/income-statement': 40000,
-  '/balance-sheet-statement': 40000,
-  '/cash-flow-statement': 40000,
+  '/historical-price-eod': 15000,
+  '/income-statement': 20000,
+  '/balance-sheet-statement': 20000,
+  '/cash-flow-statement': 20000,
   // 默认超时
-  default: 30000,
+  default: 15000,
 };
 
 // 请求队列状态
@@ -274,7 +277,22 @@ export class FMPClient {
     }
   }
 
-  // 仅保留免费版可用、且报告实际用到的端点；其余数据由 Yahoo Finance 提供（见 market-data.ts）
+  // 仅保留免费版可用、且报告实际用到的端点；其余数据见 market-data.ts 的多源编排
+
+  // 公司概况（含最新价、市值、描述、CEO、行业等）
+  async getProfile(symbol: string) {
+    return this.fetch<any[]>(`/profile`, { symbol });
+  }
+
+  // 实时报价
+  async getQuote(symbol: string) {
+    return this.fetch<any[]>(`/quote`, { symbol });
+  }
+
+  // 日线收盘价（light：date / price / volume），新→旧
+  async getHistoricalPrices(symbol: string, from: string) {
+    return this.fetch<any[]>(`/historical-price-eod/light`, { symbol, from });
+  }
 
   // 利润表 Income Statement
   async getIncomeStatement(symbol: string, period: 'annual' | 'quarter' = 'annual', limit = 5) {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchReportData } from '@/lib/market-data';
+import { MarketDataError, fetchReportData } from '@/lib/market-data';
 import { saveFmpDataToCache, getCachedReportV2 } from '@/lib/supabase';
 import type { MarketType } from '@/lib/markets';
 
@@ -166,6 +166,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(reportData);
   } catch (error: any) {
     console.error('Report data error:', error);
+
+    // 数据源编排层的错误：区分「代码不存在」(404) 与「上游不可用」(502)，并附上逐个数据源的结果
+    if (error instanceof MarketDataError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          errorType: (error.notFound ? 'api_error' : 'network') as ErrorType,
+          retryable: !error.notFound,
+          providers: error.attempts.map(({ provider, step, ok, error: reason }) => ({ provider, step, ok, error: reason })),
+        },
+        { status: error.status }
+      );
+    }
 
     const { type, message, retryable } = classifyError(error);
 
