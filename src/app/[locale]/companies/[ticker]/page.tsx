@@ -77,7 +77,7 @@ function LinearLoader({
 
 // Mirror of the regex used by the server layout. Defense-in-depth: if the
 // layout ever stops short of calling notFound(), we don't want the report
-// flow to attempt /api/fmp lookups against arbitrary user input.
+// flow to attempt /api/report-data lookups against arbitrary user input.
 const TICKER_REGEX = /^[A-Z0-9.\-=^]{1,12}$/;
 
 function CompanyReportPageContent() {

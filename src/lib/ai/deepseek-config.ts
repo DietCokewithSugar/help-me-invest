@@ -1,16 +1,16 @@
 /**
  * DeepSeek 运行时配置 - 集中解析环境变量
  *
- * 旧模型名 deepseek-chat / deepseek-reasoner 已于 2026-07-24 下线，
- * 现仅 deepseek-v4-flash / deepseek-v4-pro 可用。
+ * 全站唯一的 AI 提供方。接口文档：https://api-docs.deepseek.com/
+ * 默认模型 deepseek-flash；旧名 deepseek-chat / deepseek-reasoner 不再使用。
  */
 
 /**
  * 思考强度。把 DeepSeek 的两个字段（thinking.type + reasoning_effort）
- * 收敛成一个值：reasoning_effort 在 thinking.type 为 disabled 时会被忽略，
- * 且接口只接受 high / max，合并后非法组合无法被表达。
+ * 收敛成一个值：disabled 时只下发 thinking.type=disabled，其余值同时下发
+ * thinking.type=enabled 与对应的 reasoning_effort，非法组合因此无法被表达。
  */
-export type ThinkingPolicy = 'disabled' | 'high' | 'max';
+export type ThinkingPolicy = 'disabled' | 'low' | 'high' | 'max';
 
 const rawBaseUrl = process.env.DEEPSEEK_BASE_URL?.trim() || 'https://api.deepseek.com';
 
@@ -26,11 +26,11 @@ export function chatCompletionsUrl(): string {
   return base.endsWith('/chat/completions') ? base : `${base}/chat/completions`;
 }
 
-export const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL?.trim() || 'deepseek-v4-flash';
+export const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL?.trim() || 'deepseek-flash';
 
 /**
- * pro 档使用的模型。默认与普通档相同，需要时再通过环境变量切到
- * deepseek-v4-pro——换模型是成本/质量决策，不随本次接口迁移一起生效。
+ * 专业版报告所用模型。默认与普通档相同，需要时再通过环境变量切到
+ * deepseek-v4-pro——换模型是成本/质量决策，不在代码里默认开启。
  */
 export const DEEPSEEK_MODEL_PRO = process.env.DEEPSEEK_MODEL_PRO?.trim() || DEEPSEEK_MODEL;
 
@@ -43,7 +43,8 @@ export const DEEPSEEK_THINKING_OVERRIDE: 'auto' | 'off' | 'on' =
   thinkingOverrideRaw === 'off' || thinkingOverrideRaw === 'on' ? thinkingOverrideRaw : 'auto';
 
 const effortRaw = process.env.DEEPSEEK_REASONING_EFFORT?.trim().toLowerCase();
-export const DEEPSEEK_REASONING_EFFORT: 'high' | 'max' = effortRaw === 'max' ? 'max' : 'high';
+export const DEEPSEEK_REASONING_EFFORT: Exclude<ThinkingPolicy, 'disabled'> =
+  effortRaw === 'max' || effortRaw === 'low' ? effortRaw : 'high';
 
 /**
  * 应用全局开关后得到最终策略。

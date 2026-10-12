@@ -131,7 +131,7 @@ export default function ComparePage() {
     if (detailedData[symbol] || loadingData[symbol]) return;
     setLoadingData(prev => ({ ...prev, [symbol]: true }));
     try {
-      const response = await fetch('/api/fmp', {
+      const response = await fetch('/api/report-data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ symbol, market, period: 'annual' }),

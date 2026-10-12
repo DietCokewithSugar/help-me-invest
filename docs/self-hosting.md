@@ -25,7 +25,7 @@ node .next/standalone/server.js
 
 ### 环境变量
 
-把 `.env.example` 里的变量配到 Render 的 Environment 里。必需的是 `NEXT_PUBLIC_SITE_URL`、`FMP_API_KEY`、`DEEPSEEK_API_KEY`、`NEXT_PUBLIC_SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY`。DeepSeek 的其余变量都有默认值，可以不配。
+把 `.env.example` 里的变量配到 Render 的 Environment 里。必需的是 `NEXT_PUBLIC_SITE_URL`、`DEEPSEEK_API_KEY`、`NEXT_PUBLIC_SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY`。行情数据默认走 Yahoo Finance（无需 key），`FMP_API_KEY`（免费版即可）与 `SEC_USER_AGENT` 为可选补充；DeepSeek 的其余变量都有默认值，可以不配。
 
 ## 与 Vercel 的行为差异
 

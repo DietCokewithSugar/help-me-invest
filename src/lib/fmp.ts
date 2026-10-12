@@ -15,11 +15,8 @@ const QUEUE_CONFIG = {
 // 不同类型端点的超时配置
 const TIMEOUT_CONFIG: Record<string, number> = {
   // 关键端点 - 快速超时
-  '/profile': 15000,
-  '/quote': 15000,
-  '/stock-peers': 15000,
+  '/discounted-cash-flow': 15000,
   // 数据密集型端点 - 较长超时
-  '/historical-price-eod/full': 45000,
   '/income-statement': 40000,
   '/balance-sheet-statement': 40000,
   '/cash-flow-statement': 40000,
@@ -138,6 +135,42 @@ function getTimeoutForEndpoint(endpoint: string): number {
   return TIMEOUT_CONFIG.default;
 }
 
+// ==================== 熔断：免费版额度保护 ====================
+//
+// FMP 免费版每天 250 次请求，且部分端点只对付费计划开放（返回 401/402/403）。
+// 一旦撞到这些错误就在进程内熔断，避免每份报告都白白重试、拖慢响应并继续消耗额度。
+
+const QUOTA_COOLDOWN_MS = 30 * 60 * 1000;
+const ENDPOINT_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+
+let fmpDisabledUntil = 0;
+const endpointBlockedUntil = new Map<string, number>();
+
+export class FMPUnavailableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'FMPUnavailableError';
+  }
+}
+
+export function isFmpAvailable(endpoint?: string): boolean {
+  const now = Date.now();
+  if (fmpDisabledUntil > now) return false;
+  if (endpoint && (endpointBlockedUntil.get(endpoint) ?? 0) > now) return false;
+  return true;
+}
+
+function tripBreaker(endpoint: string, status: number) {
+  const now = Date.now();
+  if (status === 429 || status === 401) {
+    fmpDisabledUntil = now + QUOTA_COOLDOWN_MS;
+    console.warn(`FMP disabled for ${QUOTA_COOLDOWN_MS / 60000} min after ${status} on ${endpoint}`);
+  } else {
+    endpointBlockedUntil.set(endpoint, now + ENDPOINT_COOLDOWN_MS);
+    console.warn(`FMP endpoint ${endpoint} blocked for this plan (${status})`);
+  }
+}
+
 // ==================== FMP 客户端 ====================
 
 export class FMPClient {
@@ -157,6 +190,10 @@ export class FMPClient {
     params: Record<string, string>,
     attempt: number = 0
   ): Promise<T> {
+    if (!isFmpAvailable(endpoint)) {
+      throw new FMPUnavailableError(`FMP ${endpoint} unavailable on current plan / quota`);
+    }
+
     const url = new URL(`${FMP_BASE_URL}${endpoint}`);
     url.searchParams.set('apikey', this.apiKey);
     Object.entries(params).forEach(([key, value]) => {
@@ -189,6 +226,12 @@ export class FMPClient {
         const error = new Error(`FMP API error: ${response.status} - ${errorText}`);
         (error as any).status = response.status;
 
+        // 额度耗尽或计划不支持：熔断后直接失败，不重试
+        if ([401, 402, 403, 429].includes(response.status)) {
+          tripBreaker(endpoint, response.status);
+          throw error;
+        }
+
         // 检查是否可重试
         if (isRetryableError(error) && attempt < QUEUE_CONFIG.maxRetries) {
           const delay = calculateRetryDelay(attempt);
@@ -201,10 +244,22 @@ export class FMPClient {
       }
 
       console.log(`FMP Request: Completed ${endpoint} in ${elapsed}ms`);
-      return response.json();
+      const payload = await response.json();
+      // 旧计划的受限端点会以 200 + {"Error Message": ...} 的形式返回
+      if (payload && !Array.isArray(payload) && typeof payload === 'object' && 'Error Message' in payload) {
+        tripBreaker(endpoint, 403);
+        const error = new Error(`FMP API error: ${String((payload as any)['Error Message']).slice(0, 200)}`);
+        (error as any).status = 403;
+        throw error;
+      }
+      return payload;
     } catch (error: any) {
       clearTimeout(timeoutId);
       const elapsed = Date.now() - startTime;
+
+      if (error instanceof FMPUnavailableError || [401, 402, 403, 429].includes(error?.status)) {
+        throw error;
+      }
 
       // 检查是否可重试
       if (isRetryableError(error) && attempt < QUEUE_CONFIG.maxRetries) {
@@ -219,36 +274,7 @@ export class FMPClient {
     }
   }
 
-  // ==================== 公司基础信息 ====================
-
-  // 公司概况
-  async getProfile(symbol: string) {
-    return this.fetch<any[]>(`/profile`, { symbol });
-  }
-
-  // 搜索公司
-  async searchCompany(query: string) {
-    return this.fetch<any[]>(`/search`, { query, limit: '10' });
-  }
-
-  // 竞争对手
-  async getPeers(symbol: string) {
-    try {
-      const result = await this.fetch<any>(`/stock-peers`, { symbol });
-      if (Array.isArray(result) && result.length > 0 && result[0].peersList) {
-        return result[0].peersList as string[];
-      }
-      if (result && result.peersList) {
-        return result.peersList as string[];
-      }
-      return [];
-    } catch (e: any) {
-      console.log('Peers API error:', e?.message || e);
-      return [];
-    }
-  }
-
-  // ==================== 三大财务报表 ====================
+  // 仅保留免费版可用、且报告实际用到的端点；其余数据由 Yahoo Finance 提供（见 market-data.ts）
 
   // 利润表 Income Statement
   async getIncomeStatement(symbol: string, period: 'annual' | 'quarter' = 'annual', limit = 5) {
@@ -277,270 +303,8 @@ export class FMPClient {
     });
   }
 
-  // ==================== 关键财务指标 ====================
-
-  // 关键指标 (市值、PE、PB、EV/EBITDA 等)
-  async getKeyMetrics(symbol: string, period: 'annual' | 'quarter' = 'annual', limit = 5) {
-    return this.fetch<any[]>(`/key-metrics`, {
-      symbol,
-      period,
-      limit: String(limit)
-    });
-  }
-
-  // 财务比率 (ROE、ROA、流动比率、速动比率等)
-  async getFinancialRatios(symbol: string, period: 'annual' | 'quarter' = 'annual', limit = 5) {
-    return this.fetch<any[]>(`/ratios`, {
-      symbol,
-      period,
-      limit: String(limit)
-    });
-  }
-
-  // TTM 财务比率 (过去12个月)
-  async getFinancialRatiosTTM(symbol: string) {
-    return this.fetch<any[]>(`/ratios-ttm`, { symbol });
-  }
-
-  // TTM 关键指标 (过去12个月)
-  async getKeyMetricsTTM(symbol: string) {
-    return this.fetch<any[]>(`/key-metrics-ttm`, { symbol });
-  }
-
-  // 财务增长指标
-  async getFinancialGrowth(symbol: string, period: 'annual' | 'quarter' = 'annual', limit = 5) {
-    return this.fetch<any[]>(`/financial-growth`, {
-      symbol,
-      period,
-      limit: String(limit)
-    });
-  }
-
-  // ==================== 估值与分析 ====================
-
   // DCF 估值 (Discounted Cash Flow)
   async getDCF(symbol: string) {
     return this.fetch<any[]>(`/discounted-cash-flow`, { symbol });
-  }
-
-  // 历史 DCF 估值
-  async getHistoricalDCF(symbol: string, period: 'annual' | 'quarter' = 'annual', limit = 5) {
-    return this.fetch<any[]>(`/historical-discounted-cash-flow-statement`, {
-      symbol,
-      period,
-      limit: String(limit)
-    });
-  }
-
-  // 企业价值 (Enterprise Value)
-  async getEnterpriseValue(symbol: string, period: 'annual' | 'quarter' = 'annual', limit = 5) {
-    return this.fetch<any[]>(`/enterprise-values`, {
-      symbol,
-      period,
-      limit: String(limit)
-    });
-  }
-
-  // 收入分部数据
-  async getRevenueSegmentation(symbol: string) {
-    return this.fetch<any>(`/revenue-product-segmentation`, {
-      symbol,
-      structure: 'flat'
-    });
-  }
-
-  // 地区收入分部
-  async getRevenueGeographic(symbol: string) {
-    return this.fetch<any>(`/revenue-geographic-segmentation`, {
-      symbol,
-      structure: 'flat'
-    });
-  }
-
-  // ==================== 市场事件与日历 ====================
-
-  // 财报日历 (Earnings Calendar)
-  async getEarningsCalendar(symbol: string) {
-    return this.fetch<any[]>(`/earning-calendar`, { symbol });
-  }
-
-  // 历史财报日历
-  async getHistoricalEarnings(symbol: string, limit = 10) {
-    return this.fetch<any[]>(`/historical/earning-calendar`, {
-      symbol,
-      limit: String(limit)
-    });
-  }
-
-  // 分红日历 (Dividend Calendar)
-  async getDividendCalendar(symbol: string) {
-    return this.fetch<any[]>(`/stock-dividend-calendar`, { symbol });
-  }
-
-  // 历史分红数据
-  async getHistoricalDividends(symbol: string) {
-    return this.fetch<any[]>(`/historical-price-eod/dividend`, { symbol });
-  }
-
-  // 拆股历史 (Stock Splits)
-  async getStockSplits(symbol: string) {
-    return this.fetch<any[]>(`/historical-price-eod/stock-split`, { symbol });
-  }
-
-  // ==================== 机构持仓与内幕交易 ====================
-
-  // 机构持仓 (13F Reports)
-  async getInstitutionalHolders(symbol: string) {
-    return this.fetch<any[]>(`/institutional-holder`, { symbol });
-  }
-
-  // 共同基金持仓
-  async getMutualFundHolders(symbol: string) {
-    return this.fetch<any[]>(`/mutual-fund-holder`, { symbol });
-  }
-
-  // ETF 持仓
-  async getEtfHolders(symbol: string) {
-    return this.fetch<any[]>(`/etf-holder`, { symbol });
-  }
-
-  // 内幕交易
-  async getInsiderTrading(symbol: string, limit = 50) {
-    return this.fetch<any[]>(`/insider-trading`, {
-      symbol,
-      limit: String(limit)
-    });
-  }
-
-  // 内幕持仓汇总
-  async getInsiderRoster(symbol: string) {
-    return this.fetch<any[]>(`/insider-roaster`, { symbol });
-  }
-
-  // ==================== 新闻与电话会议 ====================
-
-  // 股票新闻
-  async getNews(symbol: string, limit = 10) {
-    try {
-      const result = await this.fetch<any[]>(`/news/stock`, {
-        symbols: symbol,
-        limit: String(limit),
-        page: '0'
-      });
-      return result || [];
-    } catch (e: any) {
-      console.log('News API error:', e?.message || e);
-      return [];
-    }
-  }
-
-  // 财报电话会议记录
-  async getEarningsTranscript(symbol: string, year: number, quarter: number) {
-    return this.fetch<any[]>(`/earning-call-transcript`, {
-      symbol,
-      year: String(year),
-      quarter: String(quarter)
-    });
-  }
-
-  // ==================== 行业与板块 ====================
-
-  // 行业表现
-  async getSectorPerformance() {
-    return this.fetch<any[]>(`/sector-performance`);
-  }
-
-  // 行业 PE 比率
-  async getSectorPE() {
-    try {
-      return this.fetch<any[]>(`/sector-pe`);
-    } catch (e) {
-      return [];
-    }
-  }
-
-  // 行业历史表现
-  async getHistoricalSectorPerformance(limit = 30) {
-    try {
-      return this.fetch<any[]>(`/historical-sectors-performance`, {
-        limit: String(limit)
-      });
-    } catch (e) {
-      return [];
-    }
-  }
-
-  // ==================== 股价相关 ====================
-
-  // 实时股价
-  async getQuote(symbol: string) {
-    return this.fetch<any[]>(`/quote`, { symbol });
-  }
-
-  // 历史股价
-  async getHistoricalPrice(symbol: string, from?: string, to?: string) {
-    const params: Record<string, string> = { symbol };
-    if (from) params.from = from;
-    if (to) params.to = to;
-    return this.fetch<any[]>(`/historical-price-eod/full`, params);
-  }
-
-  // 分钟级别行情
-  async getIntradayChart(symbol: string, interval: '1min' | '5min' | '15min' | '30min' | '1hour' = '1min') {
-    return this.fetch<any[]>(`/historical-chart/${interval}`, { symbol });
-  }
-
-  // 技术指标
-  async getTechnicalIndicators(symbol: string, period: '1day' | '1hour' = '1day') {
-    return this.fetch<any>(`/technical-indicators`, { symbol, period });
-  }
-
-  // ==================== 财务健康评分 ====================
-
-  // Financial Scores (Altman Z-Score, Piotroski Score)
-  async getFinancialScores(symbol: string) {
-    try {
-      return this.fetch<any[]>(`/financial-scores`, { symbol });
-    } catch (e) {
-      return [];
-    }
-  }
-
-  // ==================== 评级与目标价 ====================
-
-  // 分析师评级
-  async getAnalystRatings(symbol: string) {
-    try {
-      return this.fetch<any[]>(`/grade`, { symbol });
-    } catch (e) {
-      return [];
-    }
-  }
-
-  // 分析师评级汇总
-  async getAnalystRatingsConsensus(symbol: string) {
-    try {
-      return this.fetch<any[]>(`/rating`, { symbol });
-    } catch (e) {
-      return [];
-    }
-  }
-
-  // 目标价格
-  async getPriceTarget(symbol: string) {
-    try {
-      return this.fetch<any[]>(`/price-target`, { symbol });
-    } catch (e) {
-      return [];
-    }
-  }
-
-  // 目标价格汇总
-  async getPriceTargetConsensus(symbol: string) {
-    try {
-      return this.fetch<any[]>(`/price-target-consensus`, { symbol });
-    } catch (e) {
-      return [];
-    }
   }
 }

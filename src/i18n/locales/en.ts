@@ -162,7 +162,7 @@ export const en: TranslationKeys = {
       feature1Title: 'AI Logic Beyond the Surface',
       feature1Desc: 'AI doesn\'t just summarize data — it understands the business motives behind financial reports, revealing the true operating essence of companies.',
       feature2Title: 'Multi-dimensional Data Verification',
-      feature2Desc: 'Integrates FMP financial data with AI reasoning to cross-check fundamentals, operating quality, and risk factors.',
+      feature2Desc: 'Combines Yahoo Finance and SEC EDGAR financials with AI reasoning to cross-check fundamentals, operating quality, and risk factors.',
       feature3Title: 'Minimalist Research Reports',
       feature3Desc: 'Say goodbye to tedious traditional reports. Visualizations like Sankey charts reveal business essence, keeping only what truly matters.',
     },
@@ -203,7 +203,7 @@ export const en: TranslationKeys = {
       reportCount: 'Generated',
       reportUnit: 'research reports',
       copyright: (year: number) => `© ${year} AI Invest · AI Investment Research`,
-      dataSource: 'Data: Financial Modeling Prep (FMP) · AI powered by DeepSeek',
+      dataSource: 'Data: Yahoo Finance · SEC EDGAR · Financial Modeling Prep · AI powered by DeepSeek',
     },
     loading: {
       step1: 'Fetching company information',
@@ -218,7 +218,7 @@ export const en: TranslationKeys = {
       timeout: 'Request timed out. Please check your network connection and try again.',
       analysisFailed: 'Analysis failed, please try again later',
       networkError: 'Network error, please check your connection and try again',
-      vpnHint: 'Note: If you are in mainland China, you may need a VPN to access the FMP API.',
+      vpnHint: 'Note: the market data provider may be unreachable from some networks. Please try again later.',
       retryWithCount: (count: number) => `Retry (${count})`,
     },
     contact: {

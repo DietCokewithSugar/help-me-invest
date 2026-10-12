@@ -226,7 +226,13 @@ export async function POST(request: NextRequest) {
                 break;
             case 'recentDevelopments':
                 streamIterator = await getStreamWithRetry(
-                    () => client.streamRecentDevelopments(data.companyName, data.symbol, marketType, language),
+                    () => client.streamRecentDevelopments(
+                        data.companyName,
+                        data.symbol,
+                        marketType,
+                        language,
+                        Array.isArray(data.headlines) ? data.headlines.slice(0, 15) : []
+                    ),
                     'recentDevelopments'
                 );
                 break;

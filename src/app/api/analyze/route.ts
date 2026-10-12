@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { FMPClient } from '@/lib/fmp';
 import { DeepSeekClient } from '@/lib/deepseek';
-import type { SankeyData } from '@/types';
-import { buildSankeyData } from '@/lib/sankey-utils';
+import { fetchReportData } from '@/lib/market-data';
 import { apiErrorResponse, readJsonWithLimit, requireInternalApiKey } from '@/lib/api-security';
 
 export const maxDuration = 60; // 设置最大执行时间为60秒
@@ -17,91 +15,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '请提供股票代码' }, { status: 400 });
     }
 
-    const fmpApiKey = process.env.FMP_API_KEY;
     const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
-
-    if (!fmpApiKey || !deepseekApiKey) {
+    if (!deepseekApiKey) {
       return NextResponse.json({ error: 'API密钥未配置' }, { status: 500 });
     }
 
-    const fmp = new FMPClient(fmpApiKey);
     const deepseek = new DeepSeekClient(deepseekApiKey);
-
     const upperSymbol = symbol.toUpperCase();
 
-    // ==================== 并行获取所有数据 ====================
-    
-    const [
-      // 基础信息
-      profileData,
-      peersData,
-      newsData,
-      // 三大财务报表
-      incomeData,
-      balanceSheetData,
-      cashFlowData,
-      // 关键指标
-      keyMetricsData,
-      financialRatiosData,
-      financialGrowthData,
-      // 估值数据
-      dcfData,
-      enterpriseValueData,
-      // 事件日历
-      earningsCalendarData,
-      dividendHistoryData,
-      stockSplitsData,
-      // 机构与内幕
-      institutionalHoldersData,
-      insiderTradingData,
-    ] = await Promise.all([
-      // 基础信息
-      fmp.getProfile(upperSymbol),
-      fmp.getPeers(upperSymbol),
-      fmp.getNews(upperSymbol, 15),
-      // 三大财务报表
-      fmp.getIncomeStatement(upperSymbol, 'annual', 5),
-      fmp.getBalanceSheet(upperSymbol, 'annual', 5),
-      fmp.getCashFlowStatement(upperSymbol, 'annual', 5),
-      // 关键指标
-      fmp.getKeyMetrics(upperSymbol, 'annual', 5),
-      fmp.getFinancialRatios(upperSymbol, 'annual', 5),
-      fmp.getFinancialGrowth(upperSymbol, 'annual', 5),
-      // 估值数据
-      fmp.getDCF(upperSymbol).catch(() => []),
-      fmp.getEnterpriseValue(upperSymbol, 'annual', 5).catch(() => []),
-      // 事件日历
-      fmp.getHistoricalEarnings(upperSymbol, 10).catch(() => []),
-      fmp.getHistoricalDividends(upperSymbol).catch(() => []),
-      fmp.getStockSplits(upperSymbol).catch(() => []),
-      // 机构与内幕
-      fmp.getInstitutionalHolders(upperSymbol).catch(() => []),
-      fmp.getInsiderTrading(upperSymbol, 30).catch(() => []),
-    ]);
-
-    if (!profileData || profileData.length === 0) {
+    let reportData;
+    try {
+      reportData = await fetchReportData({ symbol: upperSymbol });
+    } catch {
       return NextResponse.json({ error: '未找到该公司信息，请检查股票代码是否正确' }, { status: 404 });
     }
 
-    const profile = profileData[0];
-    const peers = peersData || [];
-
-    // 尝试获取财报电话会议记录
-    let transcriptData = null;
-    try {
-      const currentYear = new Date().getFullYear();
-      const currentQuarter = Math.ceil((new Date().getMonth() + 1) / 3);
-      const targetQuarter = currentQuarter - 1 || 4;
-      const targetYear = targetQuarter === 4 ? currentYear - 1 : currentYear;
-      
-      transcriptData = await fmp.getEarningsTranscript(
-        upperSymbol,
-        targetYear,
-        targetQuarter
-      );
-    } catch (e) {
-      console.log('Transcript not available');
-    }
+    const { profile, peers, incomeStatements: incomeData } = reportData;
+    const transcriptData = null;
 
     // ==================== AI 分析 ====================
     
@@ -166,37 +96,10 @@ export async function POST(request: NextRequest) {
       aiAnalysis.recentDevelopments = searchResults;
     }
 
-    // 构建桑基图数据
-    const sankeyData = buildSankeyData(incomeData[0]);
-
-    // ==================== 返回完整数据 ====================
-    
     return NextResponse.json({
-      profile,
-      // 三大财务报表
-      incomeStatements: incomeData || [],
-      balanceSheets: balanceSheetData || [],
-      cashFlowStatements: cashFlowData || [],
-      // 关键指标
-      keyMetrics: keyMetricsData || [],
-      financialRatios: financialRatiosData || [],
-      financialGrowth: financialGrowthData || [],
-      // 估值
-      dcfValuation: dcfData && dcfData.length > 0 ? dcfData[0] : null,
-      enterpriseValues: enterpriseValueData || [],
-      // 事件日历
-      earningsCalendar: earningsCalendarData || [],
-      dividendHistory: dividendHistoryData || [],
-      stockSplits: stockSplitsData || [],
-      // 机构与内幕
-      institutionalHolders: institutionalHoldersData || [],
-      insiderTrading: insiderTradingData || [],
-      // 其他
-      peers,
-      news: newsData || [],
+      ...reportData,
       aiAnalysis,
       searchResults,
-      sankeyData,
     });
 
   } catch (error: any) {

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { FMPClient } from '@/lib/fmp';
-import { fetchFmpReportData } from '@/lib/fmp-data';
+import { fetchReportData } from '@/lib/market-data';
 import { saveFmpDataToCache, getCachedReportV2 } from '@/lib/supabase';
-import { buildSankeyData } from '@/lib/sankey-utils';
 import type { MarketType } from '@/lib/markets';
 
 export const maxDuration = 60;
@@ -30,7 +28,7 @@ function classifyError(error: any): { type: ErrorType; message: string; retryabl
   if (networkCodes.includes(errorCode) || errorMessage.includes('fetch failed') || errorMessage.includes('network')) {
     return {
       type: 'network',
-      message: '网络连接失败。如果您在中国大陆，可能需要使用 VPN 访问 FMP API。',
+      message: '网络连接失败，行情数据源暂时无法访问，请稍后重试。',
       retryable: true,
     };
   }
@@ -48,7 +46,7 @@ function classifyError(error: any): { type: ErrorType; message: string; retryabl
   if (status === 503 || status === 502 || status === 504) {
     return {
       type: 'network',
-      message: 'FMP 服务暂时不可用，请稍后重试。',
+      message: '行情数据源暂时不可用，请稍后重试。',
       retryable: true,
     };
   }
@@ -88,40 +86,27 @@ export async function POST(request: NextRequest) {
     const marketType = (market as MarketType) || 'US';
     const upperSymbol = symbol.toUpperCase().trim();
 
-    // 检查是否可以使用缓存的 FMP 数据
+    // 检查是否可以使用缓存的报表数据
     if (useCache) {
       const cachedReport = await getCachedReportV2(upperSymbol, marketType);
       if (cachedReport && cachedReport.income_statements) {
-        console.log(`使用缓存的 FMP 数据: ${upperSymbol}`);
+        console.log(`使用缓存的报表数据: ${upperSymbol}`);
         // 返回缓存的数据（需要从数据库获取 profile 等基础信息）
         // 注意：profile 不在缓存中，仍需从 API 获取
       }
     }
 
-    const fmpApiKey = process.env.FMP_API_KEY;
-    if (!fmpApiKey) {
-      return NextResponse.json(
-        {
-          error: 'FMP API 密钥未配置',
-          errorType: 'api_error' as ErrorType,
-          retryable: false,
-        },
-        { status: 500 }
-      );
-    }
-
-    const fmp = new FMPClient(fmpApiKey);
-    const fmpData = await fetchFmpReportData(fmp, {
+    const reportData = await fetchReportData({
       symbol,
       market: market as MarketType | undefined,
       period: period as 'annual' | 'quarter' | undefined
     });
 
-    // 异步保存 FMP 数据到缓存（不阻塞响应）
+    // 异步保存报表数据到缓存（不阻塞响应）
     const saveFmpDataAsync = async () => {
       try {
         // 构建成本结构数据
-        const costStructure = fmpData.incomeStatements?.slice(0, 5).map((stmt: any) => ({
+        const costStructure = reportData.incomeStatements?.slice(0, 5).map((stmt: any) => ({
           date: stmt.date,
           calendarYear: stmt.calendarYear,
           revenue: stmt.revenue,
@@ -133,7 +118,7 @@ export async function POST(request: NextRequest) {
         })) || [];
 
         // 构建营收趋势数据
-        const revenueTrend = fmpData.incomeStatements?.slice(0, 10).map((stmt: any) => ({
+        const revenueTrend = reportData.incomeStatements?.slice(0, 10).map((stmt: any) => ({
           date: stmt.date,
           calendarYear: stmt.calendarYear,
           period: stmt.period,
@@ -143,9 +128,9 @@ export async function POST(request: NextRequest) {
         })) || [];
 
         // 构建资本与回报数据（用于专业版）
-        const latestMetrics = fmpData.keyMetrics?.[0];
-        const latestMetricsTTM = fmpData.keyMetricsTTM?.[0];
-        const latestRatios = fmpData.financialRatios?.[0];
+        const latestMetrics = reportData.keyMetrics?.[0];
+        const latestMetricsTTM = reportData.keyMetricsTTM?.[0];
+        const latestRatios = reportData.financialRatios?.[0];
         const capitalReturnData = {
           // 资本结构
           researchAndDevelopementToRevenue: latestMetricsTTM?.researchAndDevelopementToRevenueTTM || latestMetrics?.researchAndDdevelopementToRevenue,
@@ -158,29 +143,29 @@ export async function POST(request: NextRequest) {
         };
 
         await saveFmpDataToCache(upperSymbol, marketType, {
-          sankeyData: fmpData.sankeyData,
+          sankeyData: reportData.sankeyData,
           revenueTrend,
           costStructure,
-          incomeStatements: fmpData.incomeStatements?.slice(0, 5),
-          balanceSheets: fmpData.balanceSheets?.slice(0, 5),
-          cashFlowStatements: fmpData.cashFlowStatements?.slice(0, 5),
-          incomeStatementsQuarter: fmpData.incomeStatementsQuarter?.slice(0, 8),
-          balanceSheetsQuarter: fmpData.balanceSheetsQuarter?.slice(0, 8),
-          cashFlowStatementsQuarter: fmpData.cashFlowStatementsQuarter?.slice(0, 8),
+          incomeStatements: reportData.incomeStatements?.slice(0, 5),
+          balanceSheets: reportData.balanceSheets?.slice(0, 5),
+          cashFlowStatements: reportData.cashFlowStatements?.slice(0, 5),
+          incomeStatementsQuarter: reportData.incomeStatementsQuarter?.slice(0, 8),
+          balanceSheetsQuarter: reportData.balanceSheetsQuarter?.slice(0, 8),
+          cashFlowStatementsQuarter: reportData.cashFlowStatementsQuarter?.slice(0, 8),
           capitalReturnData,
         });
-        console.log(`FMP 数据已保存到缓存: ${upperSymbol}`);
+        console.log(`报表数据已保存到缓存: ${upperSymbol}`);
       } catch (err) {
-        console.error('保存 FMP 数据到缓存失败:', err);
+        console.error('保存报表数据到缓存失败:', err);
       }
     };
 
     // 异步保存，不阻塞响应
     saveFmpDataAsync();
 
-    return NextResponse.json(fmpData);
+    return NextResponse.json(reportData);
   } catch (error: any) {
-    console.error('FMP data error:', error);
+    console.error('Report data error:', error);
 
     const { type, message, retryable } = classifyError(error);
 

@@ -27,7 +27,7 @@ interface UseCompanyReportOptions {
  * Encapsulates the full report generation flow that previously lived inline
  * in `src/app/page.tsx`. Now used by `/companies/[ticker]` page.
  *
- * It manages FMP fetching, cache hit-or-miss, per-section streaming for the
+ * It manages market-data fetching, cache hit-or-miss, per-section streaming for the
  * three report tiers (beginner/standard/professional), and exposes high-level
  * `analyze` / `regenerate` / `changeVersion` methods.
  */
@@ -295,7 +295,18 @@ export function useCompanyReport({ locale, t }: UseCompanyReportOptions) {
         tasks.push(
           streamSection(
             'recentDevelopments',
-            { data: { companyName: companyData.companyName, symbol: formattedSymbol }, market },
+            {
+              data: {
+                companyName: companyData.companyName,
+                symbol: formattedSymbol,
+                headlines: (existingReportData.news || []).slice(0, 12).map((item) => ({
+                  title: item.title,
+                  site: item.site,
+                  publishedDate: item.publishedDate,
+                })),
+              },
+              market,
+            },
             formattedSymbol
           )
         );
@@ -547,7 +558,7 @@ export function useCompanyReport({ locale, t }: UseCompanyReportOptions) {
         const useCachedAI = cachedData?.cached && cachedData?.hasAiContent;
 
         const response = await fetchWithTimeout(
-          '/api/fmp',
+          '/api/report-data',
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

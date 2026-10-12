@@ -751,7 +751,6 @@ export default function Report({
   // 获取市场配置
   const marketConfig = getMarketConfig(resolvedMarket);
   const isUSMarket = resolvedMarket === 'US';
-  const features = marketConfig.supportedFeatures;
 
   const currency = useMemo(
     () =>
@@ -766,7 +765,7 @@ export default function Report({
   );
 
   // 检查数据可用性
-  const hasHoldingsData = (institutionalHolders.length > 0 || insiderTrading.length > 0) && features.institutionalHolders;
+  const hasHoldingsData = institutionalHolders.length > 0 || insiderTrading.length > 0;
   const hasEventsData = (earningsCalendar.length > 0 || dividendHistory.length > 0 || stockSplits.length > 0);
   const hasNewsData = news && news.length > 0;
 

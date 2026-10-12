@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { FMPMCPClient } from '@/lib/fmp-mcp';
 import { getTrendCategory } from '@/lib/industry-data';
+import { getChart, getQuotes, getSector } from '@/lib/yahoo/client';
+import { buildPriceHistory, num } from '@/lib/yahoo/normalize';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -61,21 +62,6 @@ const SECTOR_BENCHMARK_ETFS: Record<string, string> = {
   Utilities: 'XLU',
 };
 
-const SECTOR_ALIASES: Record<string, string> = {
-  financial: 'Financial Services',
-  'financial services': 'Financial Services',
-  'consumer cyclical': 'Consumer Cyclical',
-  'consumer defensive': 'Consumer Defensive',
-  'communication services': 'Communication Services',
-  industrials: 'Industrials',
-  technology: 'Technology',
-  healthcare: 'Healthcare',
-  energy: 'Energy',
-  utilities: 'Utilities',
-  'basic materials': 'Basic Materials',
-  'real estate': 'Real Estate',
-};
-
 const FALLBACK_LEADING_COMPANIES: Record<string, { symbol: string; name: string }> = {
   Technology: { symbol: 'NVDA', name: 'NVIDIA' },
   Healthcare: { symbol: 'LLY', name: 'Eli Lilly' },
@@ -90,132 +76,101 @@ const FALLBACK_LEADING_COMPANIES: Record<string, { symbol: string; name: string 
   Utilities: { symbol: 'GEV', name: 'GE Vernova' },
 };
 
+const YAHOO_SECTOR_KEYS: Record<string, string> = {
+  Technology: 'technology',
+  Healthcare: 'healthcare',
+  'Financial Services': 'financial-services',
+  'Consumer Cyclical': 'consumer-cyclical',
+  'Communication Services': 'communication-services',
+  Industrials: 'industrials',
+  'Consumer Defensive': 'consumer-defensive',
+  Energy: 'energy',
+  'Basic Materials': 'basic-materials',
+  'Real Estate': 'real-estate',
+  Utilities: 'utilities',
+};
+
+const CACHE_TTL_MS = 15 * 60 * 1000;
+let cached: { data: unknown; expiresAt: number } | null = null;
+
 interface SectorSnapshot {
   sector: string;
-  proxyMarketCap: number;
+  marketWeight: number | null;
+  marketCap: number | null;
+  change1D: number | null;
   cagr3y: number | null;
-  leadingCompany: { symbol: string; name: string };
+  leadingCompany: { symbol: string; name: string } | null;
+}
+
+async function loadSnapshot(sector: string): Promise<SectorSnapshot> {
+  const etf = SECTOR_BENCHMARK_ETFS[sector];
+  const [sectorData, etfChart] = await Promise.all([
+    getSector(YAHOO_SECTOR_KEYS[sector]).catch(() => null),
+    etf ? getChart(etf, '5y', '1d').catch(() => null) : Promise.resolve(null),
+  ]);
+
+  // 新→旧
+  const bars = buildPriceHistory(etfChart).map((bar) => ({ date: bar.date, close: bar.adjClose ?? bar.close }));
+  const change1D = bars.length >= 2 && bars[1].close ? ((bars[0].close - bars[1].close) / bars[1].close) * 100 : null;
+  const threeYearsAgo = getDateYearsAgo(3);
+  const start = bars.find((bar) => bar.date <= threeYearsAgo);
+  const cagr3y = start ? calculatePriceCagr([start, bars[0]]) : null;
+
+  const top = Array.isArray(sectorData?.topCompanies) ? sectorData!.topCompanies[0] : null;
+  return {
+    sector,
+    marketWeight: num(sectorData?.overview?.marketWeight),
+    marketCap: num(sectorData?.overview?.marketCap),
+    change1D,
+    cagr3y,
+    leadingCompany: top?.symbol ? { symbol: String(top.symbol), name: String(top.name || top.symbol) } : null,
+  };
 }
 
 export async function GET() {
   try {
-    const fmpApiKey = process.env.FMP_API_KEY;
-    if (!fmpApiKey) {
-      return NextResponse.json(
-        { success: false, error: 'FMP_API_KEY is required for industry data.' },
-        { status: 500 }
-      );
+    if (cached && cached.expiresAt > Date.now()) {
+      return NextResponse.json({ success: true, data: cached.data });
     }
 
-    const mcp = new FMPMCPClient(fmpApiKey);
-    const today = new Date().toISOString().slice(0, 10);
-    const fromDate = getDateYearsAgo(3);
-
-    const [sectorPerfRows, sectorPERows, snapshots] = await Promise.all([
-      mcp.getSectorPerformanceSnapshot(today).catch(() => []),
-      mcp.getSectorPESnapshot(today).catch(() => []),
-      runWithConcurrency(SECTOR_KEYS, 3, async (sector): Promise<SectorSnapshot> => {
-        const etfSymbol = SECTOR_BENCHMARK_ETFS[sector];
-        const [screenerRows, historyRowsFromRaw, etfPriceRows] = await Promise.all([
-          mcp
-            .searchCompanyScreener({
-              sector,
-              limit: 500,
-              isActivelyTrading: true,
-              includeAllShareClasses: false,
-            })
-            .catch(() => []),
-          mcp.getHistoricalSectorPerformance(sector, { from: fromDate }).catch(() => []),
-          etfSymbol ? fetchHistoricalEtfRows(etfSymbol, fromDate, today, fmpApiKey).catch(() => []) : Promise.resolve([]),
-        ]);
-        const rawScreenerRows = Array.isArray(screenerRows) ? screenerRows : [];
-        const sortedCompanies = buildRankedCompanies(rawScreenerRows);
-        const historyRowsFrom = normalizeHistoryRows(historyRowsFromRaw);
-        let cagr3y = calculatePriceCagr(etfPriceRows);
-        if (cagr3y === null) {
-          cagr3y = calculateAnnualizedCagr(historyRowsFrom);
-        }
-        if (cagr3y === null) {
-          const historyRowsDefault = normalizeHistoryRows(
-            await mcp.getHistoricalSectorPerformance(sector).catch(() => [])
-          );
-          cagr3y = calculateAnnualizedCagr(historyRowsDefault);
-        }
-
-        const proxyMarketCap = sortedCompanies
-          .slice(0, 120)
-          .reduce((sum, company) => sum + company.marketCap, 0);
-
-        const topCompany = sortedCompanies[0];
-        const leadingCompany = topCompany
-          ? { symbol: topCompany.symbol, name: topCompany.name || topCompany.symbol }
-          : FALLBACK_LEADING_COMPANIES[sector] || { symbol: '', name: '' };
-
-        return {
-          sector,
-          proxyMarketCap,
-          cagr3y,
-          leadingCompany,
-        };
-      }),
+    const [snapshots, etfQuotes] = await Promise.all([
+      runWithConcurrency(SECTOR_KEYS, 4, loadSnapshot),
+      getQuotes(Object.values(SECTOR_BENCHMARK_ETFS)).catch(() => [] as Record<string, any>[]),
     ]);
 
-    const perfMap = new Map<string, number>();
-    const perfRowMap = new Map<string, any>();
-    for (const row of Array.isArray(sectorPerfRows) ? sectorPerfRows : []) {
-      const sector = canonicalizeSectorName(typeof row?.sector === 'string' ? row.sector : '');
-      if (!sector) continue;
-      perfRowMap.set(sector, row);
-      const change = toNumber(row?.averageChange ?? row?.changesPercentage ?? row?.change);
-      if (change !== null) perfMap.set(sector, change);
+    const peByEtf = new Map<string, number>();
+    for (const quote of etfQuotes) {
+      const pe = toNumber(quote?.trailingPE);
+      if (typeof quote?.symbol === 'string' && pe !== null) peByEtf.set(quote.symbol, pe);
     }
 
-    const peMap = new Map<string, number>();
-    for (const row of Array.isArray(sectorPERows) ? sectorPERows : []) {
-      const sector = canonicalizeSectorName(typeof row?.sector === 'string' ? row.sector : '');
-      if (!sector) continue;
-      const pe = toNumber(row?.pe);
-      if (pe !== null) peMap.set(sector, pe);
-    }
+    const weightTotal = snapshots.reduce((sum, s) => sum + (s.marketWeight ?? 0), 0);
+    const capTotal = snapshots.reduce((sum, s) => sum + (s.marketCap ?? 0), 0);
 
-    const snapshotMap = new Map<string, SectorSnapshot>();
-    for (const snapshot of snapshots) {
-      snapshotMap.set(snapshot.sector, snapshot);
-    }
-
-    const totalProxyMarketCap = snapshots.reduce((sum, snapshot) => sum + snapshot.proxyMarketCap, 0);
-
-    const sectors = SECTOR_KEYS.map((sector) => {
-      const snapshot = snapshotMap.get(sector);
-      const perfRow = perfRowMap.get(sector);
-      const change1D = round(perfMap.get(sector) ?? 0, 2);
-      const cagr3yRaw =
-        firstFiniteNumber(
-          snapshot?.cagr3y,
-          extractThreeYearCagrFromPerfRow(perfRow),
-          FALLBACK_SECTOR_CAGR3Y[sector]
-        ) ?? 0;
-      const cagr3y = round(cagr3yRaw, 1);
-      const trend = getTrendCategory(cagr3y);
-      const sentiment = deriveSentiment(change1D, cagr3y);
-
+    const sectors = snapshots.map((snapshot) => {
+      const { sector } = snapshot;
+      const change1D = round(snapshot.change1D ?? 0, 2);
+      const cagr3y = round(firstFiniteNumber(snapshot.cagr3y, FALLBACK_SECTOR_CAGR3Y[sector]) ?? 0, 1);
       const marketCapWeight =
-        totalProxyMarketCap > 0
-          ? round(((snapshot?.proxyMarketCap ?? 0) / totalProxyMarketCap) * 100, 1)
-          : FALLBACK_SECTOR_WEIGHTS[sector] || 0;
+        weightTotal > 0 && snapshot.marketWeight !== null
+          ? round((snapshot.marketWeight / weightTotal) * 100, 1)
+          : capTotal > 0 && snapshot.marketCap !== null
+            ? round((snapshot.marketCap / capTotal) * 100, 1)
+            : FALLBACK_SECTOR_WEIGHTS[sector] || 0;
 
       return {
         sector,
         marketCapWeight,
         change1D,
         cagr3y,
-        trend,
-        sentiment,
-        pe: peMap.get(sector) || null,
-        leadingCompany: snapshot?.leadingCompany || FALLBACK_LEADING_COMPANIES[sector] || { symbol: '', name: '' },
+        trend: getTrendCategory(cagr3y),
+        sentiment: deriveSentiment(change1D, cagr3y),
+        pe: peByEtf.get(SECTOR_BENCHMARK_ETFS[sector]) ?? null,
+        leadingCompany: snapshot.leadingCompany || FALLBACK_LEADING_COMPANIES[sector] || { symbol: '', name: '' },
       };
     });
 
+    cached = { data: sectors, expiresAt: Date.now() + CACHE_TTL_MS };
     return NextResponse.json({ success: true, data: sectors });
   } catch (error: any) {
     console.error('Industry overview error:', error);
@@ -228,54 +183,6 @@ function deriveSentiment(change1D: number, cagr3y: number): number {
   score += change1D * 5;
   score += cagr3y * 1.5;
   return Math.max(0, Math.min(100, Math.round(score)));
-}
-
-function calculateAnnualizedCagr(rows: any[]): number | null {
-  const points = rows
-    .map((row) => {
-      const date = toDate(row?.date ?? row?.datetime ?? row?.timestamp ?? row?.time);
-      const change = toNumber(
-        row?.averageChange ??
-          row?.changesPercentage ??
-          row?.change ??
-          row?.performance ??
-          row?.returnPct ??
-          row?.pctChange ??
-          row?.value
-      );
-      return { date, change };
-    })
-    .filter((point) => point.date && Number.isFinite(point.date.getTime()) && point.change !== null) as Array<{
-    date: Date;
-    change: number;
-  }>;
-
-  if (points.length < 2) {
-    return null;
-  }
-  points.sort((a, b) => a.date.getTime() - b.date.getTime());
-
-  let cumulative = 1;
-  for (const point of points) {
-    cumulative *= 1 + point.change / 100;
-  }
-
-  if (!Number.isFinite(cumulative) || cumulative <= 0) {
-    return -100;
-  }
-
-  const start = points[0].date.getTime();
-  const end = points[points.length - 1].date.getTime();
-  const years = (end - start) / (1000 * 60 * 60 * 24 * 365.25);
-  if (!Number.isFinite(years) || years <= 0) {
-    return null;
-  }
-
-  const annualized = (Math.pow(cumulative, 1 / years) - 1) * 100;
-  if (!Number.isFinite(annualized)) {
-    return null;
-  }
-  return Math.max(-80, Math.min(80, annualized));
 }
 
 function calculatePriceCagr(rows: any[]): number | null {
@@ -333,120 +240,6 @@ function toNumber(value: unknown): number | null {
 function round(value: number, decimals: number): number {
   const factor = 10 ** decimals;
   return Math.round(value * factor) / factor;
-}
-
-function canonicalizeSectorName(input: string): string {
-  const normalized = input.trim();
-  if (!normalized) return '';
-  if (SECTOR_KEYS.includes(normalized)) return normalized;
-  const aliased = SECTOR_ALIASES[normalized.toLowerCase()];
-  return aliased || '';
-}
-
-function buildRankedCompanies(rows: any[]): Array<{ symbol: string; name: string; marketCap: number }> {
-  const normalized = rows
-    .map((row: any) => ({
-      symbol: typeof row?.symbol === 'string' ? row.symbol.trim() : '',
-      name: typeof row?.companyName === 'string' ? row.companyName.trim() : '',
-      marketCap: toNumber(row?.marketCap) ?? 0,
-      isEtf: row?.isEtf === true,
-      isFund: row?.isFund === true,
-      isActivelyTrading: row?.isActivelyTrading !== false,
-    }))
-    .filter((company) => company.symbol && company.marketCap > 0 && company.isActivelyTrading);
-
-  const strictCandidates = normalized.filter(
-    (company) => !company.isEtf && !company.isFund && !looksLikeFundOrIndex(company.name)
-  );
-  const candidatePool = strictCandidates.length > 0 ? strictCandidates : normalized.filter((company) => !company.isEtf && !company.isFund);
-  const deduped = new Map<string, { symbol: string; name: string; marketCap: number }>();
-
-  for (const company of candidatePool) {
-    const key = normalizeCompanyKey(company.name, company.symbol);
-    const existing = deduped.get(key);
-    if (!existing || company.marketCap > existing.marketCap) {
-      deduped.set(key, {
-        symbol: company.symbol,
-        name: company.name,
-        marketCap: company.marketCap,
-      });
-    }
-  }
-
-  return Array.from(deduped.values()).sort((a, b) => b.marketCap - a.marketCap);
-}
-
-function normalizeCompanyKey(name: string, symbol: string): string {
-  const cleanedName = name.toLowerCase().replace(/[^a-z0-9]/g, '');
-  if (cleanedName.length >= 4) return `name:${cleanedName}`;
-  const cleanedSymbol = symbol.toLowerCase().replace(/[^a-z0-9]/g, '');
-  return `symbol:${cleanedSymbol}`;
-}
-
-function looksLikeFundOrIndex(name: string): boolean {
-  return /\b(etf|fund|trust|index)\b/i.test(name);
-}
-
-function normalizeHistoryRows(payload: unknown): any[] {
-  if (Array.isArray(payload)) return payload;
-  if (payload && typeof payload === 'object') {
-    const record = payload as Record<string, unknown>;
-    if (Array.isArray(record.data)) return record.data;
-    if (Array.isArray(record.historical)) return record.historical;
-    if (Array.isArray(record.results)) return record.results;
-  }
-  return [];
-}
-
-async function fetchHistoricalEtfRows(
-  symbol: string,
-  from: string,
-  to: string,
-  apiKey: string
-): Promise<any[]> {
-  const params = new URLSearchParams({
-    symbol,
-    from,
-    to,
-    apikey: apiKey,
-  });
-  const response = await fetch(`https://financialmodelingprep.com/stable/historical-price-eod/full?${params.toString()}`, {
-    method: 'GET',
-    headers: { Accept: 'application/json' },
-    cache: 'no-store',
-  });
-
-  if (!response.ok) {
-    return [];
-  }
-
-  const payload = await response.json();
-  if (Array.isArray(payload)) return payload;
-  if (payload && typeof payload === 'object') {
-    const record = payload as Record<string, unknown>;
-    if (Array.isArray(record.historical)) return record.historical;
-    if (Array.isArray(record.data)) return record.data;
-    if (Array.isArray(record.results)) return record.results;
-  }
-  return [];
-}
-
-function extractThreeYearCagrFromPerfRow(row: any): number | null {
-  if (!row || typeof row !== 'object') return null;
-  for (const [key, value] of Object.entries(row)) {
-    const normalizedKey = key.toLowerCase();
-    if (
-      normalizedKey.includes('3y') ||
-      normalizedKey.includes('3yr') ||
-      normalizedKey.includes('3year') ||
-      normalizedKey.includes('three_year') ||
-      normalizedKey.includes('threeyear')
-    ) {
-      const parsed = toNumber(value);
-      if (parsed !== null) return parsed;
-    }
-  }
-  return null;
 }
 
 function firstFiniteNumber(...values: Array<number | null | undefined>): number | null {

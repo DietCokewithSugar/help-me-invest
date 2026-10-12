@@ -172,15 +172,15 @@ export function useReportAnalysis() {
                 cachedData = await checkCache(formattedSymbol, market, language);
             }
 
-            // 1. Fetch Basic FMP Data
-            const response = await fetchWithTimeout('/api/fmp', {
+            // 1. Fetch market data (Yahoo Finance + supplements)
+            const response = await fetchWithTimeout('/api/report-data', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     symbol: formattedSymbol,
                     market: market,
                     period: 'annual',
-                    // 如果缓存中有 FMP 数据，告诉后端可以使用缓存
+                    // 如果缓存中有报表数据，告诉后端可以使用缓存
                     useCache: !forceRefresh && cachedData?.hasFmpData,
                 }),
             }, 90000);
