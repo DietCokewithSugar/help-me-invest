@@ -1,26 +1,37 @@
 /**
- * SEC EDGAR XBRL 补充数据源（官方、免费、无需 key，仅覆盖向 SEC 申报的公司）。
+ * SEC EDGAR（官方、免费、无需 key，仅覆盖向 SEC 申报的公司）。
  *
- * 用途：Yahoo 年报只有约 4 年，这里从 companyfacts 取 10 年以上的年度数据，
- * 用于计算 5 年 / 10 年的每股 CAGR。
+ * - companyfacts：XBRL 财务数据 → 三大报表（年度 + 季度）与 10 年以上长周期序列，
+ *   解析见 providers/sec-statements.ts。
+ * - submissions：公司名称、行业（SIC）、交易所、财年结束月、地址等基础资料。
  *
  * SEC 要求声明 User-Agent（https://www.sec.gov/os/accessing-edgar-data），
  * 通过 SEC_USER_AGENT 配置，形如 "Company Name admin@example.com"。
- * 访问频率上限 10 次/秒，这里每份报告最多 2 次请求，且两层都有进程内缓存。
+ * 访问频率上限 10 次/秒；每份报告最多 3 次请求，且解析结果有进程内缓存。
  */
 
 import type { LongHistoryPoint } from '@/lib/financial-metrics';
+import { buildSecStatements, type SecStatements } from '@/lib/providers/sec-statements';
 
-const SEC_USER_AGENT =
-  process.env.SEC_USER_AGENT?.trim() || 'HelpMeInvest research (+https://www.help-me-invest.com)';
+const SEC_USER_AGENT = process.env.SEC_USER_AGENT?.trim() || 'HelpMeInvest admin@help-me-invest.com';
 
 const TICKER_MAP_TTL_MS = 24 * 60 * 60 * 1000;
-const FACTS_TTL_MS = 12 * 60 * 60 * 1000;
-const FACTS_CACHE_LIMIT = 50;
+const FACTS_TTL_MS = 6 * 60 * 60 * 1000;
+const CACHE_LIMIT = 50;
 
 let tickerMap: { map: Map<string, number>; expiresAt: number } | null = null;
 let tickerMapPromise: Promise<Map<string, number>> | null = null;
-const factsCache = new Map<number, { points: LongHistoryPoint[]; expiresAt: number }>();
+const statementsCache = new Map<number, { value: SecStatements | null; expiresAt: number }>();
+const submissionsCache = new Map<number, { value: SecSubmissions | null; expiresAt: number }>();
+
+export class SecError extends Error {
+  readonly status: number;
+  constructor(message: string, status = 0) {
+    super(message);
+    this.name = 'SecError';
+    this.status = status;
+  }
+}
 
 async function secFetch(url: string, timeoutMs = 15_000): Promise<any> {
   const controller = new AbortController();
@@ -32,12 +43,20 @@ async function secFetch(url: string, timeoutMs = 15_000): Promise<any> {
       cache: 'no-store',
     });
     if (!response.ok) {
-      throw new Error(`SEC EDGAR ${response.status}`);
+      throw new SecError(`SEC EDGAR ${response.status} ${new URL(url).pathname}`, response.status);
     }
     return response.json();
   } finally {
     clearTimeout(timer);
   }
+}
+
+function remember<V>(cache: Map<number, { value: V; expiresAt: number }>, key: number, value: V, ttl: number) {
+  if (cache.size >= CACHE_LIMIT) {
+    const oldest = cache.keys().next().value;
+    if (oldest !== undefined) cache.delete(oldest);
+  }
+  cache.set(key, { value, expiresAt: Date.now() + ttl });
 }
 
 async function loadTickerMap(): Promise<Map<string, number>> {
@@ -61,117 +80,71 @@ async function loadTickerMap(): Promise<Map<string, number>> {
   return tickerMapPromise;
 }
 
-interface FactEntry {
-  start?: string;
-  end: string;
-  val: number;
-  form?: string;
-  fp?: string;
-  filed?: string;
+/** 美股代码 → CIK；SEC 的类别股写作 BRK-B */
+export async function resolveCik(symbol: string): Promise<number | null> {
+  const map = await loadTickerMap();
+  const upper = symbol.toUpperCase();
+  return map.get(upper) ?? map.get(upper.replace(/\./g, '-')) ?? map.get(upper.replace(/-/g, '.')) ?? null;
 }
 
-const DAY_MS = 86_400_000;
+const padCik = (cik: number) => String(cik).padStart(10, '0');
 
-/** 年度期间值（利润表 / 现金流量表）：取 10-K 中跨度约一年的条目，按期末日去重保留最新申报。 */
-function annualDurationValues(entries: FactEntry[] | undefined): Map<string, number> {
-  const byEnd = new Map<string, FactEntry>();
-  for (const entry of entries ?? []) {
-    if (!entry?.start || !entry.end || typeof entry.val !== 'number') continue;
-    if (!entry.form?.startsWith('10-K')) continue;
-    const days = (Date.parse(entry.end) - Date.parse(entry.start)) / DAY_MS;
-    if (days < 350 || days > 380) continue;
-    const existing = byEnd.get(entry.end);
-    if (!existing || (entry.filed ?? '') > (existing.filed ?? '')) byEnd.set(entry.end, entry);
-  }
-  return new Map(Array.from(byEnd.entries()).map(([end, entry]) => [end, entry.val]));
+/** 三大报表 + 长周期序列。代码不在 SEC 名录时返回 null；网络 / HTTP 错误向上抛出。 */
+export async function getSecStatements(symbol: string): Promise<SecStatements | null> {
+  const cik = await resolveCik(symbol);
+  if (!cik) return null;
+  const cached = statementsCache.get(cik);
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
+
+  const data = await secFetch(`https://data.sec.gov/api/xbrl/companyfacts/CIK${padCik(cik)}.json`, 20_000);
+  const value = buildSecStatements(data, symbol.toUpperCase());
+  remember(statementsCache, cik, value, FACTS_TTL_MS);
+  return value;
 }
 
-/** 时点值（资产负债表）：10-K 中的期末数。 */
-function annualInstantValues(entries: FactEntry[] | undefined): Map<string, number> {
-  const byEnd = new Map<string, FactEntry>();
-  for (const entry of entries ?? []) {
-    if (entry?.start || !entry?.end || typeof entry.val !== 'number') continue;
-    if (!entry.form?.startsWith('10-K') || entry.fp !== 'FY') continue;
-    const existing = byEnd.get(entry.end);
-    if (!existing || (entry.filed ?? '') > (existing.filed ?? '')) byEnd.set(entry.end, entry);
-  }
-  return new Map(Array.from(byEnd.entries()).map(([end, entry]) => [end, entry.val]));
+export interface SecSubmissions {
+  cik: number;
+  name: string;
+  sicDescription: string;
+  exchange: string;
+  fiscalYearEnd: string;
+  website: string;
+  phone: string;
+  city: string;
+  state: string;
+  address: string;
+  formerNames: string[];
 }
 
-/** 多个候选标签合并（公司会因会计准则变化换标签，例如 2018 年 ASC 606 之后的营收）。 */
-function mergeTags(gaap: Record<string, any>, tags: string[], unit: string, kind: 'duration' | 'instant'): Map<string, number> {
-  const merged = new Map<string, number>();
-  for (const tag of tags) {
-    const entries: FactEntry[] | undefined = gaap?.[tag]?.units?.[unit];
-    const values = kind === 'duration' ? annualDurationValues(entries) : annualInstantValues(entries);
-    values.forEach((value, end) => {
-      if (!merged.has(end)) merged.set(end, value);
-    });
-  }
-  return merged;
+export async function getSecSubmissions(symbol: string): Promise<SecSubmissions | null> {
+  const cik = await resolveCik(symbol);
+  if (!cik) return null;
+  const cached = submissionsCache.get(cik);
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
+
+  const data = await secFetch(`https://data.sec.gov/submissions/CIK${padCik(cik)}.json`);
+  const business = data?.addresses?.business ?? {};
+  const value: SecSubmissions = {
+    cik,
+    name: String(data?.name ?? ''),
+    sicDescription: String(data?.sicDescription ?? ''),
+    exchange: Array.isArray(data?.exchanges) ? String(data.exchanges[0] ?? '') : '',
+    fiscalYearEnd: String(data?.fiscalYearEnd ?? ''),
+    website: String(data?.website ?? ''),
+    phone: String(data?.phone ?? ''),
+    city: String(business.city ?? ''),
+    state: String(business.stateOrCountryDescription ?? business.stateOrCountry ?? ''),
+    address: [business.street1, business.street2].filter(Boolean).join(', '),
+    formerNames: Array.isArray(data?.formerNames) ? data.formerNames.map((f: any) => String(f?.name ?? '')).filter(Boolean) : [],
+  };
+  remember(submissionsCache, cik, value, TICKER_MAP_TTL_MS);
+  return value;
 }
 
-function parseCompanyFacts(data: any): LongHistoryPoint[] {
-  const gaap = data?.facts?.['us-gaap'];
-  if (!gaap) return [];
-
-  const revenue = mergeTags(gaap, [
-    'Revenues',
-    'RevenueFromContractWithCustomerExcludingAssessedTax',
-    'RevenueFromContractWithCustomerIncludingAssessedTax',
-    'SalesRevenueNet',
-  ], 'USD', 'duration');
-  const netIncome = mergeTags(gaap, ['NetIncomeLoss', 'ProfitLoss'], 'USD', 'duration');
-  const operatingCashFlow = mergeTags(gaap, [
-    'NetCashProvidedByUsedInOperatingActivities',
-    'NetCashProvidedByUsedInOperatingActivitiesContinuingOperations',
-  ], 'USD', 'duration');
-  const dilutedShares = mergeTags(gaap, ['WeightedAverageNumberOfDilutedSharesOutstanding'], 'shares', 'duration');
-  const equity = mergeTags(gaap, ['StockholdersEquity'], 'USD', 'instant');
-
-  const points: LongHistoryPoint[] = Array.from(revenue.keys())
-    .filter((end) => dilutedShares.has(end))
-    .sort()
-    .map((end) => ({
-      fiscalYearEnd: end,
-      revenue: revenue.get(end),
-      netIncome: netIncome.get(end),
-      dilutedShares: dilutedShares.get(end),
-      operatingCashFlow: operatingCashFlow.get(end),
-      equity: equity.get(end),
-    }));
-
-  // 只保留彼此相隔约一年的期末日，排除会计年度变更产生的重叠期间
-  const cleaned: LongHistoryPoint[] = [];
-  for (const point of points) {
-    const last = cleaned[cleaned.length - 1];
-    if (!last || (Date.parse(point.fiscalYearEnd) - Date.parse(last.fiscalYearEnd)) / DAY_MS > 300) {
-      cleaned.push(point);
-    }
-  }
-  return cleaned;
-}
-
-/** 美股代码 → 旧→新的年度长周期序列；找不到或失败时返回空数组（补充数据，绝不抛错）。 */
+/** 长周期年度序列（旧→新）；补充数据，失败时返回空数组。 */
 export async function getLongHistory(symbol: string): Promise<LongHistoryPoint[]> {
   try {
-    const map = await loadTickerMap();
-    const cik = map.get(symbol.toUpperCase()) ?? map.get(symbol.toUpperCase().replace('-', '.'));
-    if (!cik) return [];
-
-    const cached = factsCache.get(cik);
-    if (cached && cached.expiresAt > Date.now()) return cached.points;
-
-    const padded = String(cik).padStart(10, '0');
-    const data = await secFetch(`https://data.sec.gov/api/xbrl/companyfacts/CIK${padded}.json`, 20_000);
-    const points = parseCompanyFacts(data);
-
-    if (factsCache.size >= FACTS_CACHE_LIMIT) {
-      const oldestKey = factsCache.keys().next().value;
-      if (oldestKey !== undefined) factsCache.delete(oldestKey);
-    }
-    factsCache.set(cik, { points, expiresAt: Date.now() + FACTS_TTL_MS });
-    return points;
+    return (await getSecStatements(symbol))?.longHistory ?? [];
   } catch (error: any) {
     console.warn(`[SEC] long history unavailable for ${symbol}:`, error?.message || error);
     return [];

@@ -1,7 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { suggestSymbolWithDeepSeek } from '@/lib/deepseek-suggest';
 import { search as yahooSearch, type YahooSearchQuote } from '@/lib/yahoo/client';
+import { search as eastmoneySearch, type EastmoneySearchHit } from '@/lib/providers/eastmoney';
 import { formatSymbolForMarket, type MarketType } from '@/lib/markets';
+
+type Suggestion = { symbol: string; market: MarketType; name: string; nameCn: string; confidence?: number };
+
+const REMOTE_DEADLINE_MS = 4_000;
+
+function withDeadline<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const deadline = new Promise<T>((resolve) => {
+    timer = setTimeout(() => resolve(fallback), ms);
+  });
+  return Promise.race([promise.catch(() => fallback), deadline]).finally(() => clearTimeout(timer));
+}
 
 const US_EXCHANGES = new Set(['NMS', 'NGM', 'NCM', 'NAS', 'NYQ', 'NYS', 'ASE', 'PCX', 'BTS', 'NIM']);
 
@@ -142,36 +155,56 @@ const LOCAL_STOCKS = [
 ];
 
 // 本地搜索函数
+const CJK_RE = /[\u3400-\u9fff]/;
+
+/**
+ * 本地常见股票库的匹配打分。
+ * 只做「整词 / 前缀」匹配：拉丁字母查询不再做任意子串匹配，
+ * 否则 "MU" 会命中 musk（特斯拉）、temu（拼多多）、mufj（三菱日联）。
+ * 中文查询（≥2 个字）允许子串匹配，例如「茅台」命中「贵州茅台」。
+ */
+function scoreLocalStock(stock: (typeof LOCAL_STOCKS)[number], q: string): number {
+  const symbol = stock.symbol.toLowerCase();
+  const bareSymbol = symbol.split('.')[0];
+  const nameCn = stock.nameCn.toLowerCase();
+  const name = stock.name.toLowerCase();
+  const keywords = stock.keywords.map((kw) => kw.toLowerCase());
+  const isCjk = CJK_RE.test(q);
+
+  if (symbol === q || bareSymbol === q) return 100;
+  if (nameCn === q || name === q || keywords.includes(q)) return 90;
+  if (isCjk) {
+    if (q.length >= 2 && (nameCn.includes(q) || keywords.some((kw) => kw.includes(q)))) return 70;
+    return 0;
+  }
+  if (q.length >= 2 && symbol.startsWith(q)) return 60;
+  if (q.length >= 3) {
+    const words = name.split(/[\s.,&()-]+/).filter(Boolean);
+    if (words.some((w) => w.startsWith(q)) || keywords.some((kw) => kw.startsWith(q))) return 50;
+  }
+  return 0;
+}
+
 function localSearch(query: string, marketHint?: MarketType) {
-  const lowerQuery = query.toLowerCase();
-  const results = LOCAL_STOCKS.filter(stock => {
-    // 如果指定了市场，只搜索该市场
-    if (marketHint && stock.market !== marketHint) return false;
-
-    // 匹配股票代码
-    if (stock.symbol.toLowerCase().includes(lowerQuery)) return true;
-    // 匹配中文名
-    if (stock.nameCn.toLowerCase().includes(lowerQuery)) return true;
-    // 匹配英文名
-    if (stock.name.toLowerCase().includes(lowerQuery)) return true;
-    // 匹配关键词
-    if (stock.keywords.some(kw => kw.toLowerCase().includes(lowerQuery))) return true;
-
-    return false;
-  });
-
-  return results.slice(0, 5).map(stock => ({
-    symbol: stock.symbol,
-    market: stock.market as MarketType,
-    name: stock.name,
-    nameCn: stock.nameCn,
-    confidence: 0.9,
-  }));
+  const q = query.toLowerCase().trim();
+  return LOCAL_STOCKS
+    .filter((stock) => !marketHint || stock.market === marketHint)
+    .map((stock) => ({ stock, score: scoreLocalStock(stock, q) }))
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5)
+    .map(({ stock, score }) => ({
+      symbol: stock.symbol,
+      market: stock.market as MarketType,
+      name: stock.name,
+      nameCn: stock.nameCn,
+      confidence: score >= 90 ? 0.95 : 0.8,
+    }));
 }
 
 const MARKET_SYMBOL_REGEX: Record<MarketType, RegExp> = {
   US: /^[A-Z0-9.-]{1,10}$/,
-  CN: /^\d{6}\.(SS|SZ)$/,
+  CN: /^\d{6}\.(SS|SZ|BJ)$/,
   HK: /^\d{4,5}\.HK$/,
   JP: /^\d{4}\.T$/,
   KR: /^\d{6}\.(KS|KQ)$/,
@@ -224,11 +257,8 @@ function normalizeSuggestion(item: any) {
 
 // Yahoo /v1/finance/search 的 quotes 形如
 //   { symbol: "AAPL", shortname: "Apple Inc.", longname: "Apple Inc.", exchange: "NMS", quoteType: "EQUITY" }
-function mapYahooResults(
-  items: YahooSearchQuote[],
-  marketHint?: MarketType
-): Array<{ symbol: string; market: MarketType; name: string; nameCn: string; confidence?: number }> {
-  const out: Array<{ symbol: string; market: MarketType; name: string; nameCn: string; confidence?: number }> = [];
+function mapYahooResults(items: YahooSearchQuote[], marketHint?: MarketType): Suggestion[] {
+  const out: Suggestion[] = [];
   for (const item of items) {
     if (item?.quoteType !== 'EQUITY' && item?.quoteType !== 'ETF') continue;
     const symbol = String(item?.symbol || '').toUpperCase().trim();
@@ -249,21 +279,53 @@ function mapYahooResults(
   return out;
 }
 
-function dedupeMerge(
-  ...batches: Array<Array<{ symbol: string; market: MarketType; name: string; nameCn: string; confidence?: number }>>
-) {
-  const seen = new Set<string>();
-  const out: typeof batches[number] = [];
+// 东方财富联想：A 股 / 港股 / 美股，支持中文名、拼音首字母与代码。
+// QuoteID 前缀即市场：1 沪 / 0 深·北 / 116 港 / 105·106·107 美。
+function eastmoneyToSymbol(hit: EastmoneySearchHit): string | null {
+  const code = hit.code.toUpperCase();
+  const prefix = hit.quoteId.split('.')[0];
+  switch (hit.market) {
+    case 'CN':
+      if (!/^\d{6}$/.test(code)) return null;
+      if (prefix === '1') return `${code}.SS`;
+      return /^(4|8|92)/.test(code) ? `${code}.BJ` : `${code}.SZ`;
+    case 'HK':
+      if (!/^\d{1,5}$/.test(code)) return null;
+      return `${code.replace(/^0+/, '').padStart(4, '0')}.HK`;
+    case 'US':
+      return code.replace(/_/g, '.');
+    default:
+      return null;
+  }
+}
+
+function mapEastmoneyResults(hits: EastmoneySearchHit[], marketHint?: MarketType): Suggestion[] {
+  const out: Suggestion[] = [];
+  for (const hit of hits) {
+    if (!hit.market || (marketHint && hit.market !== marketHint)) continue;
+    const symbol = eastmoneyToSymbol(hit);
+    if (!symbol || !MARKET_SYMBOL_REGEX[hit.market].test(symbol)) continue;
+    out.push({ symbol, market: hit.market, name: '', nameCn: hit.name, confidence: 0.9 });
+  }
+  return out;
+}
+
+/** 按顺序去重合并；同一代码在后续来源里有名称时补齐缺失的中 / 英文名 */
+function dedupeMerge(...batches: Suggestion[][]): Suggestion[] {
+  const byKey = new Map<string, Suggestion>();
   for (const batch of batches) {
     for (const item of batch) {
       const key = `${item.market}-${item.symbol}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push(item);
-      if (out.length >= 5) return out;
+      const existing = byKey.get(key);
+      if (existing) {
+        if (!existing.name && item.name) existing.name = item.name;
+        if (!existing.nameCn && item.nameCn) existing.nameCn = item.nameCn;
+        continue;
+      }
+      if (byKey.size < 5) byKey.set(key, { ...item });
     }
   }
-  return out;
+  return Array.from(byKey.values());
 }
 
 export async function POST(request: NextRequest) {
@@ -285,33 +347,34 @@ export async function POST(request: NextRequest) {
     // ===== Tier 1: local index (instant) =====
     const localResults = localSearch(trimmedQuery, marketHint || undefined);
 
-    // If local already gives a decent answer, ship it. The vast majority of
-    // queries (top global tickers + their CN/HK/JP/KR names) hit here.
-    if (localResults.length >= 3) {
+    // 只有命中精确代码 / 名称时才直接返回本地结果；
+    // 其余情况一律继续远程搜索，本地结果只作为排序靠前的补充。
+    if (localResults.length > 0 && (localResults[0].confidence ?? 0) >= 0.95 && localResults.length >= 3) {
       const payload = { query: trimmedQuery, suggestions: localResults.slice(0, 5), source: 'local' };
       cacheSet(cacheKey, payload);
       return NextResponse.json(payload);
     }
 
-    // ===== Tier 2: Yahoo Finance search (global coverage, no key) =====
-    let remoteResults: ReturnType<typeof mapYahooResults> = [];
-    try {
-      const { quotes } = await yahooSearch(trimmedQuery, { quotesCount: 10, newsCount: 0 });
-      remoteResults = mapYahooResults(quotes, marketHint || undefined);
-    } catch (searchError: any) {
-      console.log('Yahoo search failed, will fall through:', searchError?.message || searchError);
-    }
+    // ===== Tier 2: 东方财富（A / 港 / 美，中文名友好）+ Yahoo（日 / 韩 / 澳），并行且各自限时 =====
+    const [eastmoneyHits, yahooQuotes] = await Promise.all([
+      withDeadline(eastmoneySearch(trimmedQuery, 10), REMOTE_DEADLINE_MS, [] as EastmoneySearchHit[]),
+      withDeadline(
+        yahooSearch(trimmedQuery, { quotesCount: 10, newsCount: 0 }).then((r) => r.quotes),
+        REMOTE_DEADLINE_MS,
+        [] as YahooSearchQuote[]
+      ),
+    ]);
+    const eastmoneyResults = mapEastmoneyResults(eastmoneyHits, marketHint || undefined);
+    const yahooResults = mapYahooResults(yahooQuotes, marketHint || undefined);
+    const remoteResults = [...eastmoneyResults, ...yahooResults];
 
-    const merged = dedupeMerge(localResults, remoteResults);
-    if (merged.length >= 2) {
+    const merged = dedupeMerge(localResults, eastmoneyResults, yahooResults);
+    if (remoteResults.length > 0 || merged.length >= 2) {
+      const remoteSources = [eastmoneyResults.length > 0 ? 'eastmoney' : '', yahooResults.length > 0 ? 'yahoo' : ''].filter(Boolean);
       const payload = {
         query: trimmedQuery,
         suggestions: merged,
-        source: localResults.length > 0 && remoteResults.length > 0
-          ? 'local+yahoo'
-          : remoteResults.length > 0
-            ? 'yahoo'
-            : 'local',
+        source: [localResults.length > 0 ? 'local' : '', ...remoteSources].filter(Boolean).join('+') || 'local',
       };
       cacheSet(cacheKey, payload);
       return NextResponse.json(payload);
@@ -331,7 +394,7 @@ export async function POST(request: NextRequest) {
       const rawSuggestions = Array.isArray(aiResult?.suggestions) ? aiResult.suggestions : [];
       const aiSuggestions = rawSuggestions
         .map(normalizeSuggestion)
-        .filter(Boolean) as Array<{ symbol: string; market: MarketType; name: string; nameCn: string; confidence?: number }>;
+        .filter(Boolean) as Suggestion[];
 
       const finalMerged = dedupeMerge(merged, aiSuggestions);
       const payload = {

@@ -75,13 +75,13 @@ Use `getChartTheme(theme)` / `tooltipStyle()` from `src/lib/chart-theme.ts` for 
 
 ## Data & AI
 
-- Market data: Yahoo Finance is the primary source for all markets (`src/lib/yahoo/*`, orchestrated in `src/lib/market-data.ts`). FMP (free plan, optional) adds 5-year US annual statements and DCF behind a circuit breaker; SEC EDGAR adds 10-year US history for long-run CAGR. Derived metrics come from `src/lib/financial-metrics.ts`.
+- Market data is routed per market in `src/lib/market-data.ts` to sources reachable from cloud servers: **A-shares / HK** → Eastmoney (`src/lib/providers/eastmoney*.ts`: quote, daily K, F10 profile and statements); **US** → SEC EDGAR companyfacts for statements (`src/lib/providers/sec-statements.ts`, annual + quarterly), Eastmoney for quote / daily K, FMP free plan (optional) for profile and DCF, with FMP → Yahoo as fallbacks; **JP / KR / AU** → Yahoo. Yahoo (`src/lib/yahoo/*`) blocks cloud IPs, so elsewhere it is best-effort extras only (analysts, holders, news, dividends) behind a circuit breaker. Prices are converted to the reporting currency (`src/lib/providers/fx.ts`) before valuation ratios are derived in `src/lib/financial-metrics.ts`. `GET /api/health/providers?symbol=…&raw=1` shows per-provider status in a deployment.
 - AI: DeepSeek only (`src/lib/deepseek.ts`, `src/lib/ai/*`), default model `deepseek-flash`. There is no other AI provider.
 
 ## Cursor Cloud specific instructions
 
 - **Stack**: Next.js 14 (App Router) with React 18, Tailwind CSS 3, TypeScript 5. Package manager is `npm`.
-- **Dev server**: `npm run dev` (starts on port 3000). No Docker or external services needed for the frontend; API routes call Yahoo Finance (no key), DeepSeek (`DEEPSEEK_API_KEY`) and optionally FMP (`FMP_API_KEY`, free plan is enough) and SEC EDGAR (`SEC_USER_AGENT`).
+- **Dev server**: `npm run dev` (starts on port 3000). No Docker or external services needed for the frontend; API routes call Eastmoney and SEC EDGAR (no key; set `SEC_USER_AGENT`), DeepSeek (`DEEPSEEK_API_KEY`), optionally FMP (`FMP_API_KEY`, free plan is enough) and, best-effort, Yahoo Finance.
 - **Lint**: `npm run lint` — pre-existing lint errors exist in `FinancialRatiosDisplay.tsx`, `FinancialRatiosTTMDisplay.tsx`, and `TextSelectionMenu.tsx` (unescaped quotes). These are not regressions.
 - **Build**: `npm run build` — runs TypeScript type-checking and produces a production build.
 - **i18n**: Dual-language (zh/en). Translation keys are in `src/i18n/locales/zh.ts` (source of truth for types) and `src/i18n/locales/en.ts`. When adding new UI text, add keys to both files.

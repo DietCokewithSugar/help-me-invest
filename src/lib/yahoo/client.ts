@@ -45,6 +45,30 @@ interface YahooSession {
 let session: YahooSession | null = null;
 let sessionPromise: Promise<YahooSession> | null = null;
 
+// ==================== 熔断 ====================
+//
+// Yahoo 会对云服务器出口（Vercel / AWS）返回 401 / 403 / 429 或直接断开连接。
+// 撞到这些错误后暂停一段时间，避免每份报告都白等超时；期间调用立即失败，由上层回退到其他数据源。
+
+const BLOCK_COOLDOWN_MS = 10 * 60 * 1000;
+let blockedUntil = 0;
+// 需要 crumb 的端点单独熔断：crumb 拿不到时 chart / 搜索等公开端点往往仍可用
+let crumbBlockedUntil = 0;
+let lastBlockReason = '';
+
+export function yahooAvailability(): { available: boolean; crumbAvailable: boolean; reason: string } {
+  const now = Date.now();
+  return { available: now >= blockedUntil, crumbAvailable: now >= Math.max(blockedUntil, crumbBlockedUntil), reason: lastBlockReason };
+}
+
+function tripBreaker(reason: string, crumbOnly = false) {
+  const until = Date.now() + BLOCK_COOLDOWN_MS;
+  if (crumbOnly) crumbBlockedUntil = until;
+  else blockedUntil = until;
+  lastBlockReason = reason;
+  console.warn(`[Yahoo] ${crumbOnly ? 'crumb endpoints' : 'all endpoints'} disabled for ${BLOCK_COOLDOWN_MS / 60000} min: ${reason}`);
+}
+
 async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -122,6 +146,11 @@ async function requestJson<T>(
   params: Record<string, string>,
   options: { needsCrumb?: boolean; timeoutMs?: number } = {}
 ): Promise<T> {
+  const now = Date.now();
+  if (now < blockedUntil || (options.needsCrumb && now < crumbBlockedUntil)) {
+    throw new YahooFinanceError(`Yahoo Finance temporarily disabled (${lastBlockReason})`, 503);
+  }
+
   const attempt = async (forceRefresh: boolean): Promise<Response> => {
     const current = options.needsCrumb ? await getSession(forceRefresh) : session;
     const search = new URLSearchParams(params);
@@ -133,11 +162,23 @@ async function requestJson<T>(
     return fetchWithTimeout(`${url}?${search.toString()}`, { headers }, options.timeoutMs);
   };
 
-  let response = await attempt(false);
-  if (options.needsCrumb && (response.status === 401 || response.status === 403)) {
-    response = await attempt(true);
+  let response: Response;
+  try {
+    response = await attempt(false);
+    if (options.needsCrumb && (response.status === 401 || response.status === 403)) {
+      response = await attempt(true);
+    }
+  } catch (error: any) {
+    // 连接被拒 / DNS 失败等网络层错误；单次超时不熔断
+    if (error?.name !== 'AbortError') tripBreaker(error?.cause?.code || error?.message || 'network error');
+    throw error;
   }
 
+  if (response.status === 429) {
+    tripBreaker('HTTP 429');
+  } else if (response.status === 401 || response.status === 403) {
+    tripBreaker(`HTTP ${response.status}`, !!options.needsCrumb);
+  }
   if (!response.ok) {
     const body = await response.text().catch(() => '');
     throw new YahooFinanceError(`Yahoo Finance ${response.status}: ${body.slice(0, 200)}`, response.status);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getChart, getQuoteSummary, getQuotes, search } from '@/lib/yahoo/client';
 import { buildPriceHistory, num } from '@/lib/yahoo/normalize';
+import { fetchQuoteWithHistory } from '@/lib/market-data';
 import {
   SECTOR_STRUCTURE,
   flattenSectorSymbols,
@@ -67,10 +68,21 @@ export async function POST(request: NextRequest) {
           getChart(symbol, '3mo', '1d').catch(() => null),
           getQuoteSummary(symbol, ['financialData', 'assetProfile']).catch(() => null),
         ]);
+        let history = buildPriceHistory(chart).map((bar) => bar.close).reverse();
+        // Yahoo 屏蔽服务器出口时，行情改走东方财富
+        let fallbackQuote: Record<string, any> | null = null;
+        if (history.length === 0) {
+          const fallback = await fetchQuoteWithHistory(symbol, '3mo').catch(() => null);
+          if (fallback) {
+            history = fallback.history.map((point) => point.close).reverse();
+            fallbackQuote = fallback.quote;
+          }
+        }
         return {
           symbol,
           chartMeta: chart?.meta ?? null,
-          history: buildPriceHistory(chart).map((bar) => bar.close).reverse(),
+          fallbackQuote,
+          history,
           revenueGrowth: num(summary?.financialData?.revenueGrowth),
           industry: typeof summary?.assetProfile?.industry === 'string' ? summary.assetProfile.industry : '',
         };
@@ -97,10 +109,11 @@ export async function POST(request: NextRequest) {
         const lastClose = history[history.length - 1];
         const prevClose = history[history.length - 2];
 
-        const price = pickFirstNumber([quote?.regularMarketPrice, extra?.chartMeta?.regularMarketPrice, lastClose]) ?? 0;
+        const price = pickFirstNumber([quote?.regularMarketPrice, extra?.chartMeta?.regularMarketPrice, extra?.fallbackQuote?.price, lastClose]) ?? 0;
         const change =
           pickFirstNumber([
             quote?.regularMarketChangePercent,
+            extra?.fallbackQuote?.changePercentage,
             lastClose && prevClose ? ((lastClose - prevClose) / prevClose) * 100 : null,
           ]) ?? 0;
 
@@ -112,7 +125,7 @@ export async function POST(request: NextRequest) {
             (typeof extra?.chartMeta?.longName === 'string' && extra.chartMeta.longName) ||
             nameMap[symbol] ||
             symbol,
-          marketCap: pickFirstNumber([quote?.marketCap]) ?? 0,
+          marketCap: pickFirstNumber([quote?.marketCap, extra?.fallbackQuote?.marketCap]) ?? 0,
           price,
           change: round(change, 3),
           revenueGrowth: normalizeRevenueGrowth(extra?.revenueGrowth) ?? 0,

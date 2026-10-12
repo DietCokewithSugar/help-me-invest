@@ -144,7 +144,7 @@ export const MARKET_CONFIGS: Record<MarketType, MarketConfig> = {
 export function detectMarketFromSymbol(symbol: string): MarketType {
   const upperSymbol = symbol.toUpperCase();
   
-  if (upperSymbol.endsWith('.SS') || upperSymbol.endsWith('.SZ')) {
+  if (upperSymbol.endsWith('.SS') || upperSymbol.endsWith('.SZ') || upperSymbol.endsWith('.SH') || upperSymbol.endsWith('.BJ')) {
     return 'CN';
   }
   if (upperSymbol.endsWith('.HK')) {
@@ -182,6 +182,9 @@ export function formatSymbolForMarket(symbol: string, market: MarketType): strin
         return `${upperSymbol}.SS`;
       } else if (upperSymbol.startsWith('0') || upperSymbol.startsWith('3')) {
         return `${upperSymbol}.SZ`;
+      } else if (/^(4|8|92)/.test(upperSymbol)) {
+        // 北交所
+        return `${upperSymbol}.BJ`;
       }
       // 默认返回原始代码
       return upperSymbol;
