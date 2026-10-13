@@ -4,6 +4,8 @@ import { fetchReportData } from '@/lib/market-data';
 import { apiErrorResponse, readJsonWithLimit, requireInternalApiKey } from '@/lib/api-security';
 
 export const maxDuration = 60; // 设置最大执行时间为60秒
+// 行情数据源在香港区域访问更稳定（见 report-data/route.ts）
+export const preferredRegion = 'hkg1';
 const MAX_REQUEST_BYTES = 8 * 1024;
 
 export async function POST(request: NextRequest) {

@@ -3,12 +3,14 @@
  *
  * - A 股（PC_HSF10）：宽表，一行一个报告期，字段为大写英文（TOTAL_OPERATE_INCOME 等）。
  *   银行 / 保险 / 券商的科目与一般企业不同，缺失的字段按 0 处理，不臆造。
+ * - A 股主要指标（RPT_F10_FINANCE_MAINFINADATA）：只有营收 / 毛利 / 归母净利 / EPS，
+ *   作为 F10 三大报表取不到时的精简年度利润表。
  * - 港股（RPT_HKF10_FN_*_PC）：长表，一行一个科目（STD_ITEM_NAME + AMOUNT），
  *   按科目名称关键字归并到各字段。
  */
 
 import type { BalanceSheet, CashFlowStatement, IncomeStatement } from '@/types';
-import { emNum, type HkStatementBundle, type LongFormRow } from './eastmoney';
+import { emDate, emNum, type HkStatementBundle, type LongFormRow } from './eastmoney';
 
 type Rec = Record<string, any>;
 
@@ -29,8 +31,9 @@ function ratio(a: number | null, b: number | null): number {
   return a !== null && b ? a / b : 0;
 }
 
+/** 报告期 → YYYY-MM-DD（兼容 '2024/12/31'、'20241231' 等写法） */
 function dateOf(value: unknown): string {
-  return String(value ?? '').slice(0, 10);
+  return emDate(value);
 }
 
 function quarterLabel(date: string): { fiscalYear: string; period: string } {
@@ -219,6 +222,70 @@ export function cnCashFlow(records: Rec[], ctx: Ctx): CashFlowStatement[] {
       } as CashFlowStatement;
     })
     .filter((s) => s.date && (s.operatingCashFlow || s.netChangeInCash));
+}
+
+/**
+ * 东财「主要指标」→ 精简年度利润表（只取 12-31 年报期，新→旧）。
+ * 映射：营收 TOTALOPERATEREVE、毛利 MLR、归母净利 PARENTNETPROFIT、EPS EPSJB / EPSXS；
+ * 股数 = 净利 / EPS；其余科目无来源，按 0 处理。
+ */
+export function cnIncomeFromMainFina(
+  rows: Rec[],
+  ctx: { symbol: string; currency: string; frequency: 'annual' }
+): IncomeStatement[] {
+  const seen = new Set<string>();
+  return rows
+    .map((r) => ({ r, date: dateOf(r.REPORT_DATE) }))
+    .filter(({ date }) => date.slice(5) === '12-31')
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .filter(({ date }) => {
+      if (seen.has(date)) return false;
+      seen.add(date);
+      return true;
+    })
+    .map(({ r, date }) => {
+      const revenue = pick(r, 'TOTALOPERATEREVE') ?? 0;
+      const gross = pick(r, 'MLR');
+      const grossProfit = gross ?? 0;
+      const netIncome = pick(r, 'PARENTNETPROFIT') ?? 0;
+      const eps = pick(r, 'EPSJB') ?? 0;
+      const epsDiluted = pick(r, 'EPSXS', 'EPSJB') ?? 0;
+      const shares = eps ? netIncome / eps : 0;
+      return {
+        ...base(date, ctx),
+        revenue,
+        costOfRevenue: gross !== null ? revenue - gross : 0,
+        grossProfit,
+        grossProfitRatio: ratio(grossProfit, revenue),
+        researchAndDevelopmentExpenses: 0,
+        generalAndAdministrativeExpenses: 0,
+        sellingAndMarketingExpenses: 0,
+        sellingGeneralAndAdministrativeExpenses: 0,
+        otherExpenses: 0,
+        operatingExpenses: 0,
+        costAndExpenses: 0,
+        interestIncome: 0,
+        interestExpense: 0,
+        depreciationAndAmortization: 0,
+        ebitda: 0,
+        ebitdaratio: 0,
+        ebit: 0,
+        operatingIncome: 0,
+        operatingIncomeRatio: 0,
+        totalOtherIncomeExpensesNet: 0,
+        incomeBeforeTax: 0,
+        incomeBeforeTaxRatio: 0,
+        incomeTaxExpense: 0,
+        netIncome,
+        netIncomeRatio: ratio(netIncome, revenue),
+        eps,
+        epsdiluted: epsDiluted,
+        epsDiluted,
+        weightedAverageShsOut: shares,
+        weightedAverageShsOutDil: shares,
+      } as IncomeStatement;
+    })
+    .filter((s) => s.revenue || s.netIncome);
 }
 
 // ==================== 港股 ====================

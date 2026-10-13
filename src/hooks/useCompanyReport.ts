@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import type { ReportData, MarketType } from '@/types';
-import { detectMarketFromSymbol, formatSymbolForMarket } from '@/lib/markets';
+import { canonicalizeSymbol, detectMarketFromSymbol } from '@/lib/markets';
 
 export type ReportType = 'beginner' | 'standard' | 'pro';
 export type ReportVersion = 'beginner' | 'standard' | 'professional';
@@ -510,8 +510,10 @@ export function useCompanyReport({ locale, t }: UseCompanyReportOptions) {
         return;
       }
 
-      const marketForAnalyze = detectMarketFromSymbol(trimmedSymbol);
-      const formattedSymbol = formatSymbolForMarket(trimmedSymbol, marketForAnalyze);
+      // 先规范化（600519 / SH600519 / 600519.SH → 600519.SS，00700.HK → 0700.HK）再判断市场，
+      // 保证请求、缓存与搜索记录使用同一个代码
+      const formattedSymbol = canonicalizeSymbol(trimmedSymbol);
+      const marketForAnalyze = detectMarketFromSymbol(formattedSymbol);
       marketRef.current = marketForAnalyze;
 
       setLoading(true);
@@ -547,6 +549,9 @@ export function useCompanyReport({ locale, t }: UseCompanyReportOptions) {
         }
       };
 
+      // 服务端给出的 retryable 优先；网络异常 / 超时等没有服务端响应的情况默认可重试
+      let retryable = true;
+
       try {
         const cachedData = opts?.force
           ? null
@@ -574,12 +579,16 @@ export function useCompanyReport({ locale, t }: UseCompanyReportOptions) {
         const data = await parseJsonResponse(response);
 
         if (!response.ok) {
-          const errorMsg = data?.error || t.home.errors.analysisFailed;
-          const retryable = data?.retryable ?? true;
-          setIsRetryable(retryable);
-          if (errorMsg.includes('找不到') || errorMsg.includes('not found') || errorMsg.includes('无效')) {
+          const errorMsg: string = data?.error || t.home.errors.analysisFailed;
+          // 以 HTTP 状态 / errorType 判定「代码不存在」；文本匹配仅兜底不带 errorType 的旧版响应，
+          // 避免把上游空数据（502）误判为无效代码
+          const notFound =
+            response.status === 404 ||
+            data?.errorType === 'api_error' ||
+            (typeof data?.errorType !== 'string' && /找不到|未找到|not found|无效/i.test(errorMsg));
+          retryable = notFound ? false : typeof data?.retryable === 'boolean' ? data.retryable : true;
+          if (notFound) {
             recordSearchToDb(formattedSymbol, undefined, true);
-            setIsRetryable(false);
           }
           throw new Error(errorMsg);
         }
@@ -622,7 +631,7 @@ export function useCompanyReport({ locale, t }: UseCompanyReportOptions) {
         console.error(err);
         setRetryCount((prev) => prev + 1);
         setError(err.message || t.home.errors.networkError);
-        setIsRetryable(true);
+        setIsRetryable(retryable);
         setLoading(false);
       }
     },
@@ -641,11 +650,13 @@ export function useCompanyReport({ locale, t }: UseCompanyReportOptions) {
 
   const regenerate = useCallback(async () => {
     if (!reportData) return;
-    const symbolToRegenerate = reportData.profile.symbol;
+    const profileSymbol = reportData.profile.symbol;
     const market =
       reportData.market ||
       ((reportData.profile as any)?.market as MarketType | undefined) ||
-      detectMarketFromSymbol(symbolToRegenerate);
+      detectMarketFromSymbol(canonicalizeSymbol(profileSymbol));
+    // 与 analyze 使用同一规范代码，确保删除的正是那份缓存
+    const symbolToRegenerate = canonicalizeSymbol(profileSymbol, market);
     const cacheType = reportTypeRef.current === 'pro' ? 'professional' : reportTypeRef.current;
 
     try {

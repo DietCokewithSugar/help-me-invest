@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { fetchQuoteWithHistory } from '@/lib/market-data';
 
 export const maxDuration = 60;
+// 行情数据源在香港区域访问更稳定（见 report-data/route.ts）
+export const preferredRegion = 'hkg1';
 
 const MAX_SYMBOLS = 50;
 

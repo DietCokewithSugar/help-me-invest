@@ -5,6 +5,8 @@ import { buildPriceHistory, num } from '@/lib/yahoo/normalize';
 import { fetchQuoteWithHistory } from '@/lib/market-data';
 
 export const maxDuration = 60;
+// 行情数据源在香港区域访问更稳定（见 report-data/route.ts）
+export const preferredRegion = 'hkg1';
 export const dynamic = 'force-dynamic';
 
 const SECTOR_KEYS = [

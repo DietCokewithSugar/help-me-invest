@@ -4,6 +4,9 @@ import { saveFmpDataToCache, getCachedReportV2 } from '@/lib/supabase';
 import type { MarketType } from '@/lib/markets';
 
 export const maxDuration = 60;
+// 东方财富 / 腾讯 / 新浪对境外（美国区）云服务器出口常返回空数据；行情相关函数部署在香港区域。
+// 这里必须是字面量（Next.js 静态解析 route segment config）。
+export const preferredRegion = 'hkg1';
 
 // 错误类型枚举
 type ErrorType = 'timeout' | 'network' | 'rate_limit' | 'api_error' | 'validation' | 'unknown';
@@ -174,7 +177,7 @@ export async function POST(request: NextRequest) {
           error: error.message,
           errorType: (error.notFound ? 'api_error' : 'network') as ErrorType,
           retryable: !error.notFound,
-          providers: error.attempts.map(({ provider, step, ok, error: reason }) => ({ provider, step, ok, error: reason })),
+          providers: error.attempts,
         },
         { status: error.status }
       );

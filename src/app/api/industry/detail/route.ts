@@ -11,6 +11,8 @@ import {
 } from '@/lib/industry-data';
 
 export const maxDuration = 60;
+// 行情数据源在香港区域访问更稳定（见 report-data/route.ts）
+export const preferredRegion = 'hkg1';
 
 const CACHE_TTL_MS = 15 * 60 * 1000;
 const detailCache = new Map<string, { data: unknown; expiresAt: number }>();

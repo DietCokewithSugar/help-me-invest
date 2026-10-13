@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { MarketType } from '@/types';
-import { detectMarketFromSymbol, formatSymbolForMarket } from '@/lib/markets';
+import { canonicalizeSymbol, detectMarketFromSymbol } from '@/lib/markets';
 import { TrendingUpIcon, ArrowRightIcon, ClockIcon, FlameIcon, XIcon } from '@/components/Icons';
 
 /**
@@ -108,11 +108,12 @@ function normalizeSymbol(input: string): string {
 
 // A query can be navigated to directly (no confirmation) only when it is
 // unambiguously a stock code: it carries a market suffix (e.g. 600519.SS,
-// 0700.HK) or is a bare 6-digit A-share code. Everything else — company names,
-// partial input, bare letter tickers — must be confirmed against an AI
-// suggestion so we never pass raw text to the report API.
+// 0700.HK) or is a bare / SH-SZ-BJ-prefixed 6-digit A-share code (600519,
+// SH600519). Everything else — company names, partial input, bare letter
+// tickers — must be confirmed against an AI suggestion so we never pass raw
+// text to the report API.
 function isExplicitStockCode(normalized: string): boolean {
-  return normalized.includes('.') || /^\d{6}$/.test(normalized);
+  return normalized.includes('.') || /^(SH|SZ|BJ)?\d{6}$/.test(normalized);
 }
 
 function getSearchHistory(): SearchHistoryItem[] {
@@ -288,15 +289,8 @@ export default function HomeSearchIsland({
       return;
     }
 
-    let formatted = normalized;
-    if (!normalized.includes('.') && /^\d{6}$/.test(normalized)) {
-      formatted = formatSymbolForMarket(normalized, 'CN');
-    } else if (normalized.includes('.')) {
-      const market = detectMarketFromSymbol(normalized);
-      formatted = formatSymbolForMarket(normalized, market);
-    }
-
-    navigateToSymbol(formatted);
+    // sh600519 / 600519 / 600519.sh 均跳转到 600519.SS；港股统一为 4 位（0700.HK）
+    navigateToSymbol(canonicalizeSymbol(normalized));
   };
 
   // Open the confirmation dialog for a query that is not an explicit stock
@@ -344,6 +338,8 @@ export default function HomeSearchIsland({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // 输入法组字中的回车只用于上屏，不触发搜索
+    if (isComposing || e.nativeEvent.isComposing || e.keyCode === 229) return;
     if (e.key === 'Enter') {
       e.preventDefault();
       handleSubmit();
