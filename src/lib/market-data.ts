@@ -19,9 +19,10 @@
 
 import type { BalanceSheet, CashFlowStatement, CompanyProfile, IncomeStatement, ReportData } from '@/types';
 import {
+  MARKET_CONFIGS,
   MarketType,
+  canonicalizeSymbol,
   detectMarketFromSymbol,
-  formatSymbolForMarket,
   getMarketConfig,
 } from '@/lib/markets';
 import { buildSankeyData } from '@/lib/sankey-utils';
@@ -38,7 +39,9 @@ import {
 } from '@/lib/financial-metrics';
 import * as yahoo from '@/lib/yahoo/client';
 import * as em from '@/lib/providers/eastmoney';
-import { cnBalance, cnCashFlow, cnIncome, hkStatements } from '@/lib/providers/eastmoney-normalize';
+import { cnBalance, cnCashFlow, cnIncome, cnIncomeFromMainFina, hkStatements } from '@/lib/providers/eastmoney-normalize';
+import * as sina from '@/lib/providers/sina';
+import * as tencent from '@/lib/providers/tencent';
 import { getFxRate } from '@/lib/providers/fx';
 import {
   BALANCE_KEYS,
@@ -79,32 +82,36 @@ export function toYahooSymbol(symbol: string, market: MarketType): string {
   return market === 'US' ? upper.replace(/\./g, '-') : upper;
 }
 
-/** 站内代码规范化：600519.SH → 600519.SS，港股去掉多余前导零（00700.HK → 0700.HK） */
+/** 客户端传入的 market 不可信：非法值按代码后缀推断 */
+function resolveMarket(symbol: string, market?: string): MarketType {
+  const upper = String(market || '').toUpperCase();
+  return upper in MARKET_CONFIGS ? (upper as MarketType) : detectMarketFromSymbol(symbol);
+}
+
+/** 站内代码规范化：600519.SH / SH600519 → 600519.SS，港股去掉多余前导零（00700.HK → 0700.HK） */
 export function normalizeSymbol(symbol: string, market: MarketType): string {
-  let upper = formatSymbolForMarket(symbol, market).toUpperCase();
-  if (market === 'CN') upper = upper.replace(/\.SH$/, '.SS');
-  if (market === 'HK') {
-    const code = upper.split('.')[0].replace(/^0+/, '');
-    upper = `${code.padStart(4, '0')}.HK`;
-  }
-  return upper;
+  return canonicalizeSymbol(symbol, market);
 }
 
 // ==================== 调用追踪 ====================
 
-export type ProviderName = 'Eastmoney' | 'SEC EDGAR' | 'FMP' | 'Yahoo Finance' | 'Frankfurter';
+export type ProviderName = 'Eastmoney' | 'Tencent' | 'Sina' | 'SEC EDGAR' | 'FMP' | 'Yahoo Finance' | 'Frankfurter';
 
 export interface ProviderAttempt {
   provider: ProviderName;
   step: string;
   ok: boolean;
+  /** 返回了 HTTP 200 但没有可用数据（成功时）或以「空响应」失败（EastmoneyEmptyError 等） */
   empty?: boolean;
   ms: number;
   error?: string;
+  /** 诊断细节：响应片段、公司类型探测结果、条数等 */
+  detail?: string;
 }
 
 function describeError(error: any): string {
   const message = String(error?.message || error || '');
+  if (error?.empty) return 'empty response';
   if (error?.name === 'AbortError' || /aborted|timeout/i.test(message)) return 'timeout';
   if (typeof error?.status === 'number' && error.status > 0) return `HTTP ${error.status}`;
   if (error?.cause?.code) return String(error.cause.code);
@@ -119,35 +126,69 @@ function withDeadline<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([promise, deadline]).finally(() => clearTimeout(timer));
 }
 
+interface RunOptions<T> {
+  deadlineMs?: number;
+  /** 自定义「空结果」判定（默认 null / 空数组） */
+  isEmpty?: (value: T) => boolean;
+  detail?: (value: T) => string | undefined;
+}
+
 export class Trace {
   readonly attempts: ProviderAttempt[] = [];
 
-  async run<T>(provider: ProviderName, step: string, task: () => Promise<T>, fallback: T, deadlineMs?: number): Promise<T> {
+  async run<T>(
+    provider: ProviderName,
+    step: string,
+    task: () => Promise<T>,
+    fallback: T,
+    options?: number | RunOptions<T>
+  ): Promise<T> {
+    const opts: RunOptions<T> = typeof options === 'number' ? { deadlineMs: options } : options ?? {};
     const started = Date.now();
     try {
-      const value = deadlineMs ? await withDeadline(task(), deadlineMs) : await task();
-      const empty = value == null || (Array.isArray(value) && value.length === 0);
-      this.attempts.push({ provider, step, ok: true, empty, ms: Date.now() - started });
+      const value = opts.deadlineMs ? await withDeadline(task(), opts.deadlineMs) : await task();
+      const empty = opts.isEmpty ? opts.isEmpty(value) : value == null || (Array.isArray(value) && value.length === 0);
+      const detail = opts.detail ? opts.detail(value) : undefined;
+      this.attempts.push({ provider, step, ok: true, empty, ms: Date.now() - started, ...(detail ? { detail } : {}) });
       return value ?? fallback;
     } catch (error: any) {
       const reason = describeError(error);
-      this.attempts.push({ provider, step, ok: false, ms: Date.now() - started, error: reason });
-      console.warn(`[market-data] ${provider} ${step} failed: ${reason}`);
+      const detail = typeof error?.detail === 'string' ? error.detail.slice(0, 400) : undefined;
+      this.attempts.push({
+        provider,
+        step,
+        ok: false,
+        ...(error?.empty ? { empty: true } : {}),
+        ms: Date.now() - started,
+        error: reason,
+        ...(detail ? { detail } : {}),
+      });
+      console.warn(`[market-data] ${provider} ${step} failed: ${reason}${detail ? ` (${detail})` : ''}`);
       return fallback;
     }
   }
 
-  /** 失败摘要：每个数据源取第一个失败原因 */
+  /** 失败摘要：每个核心数据源取第一个失败原因，没有失败但返回空的记为 no data；Yahoo 只是补充源，不列入 */
   failureSummary(): string {
     const byProvider = new Map<string, string>();
     for (const attempt of this.attempts) {
-      if (!attempt.ok && !byProvider.has(attempt.provider)) byProvider.set(attempt.provider, attempt.error ?? 'failed');
+      if (attempt.provider === 'Yahoo Finance') continue;
+      if (!attempt.ok && (!byProvider.has(attempt.provider) || byProvider.get(attempt.provider) === 'no data')) {
+        byProvider.set(attempt.provider, attempt.error ?? 'failed');
+      } else if (attempt.ok && attempt.empty && !byProvider.has(attempt.provider)) {
+        byProvider.set(attempt.provider, 'no data');
+      }
     }
     return Array.from(byProvider.entries()).map(([provider, reason]) => `${provider}: ${reason}`).join('; ');
   }
 
   get anyFailed(): boolean {
     return this.attempts.some((a) => !a.ok);
+  }
+
+  /** 除 Yahoo（补充源）外是否有数据源报错或返回空响应 */
+  get coreFailed(): boolean {
+    return this.attempts.some((a) => !a.ok && a.provider !== 'Yahoo Finance');
   }
 }
 
@@ -398,33 +439,182 @@ function yahooHasData(extras: YahooExtras): boolean {
   return !!(extras.summary || extras.chart || extras.news.length || extras.peers.length);
 }
 
-// ==================== 东方财富行情（A 股 / 港股 / 美股共用） ====================
+// ==================== 行情：东方财富为主，新浪 / 腾讯兜底 ====================
+//
+// 东方财富对部分服务器出口会返回 HTTP 200 + 空数据，因此 A 股 / 港股的每一类数据都有独立的兜底链：
+//   报价：东方财富快照 → 新浪报价（仅 A 股）→ 由最近两根日 K 推导
+//   日 K：东方财富 → 腾讯（前复权）→ Yahoo chart
+//   财报：东方财富 F10 → 新浪财报 → 东方财富主要指标（仅利润表口径）
 
-interface EastmoneyMarket {
-  quote: em.EastmoneyQuote | null;
-  bars: PriceBar[];
+/** 统一后的报价；volume 一律为「股」 */
+interface UnifiedQuote {
+  name: string;
+  price: number;
+  change: number | null;
+  changePercent: number | null;
+  open: number | null;
+  high: number | null;
+  low: number | null;
+  previousClose: number | null;
+  volume: number | null;
+  marketCap: number | null;
+  totalShares: number | null;
+  floatShares: number | null;
+  peTTM: number | null;
+  pb: number | null;
+  yearHigh: number | null;
+  yearLow: number | null;
+  industry: string;
+  listingDate: string;
+  source: 'eastmoney' | 'sina' | 'derived';
 }
 
-async function fetchEastmoneyMarket(trace: Trace, symbol: string, market: MarketType): Promise<EastmoneyMarket> {
-  const quote = await trace.run('Eastmoney', 'quote', () => em.resolveQuote(symbol, market), null);
-  if (!quote) return { quote: null, bars: [] };
-  const kline = await trace.run('Eastmoney', 'kline', () => em.getDailyKline(quote.secid, 5), [] as em.EastmoneyBar[]);
-  // A 股成交量单位是「手」（100 股）
-  const volumeScale = market === 'CN' ? 100 : 1;
-  const bars: PriceBar[] = kline.map((bar) => ({
+const SOURCE_LABELS = {
+  eastmoney: '东方财富 Eastmoney',
+  sina: '新浪财经 Sina',
+  tencent: '腾讯证券 Tencent',
+  yahoo: 'Yahoo Finance',
+} as const;
+
+// A 股东方财富成交量单位是「手」（100 股）
+const lotSize = (market: MarketType) => (market === 'CN' ? 100 : 1);
+
+function fromEastmoneyQuote(q: em.EastmoneyQuote, market: MarketType): UnifiedQuote {
+  return {
+    name: q.name,
+    price: q.price,
+    change: q.change,
+    changePercent: q.changePercent,
+    open: q.open,
+    high: q.high,
+    low: q.low,
+    previousClose: q.previousClose,
+    volume: q.volume != null ? q.volume * lotSize(market) : null,
+    marketCap: q.marketCap,
+    totalShares: q.totalShares,
+    floatShares: q.floatShares,
+    peTTM: q.peTTM,
+    pb: q.pb,
+    yearHigh: q.yearHigh,
+    yearLow: q.yearLow,
+    industry: q.industry,
+    listingDate: q.listingDate,
+    source: 'eastmoney',
+  };
+}
+
+function changeOf(price: number, previousClose: number | null) {
+  const change = previousClose ? price - previousClose : null;
+  return { change, changePercent: change != null && previousClose ? (change / previousClose) * 100 : null };
+}
+
+function fromSinaQuote(q: sina.SinaQuote): UnifiedQuote {
+  return {
+    name: q.name,
+    price: q.price,
+    ...changeOf(q.price, q.previousClose),
+    open: q.open,
+    high: q.high,
+    low: q.low,
+    previousClose: q.previousClose,
+    volume: q.volume,
+    marketCap: null,
+    totalShares: null,
+    floatShares: null,
+    peTTM: null,
+    pb: null,
+    yearHigh: null,
+    yearLow: null,
+    industry: '',
+    listingDate: '',
+    source: 'sina',
+  };
+}
+
+/** 没有任何报价源时，用最近两根日 K 推导（收盘后数据，可能滞后一个交易日） */
+function quoteFromBars(bars: PriceBar[]): UnifiedQuote | null {
+  const latest = bars[0];
+  if (!latest) return null;
+  const previousClose = bars[1]?.close ?? null;
+  return {
+    name: '',
+    price: latest.close,
+    ...changeOf(latest.close, previousClose),
+    open: latest.open,
+    high: latest.high,
+    low: latest.low,
+    previousClose,
+    volume: latest.volume,
+    marketCap: null,
+    totalShares: null,
+    floatShares: null,
+    peTTM: null,
+    pb: null,
+    yearHigh: null,
+    yearLow: null,
+    industry: '',
+    listingDate: '',
+    source: 'derived',
+  };
+}
+
+function emBarsToPriceBars(kline: em.EastmoneyBar[], market: MarketType): PriceBar[] {
+  return kline.map((bar) => ({
     date: bar.date,
     open: bar.open,
     high: bar.high,
     low: bar.low,
     close: bar.close,
     adjClose: bar.close,
-    volume: Number.isFinite(bar.volume) ? bar.volume * volumeScale : null,
+    volume: Number.isFinite(bar.volume) ? bar.volume * lotSize(market) : null,
   }));
-  return { quote, bars };
 }
 
-function quoteFromEastmoney(symbol: string, q: em.EastmoneyQuote, market: MarketType, currency: string, exchange: string): Record<string, any> {
-  const volumeScale = market === 'CN' ? 100 : 1;
+function tencentBarsToPriceBars(bars: tencent.TencentBar[]): PriceBar[] {
+  return bars.map((bar) => ({
+    date: bar.date,
+    open: bar.open,
+    high: bar.high,
+    low: bar.low,
+    close: bar.close,
+    adjClose: bar.close,
+    volume: bar.volume,
+  }));
+}
+
+interface MarketSnapshot {
+  quote: UnifiedQuote | null;
+  /** 新→旧 */
+  bars: PriceBar[];
+  barsSource: 'eastmoney' | 'tencent' | null;
+}
+
+/** A 股 / 港股的报价与日 K（各自独立兜底，互不阻塞） */
+async function fetchCnHkMarket(trace: Trace, symbol: string, market: 'CN' | 'HK'): Promise<MarketSnapshot> {
+  const secid = em.secidCandidates(symbol, market)[0];
+
+  const barsTask = trace
+    .run('Eastmoney', 'kline', () => em.getDailyKline(secid, 5), [] as em.EastmoneyBar[], 15_000)
+    .then(async (kline) => {
+      if (kline.length > 0) return { bars: emBarsToPriceBars(kline, market), barsSource: 'eastmoney' as const };
+      const bars = await trace.run('Tencent', 'kline', () => tencent.getTencentDailyBars(symbol, market, 5), [] as tencent.TencentBar[], 15_000);
+      return { bars: tencentBarsToPriceBars(bars), barsSource: bars.length > 0 ? ('tencent' as const) : null };
+    });
+
+  const quoteTask = trace
+    .run('Eastmoney', 'quote', () => em.resolveQuote(symbol, market), null, 12_000)
+    .then(async (q): Promise<UnifiedQuote | null> => {
+      if (q) return fromEastmoneyQuote(q, market);
+      if (market !== 'CN') return null;
+      const sq = await trace.run('Sina', 'quote', () => sina.getSinaQuote(symbol), null, 8_000);
+      return sq ? fromSinaQuote(sq) : null;
+    });
+
+  const [{ bars, barsSource }, quote] = await Promise.all([barsTask, quoteTask]);
+  return { quote: quote ?? quoteFromBars(bars), bars, barsSource };
+}
+
+function quoteRecord(symbol: string, q: UnifiedQuote, currency: string, exchange: string): Record<string, any> {
   return {
     symbol,
     name: q.name || symbol,
@@ -432,7 +622,7 @@ function quoteFromEastmoney(symbol: string, q: em.EastmoneyQuote, market: Market
     change: q.change,
     changePercentage: q.changePercent,
     changesPercentage: q.changePercent,
-    volume: q.volume != null ? q.volume * volumeScale : null,
+    volume: q.volume,
     dayLow: q.low,
     dayHigh: q.high,
     yearLow: q.yearLow,
@@ -444,10 +634,11 @@ function quoteFromEastmoney(symbol: string, q: em.EastmoneyQuote, market: Market
     sharesOutstanding: q.totalShares,
     exchange,
     currency,
+    source: q.source,
   };
 }
 
-function quoteStats(q: em.EastmoneyQuote | null): Partial<KeyStatistics> {
+function quoteStats(q: { peTTM: number | null; pb: number | null; totalShares: number | null; floatShares: number | null; yearHigh: number | null; yearLow: number | null } | null): Partial<KeyStatistics> {
   if (!q) return {};
   return {
     trailingPE: q.peTTM && q.peTTM > 0 ? q.peTTM : null,
@@ -475,6 +666,15 @@ function profileBase(symbol: string, price: number, change: number, changePercen
   };
 }
 
+/** 最新股本：资产负债表股本（A 股面值 1 元，即股数）→ 利润表加权股数 */
+function latestShares(f: Fundamentals): number | null {
+  const balance = f.balanceQuarter[0] ?? f.balanceAnnual[0];
+  const fromBalance = num((balance as any)?.sharesOutstanding);
+  if (fromBalance && fromBalance > 0) return fromBalance;
+  const fromIncome = num(f.incomeQuarter[0]?.weightedAverageShsOut) ?? num(f.incomeAnnual[0]?.weightedAverageShsOut);
+  return fromIncome && fromIncome > 0 ? fromIncome : null;
+}
+
 // ==================== A 股 ====================
 
 const CN_EXCHANGES: Record<string, { short: string; full: string }> = {
@@ -483,37 +683,87 @@ const CN_EXCHANGES: Record<string, { short: string; full: string }> = {
   BJ: { short: 'BSE', full: '北京证券交易所' },
 };
 
+type FundamentalsSource = 'eastmoney' | 'sina' | null;
+
+function cnFundamentals(
+  records: { incomeAnnual: any[]; balanceAnnual: any[]; cashAnnual: any[]; incomeQuarter: any[]; balanceQuarter: any[]; cashQuarter: any[] },
+  symbol: string,
+  currency = 'CNY'
+): Fundamentals {
+  const ctxA = { symbol, currency, frequency: 'annual' as const };
+  const ctxQ = { symbol, currency, frequency: 'quarterly' as const };
+  return {
+    incomeAnnual: cnIncome(records.incomeAnnual, ctxA, records.cashAnnual),
+    balanceAnnual: cnBalance(records.balanceAnnual, ctxA),
+    cashAnnual: cnCashFlow(records.cashAnnual, ctxA),
+    incomeQuarter: cnIncome(records.incomeQuarter, ctxQ, records.cashQuarter),
+    balanceQuarter: cnBalance(records.balanceQuarter, ctxQ),
+    cashQuarter: cnCashFlow(records.cashQuarter, ctxQ),
+    reportedCurrency: currency,
+    longHistory: [],
+  };
+}
+
+/** A 股财报：东方财富 F10 → 新浪财报 → 东方财富主要指标（只有利润表口径） */
+async function fetchCnFundamentals(trace: Trace, symbol: string): Promise<{ fundamentals: Fundamentals; source: FundamentalsSource }> {
+  const bundle = await trace.run('Eastmoney', 'statements', () => em.getCnStatements(symbol, { quarterly: true }), null, {
+    deadlineMs: 25_000,
+    isEmpty: (b) => !b || b.incomeAnnual.length === 0,
+    detail: (b) => (b ? `${b.diag} kept=${cnIncome(b.incomeAnnual, { symbol, currency: 'CNY', frequency: 'annual' }).length}` : undefined),
+  });
+  if (bundle) {
+    const fundamentals = cnFundamentals(bundle, symbol);
+    if (fundamentals.incomeAnnual.length > 0) return { fundamentals, source: 'eastmoney' };
+  }
+
+  const [sinaStatements, mainFina] = await Promise.all([
+    trace.run('Sina', 'statements', () => sina.getSinaStatements(symbol), null, {
+      deadlineMs: 15_000,
+      isEmpty: (s) => !s || s.incomeAnnual.length === 0,
+      detail: (s) => (s ? `annual=${s.incomeAnnual.length}/${s.balanceAnnual.length}/${s.cashAnnual.length} quarter=${s.incomeQuarter.length}` : undefined),
+    }),
+    trace.run('Eastmoney', 'main indicators', () => em.getMainFinaData(symbol), [] as Record<string, any>[], 10_000),
+  ]);
+  if (sinaStatements) {
+    const fundamentals = cnFundamentals(sinaStatements, symbol, sinaStatements.currency || 'CNY');
+    if (fundamentals.incomeAnnual.length > 0) return { fundamentals, source: 'sina' };
+  }
+  if (mainFina.length > 0) {
+    const incomeAnnual = cnIncomeFromMainFina(mainFina, { symbol, currency: 'CNY', frequency: 'annual' });
+    if (incomeAnnual.length > 0) return { fundamentals: { ...emptyFundamentals(), incomeAnnual, reportedCurrency: 'CNY' }, source: 'eastmoney' };
+  }
+  return { fundamentals: emptyFundamentals(), source: null };
+}
+
 async function buildChina(symbol: string, period: 'annual' | 'quarter', trace: Trace): Promise<Assembly | null> {
-  const [marketData, survey, statements, extras] = await Promise.all([
-    fetchEastmoneyMarket(trace, symbol, 'CN'),
-    trace.run('Eastmoney', 'company survey', () => em.getCnCompanySurvey(symbol), null),
-    trace.run('Eastmoney', 'statements', () => em.getCnStatements(symbol), null),
+  const [market, survey, cn, extras] = await Promise.all([
+    fetchCnHkMarket(trace, symbol, 'CN'),
+    trace.run('Eastmoney', 'company survey', () => em.getCnCompanySurvey(symbol), null, 10_000),
+    fetchCnFundamentals(trace, symbol),
     fetchYahooExtras(trace, symbol),
   ]);
-  const { quote, bars } = marketData;
+  const { quote, barsSource } = market;
+  const { fundamentals } = cn;
+  const bars = market.bars.length > 0 ? market.bars : buildPriceHistory(extras.chart);
 
-  const ctxA = { symbol, currency: 'CNY', frequency: 'annual' as const };
-  const ctxQ = { symbol, currency: 'CNY', frequency: 'quarterly' as const };
-  const fundamentals: Fundamentals = statements
-    ? {
-        incomeAnnual: cnIncome(statements.incomeAnnual, ctxA, statements.cashAnnual),
-        balanceAnnual: cnBalance(statements.balanceAnnual, ctxA),
-        cashAnnual: cnCashFlow(statements.cashAnnual, ctxA),
-        incomeQuarter: cnIncome(statements.incomeQuarter, ctxQ, statements.cashQuarter),
-        balanceQuarter: cnBalance(statements.balanceQuarter, ctxQ),
-        cashQuarter: cnCashFlow(statements.cashQuarter, ctxQ),
-        reportedCurrency: 'CNY',
-        longHistory: [],
-      }
-    : emptyFundamentals();
+  if (!quote && bars.length === 0 && fundamentals.incomeAnnual.length === 0) return null;
 
-  if (!quote && fundamentals.incomeAnnual.length === 0) return null;
+  // 报价源没有名称时（推导报价），用东方财富搜索补一个简称
+  let name = quote?.name || '';
+  if (!name) {
+    const hits = await trace.run('Eastmoney', 'search (name)', () => em.search(symbol.split('.')[0], 5), [] as em.EastmoneySearchHit[], 6_000);
+    name = hits.find((h) => h.market === 'CN' && h.code === symbol.split('.')[0])?.name || '';
+  }
 
   const exchange = CN_EXCHANGES[symbol.split('.')[1] ?? 'SZ'] ?? CN_EXCHANGES.SZ;
   const price = quote?.price ?? bars[0]?.close ?? 0;
+  const shares = quote?.totalShares ?? latestShares(fundamentals);
+  const marketCap = quote?.marketCap ?? (price && shares ? price * shares : null);
+  const unified: UnifiedQuote | null = quote ? { ...quote, name: name || quote.name, marketCap, totalShares: shares } : null;
+
   const profile = {
-    ...profileBase(symbol, price, quote?.change ?? 0, quote?.changePercent ?? 0, quote?.marketCap ?? 0, 'CNY'),
-    companyName: quote?.name || survey?.name || symbol,
+    ...profileBase(symbol, price, quote?.change ?? 0, quote?.changePercent ?? 0, marketCap ?? 0, 'CNY'),
+    companyName: name || survey?.name || symbol,
     companyNameFull: survey?.name || '',
     companyNameEn: survey?.nameEn || '',
     industry: survey?.industry || quote?.industry || '',
@@ -529,42 +779,50 @@ async function buildChina(symbol: string, period: 'annual' | 'quarter', trace: T
     exchangeShortName: exchange.short,
     exchangeFullName: exchange.full,
     reportedCurrency: 'CNY',
-    volume: quote?.volume != null ? quote.volume * 100 : null,
+    volume: quote?.volume ?? null,
     range: quote?.yearLow != null && quote?.yearHigh != null ? `${quote.yearLow}-${quote.yearHigh}` : '',
-    dataSource: 'eastmoney',
+    dataSource: quote?.source === 'sina' ? 'sina' : quote?.source === 'eastmoney' ? 'eastmoney' : barsSource ?? cn.source ?? 'eastmoney',
   } as CompanyProfile & Record<string, any>;
 
-  const sources = ['东方财富 Eastmoney'];
-  if (yahooHasData(extras)) sources.push('Yahoo Finance');
+  const sources = new Set<string>();
+  if (quote?.source === 'eastmoney' || barsSource === 'eastmoney' || cn.source === 'eastmoney' || survey) sources.add(SOURCE_LABELS.eastmoney);
+  if (quote?.source === 'sina' || cn.source === 'sina') sources.add(SOURCE_LABELS.sina);
+  if (barsSource === 'tencent') sources.add(SOURCE_LABELS.tencent);
+  if (yahooHasData(extras)) sources.add(SOURCE_LABELS.yahoo);
 
   return {
     symbol,
     market: 'CN',
     period,
     profile,
-    quote: quote ? quoteFromEastmoney(symbol, quote, 'CN', 'CNY', exchange.full) : null,
+    quote: unified ? quoteRecord(symbol, unified, 'CNY', exchange.full) : null,
     fundamentals,
-    priceHistory: bars.length > 0 ? bars : buildPriceHistory(extras.chart),
+    priceHistory: bars,
     tradingCurrency: 'CNY',
-    marketCap: quote?.marketCap ?? null,
-    sharesOutstanding: quote?.totalShares ?? null,
-    fallbackStats: quoteStats(quote),
+    marketCap,
+    sharesOutstanding: shares,
+    fallbackStats: quoteStats(unified),
     dcf: null,
     extras,
-    sources,
+    sources: Array.from(sources),
   };
 }
 
 // ==================== 港股 ====================
 
 async function buildHongKong(symbol: string, period: 'annual' | 'quarter', trace: Trace): Promise<Assembly | null> {
-  const [marketData, hkProfile, bundle, extras] = await Promise.all([
-    fetchEastmoneyMarket(trace, symbol, 'HK'),
-    trace.run('Eastmoney', 'HK profile', () => em.getHkProfile(symbol), null),
-    trace.run('Eastmoney', 'HK statements', () => em.getHkStatements(symbol), null),
+  const [market, hkProfile, bundle, extras] = await Promise.all([
+    fetchCnHkMarket(trace, symbol, 'HK'),
+    trace.run('Eastmoney', 'HK profile', () => em.getHkProfile(symbol), null, 10_000),
+    trace.run('Eastmoney', 'HK statements', () => em.getHkStatements(symbol), null, {
+      deadlineMs: 20_000,
+      isEmpty: (b) => !b || b.income.length === 0,
+      detail: (b) => (b ? `periods=${b.periods.length} rows=${b.income.length}/${b.balance.length}/${b.cashflow.length}` : undefined),
+    }),
     fetchYahooExtras(trace, symbol),
   ]);
-  const { quote, bars } = marketData;
+  const { quote, barsSource } = market;
+  const bars = market.bars.length > 0 ? market.bars : buildPriceHistory(extras.chart);
 
   let fundamentals = emptyFundamentals();
   if (bundle) {
@@ -578,12 +836,20 @@ async function buildHongKong(symbol: string, period: 'annual' | 'quarter', trace
     };
   }
 
-  if (!quote && fundamentals.incomeAnnual.length === 0) return null;
+  if (!quote && bars.length === 0 && fundamentals.incomeAnnual.length === 0) return null;
+
+  let name = quote?.name || hkProfile?.name || '';
+  if (!name) {
+    const code = symbol.split('.')[0].replace(/^0+/, '');
+    const hits = await trace.run('Eastmoney', 'search (name)', () => em.search(code, 5), [] as em.EastmoneySearchHit[], 6_000);
+    name = hits.find((h) => h.market === 'HK' && h.code.replace(/^0+/, '') === code)?.name || '';
+  }
 
   const price = quote?.price ?? bars[0]?.close ?? 0;
+  const marketCap = quote?.marketCap ?? null;
   const profile = {
-    ...profileBase(symbol, price, quote?.change ?? 0, quote?.changePercent ?? 0, quote?.marketCap ?? 0, 'HKD'),
-    companyName: quote?.name || hkProfile?.name || symbol,
+    ...profileBase(symbol, price, quote?.change ?? 0, quote?.changePercent ?? 0, marketCap ?? 0, 'HKD'),
+    companyName: name || symbol,
     companyNameFull: hkProfile?.name || '',
     companyNameEn: hkProfile?.nameEn || '',
     industry: hkProfile?.industry || quote?.industry || '',
@@ -601,27 +867,29 @@ async function buildHongKong(symbol: string, period: 'annual' | 'quarter', trace
     reportedCurrency: fundamentals.reportedCurrency || 'HKD',
     volume: quote?.volume ?? null,
     range: quote?.yearLow != null && quote?.yearHigh != null ? `${quote.yearLow}-${quote.yearHigh}` : '',
-    dataSource: 'eastmoney',
+    dataSource: quote?.source === 'eastmoney' ? 'eastmoney' : barsSource ?? 'eastmoney',
   } as CompanyProfile & Record<string, any>;
 
-  const sources = ['东方财富 Eastmoney'];
-  if (yahooHasData(extras)) sources.push('Yahoo Finance');
+  const sources = new Set<string>();
+  if (quote?.source === 'eastmoney' || barsSource === 'eastmoney' || bundle || hkProfile) sources.add(SOURCE_LABELS.eastmoney);
+  if (barsSource === 'tencent') sources.add(SOURCE_LABELS.tencent);
+  if (yahooHasData(extras)) sources.add(SOURCE_LABELS.yahoo);
 
   return {
     symbol,
     market: 'HK',
     period,
     profile,
-    quote: quote ? quoteFromEastmoney(symbol, quote, 'HK', 'HKD', '香港交易所') : null,
+    quote: quote ? quoteRecord(symbol, { ...quote, name: name || quote.name }, 'HKD', '香港交易所') : null,
     fundamentals,
-    priceHistory: bars.length > 0 ? bars : buildPriceHistory(extras.chart),
+    priceHistory: bars,
     tradingCurrency: 'HKD',
-    marketCap: quote?.marketCap ?? null,
+    marketCap,
     sharesOutstanding: quote?.totalShares ?? null,
     fallbackStats: quoteStats(quote),
     dcf: null,
     extras,
-    sources,
+    sources: Array.from(sources),
   };
 }
 
@@ -647,6 +915,14 @@ function fmpBars(rows: any[]): PriceBar[] {
   return bars.sort((a, b) => b.date.localeCompare(a.date));
 }
 
+/** 美股：东方财富行情与日 K（交易所未知，按 NASDAQ / NYSE / AMEX 三个 secid 依次匹配） */
+async function fetchUsEastmoneyMarket(trace: Trace, symbol: string): Promise<{ quote: em.EastmoneyQuote | null; bars: PriceBar[] }> {
+  const quote = await trace.run('Eastmoney', 'quote', () => em.resolveQuote(symbol, 'US'), null, 12_000);
+  if (!quote) return { quote: null, bars: [] };
+  const kline = await trace.run('Eastmoney', 'kline', () => em.getDailyKline(quote.secid, 5), [] as em.EastmoneyBar[], 15_000);
+  return { quote, bars: emBarsToPriceBars(kline, 'US') };
+}
+
 async function buildUnitedStates(symbol: string, period: 'annual' | 'quarter', trace: Trace): Promise<Assembly | null> {
   const apiKey = process.env.FMP_API_KEY;
   const fmp = apiKey ? new FMPClient(apiKey) : null;
@@ -658,7 +934,7 @@ async function buildUnitedStates(symbol: string, period: 'annual' | 'quarter', t
     trace.run('SEC EDGAR', 'companyfacts', () => getSecStatements(symbol), null),
     trace.run('SEC EDGAR', 'submissions', () => getSecSubmissions(symbol), null),
     fmp ? trace.run('FMP', 'profile', () => fmp.getProfile(fmpSymbol).then((rows) => (Array.isArray(rows) ? rows[0] ?? null : null)), null) : Promise.resolve(null),
-    fetchEastmoneyMarket(trace, symbol, 'US'),
+    fetchUsEastmoneyMarket(trace, symbol),
     fmp ? trace.run('FMP', 'dcf', () => fmp.getDCF(fmpSymbol).then((rows) => (Array.isArray(rows) ? rows[0] ?? null : null)), null) : Promise.resolve(null),
     fetchYahooExtras(trace, yahooSymbol),
   ]);
@@ -764,7 +1040,7 @@ async function buildUnitedStates(symbol: string, period: 'annual' | 'quarter', t
 
   let usQuote: Record<string, any> | null = null;
   if (quote) {
-    usQuote = quoteFromEastmoney(symbol, quote, 'US', 'USD', profile.exchangeFullName);
+    usQuote = quoteRecord(symbol, fromEastmoneyQuote(quote, 'US'), 'USD', profile.exchangeFullName);
     sources.push('东方财富 Eastmoney');
   } else if (fmpProfile || fmpQuote) {
     const src = fmpQuote ?? fmpProfile;
@@ -878,7 +1154,7 @@ const reportCache = new Map<string, { data: ReportData; expiresAt: number }>();
 const inflight = new Map<string, Promise<ReportData>>();
 
 export async function fetchReportData(options: FetchOptions): Promise<ReportData> {
-  const market = options.market || detectMarketFromSymbol(options.symbol);
+  const market = resolveMarket(options.symbol, options.market);
   const symbol = normalizeSymbol(options.symbol, market);
   const period = options.period || 'annual';
   const key = `${market}:${symbol}:${period}`;
@@ -901,12 +1177,52 @@ export async function fetchReportData(options: FetchOptions): Promise<ReportData
   return task;
 }
 
+const WELL_FORMED: Partial<Record<MarketType, RegExp>> = {
+  CN: /^\d{6}\.(SS|SZ|BJ)$/,
+  HK: /^\d{4,5}\.HK$/,
+  US: /^[A-Z][A-Z0-9.-]{0,9}$/,
+};
+
+/**
+ * 所有数据源都没拿到数据时，区分「代码不存在」(404) 与「数据源不可用」(502，可重试)。
+ * 东方财富等对部分服务器出口返回 HTTP 200 + 空数据，不能据此断定公司不存在：
+ * A 股 / 港股用东方财富搜索做存在性校验，搜索确认不存在才返回 404。
+ */
+async function classifyMissing(symbol: string, market: MarketType, trace: Trace): Promise<MarketDataError> {
+  const config = getMarketConfig(market);
+  const formatHint = market === 'US' ? '请检查股票代码是否正确' : `${config.nameCn}市场请使用格式：${config.symbolExample}`;
+  const notFound = () => new MarketDataError(`未找到该公司信息（${symbol}）。${formatHint}`, trace, true);
+  const unavailable = () =>
+    new MarketDataError(`${config.nameCn}行情数据源暂时无法获取数据（${trace.failureSummary() || '均返回空数据'}），请稍后重试`, trace, false);
+
+  const pattern = WELL_FORMED[market];
+  if (pattern && !pattern.test(symbol)) return notFound();
+
+  if (market === 'CN' || market === 'HK') {
+    const code = symbol.split('.')[0].replace(/^0+/, '');
+    const hits = await trace.run('Eastmoney', 'search (existence)', () => em.search(code, 10), null as em.EastmoneySearchHit[] | null, 6_000);
+    const listed = !!hits?.some((h) => h.market === market && h.code.replace(/^0+/, '') === code);
+    // 搜索正常返回且明确不包含该代码 → 不存在
+    if (hits && hits.length > 0 && !listed) return notFound();
+    // 所有数据源都正常应答且搜索也查无此码 → 不存在；其余情况（含搜索被屏蔽）按数据源故障处理
+    if (hits && hits.length === 0 && !trace.coreFailed) return notFound();
+    return unavailable();
+  }
+
+  if (trace.coreFailed || (market !== 'US' && trace.anyFailed)) return unavailable();
+  return notFound();
+}
+
 /** 不走缓存、同时返回调用追踪（诊断接口使用） */
 export async function fetchReportDataTraced(options: FetchOptions): Promise<{ data: ReportData; trace: Trace }> {
-  const market = options.market || detectMarketFromSymbol(options.symbol);
+  const market = resolveMarket(options.symbol, options.market);
   const symbol = normalizeSymbol(options.symbol, market);
   const period = options.period || 'annual';
   const trace = new Trace();
+
+  // 格式不合法的代码不必请求任何数据源
+  const pattern = WELL_FORMED[market];
+  if (pattern && !pattern.test(symbol)) throw await classifyMissing(symbol, market, trace);
 
   let assembly: Assembly | null;
   switch (market) {
@@ -924,15 +1240,7 @@ export async function fetchReportDataTraced(options: FetchOptions): Promise<{ da
   }
 
   if (!assembly) {
-    const config = getMarketConfig(market);
-    // 有数据源报错 → 上游故障（可重试）；全部正常返回但为空 → 代码不存在
-    const upstreamFailed = trace.attempts.some((a) => !a.ok && a.provider !== 'Yahoo Finance') ||
-      (market !== 'US' && market !== 'CN' && market !== 'HK' && trace.anyFailed);
-    if (upstreamFailed) {
-      throw new MarketDataError(`行情数据源暂时无法访问（${trace.failureSummary()}），请稍后重试`, trace, false);
-    }
-    const hint = market === 'US' ? '请检查股票代码是否正确' : `${config.nameCn}市场请使用格式：${config.symbolExample}`;
-    throw new MarketDataError(`未找到该公司信息（${symbol}）。${hint}`, trace, true);
+    throw await classifyMissing(symbol, market, trace);
   }
 
   const reportedCurrency = assembly.fundamentals.reportedCurrency || assembly.tradingCurrency;
@@ -954,18 +1262,19 @@ export interface QuoteWithHistory {
 
 const RANGE_DAYS: Partial<Record<yahoo.ChartRange, number>> = { '5d': 7, '1mo': 31, '3mo': 92, '6mo': 183, '1y': 366, '2y': 731, '5y': 1827 };
 
-/** 东方财富（A 股 / 港股 / 美股）优先，失败或其他市场走 Yahoo chart。 */
+/** 东方财富（A 股 / 港股 / 美股）优先；A 股 / 港股再试腾讯日 K；其余或全部失败时走 Yahoo chart。 */
 export async function fetchQuoteWithHistory(symbol: string, range: yahoo.ChartRange = '1mo'): Promise<QuoteWithHistory> {
   const market = detectMarketFromSymbol(symbol);
   const days = RANGE_DAYS[range] ?? 31;
+  const cutoff = Date.now() - days * DAY_MS;
+  const config = getMarketConfig(market);
 
   if (market === 'CN' || market === 'HK' || market === 'US') {
+    const normalized = normalizeSymbol(symbol, market);
     try {
-      const normalized = normalizeSymbol(symbol, market);
       const q = await em.resolveQuote(normalized, market);
       if (q) {
         const bars = await em.getDailyKline(q.secid, Math.max(1, Math.ceil(days / 365))).catch(() => [] as em.EastmoneyBar[]);
-        const cutoff = Date.now() - days * DAY_MS;
         const history = bars.filter((b) => Date.parse(b.date) >= cutoff).map((b) => ({ date: b.date, close: b.close }));
         return {
           symbol,
@@ -976,18 +1285,44 @@ export async function fetchQuoteWithHistory(symbol: string, range: yahoo.ChartRa
             change: q.change,
             changePercentage: q.changePercent,
             changesPercentage: q.changePercent,
-            currency: getMarketConfig(market).currency,
+            currency: config.currency,
             exchange: market === 'CN' ? 'SSE/SZSE' : market === 'HK' ? 'HKEX' : 'US',
             yearHigh: q.yearHigh,
             yearLow: q.yearLow,
             marketCap: q.marketCap,
-            volume: q.volume != null ? q.volume * (market === 'CN' ? 100 : 1) : null,
+            volume: q.volume != null ? q.volume * lotSize(market) : null,
           },
           history,
         };
       }
     } catch (error: any) {
       console.warn(`[market-data] Eastmoney quote failed for ${symbol}: ${describeError(error)}`);
+    }
+
+    if (market === 'CN' || market === 'HK') {
+      try {
+        const bars = tencentBarsToPriceBars(await tencent.getTencentDailyBars(normalized, market, Math.max(1, Math.ceil(days / 365))));
+        const derived = quoteFromBars(bars);
+        if (derived) {
+          return {
+            symbol,
+            quote: {
+              symbol,
+              name: symbol,
+              price: derived.price,
+              change: derived.change,
+              changePercentage: derived.changePercent,
+              changesPercentage: derived.changePercent,
+              currency: config.currency,
+              exchange: market === 'CN' ? 'SSE/SZSE' : 'HKEX',
+              volume: derived.volume,
+            },
+            history: bars.filter((b) => Date.parse(b.date) >= cutoff).map((b) => ({ date: b.date, close: b.close })),
+          };
+        }
+      } catch (error: any) {
+        console.warn(`[market-data] Tencent kline failed for ${symbol}: ${describeError(error)}`);
+      }
     }
   }
 

@@ -4,6 +4,9 @@ import { search as yahooSearch, type YahooSearchQuote } from '@/lib/yahoo/client
 import { search as eastmoneySearch, type EastmoneySearchHit } from '@/lib/providers/eastmoney';
 import { formatSymbolForMarket, type MarketType } from '@/lib/markets';
 
+// 行情数据源在香港区域访问更稳定（见 report-data/route.ts）
+export const preferredRegion = 'hkg1';
+
 type Suggestion = { symbol: string; market: MarketType; name: string; nameCn: string; confidence?: number };
 
 const REMOTE_DEADLINE_MS = 4_000;

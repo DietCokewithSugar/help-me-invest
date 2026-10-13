@@ -1,3 +1,5 @@
+// 市场配置与股票代码工具：市场识别、后缀补全、代码规范化
+
 // 支持的市场类型
 export type MarketType = 'US' | 'CN' | 'HK' | 'JP' | 'KR' | 'AU';
 
@@ -140,9 +142,13 @@ export const MARKET_CONFIGS: Record<MarketType, MarketConfig> = {
   },
 };
 
+// A 股交易所前缀写法（SH600519 / SZ000001 / BJ430017）→ 站内后缀
+const CN_PREFIX_SUFFIX: Record<string, string> = { SH: 'SS', SZ: 'SZ', BJ: 'BJ' };
+const CN_PREFIXED = /^(SH|SZ|BJ)(\d{6})$/;
+
 // 根据股票代码检测市场类型
 export function detectMarketFromSymbol(symbol: string): MarketType {
-  const upperSymbol = symbol.toUpperCase();
+  const upperSymbol = symbol.trim().toUpperCase();
   
   if (upperSymbol.endsWith('.SS') || upperSymbol.endsWith('.SZ') || upperSymbol.endsWith('.SH') || upperSymbol.endsWith('.BJ')) {
     return 'CN';
@@ -159,6 +165,10 @@ export function detectMarketFromSymbol(symbol: string): MarketType {
   if (upperSymbol.endsWith('.AX')) {
     return 'AU';
   }
+  // 无后缀：6 位纯数字或带 SH/SZ/BJ 前缀视为 A 股；4-5 位数字不猜港股/日股
+  if (/^\d{6}$/.test(upperSymbol) || CN_PREFIXED.test(upperSymbol)) {
+    return 'CN';
+  }
   
   // 默认美股
   return 'US';
@@ -168,14 +178,19 @@ export function detectMarketFromSymbol(symbol: string): MarketType {
 export function formatSymbolForMarket(symbol: string, market: MarketType): string {
   const upperSymbol = symbol.toUpperCase().trim();
   
-  // 如果已经有后缀，直接返回
+  // 如果已经有后缀，直接返回（上交所 .SH 统一为 .SS）
   if (upperSymbol.includes('.')) {
-    return upperSymbol;
+    return /^\d{6}\.SH$/.test(upperSymbol) ? upperSymbol.replace(/\.SH$/, '.SS') : upperSymbol;
   }
   
   // 根据市场添加后缀
   switch (market) {
-    case 'CN':
+    case 'CN': {
+      // 交易所前缀写法：SH600519 → 600519.SS
+      const prefixed = upperSymbol.match(CN_PREFIXED);
+      if (prefixed) {
+        return `${prefixed[2]}.${CN_PREFIX_SUFFIX[prefixed[1]]}`;
+      }
       // A 股需要根据代码判断是上交所还是深交所
       // 6 开头的是上交所，0/3 开头的是深交所
       if (upperSymbol.startsWith('6')) {
@@ -188,6 +203,7 @@ export function formatSymbolForMarket(symbol: string, market: MarketType): strin
       }
       // 默认返回原始代码
       return upperSymbol;
+    }
     case 'HK':
       return `${upperSymbol}.HK`;
     case 'JP':
@@ -202,6 +218,31 @@ export function formatSymbolForMarket(symbol: string, market: MarketType): strin
     default:
       return upperSymbol;
   }
+}
+
+/**
+ * 把用户输入 / URL 中的代码统一成站内标准写法（请求、缓存、搜索记录共用）：
+ * - A 股：600519 / SH600519 / 600519.SH → 600519.SS，SZ000001 → 000001.SZ，BJ430017 → 430017.BJ
+ * - 港股：00700.HK / 700.HK → 0700.HK（去前导零后补足 4 位）
+ * - 其余市场与 formatSymbolForMarket 一致；market 省略时按代码推断
+ */
+export function canonicalizeSymbol(input: string, market?: MarketType): string {
+  const upperSymbol = input.trim().toUpperCase();
+  if (!upperSymbol) return '';
+
+  // 交易所前缀是明确的 A 股写法，与 market 提示无关
+  const prefixed = upperSymbol.match(CN_PREFIXED);
+  if (prefixed) {
+    return `${prefixed[2]}.${CN_PREFIX_SUFFIX[prefixed[1]]}`;
+  }
+
+  const formatted = formatSymbolForMarket(upperSymbol, market ?? detectMarketFromSymbol(upperSymbol));
+
+  const hk = formatted.match(/^(\d{1,5})\.HK$/);
+  if (hk) {
+    return `${hk[1].replace(/^0+(?=\d)/, '').padStart(4, '0')}.HK`;
+  }
+  return formatted;
 }
 
 // 获取市场配置
